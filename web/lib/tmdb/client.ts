@@ -74,6 +74,27 @@ export interface TMDBSearchResult {
   total_results: number;
 }
 
+export interface TMDBCredits {
+  id: number;
+  cast: Array<{
+    id: number;
+    name: string;
+    character: string;
+    profile_path: string | null;
+    order: number;
+    gender: number;
+    known_for_department: string;
+  }>;
+  crew: Array<{
+    id: number;
+    name: string;
+    job: string;
+    department: string;
+    profile_path: string | null;
+    gender: number;
+  }>;
+}
+
 class TMDBClient {
   private apiKey: string;
 
@@ -123,6 +144,13 @@ class TMDBClient {
   }
 
   /**
+   * Get credits (cast and crew) for a movie
+   */
+  async getMovieCredits(tmdbId: number): Promise<TMDBCredits> {
+    return this.fetch<TMDBCredits>(`/movie/${tmdbId}/credits`);
+  }
+
+  /**
    * Get the full URL for a TMDB image
    * @param path - The image path from TMDB (e.g., "/abc123.jpg")
    * @param size - Image size (w500, w780, original, etc.)
@@ -144,6 +172,10 @@ export const tmdbClient = {
   searchMovies: (query: string, page?: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();
     return _tmdbClient.searchMovies(query, page);
+  },
+  getMovieCredits: (tmdbId: number) => {
+    if (!_tmdbClient) _tmdbClient = new TMDBClient();
+    return _tmdbClient.getMovieCredits(tmdbId);
   },
   getImageUrl: (path: string | null, size?: 'w500' | 'w780' | 'original') => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();

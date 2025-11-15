@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Movie } from '@/lib/types';
 import { getLocalizedText } from '@/lib/i18n';
+import { getPosterUrl } from '@/lib/images';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Clock, Star } from 'lucide-react';
@@ -14,14 +15,15 @@ interface MovieCardProps {
 export function MovieCard({ movie, language = 'lo' }: MovieCardProps) {
   const title = getLocalizedText(movie.title, language);
   const titleEn = getLocalizedText(movie.title, 'en');
+  const posterUrl = getPosterUrl(movie.poster_path, 'medium');
   
   return (
     <Link href={`/movies/${movie.id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
         <div className="relative aspect-[2/3] overflow-hidden bg-gray-200">
-          {movie.poster_path ? (
+          {posterUrl ? (
             <Image
-              src={movie.poster_path}
+              src={posterUrl}
               alt={title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"

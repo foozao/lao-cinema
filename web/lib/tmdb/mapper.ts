@@ -1,8 +1,8 @@
 // Map TMDB API responses to our Movie schema
 
-import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection } from '../types';
+import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember } from '../types';
 import { createLocalizedText } from '../i18n';
-import { TMDBMovieDetails } from './client';
+import { TMDBMovieDetails, TMDBCredits } from './client';
 
 /**
  * Map TMDB movie details to our Movie schema
@@ -15,8 +15,9 @@ import { TMDBMovieDetails } from './client';
  */
 export function mapTMDBToMovie(
   tmdbData: TMDBMovieDetails,
+  credits?: TMDBCredits,
   existingMovie?: Partial<Movie>
-): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources' | 'cast' | 'crew'> {
+): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources'> {
   // Map genres
   const genres: Genre[] = tmdbData.genres.map((g) => ({
     id: g.id,
@@ -53,6 +54,27 @@ export function mapTMDBToMovie(
         backdrop_path: tmdbData.belongs_to_collection.backdrop_path || undefined,
       }
     : null;
+
+  // Map cast (top 20 actors)
+  const cast: CastMember[] = credits?.cast.slice(0, 20).map((c) => ({
+    id: c.id,
+    name: createLocalizedText(c.name, undefined), // English only, Lao added manually
+    character: createLocalizedText(c.character, undefined),
+    profile_path: c.profile_path || undefined,
+    order: c.order,
+  })) || [];
+
+  // Map crew (directors, writers, producers)
+  const importantJobs = ['Director', 'Writer', 'Screenplay', 'Producer', 'Executive Producer', 'Director of Photography', 'Original Music Composer'];
+  const crew: CrewMember[] = credits?.crew
+    .filter((c) => importantJobs.includes(c.job))
+    .map((c) => ({
+      id: c.id,
+      name: createLocalizedText(c.name, undefined),
+      job: createLocalizedText(c.job, undefined),
+      department: c.department,
+      profile_path: c.profile_path || undefined,
+    })) || [];
 
   // Preserve existing Lao translations if available
   const existingLaoTitle = existingMovie?.title?.lo;
@@ -98,6 +120,10 @@ export function mapTMDBToMovie(
     production_countries,
     spoken_languages,
     belongs_to_collection,
+
+    // People
+    cast,
+    crew,
   };
 }
 

@@ -50,9 +50,10 @@ export default function ImportFromTMDBPage() {
       }
 
       const tmdbData = result.data;
+      const credits = result.credits;
       
-      // Map to our schema
-      const mappedMovie = mapTMDBToMovie(tmdbData);
+      // Map to our schema (including cast/crew)
+      const mappedMovie = mapTMDBToMovie(tmdbData, credits);
       
       // Check for missing translations
       const missingTranslations = getMissingTranslations(mappedMovie);
@@ -261,6 +262,30 @@ export default function ImportFromTMDBPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Cast & Crew */}
+              {preview.mappedMovie.cast && preview.mappedMovie.cast.length > 0 && (
+                <div>
+                  <span className="text-sm text-gray-600 font-medium">Cast:</span>
+                  <p className="text-sm mt-1">
+                    {preview.mappedMovie.cast.slice(0, 5).map((c) => c.name.en).join(', ')}
+                    {preview.mappedMovie.cast.length > 5 && ` and ${preview.mappedMovie.cast.length - 5} more`}
+                  </p>
+                </div>
+              )}
+
+              {preview.mappedMovie.crew && preview.mappedMovie.crew.length > 0 && (
+                <div>
+                  <span className="text-sm text-gray-600 font-medium">Crew:</span>
+                  <div className="text-sm mt-1 space-y-1">
+                    {preview.mappedMovie.crew.slice(0, 5).map((c) => (
+                      <div key={c.id}>
+                        <strong>{c.name.en}</strong> - {c.job.en}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>

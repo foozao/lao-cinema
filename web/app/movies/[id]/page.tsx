@@ -1,24 +1,55 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { movies } from '@/lib/data/movies';
 import { getLocalizedText } from '@/lib/i18n';
+import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock, Star, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Star, Users, Play } from 'lucide-react';
+import { movieAPI } from '@/lib/api/client';
+import type { Movie } from '@/lib/types';
 
-interface MoviePageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+export default function MoviePage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+  
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isWatching, setIsWatching] = useState(false);
 
-export default async function MoviePage({ params }: MoviePageProps) {
-  const { id } = await params;
-  const movie = movies.find((m) => m.id === id);
+  useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const data = await movieAPI.getById(id);
+        setMovie(data);
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMovie();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   if (!movie) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
+        <p>Movie not found</p>
+      </div>
+    );
   }
 
   // Get the primary video source (prefer HLS, fallback to MP4)
@@ -32,6 +63,10 @@ export default async function MoviePage({ params }: MoviePageProps) {
   const titleEn = getLocalizedText(movie.title, 'en');
   const overview = getLocalizedText(movie.overview, language);
   const overviewEn = getLocalizedText(movie.overview, 'en');
+  
+  // Get image URLs
+  const backdropUrl = getBackdropUrl(movie.backdrop_path, 'large');
+  const posterUrl = getPosterUrl(movie.poster_path, 'large');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
@@ -49,13 +84,45 @@ export default async function MoviePage({ params }: MoviePageProps) {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Video Player */}
+        {/* Hero Section / Video Player */}
         <section className="mb-8">
-          <VideoPlayer
-            src={videoSource.url}
-            poster={movie.backdrop_path || movie.poster_path}
-            title={title}
-          />
+          {isWatching && videoSource ? (
+            <VideoPlayer
+              src={videoSource.url}
+              poster={backdropUrl || posterUrl || undefined}
+              title={title}
+            />
+          ) : (
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-900">
+              {/* Backdrop Image */}
+              {backdropUrl && (
+                <img
+                  src={backdropUrl}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent flex items-end">
+                <div className="p-8 w-full">
+                  <h1 className="text-5xl font-bold mb-4">{title}</h1>
+                  <p className="text-xl text-gray-300 mb-6 max-w-3xl line-clamp-3">
+                    {overview}
+                  </p>
+                  <Button
+                    size="lg"
+                    onClick={() => setIsWatching(true)}
+                    className="gap-2"
+                    disabled={!videoSource}
+                  >
+                    <Play className="w-5 h-5" />
+                    Watch Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Movie Info */}
@@ -102,9 +169,12 @@ export default async function MoviePage({ params }: MoviePageProps) {
               <p className="text-gray-300 leading-relaxed mb-4">
                 {overview}
               </p>
-              <p className="text-gray-400 leading-relaxed text-sm">
-                {overviewEn}
-              </p>
+              {/* Only show English version if it's different from the displayed language */}
+              {language !== 'en' && overview !== overviewEn && (
+                <p className="text-gray-400 leading-relaxed text-sm">
+                  {overviewEn}
+                </p>
+              )}
             </div>
 
             {/* Cast */}
@@ -114,23 +184,46 @@ export default async function MoviePage({ params }: MoviePageProps) {
                   <Users className="w-5 h-5" />
                   Cast
                 </h3>
-                <div className="space-y-3">
-                  {movie.cast.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {movie.cast.slice(0, 10).map((member, index) => {
+                    const profileUrl = getProfileUrl(member.profile_path, 'small');
+                    const memberName = getLocalizedText(member.name, 'en');
+                    return (
+                      <Link
+                        key={`cast-${member.id}-${index}`}
+                        href={`/people/${member.id}`}
+                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
+                      >
+                        {profileUrl ? (
+                          <img
+                            src={profileUrl}
+                            alt={memberName}
+                            className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <span className="text-2xl font-bold text-gray-400">
+                              {memberName.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
                           {getLocalizedText(member.name, language)}
                         </p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-gray-400 truncate">
                           as {getLocalizedText(member.character, language)}
                         </p>
                       </div>
-                    </div>
-                  ))}
+                    </Link>
+                    );
+                  })}
                 </div>
+                {movie.cast.length > 10 && (
+                  <p className="text-sm text-gray-400 mt-3">
+                    + {movie.cast.length - 10} more cast members
+                  </p>
+                )}
               </div>
             )}
 
@@ -138,17 +231,40 @@ export default async function MoviePage({ params }: MoviePageProps) {
             {movie.crew.length > 0 && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">Crew</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {movie.crew.map((member) => (
-                    <div key={member.id} className="p-3 bg-gray-800/50 rounded-lg">
-                      <p className="font-medium">
-                        {getLocalizedText(member.name, language)}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        {getLocalizedText(member.job, language)}
-                      </p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {movie.crew.map((member, index) => {
+                    const profileUrl = getProfileUrl(member.profile_path, 'small');
+                    const memberName = getLocalizedText(member.name, 'en');
+                    return (
+                      <Link
+                        key={`crew-${member.id}-${index}`}
+                        href={`/people/${member.id}`}
+                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
+                      >
+                        {profileUrl ? (
+                          <img
+                            src={profileUrl}
+                            alt={memberName}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg font-bold text-gray-400">
+                              {memberName.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {getLocalizedText(member.name, language)}
+                        </p>
+                        <p className="text-sm text-gray-400 truncate">
+                          {getLocalizedText(member.job, language)}
+                        </p>
+                      </div>
+                    </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -157,10 +273,10 @@ export default async function MoviePage({ params }: MoviePageProps) {
           {/* Sidebar */}
           <div className="md:col-span-1">
             {/* Poster */}
-            {movie.poster_path && (
+            {posterUrl && (
               <div className="aspect-[2/3] relative rounded-lg overflow-hidden mb-6 bg-gray-800">
                 <img
-                  src={movie.poster_path}
+                  src={posterUrl}
                   alt={title}
                   className="w-full h-full object-cover"
                 />

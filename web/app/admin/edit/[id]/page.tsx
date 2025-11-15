@@ -115,9 +115,10 @@ export default function EditMoviePage() {
       }
 
       const tmdbData = result.data;
+      const credits = result.credits;
       
       // Map to our schema, preserving Lao translations
-      const syncedData = mapTMDBToMovie(tmdbData, currentMovie);
+      const syncedData = mapTMDBToMovie(tmdbData, credits, currentMovie);
 
       // Update form with synced data (preserving Lao fields)
       setFormData((prev) => ({
@@ -525,6 +526,80 @@ export default function EditMoviePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Cast & Crew */}
+          {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Cast & Crew</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Cast */}
+                {currentMovie.cast.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Cast ({currentMovie.cast.length})</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {currentMovie.cast.slice(0, 10).map((member) => (
+                        <div key={member.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          {member.profile_path && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
+                              alt={getLocalizedText(member.name, 'en')}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {getLocalizedText(member.name, 'en')}
+                            </p>
+                            <p className="text-xs text-gray-600 truncate">
+                              as {getLocalizedText(member.character, 'en')}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {currentMovie.cast.length > 10 && (
+                      <p className="text-sm text-gray-600 mt-2">
+                        + {currentMovie.cast.length - 10} more cast members
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Crew */}
+                {currentMovie.crew.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Crew ({currentMovie.crew.length})</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {currentMovie.crew.map((member) => (
+                        <div key={`${member.id}-${member.job}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          {member.profile_path && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
+                              alt={getLocalizedText(member.name, 'en')}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {getLocalizedText(member.name, 'en')}
+                            </p>
+                            <p className="text-xs text-gray-600 truncate">
+                              {getLocalizedText(member.job, 'en')}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {member.department}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4">
