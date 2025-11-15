@@ -13,8 +13,10 @@ export const genres: Genre[] = [
 // Sample movie data
 export const sampleMovie: Movie = {
   id: '1',
-  tmdb_id: undefined,
+  tmdb_id: undefined, // Add a TMDB ID here to enable sync (e.g., 550 for Fight Club)
   imdb_id: undefined,
+  tmdb_last_synced: undefined,
+  tmdb_sync_enabled: false,
   
   // Localized fields
   title: createLocalizedText('Sample Lao Film', 'ຮູບເງົາລາວ'),
@@ -22,8 +24,13 @@ export const sampleMovie: Movie = {
     'A beautiful story set in Laos, showcasing the rich culture and traditions of the Lao people.',
     'ເລື່ອງລາວທີ່ງົດງາມ, ສະແດງໃຫ້ເຫັນວັດທະນະທໍາ ແລະ ປະເພນີອັນອຸດົມສົມບູນຂອງຊາວລາວ.'
   ),
+  tagline: createLocalizedText(
+    'A journey through the heart of Laos',
+    'ການເດີນທາງຜ່ານຫົວໃຈຂອງລາວ'
+  ),
   
   original_title: 'Sample Lao Film',
+  original_language: 'lo',
   
   // Media
   poster_path: undefined, // Add your poster image to /public and update this path
@@ -36,6 +43,14 @@ export const sampleMovie: Movie = {
   vote_count: 100,
   popularity: 75.5,
   adult: false,
+  video: true,
+  
+  // Production details
+  budget: 500000, // $500k USD
+  revenue: 1200000, // $1.2M USD
+  status: 'Released',
+  homepage: undefined,
+  belongs_to_collection: null,
   
   // Video sources - placeholder for now
   video_sources: [
@@ -50,6 +65,32 @@ export const sampleMovie: Movie = {
   
   // Relationships
   genres: [genres[0], genres[1]], // Drama, Romance
+  production_companies: [
+    {
+      id: 1,
+      name: 'Lao Cinema Productions',
+      logo_path: undefined,
+      origin_country: 'LA',
+    },
+  ],
+  production_countries: [
+    {
+      iso_3166_1: 'LA',
+      name: 'Laos',
+    },
+  ],
+  spoken_languages: [
+    {
+      iso_639_1: 'lo',
+      english_name: 'Lao',
+      name: 'ພາສາລາວ',
+    },
+    {
+      iso_639_1: 'en',
+      english_name: 'English',
+      name: 'English',
+    },
+  ],
   cast: [
     {
       id: 1,

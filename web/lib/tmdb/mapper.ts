@@ -1,0 +1,151 @@
+// Map TMDB API responses to our Movie schema
+
+import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection } from '../types';
+import { createLocalizedText } from '../i18n';
+import { TMDBMovieDetails } from './client';
+
+/**
+ * Map TMDB movie details to our Movie schema
+ * 
+ * Strategy:
+ * - English content comes from TMDB
+ * - Lao content is left empty for manual translation
+ * - Metadata (budget, revenue, etc.) is synced
+ * - Preserves existing Lao translations if provided
+ */
+export function mapTMDBToMovie(
+  tmdbData: TMDBMovieDetails,
+  existingMovie?: Partial<Movie>
+): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources' | 'cast' | 'crew'> {
+  // Map genres
+  const genres: Genre[] = tmdbData.genres.map((g) => ({
+    id: g.id,
+    name: createLocalizedText(g.name, undefined), // English only, Lao added manually
+  }));
+
+  // Map production companies
+  const production_companies: ProductionCompany[] = tmdbData.production_companies.map((pc) => ({
+    id: pc.id,
+    name: pc.name,
+    logo_path: pc.logo_path || undefined,
+    origin_country: pc.origin_country,
+  }));
+
+  // Map production countries
+  const production_countries: ProductionCountry[] = tmdbData.production_countries.map((pc) => ({
+    iso_3166_1: pc.iso_3166_1,
+    name: pc.name,
+  }));
+
+  // Map spoken languages
+  const spoken_languages: SpokenLanguage[] = tmdbData.spoken_languages.map((sl) => ({
+    iso_639_1: sl.iso_639_1,
+    english_name: sl.english_name,
+    name: sl.name,
+  }));
+
+  // Map collection if exists
+  const belongs_to_collection: Collection | null = tmdbData.belongs_to_collection
+    ? {
+        id: tmdbData.belongs_to_collection.id,
+        name: createLocalizedText(tmdbData.belongs_to_collection.name, undefined),
+        poster_path: tmdbData.belongs_to_collection.poster_path || undefined,
+        backdrop_path: tmdbData.belongs_to_collection.backdrop_path || undefined,
+      }
+    : null;
+
+  // Preserve existing Lao translations if available
+  const existingLaoTitle = existingMovie?.title?.lo;
+  const existingLaoOverview = existingMovie?.overview?.lo;
+  const existingLaoTagline = existingMovie?.tagline?.lo;
+
+  return {
+    // TMDB metadata
+    tmdb_id: tmdbData.id,
+    imdb_id: tmdbData.imdb_id || undefined,
+    tmdb_last_synced: new Date().toISOString(),
+    tmdb_sync_enabled: true,
+
+    // Localized content
+    title: createLocalizedText(tmdbData.title, existingLaoTitle),
+    overview: createLocalizedText(tmdbData.overview, existingLaoOverview),
+    tagline: tmdbData.tagline
+      ? createLocalizedText(tmdbData.tagline, existingLaoTagline)
+      : undefined,
+
+    // Basic info
+    original_title: tmdbData.original_title,
+    original_language: tmdbData.original_language,
+    poster_path: tmdbData.poster_path || undefined,
+    backdrop_path: tmdbData.backdrop_path || undefined,
+    release_date: tmdbData.release_date,
+    runtime: tmdbData.runtime || undefined,
+    vote_average: tmdbData.vote_average,
+    vote_count: tmdbData.vote_count,
+    popularity: tmdbData.popularity,
+    adult: tmdbData.adult,
+    video: tmdbData.video,
+
+    // Financial & status
+    budget: tmdbData.budget || undefined,
+    revenue: tmdbData.revenue || undefined,
+    status: mapTMDBStatus(tmdbData.status),
+    homepage: tmdbData.homepage || undefined,
+
+    // Relationships
+    genres,
+    production_companies,
+    production_countries,
+    spoken_languages,
+    belongs_to_collection,
+  };
+}
+
+/**
+ * Map TMDB status string to our typed status
+ */
+function mapTMDBStatus(
+  status: string
+): 'Rumored' | 'Planned' | 'In Production' | 'Post Production' | 'Released' | 'Canceled' {
+  const statusMap: Record<string, Movie['status']> = {
+    'Rumored': 'Rumored',
+    'Planned': 'Planned',
+    'In Production': 'In Production',
+    'Post Production': 'Post Production',
+    'Released': 'Released',
+    'Canceled': 'Canceled',
+  };
+
+  return statusMap[status] || 'Released';
+}
+
+/**
+ * Get a summary of what fields are missing translations
+ */
+export function getMissingTranslations(movie: Partial<Movie>): string[] {
+  const missing: string[] = [];
+
+  if (!movie.title?.lo) missing.push('Title (Lao)');
+  if (!movie.overview?.lo) missing.push('Overview (Lao)');
+  if (movie.tagline && !movie.tagline.lo) missing.push('Tagline (Lao)');
+
+  return missing;
+}
+
+/**
+ * Get fields that should be synced from TMDB
+ * (excludes Lao translations and custom content)
+ */
+export const SYNCABLE_FIELDS = [
+  'vote_average',
+  'vote_count',
+  'popularity',
+  'budget',
+  'revenue',
+  'runtime',
+  'status',
+  'poster_path',
+  'backdrop_path',
+] as const;
+
+export type SyncableField = typeof SYNCABLE_FIELDS[number];

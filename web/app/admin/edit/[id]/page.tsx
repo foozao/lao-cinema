@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle } from 'lucide-react';
+import { getLocalizedText } from '@/lib/i18n';
+import { mapTMDBToMovie } from '@/lib/tmdb';
+import type { Movie } from '@/lib/types';
+import { syncMovieFromTMDB } from './actions';
+import { movieAPI } from '@/lib/api/client';
 
-export default function AddMoviePage() {
+export default function EditMoviePage() {
   const router = useRouter();
+  const params = useParams();
+  const movieId = params.id as string;
+  
+  const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     // English fields
     title_en: '',
@@ -40,6 +51,45 @@ export default function AddMoviePage() {
     video_format: 'mp4',
   });
 
+  // Load movie data on mount
+  useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const movie = await movieAPI.getById(movieId);
+        setCurrentMovie(movie);
+        
+        setFormData({
+          title_en: getLocalizedText(movie.title, 'en'),
+          title_lo: getLocalizedText(movie.title, 'lo'),
+          overview_en: getLocalizedText(movie.overview, 'en'),
+          overview_lo: getLocalizedText(movie.overview, 'lo'),
+          tagline_en: movie.tagline ? getLocalizedText(movie.tagline, 'en') : '',
+          tagline_lo: movie.tagline ? getLocalizedText(movie.tagline, 'lo') : '',
+          original_title: movie.original_title || '',
+          original_language: movie.original_language || 'lo',
+          release_date: movie.release_date,
+          runtime: movie.runtime?.toString() || '',
+          vote_average: movie.vote_average?.toString() || '',
+          status: movie.status || 'Released',
+          budget: movie.budget?.toString() || '',
+          revenue: movie.revenue?.toString() || '',
+          homepage: movie.homepage || '',
+          imdb_id: movie.imdb_id || '',
+          poster_path: movie.poster_path || '',
+          backdrop_path: movie.backdrop_path || '',
+          video_url: movie.video_sources[0]?.url || '',
+          video_quality: movie.video_sources[0]?.quality || 'original',
+          video_format: movie.video_sources[0]?.format || 'mp4',
+        });
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+        setSyncError('Failed to load movie from database');
+      }
+    };
+
+    loadMovie();
+  }, [movieId]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -47,12 +97,63 @@ export default function AddMoviePage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSync = async () => {
+    if (!currentMovie?.tmdb_id) {
+      setSyncError('This movie does not have a TMDB ID');
+      return;
+    }
+
+    setSyncing(true);
+    setSyncError(null);
+
+    try {
+      // Fetch latest data from TMDB via Server Action
+      const result = await syncMovieFromTMDB(currentMovie.tmdb_id);
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to sync from TMDB');
+      }
+
+      const tmdbData = result.data;
+      
+      // Map to our schema, preserving Lao translations
+      const syncedData = mapTMDBToMovie(tmdbData, currentMovie);
+
+      // Update form with synced data (preserving Lao fields)
+      setFormData((prev) => ({
+        ...prev,
+        // Update English content from TMDB
+        title_en: getLocalizedText(syncedData.title, 'en'),
+        overview_en: getLocalizedText(syncedData.overview, 'en'),
+        tagline_en: syncedData.tagline ? getLocalizedText(syncedData.tagline, 'en') : '',
+        // Preserve Lao content
+        title_lo: prev.title_lo,
+        overview_lo: prev.overview_lo,
+        tagline_lo: prev.tagline_lo,
+        // Update metadata
+        runtime: syncedData.runtime?.toString() || '',
+        vote_average: syncedData.vote_average?.toString() || '',
+        budget: syncedData.budget?.toString() || '',
+        revenue: syncedData.revenue?.toString() || '',
+        status: syncedData.status || 'Released',
+        poster_path: syncedData.poster_path || '',
+        backdrop_path: syncedData.backdrop_path || '',
+      }));
+
+      alert('Successfully synced from TMDB! English content and metadata updated.');
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // TODO: In the future, this will call an API endpoint
     // For now, we'll just log the data and show a success message
-    console.log('Movie data to save:', formData);
+    console.log('Updated movie data:', { id: movieId, ...formData });
     
     alert('Movie data saved to console. Backend API integration coming soon!');
     
@@ -62,7 +163,40 @@ export default function AddMoviePage() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold text-gray-900 mb-6">Add New Movie</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold text-gray-900">Edit Movie</h2>
+        {currentMovie?.tmdb_id && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync from TMDB'}
+          </Button>
+        )}
+      </div>
+
+      {syncError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Sync Error</p>
+            <p className="text-sm text-red-600">{syncError}</p>
+          </div>
+        </div>
+      )}
+
+      {currentMovie?.tmdb_id && currentMovie.tmdb_last_synced && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-800">
+            <strong>TMDB ID:</strong> {currentMovie.tmdb_id} • 
+            <strong className="ml-2">Last synced:</strong>{' '}
+            {new Date(currentMovie.tmdb_last_synced).toLocaleDateString()}
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
@@ -403,7 +537,7 @@ export default function AddMoviePage() {
             </Button>
             <Button type="submit">
               <Save className="w-4 h-4 mr-2" />
-              Save Movie
+              Update Movie
             </Button>
           </div>
         </div>
