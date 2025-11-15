@@ -100,6 +100,23 @@ npm start
 npm run lint
 ```
 
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+**Test Coverage**: 70 tests across 3 suites covering i18n, image utilities, and helper functions.
+
+See [TESTING.md](./TESTING.md) for detailed testing documentation.
+
 ## License
 
 All rights reserved.
