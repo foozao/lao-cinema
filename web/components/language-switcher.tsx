@@ -1,14 +1,19 @@
 'use client';
 
-import { useLanguage } from '@/lib/language-context';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter, usePathname } from '@/i18n/routing';
 import { Button } from './ui/button';
 import { Languages } from 'lucide-react';
 
 export function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
+  const t = useTranslations('language');
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'lo' : 'en');
+    const newLocale = locale === 'en' ? 'lo' : 'en';
+    router.replace(pathname, { locale: newLocale });
   };
 
   return (
@@ -17,10 +22,11 @@ export function LanguageSwitcher() {
       size="sm"
       onClick={toggleLanguage}
       className="gap-2"
+      aria-label={t('switchLanguage')}
     >
       <Languages className="w-4 h-4" />
       <span className="font-medium">
-        {language === 'en' ? 'English' : 'ລາວ'}
+        {locale === 'en' ? t('en') : t('lo')}
       </span>
     </Button>
   );

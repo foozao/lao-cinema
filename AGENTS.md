@@ -14,22 +14,39 @@ Lao Cinema is a streaming platform for Lao films with:
 
 ### 1. Multi-Language System
 
-**Critical**: This platform supports bilingual content (English/Lao). See `LANGUAGE_SYSTEM.md` for details.
+**Critical**: This platform supports bilingual content (English/Lao) with **URL-based routing** for SEO.
 
-- English is the **required fallback** for all localized content
-- Use `LocalizedText` interface for translatable fields
-- Always use `createLocalizedText()` and `getLocalizedText()` helpers
-- Never directly access language properties
+**Two Systems:**
+1. **next-intl** for UI text (buttons, labels) - See `/web/I18N_SETUP.md`
+2. **LocalizedText** for content data (movie titles, descriptions) - See `LANGUAGE_SYSTEM.md`
 
-**Example**:
+**URL Structure:**
+- English: `/en/movies/123`
+- Lao: `/lo/movies/123`
+
+**UI Text Example:**
 ```typescript
-// ✅ Correct
-const title = createLocalizedText('The River', 'ແມ່ນ້ຳ');
-const displayTitle = getLocalizedText(title, 'lo');
+// ✅ Correct - Use next-intl for UI
+import { useTranslations } from 'next-intl';
+const t = useTranslations();
+<h1>{t('home.featured')}</h1>
+```
 
-// ❌ Wrong
-const title = { en: 'The River', lo: 'ແມ່ນ້ຳ' };
-const displayTitle = title.lo || title.en;
+**Content Data Example:**
+```typescript
+// ✅ Correct - Use LocalizedText for content
+import { useLocale } from 'next-intl';
+import { getLocalizedText } from '@/lib/i18n';
+
+const locale = useLocale() as 'en' | 'lo';
+const title = getLocalizedText(movie.title, locale);
+```
+
+**Navigation:**
+```typescript
+// ✅ Correct - Use i18n routing
+import { Link } from '@/i18n/routing';
+<Link href="/movies/123">View Movie</Link>
 ```
 
 ### 2. TMDB-Compatible Schema

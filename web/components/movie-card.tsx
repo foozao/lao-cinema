@@ -1,5 +1,8 @@
-import Link from 'next/link';
+'use client';
+
 import Image from 'next/image';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { Movie } from '@/lib/types';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
@@ -9,11 +12,12 @@ import { Clock, Star } from 'lucide-react';
 
 interface MovieCardProps {
   movie: Movie;
-  language?: 'en' | 'lo';
 }
 
-export function MovieCard({ movie, language = 'lo' }: MovieCardProps) {
-  const title = getLocalizedText(movie.title, language);
+export function MovieCard({ movie }: MovieCardProps) {
+  const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations('movie');
+  const title = getLocalizedText(movie.title, locale);
   const titleEn = getLocalizedText(movie.title, 'en');
   const posterUrl = getPosterUrl(movie.poster_path, 'medium');
   
@@ -65,7 +69,7 @@ export function MovieCard({ movie, language = 'lo' }: MovieCardProps) {
                 <span>•</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  <span>{movie.runtime} min</span>
+                  <span>{t('minutes', { count: movie.runtime })}</span>
                 </div>
               </>
             )}
@@ -74,7 +78,7 @@ export function MovieCard({ movie, language = 'lo' }: MovieCardProps) {
           <div className="flex flex-wrap gap-1">
             {movie.genres.slice(0, 2).map((genre) => (
               <Badge key={genre.id} variant="secondary" className="text-xs">
-                {getLocalizedText(genre.name, language)}
+                {getLocalizedText(genre.name, locale)}
               </Badge>
             ))}
           </div>

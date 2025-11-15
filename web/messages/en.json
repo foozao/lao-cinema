@@ -1,0 +1,42 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "noResults": "No results found"
+  },
+  "nav": {
+    "home": "Home",
+    "movies": "Movies",
+    "people": "People",
+    "admin": "Admin"
+  },
+  "home": {
+    "title": "Lao Cinema",
+    "subtitle": "Lao Films",
+    "tagline": "Discover amazing Lao cinema",
+    "featured": "Featured Films",
+    "noFilms": "No films available yet",
+    "noFilmsDescription": "Check back soon for new content"
+  },
+  "movie": {
+    "cast": "Cast",
+    "crew": "Crew",
+    "overview": "Overview",
+    "releaseDate": "Release Date",
+    "runtime": "Runtime",
+    "minutes": "{count} minutes",
+    "rating": "Rating",
+    "genres": "Genres",
+    "watchNow": "Watch Now",
+    "playTrailer": "Play Trailer"
+  },
+  "footer": {
+    "copyright": "© 2024 Lao Cinema. All rights reserved.",
+    "tmdbDisclaimer": "This product uses the TMDB API but is not endorsed or certified by TMDB."
+  },
+  "language": {
+    "en": "English",
+    "lo": "Lao",
+    "switchLanguage": "Switch Language"
+  }
+}
