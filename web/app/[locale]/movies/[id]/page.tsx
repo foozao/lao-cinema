@@ -87,7 +87,7 @@ export default function MoviePage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main>
         {/* Hero Section / Video Player */}
         <section className="mb-8">
           {isWatching && videoSource ? (
@@ -97,93 +97,108 @@ export default function MoviePage() {
               title={title}
             />
           ) : (
-            <div className="grid md:grid-cols-5 gap-6">
-              {/* Backdrop Image - Smaller */}
-              <div className="md:col-span-2">
-                <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-900">
-                  {backdropUrl || posterUrl ? (
+            <div className="relative">
+              {/* Backdrop Image with Overlay */}
+              <div className="absolute inset-0 w-full h-full">
+                {backdropUrl ? (
+                  <>
                     <img
-                      src={backdropUrl || posterUrl || ''}
+                      src={backdropUrl}
                       alt={title}
                       className="w-full h-full object-cover"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
-                      <span className="text-white text-6xl font-bold opacity-50">
-                        {title.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                    {/* Dark overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/95 to-gray-900/80" />
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
+                )}
               </div>
 
-              {/* Movie Info - More prominent */}
-              <div className="md:col-span-3 flex flex-col justify-center">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">{title}</h1>
-                <h2 className="text-xl text-gray-400 mb-4">{titleEn}</h2>
-
-                {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-4 mb-6 text-base">
-                  {movie.release_date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-gray-400" />
-                      <span>{new Date(movie.release_date).getFullYear()}</span>
+              {/* Content */}
+              <div className="relative container mx-auto px-4 py-8">
+                <div className="flex flex-col md:flex-row gap-8">
+                  {/* Poster - Left Side */}
+                  <div className="flex-shrink-0">
+                    <div className="relative w-full md:w-[300px] aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 shadow-2xl">
+                      {posterUrl ? (
+                        <img
+                          src={posterUrl}
+                          alt={title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+                          <span className="text-white text-6xl font-bold opacity-50">
+                            {title.charAt(0)}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {movie.runtime && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-400" />
-                      <span>{t('movie.minutes', { count: movie.runtime })}</span>
-                    </div>
-                  )}
-                  {movie.vote_average && (
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                      <span className="font-semibold">{movie.vote_average.toFixed(1)}/10</span>
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Genres */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {movie.genres.map((genre) => {
-                    const genreName = getLocalizedText(genre.name, 'en');
-                    const genreKey = getGenreKey(genreName);
-                    return (
-                      <Badge key={genre.id} variant="secondary" className="text-sm">
-                        {tGenres(genreKey)}
-                      </Badge>
-                    );
-                  })}
-                </div>
+                  {/* Movie Info - Right Side */}
+                  <div className="flex-1 flex flex-col justify-center min-w-0">
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{title}</h1>
+                    <h2 className="text-lg md:text-xl text-gray-300 mb-4">{titleEn}</h2>
 
-                {/* Overview */}
-                <p className="text-gray-300 leading-relaxed mb-6 line-clamp-4">
-                  {overview}
-                </p>
-
-                {/* Watch Now Button - More Prominent */}
-                <div className="flex gap-3">
-                  <Button
-                    size="lg"
-                    onClick={() => setIsWatching(true)}
-                    className="gap-2 text-lg px-8 py-6 bg-red-600 hover:bg-red-700"
-                    disabled={!videoSource}
-                  >
-                    <Play className="w-6 h-6 fill-white" />
-                    {t('movie.watchNow')}
-                  </Button>
-                  {movie.vote_count && (
-                    <div className="flex items-center gap-2 px-4 text-sm text-gray-400">
-                      <Users className="w-4 h-4" />
-                      <span>{movie.vote_count.toLocaleString()} votes</span>
+                    {/* Meta Info */}
+                    <div className="flex flex-wrap items-center gap-4 mb-6 text-sm md:text-base">
+                      {movie.release_date && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>{new Date(movie.release_date).getFullYear()}</span>
+                        </div>
+                      )}
+                      {movie.runtime && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          <span>{t('movie.minutes', { count: movie.runtime })}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Genres */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {movie.genres.map((genre) => {
+                        const genreName = getLocalizedText(genre.name, 'en');
+                        const genreKey = getGenreKey(genreName);
+                        return (
+                          <Badge key={genre.id} variant="secondary" className="text-sm">
+                            {tGenres(genreKey)}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+
+                    {/* Overview */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">{t('movie.overview')}</h3>
+                      <p className="text-gray-200 leading-relaxed">
+                        {overview}
+                      </p>
+                    </div>
+
+                    {/* Watch Now Button */}
+                    <div className="flex gap-3">
+                      <Button
+                        size="lg"
+                        onClick={() => setIsWatching(true)}
+                        className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
+                        disabled={!videoSource}
+                      >
+                        <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
+                        {t('movie.watchNow')}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </section>
+
+        <div className="container mx-auto px-4">
 
         {/* Detailed Info Section */}
         <section className="grid md:grid-cols-3 gap-8">
@@ -207,91 +222,108 @@ export default function MoviePage() {
             {/* Cast */}
             {movie.cast.length > 0 && (
               <div className="mb-8">
-                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  {t('movie.cast')}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {movie.cast.slice(0, 10).map((member, index) => {
-                    const profileUrl = getProfileUrl(member.profile_path, 'small');
-                    const memberName = getLocalizedText(member.name, 'en');
-                    return (
-                      <Link
-                        key={`cast-${member.id}-${index}`}
-                        href={`/people/${member.id}`}
-                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
-                      >
-                        {profileUrl ? (
-                          <img
-                            src={profileUrl}
-                            alt={memberName}
-                            className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                            <span className="text-2xl font-bold text-gray-400">
-                              {memberName.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {getLocalizedText(member.name, locale)}
-                        </p>
-                        <p className="text-sm text-gray-400 truncate">
-                          as {getLocalizedText(member.character, locale)}
-                        </p>
-                      </div>
-                    </Link>
-                    );
-                  })}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    {t('movie.cast')}
+                  </h3>
+                  <Link href={`/movies/${id}/cast-crew`}>
+                    <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+                      View All →
+                    </Button>
+                  </Link>
                 </div>
-                {movie.cast.length > 10 && (
-                  <p className="text-sm text-gray-400 mt-3">
-                    + {movie.cast.length - 10} more cast members
-                  </p>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {movie.cast
+                    .sort((a, b) => a.order - b.order)
+                    .slice(0, 6)
+                    .map((member, index) => {
+                      const profileUrl = getProfileUrl(member.profile_path, 'small');
+                      const memberName = getLocalizedText(member.name, 'en');
+                      return (
+                        <Link
+                          key={`cast-${member.id}-${index}`}
+                          href={`/people/${member.id}`}
+                          className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
+                        >
+                          {profileUrl ? (
+                            <img
+                              src={profileUrl}
+                              alt={memberName}
+                              className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                              <span className="text-2xl font-bold text-gray-400">
+                                {memberName.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">
+                            {getLocalizedText(member.name, locale)}
+                          </p>
+                          <p className="text-sm text-gray-400 truncate">
+                            as {getLocalizedText(member.character, locale)}
+                          </p>
+                        </div>
+                      </Link>
+                      );
+                    })}
+                </div>
               </div>
             )}
 
             {/* Crew */}
             {movie.crew.length > 0 && (
               <div>
-                <h3 className="text-xl font-semibold mb-3">{t('movie.crew')}</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-semibold">{t('movie.crew')}</h3>
+                  <Link href={`/movies/${id}/cast-crew`}>
+                    <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+                      View All →
+                    </Button>
+                  </Link>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {movie.crew.map((member, index) => {
-                    const profileUrl = getProfileUrl(member.profile_path, 'small');
-                    const memberName = getLocalizedText(member.name, 'en');
-                    return (
-                      <Link
-                        key={`crew-${member.id}-${index}`}
-                        href={`/people/${member.id}`}
-                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
-                      >
-                        {profileUrl ? (
-                          <img
-                            src={profileUrl}
-                            alt={memberName}
-                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                            <span className="text-lg font-bold text-gray-400">
-                              {memberName.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {getLocalizedText(member.name, locale)}
-                        </p>
-                        <p className="text-sm text-gray-400 truncate">
-                          {getLocalizedText(member.job, locale)}
-                        </p>
-                      </div>
-                    </Link>
-                    );
-                  })}
+                  {movie.crew
+                    .filter((member) => {
+                      const job = getLocalizedText(member.job, 'en').toLowerCase();
+                      return job === 'director' || job === 'writer' || job === 'screenplay';
+                    })
+                    .map((member, index) => {
+                      const profileUrl = getProfileUrl(member.profile_path, 'small');
+                      const memberName = getLocalizedText(member.name, 'en');
+                      return (
+                        <Link
+                          key={`crew-${member.id}-${index}`}
+                          href={`/people/${member.id}`}
+                          className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
+                        >
+                          {profileUrl ? (
+                            <img
+                              src={profileUrl}
+                              alt={memberName}
+                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                              <span className="text-lg font-bold text-gray-400">
+                                {memberName.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">
+                            {getLocalizedText(member.name, locale)}
+                          </p>
+                          <p className="text-sm text-gray-400 truncate">
+                            {getLocalizedText(member.job, locale)}
+                          </p>
+                        </div>
+                      </Link>
+                      );
+                    })}
                 </div>
               </div>
             )}
@@ -299,38 +331,16 @@ export default function MoviePage() {
 
           {/* Sidebar */}
           <div className="md:col-span-1">
-            {/* Poster */}
-            {posterUrl && (
-              <div className="aspect-[2/3] relative rounded-lg overflow-hidden mb-6 bg-gray-800">
-                <img
-                  src={posterUrl}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-
             {/* Additional Info */}
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <div>
                 <p className="text-sm text-gray-400 mb-1">Original Title</p>
                 <p className="font-medium">{movie.original_title || titleEn}</p>
               </div>
-              {movie.vote_count && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Votes</p>
-                  <p className="font-medium">{movie.vote_count.toLocaleString()}</p>
-                </div>
-              )}
-              {movie.popularity && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Popularity</p>
-                  <p className="font-medium">{movie.popularity.toFixed(1)}</p>
-                </div>
-              )}
             </div>
           </div>
         </section>
+        </div>
       </main>
     </div>
   );

@@ -42,16 +42,6 @@ export function MovieCard({ movie }: MovieCardProps) {
               </span>
             </div>
           )}
-          
-          {/* Rating Badge */}
-          {movie.vote_average && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
-              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-              <span className="text-white text-xs font-semibold">
-                {movie.vote_average.toFixed(1)}
-              </span>
-            </div>
-          )}
         </div>
 
         <CardContent className="p-4">
