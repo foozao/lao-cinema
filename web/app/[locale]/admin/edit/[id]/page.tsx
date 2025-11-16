@@ -152,14 +152,41 @@ export default function EditMoviePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // TODO: In the future, this will call an API endpoint
-    // For now, we'll just log the data and show a success message
-    console.log('Updated movie data:', { id: movieId, ...formData });
-    
-    alert('Movie data saved to console. Backend API integration coming soon!');
-    
-    // Optionally redirect back to admin page
-    // router.push('/admin');
+    try {
+      // Prepare the update data
+      const updateData = {
+        title: {
+          en: formData.title_en,
+          lo: formData.title_lo || undefined,
+        },
+        overview: {
+          en: formData.overview_en,
+          lo: formData.overview_lo || undefined,
+        },
+        tagline: formData.tagline_en ? {
+          en: formData.tagline_en,
+          lo: formData.tagline_lo || undefined,
+        } : undefined,
+        release_date: formData.release_date,
+        runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
+        poster_path: formData.poster_path || undefined,
+        backdrop_path: formData.backdrop_path || undefined,
+        video_sources: formData.video_url ? [{
+          id: '1',
+          url: formData.video_url,
+          format: formData.video_format as 'hls' | 'mp4',
+          quality: formData.video_quality as any,
+        }] : [],
+      };
+
+      await movieAPI.update(movieId, updateData);
+      
+      alert('Movie updated successfully!');
+      router.push('/admin');
+    } catch (error) {
+      console.error('Failed to update movie:', error);
+      alert('Failed to update movie. Please try again.');
+    }
   };
 
   return (
@@ -479,13 +506,12 @@ export default function EditMoviePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="video_url">Video URL *</Label>
+                <Label htmlFor="video_url">Video URL</Label>
                 <Input
                   id="video_url"
                   name="video_url"
                   value={formData.video_url}
                   onChange={handleChange}
-                  required
                   placeholder="/videos/movie.mp4 or https://stream.example.com/video.m3u8"
                 />
                 <p className="text-xs text-gray-500 mt-1">
