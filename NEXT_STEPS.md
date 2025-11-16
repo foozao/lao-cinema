@@ -15,6 +15,7 @@
 - Movie detail pages with HLS video player
 - TMDB import admin panel (`/admin/import`)
 - Movie edit interface (`/admin/edit/[id]`)
+- Video streaming test page (`/test-video`)
 - Responsive design with shadcn/ui components
 - Language switcher (English/Lao)
 - URL-based i18n routing (`/en/*`, `/lo/*`)
@@ -30,6 +31,12 @@
 - Jest test framework
 - 70 tests covering i18n, images, and utilities
 - React Testing Library setup
+
+**Video Streaming** (Development):
+- FFmpeg conversion scripts for HLS transcoding
+- Local HLS playback with adaptive bitrate (1080p/720p/480p/360p)
+- HLS.js integration with custom controls
+- Test environment at `/test-video`
 
 ## Development Setup
 
@@ -115,55 +122,71 @@ npm run dev
 
 ## Next Phase: Video Delivery
 
-### Current State
-- Movies imported from TMDB (metadata only)
-- No video files hosted yet
-- Video player component ready (HLS + MP4 support)
+### Current State ✅
+- **Development:** Local HLS streaming functional
+  - FFmpeg conversion script: `scripts/convert-to-hls.sh`
+  - 4 quality variants with adaptive bitrate
+  - Test page: `http://localhost:3000/en/test-video`
+  - Documentation: `VIDEO_STREAMING.md`
+- **Production:** Architecture designed, not implemented
+  - See `VIDEO_ARCHITECTURE.md` for complete strategy
 
-### Options for Video Hosting
+### Immediate Next Steps
 
-**Option A: Cloudflare Stream** (Recommended)
-- Automatic HLS transcoding
-- Global CDN delivery
-- Usage-based pricing (~$1/1000 minutes)
-- Easy API integration
+1. **Choose CDN Provider** (Week 1)
+   - **Recommended:** Bunny Stream (most cost-effective at $2.50/month base)
+   - Alternative: Cloudflare Stream (easier setup, $128/month estimated)
+   - See cost comparison in `VIDEO_ARCHITECTURE.md`
 
-**Option B: Bunny Stream**
-- Cheaper than Cloudflare
-- Good Laos performance
-- Manual setup required
+2. **Database Schema** (Week 2)
+   - Implement `video_files` table
+   - Support multiple providers (local, bunny, cloudflare)
+   - Track transcoding status and metadata
 
-**Option C: Self-Hosted HLS**
-- Use FFmpeg for transcoding
-- Host on own server/CDN
-- Most cost-effective long-term
-- Requires more setup
+3. **API Layer** (Week 3)
+   - Signed URL generation endpoint
+   - Video upload/processing endpoints
+   - Webhook handlers for transcoding status
 
-See `IMAGE_STRATEGY.md` for video strategy details.
+4. **Admin Upload Interface** (Week 4)
+   - Video upload form in admin panel
+   - Progress tracking
+   - Batch upload support
+
+See `VIDEO_ARCHITECTURE.md` for detailed implementation roadmap.
 
 ## Future Features
 
-### Phase 1: Content Management (Next Priority)
+### Phase 1: Video Infrastructure (Current Priority)
+- [x] Local HLS streaming setup for development
+- [x] FFmpeg conversion scripts
+- [ ] Choose and set up CDN provider (Bunny/Cloudflare)
+- [ ] Implement video_files database schema
+- [ ] Create signed URL API endpoints
+- [ ] Build admin video upload interface
+- [ ] Test with production CDN
+
+### Phase 2: Content Management
 - [ ] Bulk TMDB import
 - [ ] Movie search/filtering in admin
-- [ ] Video source management UI
 - [ ] Batch Lao translation workflow
+- [ ] Video processing queue management
 
-### Phase 2: User Features
+### Phase 3: User Features
 - [ ] User authentication (JWT)
 - [ ] User profiles
 - [ ] Watchlist functionality
 - [ ] Watch history tracking
 - [ ] Resume playback points
 
-### Phase 3: Advanced Features
+### Phase 4: Advanced Features
 - [ ] Search and filtering (frontend)
 - [ ] Recommendations engine
 - [ ] Person detail pages
 - [ ] Mobile app (React Native/Expo)
 - [ ] Offline viewing support
 
-### Phase 4: Production Deployment
+### Phase 5: Production Deployment
 - [ ] Deploy frontend to Vercel or GCP Cloud Run
 - [ ] Deploy backend to GCP VM
 - [ ] Set up production database
@@ -235,6 +258,8 @@ npm run db:studio    # Open Drizzle Studio
 - `PEOPLE_ARCHITECTURE.md` - People-centric design
 - `LANGUAGE_SYSTEM.md` - Multi-language system
 - `IMAGE_STRATEGY.md` - Image handling strategy
+- `VIDEO_ARCHITECTURE.md` - Video storage and CDN strategy
+- `VIDEO_STREAMING.md` - Local HLS development guide
 
 ### Development
 - `AGENTS.md` - AI agent guidelines
