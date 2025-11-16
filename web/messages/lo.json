@@ -38,5 +38,25 @@
     "en": "ອັງກິດ",
     "lo": "ລາວ",
     "switchLanguage": "ປ່ຽນພາສາ"
+  },
+  "genres": {
+    "action": "ບູລິມະສິດ",
+    "adventure": "ການຜະຈົນໄພ",
+    "animation": "ການ์ຕູນ",
+    "comedy": "ຕະຫຼົກ",
+    "crime": "ອາຊະຍາກຳ",
+    "documentary": "ສາລະຄະດີ",
+    "drama": "ລະຄອນ",
+    "family": "ຄອບຄົວ",
+    "fantasy": "ຈິນຕະນາການ",
+    "history": "ປະຫວັດສາດ",
+    "horror": "ສຽດສະຫງ່ຽນ",
+    "music": "ດົນຕີ",
+    "mystery": "ລຶກລັບ",
+    "romance": "ໂລແມນຕິກ",
+    "scienceFiction": "ວິທະຍາສາດ",
+    "thriller": "ຕື່ນເຕັ້ນ",
+    "war": "ສົງຄາມ",
+    "western": "ຕາເວັນຕົກ"
   }
 }

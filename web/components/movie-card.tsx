@@ -6,6 +6,7 @@ import { Link } from '@/i18n/routing';
 import { Movie } from '@/lib/types';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
+import { getGenreKey } from '@/lib/genres';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Clock, Star } from 'lucide-react';
@@ -17,6 +18,7 @@ interface MovieCardProps {
 export function MovieCard({ movie }: MovieCardProps) {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations('movie');
+  const tGenres = useTranslations('genres');
   const title = getLocalizedText(movie.title, locale);
   const titleEn = getLocalizedText(movie.title, 'en');
   const posterUrl = getPosterUrl(movie.poster_path, 'medium');
@@ -56,9 +58,11 @@ export function MovieCard({ movie }: MovieCardProps) {
           <h3 className="font-semibold text-lg mb-1 line-clamp-1">
             {title}
           </h3>
-          <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-            {titleEn}
-          </p>
+          {title !== titleEn && (
+            <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+              {titleEn}
+            </p>
+          )}
           
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
             {movie.release_date && (
@@ -76,11 +80,15 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {movie.genres.slice(0, 2).map((genre) => (
-              <Badge key={genre.id} variant="secondary" className="text-xs">
-                {getLocalizedText(genre.name, locale)}
-              </Badge>
-            ))}
+            {movie.genres.slice(0, 2).map((genre) => {
+              const genreName = getLocalizedText(genre.name, 'en');
+              const genreKey = getGenreKey(genreName);
+              return (
+                <Badge key={genre.id} variant="secondary" className="text-xs">
+                  {tGenres(genreKey)}
+                </Badge>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

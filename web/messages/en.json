@@ -38,5 +38,25 @@
     "en": "English",
     "lo": "Lao",
     "switchLanguage": "Switch Language"
+  },
+  "genres": {
+    "action": "Action",
+    "adventure": "Adventure",
+    "animation": "Animation",
+    "comedy": "Comedy",
+    "crime": "Crime",
+    "documentary": "Documentary",
+    "drama": "Drama",
+    "family": "Family",
+    "fantasy": "Fantasy",
+    "history": "History",
+    "horror": "Horror",
+    "music": "Music",
+    "mystery": "Mystery",
+    "romance": "Romance",
+    "scienceFiction": "Science Fiction",
+    "thriller": "Thriller",
+    "war": "War",
+    "western": "Western"
   }
 }

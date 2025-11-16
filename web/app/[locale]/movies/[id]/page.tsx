@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
+import { getGenreKey } from '@/lib/genres';
 import { VideoPlayer } from '@/components/video-player';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export default function MoviePage() {
   const params = useParams();
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
+  const tGenres = useTranslations('genres');
   const id = params.id as string;
   
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -144,11 +146,15 @@ export default function MoviePage() {
 
                 {/* Genres */}
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {movie.genres.map((genre) => (
-                    <Badge key={genre.id} variant="secondary" className="text-sm">
-                      {getLocalizedText(genre.name, locale)}
-                    </Badge>
-                  ))}
+                  {movie.genres.map((genre) => {
+                    const genreName = getLocalizedText(genre.name, 'en');
+                    const genreKey = getGenreKey(genreName);
+                    return (
+                      <Badge key={genre.id} variant="secondary" className="text-sm">
+                        {tGenres(genreKey)}
+                      </Badge>
+                    );
+                  })}
                 </div>
 
                 {/* Overview */}
