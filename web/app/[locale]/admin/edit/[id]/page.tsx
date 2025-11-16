@@ -154,19 +154,22 @@ export default function EditMoviePage() {
     e.preventDefault();
     
     try {
+      // Normalize Lao text to prevent encoding issues
+      const normalizeLao = (text: string) => text.normalize('NFC');
+      
       // Prepare the update data
       const updateData = {
         title: {
           en: formData.title_en,
-          lo: formData.title_lo || undefined,
+          lo: formData.title_lo ? normalizeLao(formData.title_lo) : undefined,
         },
         overview: {
           en: formData.overview_en,
-          lo: formData.overview_lo || undefined,
+          lo: formData.overview_lo ? normalizeLao(formData.overview_lo) : undefined,
         },
         tagline: formData.tagline_en ? {
           en: formData.tagline_en,
-          lo: formData.tagline_lo || undefined,
+          lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
         } : undefined,
         release_date: formData.release_date,
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
