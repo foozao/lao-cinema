@@ -20,7 +20,6 @@ export function MovieCard({ movie }: MovieCardProps) {
   const t = useTranslations('movie');
   const tGenres = useTranslations('genres');
   const title = getLocalizedText(movie.title, locale);
-  const titleEn = getLocalizedText(movie.title, 'en');
   const posterUrl = getPosterUrl(movie.poster_path, 'medium');
   
   return (
@@ -45,14 +44,9 @@ export function MovieCard({ movie }: MovieCardProps) {
         </div>
 
         <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-1 line-clamp-1">
+          <h3 className="font-semibold text-lg mb-2 line-clamp-1">
             {title}
           </h3>
-          {title !== titleEn && (
-            <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-              {titleEn}
-            </p>
-          )}
           
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
             {movie.release_date && (

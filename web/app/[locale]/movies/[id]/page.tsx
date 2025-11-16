@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
+import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { VideoPlayer } from '@/components/video-player';
@@ -63,9 +64,7 @@ export default function MoviePage() {
     movie.video_sources[0];
 
   const title = getLocalizedText(movie.title, locale);
-  const titleEn = getLocalizedText(movie.title, 'en');
   const overview = getLocalizedText(movie.overview, locale);
-  const overviewEn = getLocalizedText(movie.overview, 'en');
   
   // Get image URLs
   const backdropUrl = getBackdropUrl(movie.backdrop_path, 'large');
@@ -139,8 +138,7 @@ export default function MoviePage() {
 
                   {/* Movie Info - Right Side */}
                   <div className="flex-1 flex flex-col justify-center min-w-0">
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{title}</h1>
-                    <h2 className="text-lg md:text-xl text-gray-300 mb-4">{titleEn}</h2>
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{title}</h1>
 
                     {/* Meta Info */}
                     <div className="flex flex-wrap items-center gap-4 mb-6 text-sm md:text-base">
@@ -208,15 +206,9 @@ export default function MoviePage() {
             {/* Overview */}
             <div className="mb-8">
               <h3 className="text-xl font-semibold mb-3">{t('movie.overview')}</h3>
-              <p className="text-gray-300 leading-relaxed mb-4">
+              <p className="text-gray-300 leading-relaxed">
                 {overview}
               </p>
-              {/* Only show English version if it's different from the displayed language */}
-              {locale !== 'en' && overview !== overviewEn && (
-                <p className="text-gray-400 leading-relaxed text-sm">
-                  {overviewEn}
-                </p>
-              )}
             </div>
 
             {/* Cast */}
@@ -229,7 +221,7 @@ export default function MoviePage() {
                   </h3>
                   <Link href={`/movies/${id}/cast-crew`}>
                     <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-                      View All →
+                      {t('movie.viewAll')} →
                     </Button>
                   </Link>
                 </div>
@@ -264,7 +256,7 @@ export default function MoviePage() {
                             {getLocalizedText(member.name, locale)}
                           </p>
                           <p className="text-sm text-gray-400 truncate">
-                            as {getLocalizedText(member.character, locale)}
+                            {getLocalizedText(member.character, locale)}
                           </p>
                         </div>
                       </Link>
@@ -281,7 +273,7 @@ export default function MoviePage() {
                   <h3 className="text-xl font-semibold">{t('movie.crew')}</h3>
                   <Link href={`/movies/${id}/cast-crew`}>
                     <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-                      View All →
+                      {t('movie.viewAll')} →
                     </Button>
                   </Link>
                 </div>
@@ -318,7 +310,7 @@ export default function MoviePage() {
                             {getLocalizedText(member.name, locale)}
                           </p>
                           <p className="text-sm text-gray-400 truncate">
-                            {getLocalizedText(member.job, locale)}
+                            {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
                           </p>
                         </div>
                       </Link>
@@ -334,8 +326,8 @@ export default function MoviePage() {
             {/* Additional Info */}
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Original Title</p>
-                <p className="font-medium">{movie.original_title || titleEn}</p>
+                <p className="text-sm text-gray-400 mb-1">{t('movie.originalTitle')}</p>
+                <p className="font-medium">{movie.original_title || title}</p>
               </div>
             </div>
           </div>

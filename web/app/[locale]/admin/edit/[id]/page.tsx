@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, RefreshCw, AlertCircle } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
+import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
+import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie } from '@/lib/types';
 import { syncMovieFromTMDB } from './actions';
@@ -18,6 +20,7 @@ import { movieAPI } from '@/lib/api/client';
 export default function EditMoviePage() {
   const router = useRouter();
   const params = useParams();
+  const t = useTranslations();
   const movieId = params.id as string;
   
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
@@ -60,12 +63,12 @@ export default function EditMoviePage() {
         setCurrentMovie(movie);
         
         setFormData({
-          title_en: getLocalizedText(movie.title, 'en'),
-          title_lo: getLocalizedText(movie.title, 'lo'),
-          overview_en: getLocalizedText(movie.overview, 'en'),
-          overview_lo: getLocalizedText(movie.overview, 'lo'),
-          tagline_en: movie.tagline ? getLocalizedText(movie.tagline, 'en') : '',
-          tagline_lo: movie.tagline ? getLocalizedText(movie.tagline, 'lo') : '',
+          title_en: movie.title.en,
+          title_lo: movie.title.lo || '',
+          overview_en: movie.overview.en,
+          overview_lo: movie.overview.lo || '',
+          tagline_en: movie.tagline?.en || '',
+          tagline_lo: movie.tagline?.lo || '',
           original_title: movie.original_title || '',
           original_language: movie.original_language || 'lo',
           release_date: movie.release_date,
@@ -125,9 +128,9 @@ export default function EditMoviePage() {
       setFormData((prev) => ({
         ...prev,
         // Update English content from TMDB
-        title_en: getLocalizedText(syncedData.title, 'en'),
-        overview_en: getLocalizedText(syncedData.overview, 'en'),
-        tagline_en: syncedData.tagline ? getLocalizedText(syncedData.tagline, 'en') : '',
+        title_en: syncedData.title.en,
+        overview_en: syncedData.overview.en,
+        tagline_en: syncedData.tagline?.en || '',
         // Preserve Lao content
         title_lo: prev.title_lo,
         overview_lo: prev.overview_lo,
@@ -167,8 +170,8 @@ export default function EditMoviePage() {
           en: formData.overview_en,
           lo: formData.overview_lo ? normalizeLao(formData.overview_lo) : undefined,
         },
-        tagline: formData.tagline_en ? {
-          en: formData.tagline_en,
+        tagline: (formData.tagline_en || formData.tagline_lo) ? {
+          en: formData.tagline_en || '',
           lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
         } : undefined,
         release_date: formData.release_date,
@@ -569,8 +572,8 @@ export default function EditMoviePage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Cast ({currentMovie.cast.length})</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {currentMovie.cast.slice(0, 10).map((member) => (
-                        <div key={member.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      {currentMovie.cast.slice(0, 10).map((member, index) => (
+                        <div key={`cast-${member.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                           {member.profile_path && (
                             <img
                               src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
@@ -583,7 +586,7 @@ export default function EditMoviePage() {
                               {getLocalizedText(member.name, 'en')}
                             </p>
                             <p className="text-xs text-gray-600 truncate">
-                              as {getLocalizedText(member.character, 'en')}
+                              {getLocalizedText(member.character, 'en')}
                             </p>
                           </div>
                         </div>
@@ -602,8 +605,8 @@ export default function EditMoviePage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Crew ({currentMovie.crew.length})</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {currentMovie.crew.map((member) => (
-                        <div key={`${member.id}-${member.job}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      {currentMovie.crew.map((member, index) => (
+                        <div key={`crew-${member.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                           {member.profile_path && (
                             <img
                               src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
@@ -616,7 +619,7 @@ export default function EditMoviePage() {
                               {getLocalizedText(member.name, 'en')}
                             </p>
                             <p className="text-xs text-gray-600 truncate">
-                              {getLocalizedText(member.job, 'en')}
+                              {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {member.department}

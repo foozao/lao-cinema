@@ -28,7 +28,35 @@
     "rating": "Rating",
     "genres": "Genres",
     "watchNow": "Watch Now",
-    "playTrailer": "Play Trailer"
+    "playTrailer": "Play Trailer",
+    "viewAll": "View All",
+    "originalTitle": "Original Title",
+    "as": "as"
+  },
+  "crew": {
+    "director": "Director",
+    "writer": "Writer",
+    "screenplay": "Screenplay",
+    "producer": "Producer",
+    "executiveProducer": "Executive Producer",
+    "cinematography": "Cinematography",
+    "editor": "Editor",
+    "music": "Music",
+    "productionDesign": "Production Design",
+    "artDirection": "Art Direction",
+    "setDecoration": "Set Decoration",
+    "costumeDesign": "Costume Design"
+  },
+  "departments": {
+    "directing": "Directing",
+    "writing": "Writing",
+    "production": "Production",
+    "camera": "Camera",
+    "editing": "Editing",
+    "sound": "Sound",
+    "art": "Art",
+    "costumeAndMakeup": "Costume & Make-Up",
+    "visualEffects": "Visual Effects"
   },
   "footer": {
     "copyright": "© 2024 Lao Cinema. All rights reserved.",

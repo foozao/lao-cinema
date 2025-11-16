@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
+import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getProfileUrl } from '@/lib/images';
+import { getDepartmentKey } from '@/lib/crew';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
@@ -92,14 +94,14 @@ export default function CastCrewPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-2">{title}</h1>
-        <p className="text-xl text-gray-400 mb-8">Cast & Crew</p>
+        <p className="text-xl text-gray-400 mb-8">{t('movie.cast')} & {t('movie.crew')}</p>
 
         {/* Cast Section */}
         {sortedCast.length > 0 && (
           <section className="mb-12">
             <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
               <Users className="w-8 h-8" />
-              Cast ({sortedCast.length})
+              {t('movie.cast')} ({sortedCast.length})
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sortedCast.map((member, index) => {
@@ -143,13 +145,16 @@ export default function CastCrewPage() {
         {sortedDepartments.length > 0 && (
           <section>
             <h2 className="text-3xl font-bold mb-6">
-              Crew ({movie.crew.length})
+              {t('movie.crew')} ({movie.crew.length})
             </h2>
             <div className="space-y-8">
-              {sortedDepartments.map((department) => (
+              {sortedDepartments.map((department) => {
+                const deptKey = getDepartmentKey(department);
+                const deptName = deptKey.startsWith('departments.') ? t(deptKey) : department;
+                return (
                 <div key={department}>
                   <h3 className="text-2xl font-semibold mb-4 text-gray-300">
-                    {department}
+                    {deptName}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {crewByDepartment[department].map((member, index) => {
@@ -179,7 +184,7 @@ export default function CastCrewPage() {
                               {getLocalizedText(member.name, locale)}
                             </p>
                             <p className="text-sm text-gray-400 line-clamp-1 mt-1">
-                              {getLocalizedText(member.job, locale)}
+                              {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
                             </p>
                           </div>
                         </Link>
@@ -187,7 +192,8 @@ export default function CastCrewPage() {
                     })}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

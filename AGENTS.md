@@ -5,10 +5,36 @@ This document provides context and guidelines for AI coding assistants working o
 ## Project Overview
 
 Lao Cinema is a streaming platform for Lao films with:
-- **Web App**: Next.js 15 with TypeScript, Tailwind CSS, and HLS video player
-- **Future Backend**: Fastify API with PostgreSQL and Drizzle ORM
+- **Web App**: Next.js 15 with TypeScript, Tailwind CSS, and HLS video player (`/web`)
+- **Backend API**: Fastify API with PostgreSQL and Drizzle ORM (`/api`)
 - **Future Mobile**: React Native (Expo) companion app
 - **Video Delivery**: HLS streaming (Cloudflare Stream or Bunny Stream)
+
+## Project Structure
+
+```
+/lao-cinema
+├── /web          # Next.js 15 frontend (port 3000)
+├── /api          # Fastify backend API (port 3001)
+├── /db           # Database migrations and seeds
+└── [docs]        # Architecture and setup documentation
+```
+
+## Development Servers
+
+**Start Web App:**
+```bash
+cd /Users/brandon/home/Workspace/lao-cinema/web
+npm run dev
+```
+Runs on `http://localhost:3000`
+
+**Start Backend API:**
+```bash
+cd /Users/brandon/home/Workspace/lao-cinema/api
+npm run dev
+```
+Runs on `http://localhost:3001`
 
 ## Key Architecture Principles
 

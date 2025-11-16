@@ -28,7 +28,35 @@
     "rating": "ຄະແນນ",
     "genres": "ປະເພດ",
     "watchNow": "ເບິ່ງດຽວນີ້",
-    "playTrailer": "ເບິ່ງຕົວຢ່າງ"
+    "playTrailer": "ເບິ່ງຕົວຢ່າງ",
+    "viewAll": "ເບິ່ງທັງໝົດ",
+    "originalTitle": "ຊື່ຕົ້ນສະບັບ",
+    "as": "ໃນບົດບາດ"
+  },
+  "crew": {
+    "director": "ຜູ້ກຳກັບ",
+    "writer": "ນັກຂຽນ",
+    "screenplay": "ບົດຮູບເງົາ",
+    "producer": "ຜູ້ຜະລິດ",
+    "executiveProducer": "ຜູ້ຜະລິດບໍລິຫານ",
+    "cinematography": "ຖ່າຍພາບ",
+    "editor": "ຕັດຕໍ່",
+    "music": "ດົນຕີ",
+    "productionDesign": "ອອກແບບການຜະລິດ",
+    "artDirection": "ອອກແບບສິລະປະ",
+    "setDecoration": "ຕົບແຕ່ງສະຖານທີ່",
+    "costumeDesign": "ອອກແບບເຄື່ອງນຸ່ງ"
+  },
+  "departments": {
+    "directing": "ການກຳກັບ",
+    "writing": "ການຂຽນ",
+    "production": "ການຜະລິດ",
+    "camera": "ກ້ອງຖ່າຍ",
+    "editing": "ການຕັດຕໍ່",
+    "sound": "ສຽງ",
+    "art": "ສິລະປະ",
+    "costumeAndMakeup": "ເຄື່ອງນຸ່ງ ແລະ ແຕ່ງໜ້າ",
+    "visualEffects": "ເອັບເຟັກພິເສດ"
   },
   "footer": {
     "copyright": "© 2024 ຮູບເງົາລາວ. ສະຫງວນລິຂະສິດ.",

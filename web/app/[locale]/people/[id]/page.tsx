@@ -177,12 +177,12 @@ export default function PersonPage() {
                         {posterUrl && (
                           <img
                             src={posterUrl}
-                            alt={getLocalizedText(credit.movie.title, 'en')}
+                            alt={getLocalizedText(credit.movie.title, locale)}
                             className="w-full aspect-[2/3] object-cover rounded-lg mb-4"
                           />
                         )}
                       <h3 className="font-semibold text-lg mb-1 line-clamp-2">
-                        {getLocalizedText(credit.movie.title, 'en')}
+                        {getLocalizedText(credit.movie.title, locale)}
                       </h3>
                       <p className="text-sm text-gray-400 mb-2">
                         {credit.movie.release_date && new Date(credit.movie.release_date).getFullYear()}
@@ -216,12 +216,12 @@ export default function PersonPage() {
                         {posterUrl && (
                           <img
                             src={posterUrl}
-                            alt={getLocalizedText(credit.movie.title, 'en')}
+                            alt={getLocalizedText(credit.movie.title, locale)}
                             className="w-full aspect-[2/3] object-cover rounded-lg mb-4"
                           />
                         )}
                       <h3 className="font-semibold text-lg mb-1 line-clamp-2">
-                        {getLocalizedText(credit.movie.title, 'en')}
+                        {getLocalizedText(credit.movie.title, locale)}
                       </h3>
                       <p className="text-sm text-gray-400 mb-2">
                         {credit.movie.release_date && new Date(credit.movie.release_date).getFullYear()}
