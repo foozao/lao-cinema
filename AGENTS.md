@@ -5,18 +5,30 @@ This document provides context and guidelines for AI coding assistants working o
 ## Project Overview
 
 Lao Cinema is a streaming platform for Lao films with:
-- **Web App**: Next.js 15 with TypeScript, Tailwind CSS, and HLS video player (`/web`)
-- **Backend API**: Fastify API with PostgreSQL and Drizzle ORM (`/api`)
+- **Web App**: Next.js 16.0.3 with React 19.2.0, TypeScript, Tailwind CSS v4, and HLS video player (`/web`)
+- **Backend API**: Fastify API with PostgreSQL 16 and Drizzle ORM (`/api`)
+- **Database**: PostgreSQL with Docker Compose setup (`/db`)
+- **Admin Panel**: TMDB import and movie editing interface
+- **Testing**: Jest with 70+ unit tests
 - **Future Mobile**: React Native (Expo) companion app
-- **Video Delivery**: HLS streaming (Cloudflare Stream or Bunny Stream)
+- **Video Delivery**: HLS streaming (Cloudflare Stream or Bunny Stream - to be configured)
 
 ## Project Structure
 
 ```
 /lao-cinema
-├── /web          # Next.js 15 frontend (port 3000)
+├── /web          # Next.js 16 frontend (port 3000)
+│   ├── /app/[locale]/        # Internationalized routes
+│   ├── /components/          # React components
+│   ├── /lib/                 # Utilities, types, API clients
+│   ├── /i18n/                # next-intl configuration
+│   └── /messages/            # Translation files (en.json, lo.json)
 ├── /api          # Fastify backend API (port 3001)
-├── /db           # Database migrations and seeds
+│   ├── /src/db/              # Database schema and connection
+│   └── /src/routes/          # API endpoints
+├── /db           # Database utilities
+│   ├── /src/schema.ts        # Drizzle schema definitions
+│   └── /drizzle/             # Migration files
 └── [docs]        # Architecture and setup documentation
 ```
 

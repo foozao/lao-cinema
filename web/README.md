@@ -4,28 +4,37 @@ A modern streaming platform for Lao films built with Next.js, TypeScript, and Ta
 
 ## Features
 
-- 🎬 Movie catalog with grid display
+- 🎬 Movie catalog with responsive grid display
 - 🎥 HLS video player with custom controls
-- 🌐 Bilingual support (Lao/English)
-- 📱 Responsive design
+- 🌐 Bilingual support (English/Lao) with URL-based routing
+- 📱 Fully responsive design (mobile, tablet, desktop)
 - 🎨 Modern UI with shadcn/ui components
-- 🔍 TMDB-compatible data structure
+- 🎭 TMDB integration with import interface
+- 👥 People-centric architecture (actors, directors, crew)
+- 🔧 Admin panel for content management
+- 🧪 Comprehensive test coverage (70+ tests)
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16.0.3 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui
 - **Video Player**: HLS.js
 - **Icons**: Lucide React
+- **Internationalization**: next-intl
+- **Testing**: Jest + React Testing Library
+- **Backend**: Fastify API (see `/api`)
+- **Database**: PostgreSQL with Drizzle ORM (see `/db`)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ (currently using v18.20.8)
-- npm or pnpm
+- Node.js 20.9.0+ (see `.nvmrc`)
+- npm (or pnpm)
+- PostgreSQL database
+- TMDB API key
 
 ### Installation
 
@@ -43,30 +52,63 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ```
 web/
-├── app/                    # Next.js app directory
-│   ├── movies/[id]/       # Movie detail pages
-│   ├── page.tsx           # Homepage
-│   └── globals.css        # Global styles
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── movie-card.tsx    # Movie card component
-│   └── video-player.tsx  # HLS video player
-├── lib/                   # Utilities and data
-│   ├── data/             # Sample data
-│   │   └── movies.ts     # Movie data
-│   ├── types.ts          # TypeScript types
-│   └── utils.ts          # Helper functions
-└── public/               # Static assets
+├── app/                        # Next.js app directory
+│   ├── [locale]/              # Internationalized routes
+│   │   ├── page.tsx           # Homepage
+│   │   ├── movies/[id]/       # Movie detail pages
+│   │   └── admin/             # Admin panel
+│   │       ├── import/        # TMDB import
+│   │       └── edit/[id]/     # Movie editor
+│   ├── layout.tsx             # Root layout
+│   └── globals.css            # Global styles
+├── components/                # React components
+│   ├── ui/                   # shadcn/ui components
+│   ├── movie-card.tsx        # Movie card component
+│   ├── video-player.tsx      # HLS video player
+│   └── language-switcher.tsx # Language toggle
+├── lib/                       # Utilities and data
+│   ├── api/                  # API client
+│   ├── tmdb/                 # TMDB integration
+│   │   ├── client.ts         # TMDB API client
+│   │   └── mapper.ts         # Data mapping
+│   ├── types.ts              # TypeScript types
+│   ├── i18n.ts               # Localization helpers
+│   ├── images.ts             # Image utilities
+│   └── utils.ts              # Helper functions
+├── i18n/                      # next-intl configuration
+│   ├── request.ts            # i18n request handling
+│   └── routing.ts            # Routing configuration
+├── messages/                  # Translation files
+│   ├── en.json               # English UI text
+│   └── lo.json               # Lao UI text
+└── public/                    # Static assets
 ```
 
 ## Data Structure
 
-The app uses a TMDB-compatible schema with additional Lao language fields:
+The app uses a **hybrid localization system**:
 
-- `title` / `title_lao` - Movie titles
-- `overview` / `overview_lao` - Descriptions
-- Genre names in both languages
-- Cast and crew with Lao translations
+### 1. UI Text (next-intl)
+Buttons, labels, headings stored in `messages/en.json` and `messages/lo.json`:
+```typescript
+const t = useTranslations();
+<h1>{t('home.featured')}</h1>
+```
+
+### 2. Content Data (LocalizedText)
+Movie titles, descriptions from database using `LocalizedText` interface:
+```typescript
+interface LocalizedText {
+  en: string;   // English (required, fallback)
+  lo?: string;  // Lao (optional)
+}
+
+interface Movie {
+  title: LocalizedText;
+  overview: LocalizedText;
+  // ...
+}
+```
 
 ## Video Support
 
@@ -76,46 +118,84 @@ The video player supports:
 - Adaptive bitrate streaming
 - Custom controls with play/pause, volume, seek, and fullscreen
 
-## Next Steps
+## Admin Features
 
-1. **Video Transcoding**: Convert MP4 to HLS format with multiple quality levels
-2. **TMDB Integration**: API to fetch movie metadata
-3. **Backend**: Fastify API with PostgreSQL database
-4. **Authentication**: JWT-based user auth
-5. **Admin Panel**: Content management system
+### TMDB Import (`/admin/import`)
+1. Enter TMDB movie ID
+2. Fetch and preview movie data
+3. Import to database with one click
+4. Automatically fetches cast, crew, and metadata
+
+### Movie Editor (`/admin/edit/[id]`)
+1. Edit movie metadata
+2. Add Lao translations
+3. Manage video sources
+4. Update cast and crew
 
 ## Development
 
+### Available Scripts
+
 ```bash
-# Run dev server
-npm run dev
+# Development
+npm run dev          # Start dev server (port 3000)
 
-# Build for production
-npm run build
+# Production
+npm run build        # Build for production
+npm start            # Run production build
 
-# Start production server
-npm start
+# Code Quality
+npm run lint         # Lint code with ESLint
 
-# Lint code
-npm run lint
+# Testing
+npm test             # Run all tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Generate coverage report
 ```
 
 ## Testing
 
-```bash
-# Run all tests
-npm test
+The app has comprehensive test coverage:
 
-# Run tests in watch mode
-npm run test:watch
+- **70+ unit tests** across 3 test suites
+- **100% coverage** for utilities (i18n, images, utils)
+- **Jest + React Testing Library** setup
+- **Watch mode** for continuous testing
 
-# Generate coverage report
-npm run test:coverage
+Test suites:
+- `lib/__tests__/i18n.test.ts` - Localization helpers
+- `lib/__tests__/images.test.ts` - Image URL generation
+- `lib/__tests__/utils.test.ts` - Tailwind class utilities
+
+See [TESTING.md](./TESTING.md) for detailed documentation.
+
+## Configuration
+
+### Environment Variables
+
+Create `.env.local`:
+```env
+# TMDB Integration
+TMDB_API_KEY=your_tmdb_api_key_here
+
+# Backend API (if running separately)
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
-**Test Coverage**: 70 tests across 3 suites covering i18n, image utilities, and helper functions.
+Get your TMDB API key from: https://www.themoviedb.org/settings/api
 
-See [TESTING.md](./TESTING.md) for detailed testing documentation.
+## Documentation
+
+- [I18N_SETUP.md](./I18N_SETUP.md) - Internationalization guide
+- [TESTING.md](./TESTING.md) - Testing documentation
+- [../LANGUAGE_SYSTEM.md](../LANGUAGE_SYSTEM.md) - Multi-language architecture
+- [../NEXT_STEPS.md](../NEXT_STEPS.md) - Project roadmap
+- [../AGENTS.md](../AGENTS.md) - AI coding guidelines
+
+## Related Repositories
+
+- `/api` - Fastify backend API
+- `/db` - Database schema and migrations
 
 ## License
 

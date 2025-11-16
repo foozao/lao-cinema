@@ -1,5 +1,76 @@
 # Changelog
 
+## 2024-11-16 - Backend, Database & Admin Features
+
+### Added
+
+**Backend API** (`/api`):
+- Fastify REST API server
+- PostgreSQL database integration
+- Drizzle ORM with type-safe schema
+- Movie CRUD endpoints (`GET`, `POST`, `PUT`, `DELETE`)
+- Health check endpoint
+- CORS configuration for frontend integration
+
+**Database** (`/db`):
+- PostgreSQL schema with separate translation tables
+- People-centric architecture (actors, directors, crew)
+- Bilingual support via translation tables
+- Drizzle migrations and seed scripts
+- Docker Compose setup for local development
+
+**Admin Features** (`/web/app/[locale]/admin/`):
+- TMDB import interface (`/admin/import`)
+- Movie edit interface (`/admin/edit/[id]`)
+- Real-time TMDB data preview
+- Cast and crew import (top 20 actors)
+- Genre and metadata sync
+
+**TMDB Integration**:
+- `TMDBClient` with typed responses
+- Movie details fetching
+- Movie credits (cast/crew) fetching
+- Person details fetching
+- Data mapping to local schema
+- Preserves Lao translations on sync
+
+**Testing Framework**:
+- Jest configuration
+- React Testing Library setup
+- 70 unit tests for i18n, images, and utilities
+- Test coverage reporting
+- Watch mode support
+
+### Changed
+
+**Type System**:
+- `CastMember` now contains nested `person: Person` object
+- `CrewMember` now contains nested `person: Person` object
+- Added `Person` interface with biography, birthday, etc.
+
+**Database Schema**:
+- Migrated from embedded cast/crew to separate `people` table
+- Added junction tables (`movie_cast`, `movie_crew`)
+- Added translation tables for bilingual support
+- Person data stored once, referenced by movies
+
+### Documentation
+
+**New Files**:
+- `BACKEND_SETUP.md` - Backend setup guide
+- `DATABASE_SETUP.md` - Database setup guide
+- `TMDB_SETUP.md` - TMDB integration guide
+- `PEOPLE_ARCHITECTURE.md` - People system architecture
+- `PEOPLE_MIGRATION.md` - Migration guide for people tables
+- `CHANGELOG_PEOPLE.md` - People feature changelog
+- `TESTING.md` - Testing guide and practices
+- `I18N_SETUP.md` - next-intl setup guide
+
+**Updated Files**:
+- `CAST_CREW.md` - Reflects new people architecture
+- `NEXT_STEPS.md` - Current status and roadmap
+- `AGENTS.md` - Updated project structure
+
 ## 2024-11-14 - Multi-Language System Refactor
 
 ### Changed
