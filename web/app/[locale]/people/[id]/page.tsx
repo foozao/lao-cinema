@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Film } from 'lucide-react';
@@ -19,6 +20,8 @@ interface PersonCredit {
 
 export default function PersonPage() {
   const params = useParams();
+  const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations();
   const personId = parseInt(params.id as string);
   
   const [credits, setCredits] = useState<PersonCredit[]>([]);
@@ -84,7 +87,7 @@ export default function PersonPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <p>Loading...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -97,7 +100,7 @@ export default function PersonPage() {
             <Link href="/">
               <Button variant="ghost" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Back to Home
+                {t('nav.home')}
               </Button>
             </Link>
           </div>

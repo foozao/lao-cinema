@@ -95,75 +95,94 @@ export default function MoviePage() {
               title={title}
             />
           ) : (
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-900">
-              {/* Backdrop Image */}
-              {backdropUrl && (
-                <img
-                  src={backdropUrl}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent flex items-end">
-                <div className="p-8 w-full">
-                  <h1 className="text-5xl font-bold mb-4">{title}</h1>
-                  <p className="text-xl text-gray-300 mb-6 max-w-3xl line-clamp-3">
-                    {overview}
-                  </p>
+            <div className="grid md:grid-cols-5 gap-6">
+              {/* Backdrop Image - Smaller */}
+              <div className="md:col-span-2">
+                <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-900">
+                  {backdropUrl || posterUrl ? (
+                    <img
+                      src={backdropUrl || posterUrl || ''}
+                      alt={title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+                      <span className="text-white text-6xl font-bold opacity-50">
+                        {title.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Movie Info - More prominent */}
+              <div className="md:col-span-3 flex flex-col justify-center">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">{title}</h1>
+                <h2 className="text-xl text-gray-400 mb-4">{titleEn}</h2>
+
+                {/* Meta Info */}
+                <div className="flex flex-wrap items-center gap-4 mb-6 text-base">
+                  {movie.release_date && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-gray-400" />
+                      <span>{new Date(movie.release_date).getFullYear()}</span>
+                    </div>
+                  )}
+                  {movie.runtime && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-gray-400" />
+                      <span>{t('movie.minutes', { count: movie.runtime })}</span>
+                    </div>
+                  )}
+                  {movie.vote_average && (
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                      <span className="font-semibold">{movie.vote_average.toFixed(1)}/10</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Genres */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {movie.genres.map((genre) => (
+                    <Badge key={genre.id} variant="secondary" className="text-sm">
+                      {getLocalizedText(genre.name, locale)}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Overview */}
+                <p className="text-gray-300 leading-relaxed mb-6 line-clamp-4">
+                  {overview}
+                </p>
+
+                {/* Watch Now Button - More Prominent */}
+                <div className="flex gap-3">
                   <Button
                     size="lg"
                     onClick={() => setIsWatching(true)}
-                    className="gap-2"
+                    className="gap-2 text-lg px-8 py-6 bg-red-600 hover:bg-red-700"
                     disabled={!videoSource}
                   >
-                    <Play className="w-5 h-5" />
+                    <Play className="w-6 h-6 fill-white" />
                     {t('movie.watchNow')}
                   </Button>
+                  {movie.vote_count && (
+                    <div className="flex items-center gap-2 px-4 text-sm text-gray-400">
+                      <Users className="w-4 h-4" />
+                      <span>{movie.vote_count.toLocaleString()} votes</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </section>
 
-        {/* Movie Info */}
+        {/* Detailed Info Section */}
         <section className="grid md:grid-cols-3 gap-8">
           {/* Main Info */}
           <div className="md:col-span-2">
-            <h1 className="text-4xl font-bold mb-2">{title}</h1>
-            <h2 className="text-xl text-gray-400 mb-4">{titleEn}</h2>
-
-            {/* Meta Info */}
-            <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
-              {movie.release_date && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span>{new Date(movie.release_date).getFullYear()}</span>
-                </div>
-              )}
-              {movie.runtime && (
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span>{t('movie.minutes', { count: movie.runtime })}</span>
-                </div>
-              )}
-              {movie.vote_average && (
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  <span>{movie.vote_average.toFixed(1)}/10</span>
-                </div>
-              )}
-            </div>
-
-            {/* Genres */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {movie.genres.map((genre) => (
-                <Badge key={genre.id} variant="secondary" className="text-sm">
-                  {getLocalizedText(genre.name, locale)} / {getLocalizedText(genre.name, 'en')}
-                </Badge>
-              ))}
-            </div>
 
             {/* Overview */}
             <div className="mb-8">
