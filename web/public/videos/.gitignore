@@ -1,0 +1,8 @@
+# Ignore all video files to avoid committing large files
+*.mp4
+*.m3u8
+*.ts
+hls/
+
+# Keep the directory structure
+!.gitignore
