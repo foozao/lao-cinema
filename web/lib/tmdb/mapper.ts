@@ -1,8 +1,8 @@
 // Map TMDB API responses to our Movie schema
 
-import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember } from '../types';
+import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember, Person } from '../types';
 import { createLocalizedText } from '../i18n';
-import { TMDBMovieDetails, TMDBCredits } from './client';
+import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails } from './client';
 
 /**
  * Map TMDB movie details to our Movie schema
@@ -56,11 +56,17 @@ export function mapTMDBToMovie(
     : null;
 
   // Map cast (top 20 actors)
+  // Note: This creates minimal Person objects from credits data
+  // Full person details should be fetched separately via getPersonDetails()
   const cast: CastMember[] = credits?.cast.slice(0, 20).map((c) => ({
-    id: c.id,
-    name: createLocalizedText(c.name, undefined), // English only, Lao added manually
+    person: {
+      id: c.id,
+      name: createLocalizedText(c.name, undefined), // English only, Lao added manually
+      profile_path: c.profile_path || undefined,
+      known_for_department: c.known_for_department,
+      gender: c.gender,
+    },
     character: createLocalizedText(c.character, undefined),
-    profile_path: c.profile_path || undefined,
     order: c.order,
   })) || [];
 
@@ -69,11 +75,15 @@ export function mapTMDBToMovie(
   const crew: CrewMember[] = credits?.crew
     .filter((c) => importantJobs.includes(c.job))
     .map((c) => ({
-      id: c.id,
-      name: createLocalizedText(c.name, undefined),
+      person: {
+        id: c.id,
+        name: createLocalizedText(c.name, undefined),
+        profile_path: c.profile_path || undefined,
+        known_for_department: c.department,
+        gender: c.gender,
+      },
       job: createLocalizedText(c.job, undefined),
       department: c.department,
-      profile_path: c.profile_path || undefined,
     })) || [];
 
   // Preserve existing Lao translations if available
@@ -175,3 +185,37 @@ export const SYNCABLE_FIELDS = [
 ] as const;
 
 export type SyncableField = typeof SYNCABLE_FIELDS[number];
+
+/**
+ * Map TMDB person details to our Person schema
+ * 
+ * Strategy:
+ * - English content comes from TMDB
+ * - Lao content is left empty for manual translation
+ * - Preserves existing Lao translations if provided
+ */
+export function mapTMDBToPerson(
+  tmdbData: TMDBPersonDetails,
+  existingPerson?: Partial<Person>
+): Person {
+  // Preserve existing Lao translations if available
+  const existingLaoName = existingPerson?.name?.lo;
+  const existingLaoBio = existingPerson?.biography?.lo;
+
+  return {
+    id: tmdbData.id,
+    name: createLocalizedText(tmdbData.name, existingLaoName),
+    biography: tmdbData.biography
+      ? createLocalizedText(tmdbData.biography, existingLaoBio)
+      : undefined,
+    profile_path: tmdbData.profile_path || undefined,
+    birthday: tmdbData.birthday || undefined,
+    deathday: tmdbData.deathday || undefined,
+    place_of_birth: tmdbData.place_of_birth || undefined,
+    known_for_department: tmdbData.known_for_department,
+    popularity: tmdbData.popularity,
+    gender: tmdbData.gender,
+    imdb_id: tmdbData.imdb_id || undefined,
+    homepage: tmdbData.homepage || undefined,
+  };
+}

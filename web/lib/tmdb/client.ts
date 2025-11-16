@@ -95,6 +95,22 @@ export interface TMDBCredits {
   }>;
 }
 
+export interface TMDBPersonDetails {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+  gender: number; // 0=unknown, 1=female, 2=male, 3=non-binary
+  popularity: number;
+  imdb_id: string | null;
+  homepage: string | null;
+  also_known_as: string[];
+}
+
 class TMDBClient {
   private apiKey: string;
 
@@ -151,6 +167,13 @@ class TMDBClient {
   }
 
   /**
+   * Get detailed information about a person (actor, director, etc.)
+   */
+  async getPersonDetails(personId: number): Promise<TMDBPersonDetails> {
+    return this.fetch<TMDBPersonDetails>(`/person/${personId}`);
+  }
+
+  /**
    * Get the full URL for a TMDB image
    * @param path - The image path from TMDB (e.g., "/abc123.jpg")
    * @param size - Image size (w500, w780, original, etc.)
@@ -176,6 +199,10 @@ export const tmdbClient = {
   getMovieCredits: (tmdbId: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();
     return _tmdbClient.getMovieCredits(tmdbId);
+  },
+  getPersonDetails: (personId: number) => {
+    if (!_tmdbClient) _tmdbClient = new TMDBClient();
+    return _tmdbClient.getPersonDetails(personId);
   },
   getImageUrl: (path: string | null, size?: 'w500' | 'w780' | 'original') => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();

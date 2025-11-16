@@ -2,13 +2,18 @@
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+// Schema re-exports from /db (see schema.ts)
 import * as schema from './schema.js';
 
 // Get database URL from environment
-const DATABASE_URL = process.env.DATABASE_URL;
+// Use TEST_DATABASE_URL in test environment to protect development data
+const DATABASE_URL = process.env.NODE_ENV === 'test' 
+  ? process.env.TEST_DATABASE_URL 
+  : process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
+  const requiredVar = process.env.NODE_ENV === 'test' ? 'TEST_DATABASE_URL' : 'DATABASE_URL';
+  throw new Error(`${requiredVar} environment variable is required`);
 }
 
 // Create postgres client

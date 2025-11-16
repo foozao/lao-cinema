@@ -2,114 +2,132 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from '@/i18n/routing';
-import { getLocalizedText } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Download } from 'lucide-react';
-import { movieAPI } from '@/lib/api/client';
-import type { Movie } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Film, Users, Download, ArrowRight } from 'lucide-react';
+import { movieAPI, peopleAPI } from '@/lib/api/client';
 
 export default function AdminPage() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    moviesCount: 0,
+    peopleCount: 0,
+    loading: true,
+  });
 
   useEffect(() => {
-    const loadMovies = async () => {
+    const loadStats = async () => {
       try {
-        const response = await movieAPI.getAll();
-        setMovies(response.movies);
+        const [moviesResponse, peopleResponse] = await Promise.all([
+          movieAPI.getAll(),
+          peopleAPI.getAll(),
+        ]);
+        setStats({
+          moviesCount: moviesResponse.movies.length,
+          peopleCount: peopleResponse.people.length,
+          loading: false,
+        });
       } catch (error) {
-        console.error('Failed to load movies:', error);
-      } finally {
-        setLoading(false);
+        console.error('Failed to load stats:', error);
+        setStats(prev => ({ ...prev, loading: false }));
       }
     };
 
-    loadMovies();
+    loadStats();
   }, []);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">All Movies</h2>
-        <div className="flex gap-2">
-          <Link href="/admin/import">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Import from TMDB
-            </Button>
-          </Link>
-          <Link href="/admin/add">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Movie
-            </Button>
-          </Link>
-        </div>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h2>
+        <p className="text-gray-600">Manage your movies and people</p>
       </div>
 
-      {loading ? (
-        <p className="text-gray-600">Loading movies...</p>
-      ) : movies.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-gray-600 text-center">
-              No movies yet. Import one from TMDB to get started!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {movies.map((movie) => (
-          <Card key={movie.id}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Movies Card */}
+        <Link href="/admin/movies">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-xl">
-                    {getLocalizedText(movie.title, 'lo')}
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {getLocalizedText(movie.title, 'en')}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Film className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Movies</CardTitle>
+                    <CardDescription>Manage your movie catalog</CardDescription>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Link href={`/admin/edit/${movie.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </Button>
-                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Release Date:</span>
-                  <p className="font-medium">{movie.release_date}</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Runtime:</span>
-                  <p className="font-medium">{movie.runtime} min</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Rating:</span>
-                  <p className="font-medium">{movie.vote_average}/10</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Genres:</span>
-                  <p className="font-medium">
-                    {movie.genres.map((g) => getLocalizedText(g.name, 'en')).join(', ')}
-                  </p>
-                </div>
+              <div className="text-3xl font-bold text-gray-900">
+                {stats.loading ? '...' : stats.moviesCount}
               </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Total movies in database
+              </p>
             </CardContent>
           </Card>
-        ))}
+        </Link>
+
+        {/* People Card */}
+        <Link href="/admin/people">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <Users className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle>People</CardTitle>
+                    <CardDescription>Manage cast and crew</CardDescription>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {stats.loading ? '...' : stats.peopleCount}
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Total people in database
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
-      )}
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Common tasks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link href="/admin/import">
+              <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Import from TMDB</p>
+                  <p className="text-sm text-gray-600">Add movies from TMDB database</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/admin/add">
+              <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <Film className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Add New Movie</p>
+                  <p className="text-sm text-gray-600">Manually create a movie entry</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

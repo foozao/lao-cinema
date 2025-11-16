@@ -64,7 +64,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {movie.genres.slice(0, 2).map((genre) => {
+            {movie.genres?.slice(0, 2).map((genre) => {
               const genreName = getLocalizedText(genre.name, 'en');
               const genreKey = getGenreKey(genreName);
               return (

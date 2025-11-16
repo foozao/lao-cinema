@@ -105,12 +105,12 @@ export default function CastCrewPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sortedCast.map((member, index) => {
-                const profileUrl = getProfileUrl(member.profile_path, 'medium');
-                const memberName = getLocalizedText(member.name, 'en');
+                const profileUrl = getProfileUrl(member.person.profile_path, 'medium');
+                const memberName = getLocalizedText(member.person.name, 'en');
                 return (
                   <Link
-                    key={`cast-${member.id}-${index}`}
-                    href={`/people/${member.id}`}
+                    key={`cast-${member.person.id}-${index}`}
+                    href={`/people/${member.person.id}`}
                     className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
                   >
                     {profileUrl ? (
@@ -128,7 +128,7 @@ export default function CastCrewPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-base line-clamp-2">
-                        {getLocalizedText(member.name, locale)}
+                        {getLocalizedText(member.person.name, locale)}
                       </p>
                       <p className="text-sm text-gray-400 line-clamp-2 mt-1">
                         {getLocalizedText(member.character, locale)}
@@ -158,12 +158,12 @@ export default function CastCrewPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {crewByDepartment[department].map((member, index) => {
-                      const profileUrl = getProfileUrl(member.profile_path, 'medium');
-                      const memberName = getLocalizedText(member.name, 'en');
+                      const profileUrl = getProfileUrl(member.person.profile_path, 'medium');
+                      const memberName = getLocalizedText(member.person.name, 'en');
                       return (
                         <Link
-                          key={`crew-${member.id}-${index}`}
-                          href={`/people/${member.id}`}
+                          key={`crew-${member.person.id}-${index}`}
+                          href={`/people/${member.person.id}`}
                           className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
                         >
                           {profileUrl ? (
@@ -181,7 +181,7 @@ export default function CastCrewPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-base line-clamp-2">
-                              {getLocalizedText(member.name, locale)}
+                              {getLocalizedText(member.person.name, locale)}
                             </p>
                             <p className="text-sm text-gray-400 line-clamp-1 mt-1">
                               {translateCrewJob(getLocalizedText(member.job, 'en'), t)}

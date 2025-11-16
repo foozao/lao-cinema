@@ -79,7 +79,7 @@ Open https://local.drizzle.studio in your browser to view and edit data.
 ### Option 2: Use psql
 
 ```bash
-docker exec -it lao-cinema-db psql -U laocinema -d laocinema
+docker exec -it lao-cinema-db psql -U laocinema -d lao_cinema
 ```
 
 Then run SQL:
@@ -92,10 +92,10 @@ SELECT title, release_date FROM movies;
 
 - **Host**: localhost
 - **Port**: 5432
-- **Database**: laocinema
+- **Database**: lao_cinema
 - **User**: laocinema
 - **Password**: laocinema_dev
-- **Connection String**: `postgres://laocinema:laocinema_dev@localhost:5432/laocinema`
+- **Connection String**: `postgres://laocinema:laocinema_dev@localhost:5432/lao_cinema`
 
 ## Common Commands
 

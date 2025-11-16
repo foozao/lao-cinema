@@ -2,7 +2,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 
-const connectionString = process.env.DATABASE_URL || 'postgres://laocinema:laocinema_dev@localhost:5432/laocinema';
+const connectionString = process.env.DATABASE_URL || 'postgres://laocinema:laocinema_dev@localhost:5432/lao_cinema';
 
 async function main() {
   console.log('Running migrations...');

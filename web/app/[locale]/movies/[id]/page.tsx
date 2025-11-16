@@ -230,12 +230,12 @@ export default function MoviePage() {
                     .sort((a, b) => a.order - b.order)
                     .slice(0, 6)
                     .map((member, index) => {
-                      const profileUrl = getProfileUrl(member.profile_path, 'small');
-                      const memberName = getLocalizedText(member.name, 'en');
+                      const profileUrl = getProfileUrl(member.person.profile_path, 'small');
+                      const memberName = getLocalizedText(member.person.name, 'en');
                       return (
                         <Link
-                          key={`cast-${member.id}-${index}`}
-                          href={`/people/${member.id}`}
+                          key={`cast-${member.person.id}-${index}`}
+                          href={`/people/${member.person.id}`}
                           className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
                         >
                           {profileUrl ? (
@@ -253,7 +253,7 @@ export default function MoviePage() {
                           )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">
-                            {getLocalizedText(member.name, locale)}
+                            {getLocalizedText(member.person.name, locale)}
                           </p>
                           <p className="text-sm text-gray-400 truncate">
                             {getLocalizedText(member.character, locale)}
@@ -284,12 +284,12 @@ export default function MoviePage() {
                       return job === 'director' || job === 'writer' || job === 'screenplay';
                     })
                     .map((member, index) => {
-                      const profileUrl = getProfileUrl(member.profile_path, 'small');
-                      const memberName = getLocalizedText(member.name, 'en');
+                      const profileUrl = getProfileUrl(member.person.profile_path, 'small');
+                      const memberName = getLocalizedText(member.person.name, 'en');
                       return (
                         <Link
-                          key={`crew-${member.id}-${index}`}
-                          href={`/people/${member.id}`}
+                          key={`crew-${member.person.id}-${index}`}
+                          href={`/people/${member.person.id}`}
                           className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors"
                         >
                           {profileUrl ? (
@@ -307,7 +307,7 @@ export default function MoviePage() {
                           )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">
-                            {getLocalizedText(member.name, locale)}
+                            {getLocalizedText(member.person.name, locale)}
                           </p>
                           <p className="text-sm text-gray-400 truncate">
                             {translateCrewJob(getLocalizedText(member.job, 'en'), t)}

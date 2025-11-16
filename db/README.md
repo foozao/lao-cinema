@@ -17,7 +17,7 @@ docker-compose up -d
 ```
 
 This will start a PostgreSQL 16 container with:
-- **Database**: `laocinema`
+- **Database**: `lao_cinema`
 - **User**: `laocinema`
 - **Password**: `laocinema_dev`
 - **Port**: `5432`
@@ -123,7 +123,7 @@ Then open https://local.drizzle.studio in your browser.
 
 Default connection string:
 ```
-postgres://laocinema:laocinema_dev@localhost:5432/laocinema
+postgres://laocinema:laocinema_dev@localhost:5432/lao_cinema
 ```
 
 You can override with the `DATABASE_URL` environment variable:

@@ -5,6 +5,6 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgres://laocinema:laocinema_dev@localhost:5432/laocinema',
+    url: process.env.DATABASE_URL || 'postgres://laocinema:laocinema_dev@localhost:5432/lao_cinema',
   },
 });

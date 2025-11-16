@@ -64,3 +64,19 @@ export const movieAPI = {
     method: 'DELETE',
   }),
 };
+
+// People API methods
+export const peopleAPI = {
+  // Get all people
+  getAll: () => fetchAPI<{ people: any[] }>('/people'),
+  
+  // Get person by ID
+  getById: (id: string | number) => fetchAPI<any>(`/people/${id}`),
+  
+  // Update person
+  update: (id: string | number, data: any) => fetchAPI<any>(`/people/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+};

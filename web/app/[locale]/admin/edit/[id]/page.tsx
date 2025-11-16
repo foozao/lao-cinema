@@ -573,17 +573,17 @@ export default function EditMoviePage() {
                     <h3 className="font-semibold text-lg mb-3">Cast ({currentMovie.cast.length})</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {currentMovie.cast.slice(0, 10).map((member, index) => (
-                        <div key={`cast-${member.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          {member.profile_path && (
+                        <div key={`cast-${member.person.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          {member.person.profile_path && (
                             <img
-                              src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
-                              alt={getLocalizedText(member.name, 'en')}
+                              src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                              alt={getLocalizedText(member.person.name, 'en')}
                               className="w-12 h-12 rounded-full object-cover"
                             />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
-                              {getLocalizedText(member.name, 'en')}
+                              {getLocalizedText(member.person.name, 'en')}
                             </p>
                             <p className="text-xs text-gray-600 truncate">
                               {getLocalizedText(member.character, 'en')}
@@ -606,17 +606,17 @@ export default function EditMoviePage() {
                     <h3 className="font-semibold text-lg mb-3">Crew ({currentMovie.crew.length})</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {currentMovie.crew.map((member, index) => (
-                        <div key={`crew-${member.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          {member.profile_path && (
+                        <div key={`crew-${member.person.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          {member.person.profile_path && (
                             <img
-                              src={`https://image.tmdb.org/t/p/w92${member.profile_path}`}
-                              alt={getLocalizedText(member.name, 'en')}
+                              src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                              alt={getLocalizedText(member.person.name, 'en')}
                               className="w-12 h-12 rounded-full object-cover"
                             />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
-                              {getLocalizedText(member.name, 'en')}
+                              {getLocalizedText(member.person.name, 'en')}
                             </p>
                             <p className="text-xs text-gray-600 truncate">
                               {translateCrewJob(getLocalizedText(member.job, 'en'), t)}

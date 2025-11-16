@@ -18,8 +18,8 @@ export const movies = pgTable('movies', {
   backdropPath: text('backdrop_path'),
   
   // Details
-  releaseDate: text('release_date').notNull(),
-  runtime: integer('runtime').notNull(),
+  releaseDate: text('release_date'),
+  runtime: integer('runtime'),
   voteAverage: real('vote_average').default(0),
   voteCount: integer('vote_count').default(0),
   popularity: real('popularity').default(0),
@@ -60,40 +60,71 @@ export const movieGenres = pgTable('movie_genres', {
   genreId: integer('genre_id').references(() => genres.id, { onDelete: 'cascade' }).notNull(),
 });
 
-// Cast table
-export const cast = pgTable('cast', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+// People table - actors, directors, crew members
+export const people = pgTable('people', {
+  id: integer('id').primaryKey(), // TMDB person ID
   profilePath: text('profile_path'),
-  order: integer('order').notNull(),
+  birthday: text('birthday'), // ISO date string
+  deathday: text('deathday'), // ISO date string
+  placeOfBirth: text('place_of_birth'),
+  knownForDepartment: text('known_for_department'), // Acting, Directing, etc.
+  popularity: real('popularity').default(0),
+  gender: integer('gender'), // 0=unknown, 1=female, 2=male, 3=non-binary
+  imdbId: text('imdb_id'),
+  homepage: text('homepage'),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Cast translations table
-export const castTranslations = pgTable('cast_translations', {
-  castId: uuid('cast_id').references(() => cast.id, { onDelete: 'cascade' }).notNull(),
+// People translations table
+export const peopleTranslations = pgTable('people_translations', {
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
-  character: text('character').notNull(),
+  biography: text('biography'),
 }, (table) => ({
-  pk: primaryKey({ columns: [table.castId, table.language] }),
+  pk: primaryKey({ columns: [table.personId, table.language] }),
 }));
 
-// Crew table
-export const crew = pgTable('crew', {
-  id: uuid('id').defaultRandom().primaryKey(),
+// Movie-Cast junction table (actors in movies)
+export const movieCast = pgTable('movie_cast', {
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
-  department: text('department').notNull(),
-  profilePath: text('profile_path'),
-});
-
-// Crew translations table
-export const crewTranslations = pgTable('crew_translations', {
-  crewId: uuid('crew_id').references(() => crew.id, { onDelete: 'cascade' }).notNull(),
-  language: languageEnum('language').notNull(),
-  name: text('name').notNull(),
-  job: text('job').notNull(),
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
+  order: integer('order').notNull(), // Billing order
 }, (table) => ({
-  pk: primaryKey({ columns: [table.crewId, table.language] }),
+  pk: primaryKey({ columns: [table.movieId, table.personId] }),
+}));
+
+// Movie-Cast character translations (role-specific)
+export const movieCastTranslations = pgTable('movie_cast_translations', {
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  character: text('character').notNull(), // Character name
+}, (table) => ({
+  pk: primaryKey({ columns: [table.movieId, table.personId, table.language] }),
+}));
+
+// Movie-Crew junction table (crew members in movies)
+export const movieCrew = pgTable('movie_crew', {
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
+  department: text('department').notNull(), // Production, Directing, Writing, etc.
+}, (table) => ({
+  pk: primaryKey({ columns: [table.movieId, table.personId, table.department] }),
+}));
+
+// Movie-Crew job translations (role-specific)
+export const movieCrewTranslations = pgTable('movie_crew_translations', {
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
+  department: text('department').notNull(),
+  language: languageEnum('language').notNull(),
+  job: text('job').notNull(), // Director, Producer, Writer, etc.
+}, (table) => ({
+  pk: primaryKey({ columns: [table.movieId, table.personId, table.department, table.language] }),
 }));
 
 // Video sources table
@@ -118,15 +149,20 @@ export type NewGenre = typeof genres.$inferInsert;
 export type GenreTranslation = typeof genreTranslations.$inferSelect;
 export type NewGenreTranslation = typeof genreTranslations.$inferInsert;
 
-export type Cast = typeof cast.$inferSelect;
-export type NewCast = typeof cast.$inferInsert;
-export type CastTranslation = typeof castTranslations.$inferSelect;
-export type NewCastTranslation = typeof castTranslations.$inferInsert;
+export type Person = typeof people.$inferSelect;
+export type NewPerson = typeof people.$inferInsert;
+export type PersonTranslation = typeof peopleTranslations.$inferSelect;
+export type NewPersonTranslation = typeof peopleTranslations.$inferInsert;
 
-export type Crew = typeof crew.$inferSelect;
-export type NewCrew = typeof crew.$inferInsert;
-export type CrewTranslation = typeof crewTranslations.$inferSelect;
-export type NewCrewTranslation = typeof crewTranslations.$inferInsert;
+export type MovieCast = typeof movieCast.$inferSelect;
+export type NewMovieCast = typeof movieCast.$inferInsert;
+export type MovieCastTranslation = typeof movieCastTranslations.$inferSelect;
+export type NewMovieCastTranslation = typeof movieCastTranslations.$inferInsert;
+
+export type MovieCrew = typeof movieCrew.$inferSelect;
+export type NewMovieCrew = typeof movieCrew.$inferInsert;
+export type MovieCrewTranslation = typeof movieCrewTranslations.$inferSelect;
+export type NewMovieCrewTranslation = typeof movieCrewTranslations.$inferInsert;
 
 export type VideoSource = typeof videoSources.$inferSelect;
 export type NewVideoSource = typeof videoSources.$inferInsert;

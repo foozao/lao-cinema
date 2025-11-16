@@ -68,20 +68,34 @@ export interface Genre {
   name: LocalizedText;
 }
 
-export interface CastMember {
-  id: number;
+// Person entity (actor, director, crew member)
+export interface Person {
+  id: number; // TMDB person ID
   name: LocalizedText;
-  character: LocalizedText;
+  biography?: LocalizedText;
   profile_path?: string;
+  birthday?: string; // ISO date string
+  deathday?: string; // ISO date string
+  place_of_birth?: string;
+  known_for_department?: string; // Acting, Directing, etc.
+  popularity?: number;
+  gender?: number; // 0=unknown, 1=female, 2=male, 3=non-binary
+  imdb_id?: string;
+  homepage?: string;
+}
+
+// Cast member in a specific movie (extends Person with role info)
+export interface CastMember {
+  person: Person;
+  character: LocalizedText;
   order: number;
 }
 
+// Crew member in a specific movie (extends Person with job info)
 export interface CrewMember {
-  id: number;
-  name: LocalizedText;
+  person: Person;
   job: LocalizedText;
   department: string;
-  profile_path?: string;
 }
 
 export interface Collection {

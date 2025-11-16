@@ -5,6 +5,7 @@ import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import movieRoutes from './routes/movies.js';
+import peopleRoutes from './routes/people.js';
 
 const fastify = Fastify({
   logger: {
@@ -25,6 +26,7 @@ fastify.get('/health', async () => {
 
 // Register routes
 await fastify.register(movieRoutes, { prefix: '/api' });
+await fastify.register(peopleRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

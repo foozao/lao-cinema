@@ -2,7 +2,14 @@
 
 ## Overview
 
-Added full cast and crew import from TMDB, including directors, writers, producers, actors, and key production staff.
+**Updated Architecture (Nov 2024)**: Migrated to people-centric design with separate `people` table.
+
+Cast and crew are now stored as:
+1. **People** - Actors, directors, crew members (stored once)
+2. **Movie-Person Relationships** - Links between movies and people
+3. **Role-Specific Data** - Character names, job titles (per movie)
+
+See `PEOPLE_MIGRATION.md` for migration details.
 
 ## What's Included
 
@@ -52,25 +59,39 @@ const [movieData, creditsData] = await Promise.all([
 
 ## Data Structure
 
-### Cast Member
+### Person (Actor, Director, Crew)
 ```typescript
 {
-  id: number;
+  id: number; // TMDB person ID
   name: { en: string; lo?: string };
-  character: { en: string; lo?: string };
+  biography?: { en: string; lo?: string };
   profile_path?: string;
+  birthday?: string;
+  deathday?: string;
+  place_of_birth?: string;
+  known_for_department?: string;
+  popularity?: number;
+  gender?: number;
+  imdb_id?: string;
+  homepage?: string;
+}
+```
+
+### Cast Member (Person + Role)
+```typescript
+{
+  person: Person; // Full person object
+  character: { en: string; lo?: string };
   order: number;
 }
 ```
 
-### Crew Member
+### Crew Member (Person + Job)
 ```typescript
 {
-  id: number;
-  name: { en: string; lo?: string };
+  person: Person; // Full person object
   job: { en: string; lo?: string };
   department: string;
-  profile_path?: string;
 }
 ```
 
@@ -118,23 +139,84 @@ Ross Grayson Bell - Producer
 
 ## Database Storage
 
-Stored as JSONB in PostgreSQL:
+### People Table
 ```sql
-cast JSONB NOT NULL DEFAULT '[]'
-crew JSONB NOT NULL DEFAULT '[]'
+CREATE TABLE people (
+  id INTEGER PRIMARY KEY,  -- TMDB person ID
+  profile_path TEXT,
+  birthday TEXT,
+  deathday TEXT,
+  place_of_birth TEXT,
+  known_for_department TEXT,
+  popularity REAL,
+  gender INTEGER,
+  imdb_id TEXT,
+  homepage TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+CREATE TABLE people_translations (
+  person_id INTEGER REFERENCES people(id),
+  language language_enum,
+  name TEXT NOT NULL,
+  biography TEXT,
+  PRIMARY KEY (person_id, language)
+);
 ```
 
-Allows flexible querying and indexing.
+### Movie-Person Relationships
+```sql
+CREATE TABLE movie_cast (
+  movie_id UUID REFERENCES movies(id),
+  person_id INTEGER REFERENCES people(id),
+  order INTEGER NOT NULL,
+  PRIMARY KEY (movie_id, person_id)
+);
+
+CREATE TABLE movie_cast_translations (
+  movie_id UUID,
+  person_id INTEGER,
+  language language_enum,
+  character TEXT NOT NULL,
+  PRIMARY KEY (movie_id, person_id, language)
+);
+
+CREATE TABLE movie_crew (
+  movie_id UUID REFERENCES movies(id),
+  person_id INTEGER REFERENCES people(id),
+  department TEXT NOT NULL,
+  PRIMARY KEY (movie_id, person_id, department)
+);
+
+CREATE TABLE movie_crew_translations (
+  movie_id UUID,
+  person_id INTEGER,
+  department TEXT,
+  language language_enum,
+  job TEXT NOT NULL,
+  PRIMARY KEY (movie_id, person_id, department, language)
+);
+```
+
+**Benefits:**
+- No data duplication (person stored once)
+- Efficient queries (find all movies by person)
+- Rich person profiles (biography, birthday, etc.)
+- Bilingual support (names and bios in en/lo)
 
 ## Future Enhancements
 
-- [ ] Add person detail pages
-- [ ] Search by actor/director
-- [ ] Filter movies by cast/crew
-- [ ] Import person biographies
+- [x] Separate people table (completed)
+- [x] Person biographies support (completed)
+- [x] TMDB person details import (completed)
+- [ ] Add person detail pages (frontend)
+- [ ] Search by actor/director (frontend)
+- [ ] Filter movies by cast/crew (frontend)
+- [ ] Person filmography page (frontend)
 - [ ] Add person photos gallery
-- [ ] Link to person's other movies
 - [ ] Add awards and nominations
+- [ ] Social media links
 
 ## Testing
 

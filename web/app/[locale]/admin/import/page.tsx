@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/i18n/routing';
+import { useRouter, Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, Download, AlertCircle, CheckCircle, Users } from 'lucide-react';
 import { mapTMDBToMovie, getMissingTranslations } from '@/lib/tmdb';
 import type { TMDBMovieDetails } from '@/lib/tmdb';
 import type { Movie } from '@/lib/types';
@@ -96,7 +96,15 @@ export default function ImportFromTMDBPage() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold text-gray-900 mb-6">Import from TMDB</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold text-gray-900">Import from TMDB</h2>
+        <Link href="/admin/people">
+          <Button variant="outline" className="gap-2">
+            <Users className="w-4 h-4" />
+            Manage People
+          </Button>
+        </Link>
+      </div>
 
       {/* Search Form */}
       <Card className="mb-6">
@@ -113,7 +121,7 @@ export default function ImportFromTMDBPage() {
                   type="text"
                   value={tmdbId}
                   onChange={(e) => setTmdbId(e.target.value)}
-                  placeholder="e.g., 550 for Fight Club"
+                  placeholder="e.g., 1126026 for The Signal"
                   required
                 />
                 <Button type="submit" disabled={loading}>
@@ -270,7 +278,7 @@ export default function ImportFromTMDBPage() {
                 <div>
                   <span className="text-sm text-gray-600 font-medium">Cast:</span>
                   <p className="text-sm mt-1">
-                    {preview.mappedMovie.cast.slice(0, 5).map((c) => c.name.en).join(', ')}
+                    {preview.mappedMovie.cast.slice(0, 5).map((c) => c.person.name.en).join(', ')}
                     {preview.mappedMovie.cast.length > 5 && ` and ${preview.mappedMovie.cast.length - 5} more`}
                   </p>
                 </div>
@@ -280,9 +288,9 @@ export default function ImportFromTMDBPage() {
                 <div>
                   <span className="text-sm text-gray-600 font-medium">Crew:</span>
                   <div className="text-sm mt-1 space-y-1">
-                    {preview.mappedMovie.crew.slice(0, 5).map((c) => (
-                      <div key={c.id}>
-                        <strong>{c.name.en}</strong> - {c.job.en}
+                    {preview.mappedMovie.crew.slice(0, 5).map((c, index) => (
+                      <div key={`crew-${c.person.id}-${index}`}>
+                        <strong>{c.person.name.en}</strong> - {c.job.en}
                       </div>
                     ))}
                   </div>
