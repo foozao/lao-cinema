@@ -311,6 +311,11 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // Get video sources
+      const videoSources = await db.select()
+        .from(schema.videoSources)
+        .where(eq(schema.videoSources.movieId, id));
+
       // Return in expected format with fallbacks
       return {
         id: movie.id,
@@ -331,7 +336,13 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         genres,
         cast,
         crew,
-        video_sources: [],
+        video_sources: videoSources.map(vs => ({
+          id: vs.id,
+          quality: vs.quality,
+          format: vs.format,
+          url: vs.url,
+          size_bytes: vs.sizeBytes,
+        })),
         created_at: movie.createdAt,
         updated_at: movie.updatedAt,
       };

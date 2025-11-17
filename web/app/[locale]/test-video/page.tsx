@@ -15,6 +15,7 @@ export default function TestVideoPage() {
           src={videoUrl}
           poster={posterUrl}
           title="Test Video"
+          autoPlay={false}
         />
       </div>
 

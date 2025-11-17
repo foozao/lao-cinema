@@ -9,9 +9,10 @@ interface VideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
+  autoPlay?: boolean;
 }
 
-export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
+export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,6 +21,7 @@ export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -38,6 +40,10 @@ export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
+          // Auto-play if requested
+          if (autoPlay && video) {
+            video.play().catch(err => console.log('Auto-play prevented:', err));
+          }
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
@@ -54,13 +60,19 @@ export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
         // Native HLS support (Safari)
         video.src = src;
         setIsLoading(false);
+        if (autoPlay) {
+          video.play().catch(err => console.log('Auto-play prevented:', err));
+        }
       }
     } else {
       // Regular MP4 video
       video.src = src;
       setIsLoading(false);
+      if (autoPlay) {
+        video.play().catch(err => console.log('Auto-play prevented:', err));
+      }
     }
-  }, [src]);
+  }, [src, autoPlay]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -68,7 +80,10 @@ export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleDurationChange = () => setDuration(video.duration);
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      setHasStarted(true);
+    };
     const handlePause = () => setIsPlaying(false);
     const handleWaiting = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
@@ -145,12 +160,24 @@ export function VideoPlayer({ src, poster, title }: VideoPlayerProps) {
       <video
         ref={videoRef}
         className="w-full h-full"
-        poster={poster}
+        poster={!hasStarted ? poster : undefined}
         playsInline
         onClick={togglePlay}
       >
         Your browser does not support the video tag.
       </video>
+
+      {/* Big Play Button (before video starts) */}
+      {!hasStarted && !isLoading && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+          onClick={togglePlay}
+        >
+          <div className="bg-red-600 hover:bg-red-700 rounded-full p-6 transition-transform hover:scale-110">
+            <Play className="w-16 h-16 text-white fill-white" />
+          </div>
+        </div>
+      )}
 
       {/* Loading Spinner */}
       {isLoading && (

@@ -64,10 +64,10 @@ ffmpeg -i "$INPUT_FILE" \
   -hls_playlist_type vod \
   -hls_flags independent_segments \
   -hls_segment_type mpegts \
-  -hls_segment_filename "${OUTPUT_DIR}/data%v_%03d.ts" \
+  -hls_segment_filename "${OUTPUT_DIR}/stream_%v/data%03d.ts" \
   -master_pl_name master.m3u8 \
   -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3" \
-  "${OUTPUT_DIR}/stream_%v.m3u8"
+  "${OUTPUT_DIR}/stream_%v/playlist.m3u8"
 
 echo ""
 echo "✅ Conversion complete!"
@@ -75,9 +75,9 @@ echo ""
 echo "HLS master playlist: /videos/hls/${OUTPUT_NAME}/master.m3u8"
 echo ""
 echo "Generated variants:"
-echo "  - 1080p @ 5000k: /videos/hls/${OUTPUT_NAME}/stream_0.m3u8"
-echo "  - 720p @ 2800k:  /videos/hls/${OUTPUT_NAME}/stream_1.m3u8"
-echo "  - 480p @ 1400k:  /videos/hls/${OUTPUT_NAME}/stream_2.m3u8"
-echo "  - 360p @ 800k:   /videos/hls/${OUTPUT_NAME}/stream_3.m3u8"
+echo "  - 1080p @ 5000k: /videos/hls/${OUTPUT_NAME}/stream_0/playlist.m3u8"
+echo "  - 720p @ 2800k:  /videos/hls/${OUTPUT_NAME}/stream_1/playlist.m3u8"
+echo "  - 480p @ 1400k:  /videos/hls/${OUTPUT_NAME}/stream_2/playlist.m3u8"
+echo "  - 360p @ 800k:   /videos/hls/${OUTPUT_NAME}/stream_3/playlist.m3u8"
 echo ""
 echo "Use in your app: http://localhost:3000/videos/hls/${OUTPUT_NAME}/master.m3u8"

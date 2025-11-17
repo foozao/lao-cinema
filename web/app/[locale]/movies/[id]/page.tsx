@@ -94,6 +94,7 @@ export default function MoviePage() {
               src={videoSource.url}
               poster={backdropUrl || posterUrl || undefined}
               title={title}
+              autoPlay={true}
             />
           ) : (
             <div className="relative">
