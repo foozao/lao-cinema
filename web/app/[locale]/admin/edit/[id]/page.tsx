@@ -55,6 +55,12 @@ export default function EditMoviePage() {
     video_format: 'mp4',
   });
 
+  // State for cast/crew translations
+  const [castTranslations, setCastTranslations] = useState<Record<string, { character_en: string; character_lo: string }>>({});
+  const [crewTranslations, setCrewTranslations] = useState<Record<string, { job_en: string; job_lo: string }>>({});
+  const [editingCast, setEditingCast] = useState<string | null>(null);
+  const [editingCrew, setEditingCrew] = useState<string | null>(null);
+
   // Load movie data on mount
   useEffect(() => {
     const loadMovie = async () => {
@@ -85,6 +91,28 @@ export default function EditMoviePage() {
           video_quality: movie.video_sources[0]?.quality || 'original',
           video_format: movie.video_sources[0]?.format || 'mp4',
         });
+
+        // Initialize cast translations
+        const castTrans: Record<string, { character_en: string; character_lo: string }> = {};
+        movie.cast.forEach((member) => {
+          const key = `${member.person.id}`;
+          castTrans[key] = {
+            character_en: member.character.en || '',
+            character_lo: member.character.lo || '',
+          };
+        });
+        setCastTranslations(castTrans);
+
+        // Initialize crew translations
+        const crewTrans: Record<string, { job_en: string; job_lo: string }> = {};
+        movie.crew.forEach((member) => {
+          const key = `${member.person.id}-${member.department}`;
+          crewTrans[key] = {
+            job_en: member.job.en || '',
+            job_lo: member.job.lo || '',
+          };
+        });
+        setCrewTranslations(crewTrans);
       } catch (error) {
         console.error('Failed to load movie:', error);
         setSyncError('Failed to load movie from database');
@@ -160,6 +188,34 @@ export default function EditMoviePage() {
       // Normalize Lao text to prevent encoding issues
       const normalizeLao = (text: string) => text.normalize('NFC');
       
+      // Prepare cast with updated translations
+      const updatedCast = currentMovie?.cast.map((member) => {
+        const key = `${member.person.id}`;
+        const trans = castTranslations[key];
+        return {
+          person: member.person,
+          character: {
+            en: trans?.character_en || member.character.en || '',
+            lo: trans?.character_lo ? normalizeLao(trans.character_lo) : member.character.lo,
+          },
+          order: member.order,
+        };
+      }) || [];
+
+      // Prepare crew with updated translations
+      const updatedCrew = currentMovie?.crew.map((member) => {
+        const key = `${member.person.id}-${member.department}`;
+        const trans = crewTranslations[key];
+        return {
+          person: member.person,
+          job: {
+            en: trans?.job_en || member.job.en || '',
+            lo: trans?.job_lo ? normalizeLao(trans.job_lo) : member.job.lo,
+          },
+          department: member.department,
+        };
+      }) || [];
+      
       // Prepare the update data
       const updateData = {
         title: {
@@ -184,6 +240,8 @@ export default function EditMoviePage() {
           format: formData.video_format as 'hls' | 'mp4',
           quality: formData.video_quality as any,
         }] : [],
+        cast: updatedCast,
+        crew: updatedCrew,
       };
 
       await movieAPI.update(movieId, updateData);
@@ -571,32 +629,82 @@ export default function EditMoviePage() {
                 {currentMovie.cast.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Cast ({currentMovie.cast.length})</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {currentMovie.cast.slice(0, 10).map((member, index) => (
-                        <div key={`cast-${member.person.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          {member.person.profile_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
-                              alt={getLocalizedText(member.person.name, 'en')}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {getLocalizedText(member.person.name, 'en')}
-                            </p>
-                            <p className="text-xs text-gray-600 truncate">
-                              {getLocalizedText(member.character, 'en')}
-                            </p>
+                    <div className="space-y-3">
+                      {currentMovie.cast.map((member, index) => {
+                        const key = `${member.person.id}`;
+                        const isEditing = editingCast === key;
+                        const trans = castTranslations[key] || { character_en: member.character.en || '', character_lo: member.character.lo || '' };
+                        
+                        return (
+                          <div key={`cast-${member.person.id}-${index}`} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              {member.person.profile_path && (
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                                  alt={getLocalizedText(member.person.name, 'en')}
+                                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm mb-1">
+                                  {getLocalizedText(member.person.name, 'en')}
+                                </p>
+                                {!isEditing ? (
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">EN:</span> {trans.character_en || '(not set)'}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">LO:</span> {trans.character_lo || '(not set)'}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2 mt-2">
+                                    <div>
+                                      <Label className="text-xs">Character (English)</Label>
+                                      <Input
+                                        value={trans.character_en}
+                                        onChange={(e) => {
+                                          setCastTranslations(prev => ({
+                                            ...prev,
+                                            [key]: { ...prev[key], character_en: e.target.value }
+                                          }));
+                                        }}
+                                        placeholder="Character name in English"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Character (Lao)</Label>
+                                      <Input
+                                        value={trans.character_lo}
+                                        onChange={(e) => {
+                                          setCastTranslations(prev => ({
+                                            ...prev,
+                                            [key]: { ...prev[key], character_lo: e.target.value }
+                                          }));
+                                        }}
+                                        placeholder="ຊື່ຕົວລະຄອນເປັນພາສາລາວ"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingCast(isEditing ? null : key)}
+                                className="flex-shrink-0"
+                              >
+                                {isEditing ? 'Done' : 'Edit'}
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                    {currentMovie.cast.length > 10 && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        + {currentMovie.cast.length - 10} more cast members
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -604,29 +712,84 @@ export default function EditMoviePage() {
                 {currentMovie.crew.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Crew ({currentMovie.crew.length})</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {currentMovie.crew.map((member, index) => (
-                        <div key={`crew-${member.person.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          {member.person.profile_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
-                              alt={getLocalizedText(member.person.name, 'en')}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {getLocalizedText(member.person.name, 'en')}
-                            </p>
-                            <p className="text-xs text-gray-600 truncate">
-                              {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {member.department}
-                            </p>
+                    <div className="space-y-3">
+                      {currentMovie.crew.map((member, index) => {
+                        const key = `${member.person.id}-${member.department}`;
+                        const isEditing = editingCrew === key;
+                        const trans = crewTranslations[key] || { job_en: member.job.en || '', job_lo: member.job.lo || '' };
+                        
+                        return (
+                          <div key={`crew-${member.person.id}-${index}`} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              {member.person.profile_path && (
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                                  alt={getLocalizedText(member.person.name, 'en')}
+                                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm mb-1">
+                                  {getLocalizedText(member.person.name, 'en')}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-1">
+                                  {member.department}
+                                </p>
+                                {!isEditing ? (
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">EN:</span> {trans.job_en || '(not set)'}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">LO:</span> {trans.job_lo || '(not set)'}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2 mt-2">
+                                    <div>
+                                      <Label className="text-xs">Job Title (English)</Label>
+                                      <Input
+                                        value={trans.job_en}
+                                        onChange={(e) => {
+                                          setCrewTranslations(prev => ({
+                                            ...prev,
+                                            [key]: { ...prev[key], job_en: e.target.value }
+                                          }));
+                                        }}
+                                        placeholder="Job title in English"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Job Title (Lao)</Label>
+                                      <Input
+                                        value={trans.job_lo}
+                                        onChange={(e) => {
+                                          setCrewTranslations(prev => ({
+                                            ...prev,
+                                            [key]: { ...prev[key], job_lo: e.target.value }
+                                          }));
+                                        }}
+                                        placeholder="ຊື່ຕຳແໜ່ງເປັນພາສາລາວ"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingCrew(isEditing ? null : key)}
+                                className="flex-shrink-0"
+                              >
+                                {isEditing ? 'Done' : 'Edit'}
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

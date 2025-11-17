@@ -764,6 +764,74 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           }
         }
 
+        // Update cast character translations if provided
+        if (cast && Array.isArray(cast)) {
+          for (const member of cast) {
+            const personId = member.person.id;
+            const characterName = member.character;
+            
+            if (characterName) {
+              // Update or insert character translations
+              for (const lang of ['en', 'lo'] as const) {
+                if (characterName[lang]) {
+                  const existingCharTrans = await db.select()
+                    .from(schema.movieCastTranslations)
+                    .where(sql`${schema.movieCastTranslations.movieId} = ${id} AND ${schema.movieCastTranslations.personId} = ${personId} AND ${schema.movieCastTranslations.language} = ${lang}`)
+                    .limit(1);
+
+                  if (existingCharTrans.length > 0) {
+                    await db.update(schema.movieCastTranslations)
+                      .set({ character: characterName[lang] })
+                      .where(sql`${schema.movieCastTranslations.movieId} = ${id} AND ${schema.movieCastTranslations.personId} = ${personId} AND ${schema.movieCastTranslations.language} = ${lang}`);
+                  } else {
+                    await db.insert(schema.movieCastTranslations).values({
+                      movieId: id,
+                      personId,
+                      language: lang,
+                      character: characterName[lang],
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Update crew job translations if provided
+        if (crew && Array.isArray(crew)) {
+          for (const member of crew) {
+            const personId = member.person.id;
+            const jobTitle = member.job;
+            const department = member.department;
+            
+            if (jobTitle && department) {
+              // Update or insert job translations
+              for (const lang of ['en', 'lo'] as const) {
+                if (jobTitle[lang]) {
+                  const existingJobTrans = await db.select()
+                    .from(schema.movieCrewTranslations)
+                    .where(sql`${schema.movieCrewTranslations.movieId} = ${id} AND ${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.department} = ${department} AND ${schema.movieCrewTranslations.language} = ${lang}`)
+                    .limit(1);
+
+                  if (existingJobTrans.length > 0) {
+                    await db.update(schema.movieCrewTranslations)
+                      .set({ job: jobTitle[lang] })
+                      .where(sql`${schema.movieCrewTranslations.movieId} = ${id} AND ${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.department} = ${department} AND ${schema.movieCrewTranslations.language} = ${lang}`);
+                  } else {
+                    await db.insert(schema.movieCrewTranslations).values({
+                      movieId: id,
+                      personId,
+                      department,
+                      language: lang,
+                      job: jobTitle[lang],
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+
         // Fetch and return the complete updated movie
         const response = await fastify.inject({
           method: 'GET',
