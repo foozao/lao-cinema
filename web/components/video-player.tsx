@@ -21,6 +21,7 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
@@ -135,6 +136,17 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
     }
   };
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
@@ -151,12 +163,13 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
+    <div className="w-full">
+      <div
+        ref={containerRef}
+        className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
+      >
       <video
         ref={videoRef}
         className="w-full h-full"
@@ -186,12 +199,13 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
         </div>
       )}
 
-      {/* Controls */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
+      {/* Controls - overlay in fullscreen, below video otherwise */}
+      {isFullscreen && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
+            showControls ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
         {/* Progress Bar */}
         <input
           type="range"
@@ -199,7 +213,10 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
           max={duration || 0}
           value={currentTime}
           onChange={handleSeek}
-          className="w-full h-1 mb-4 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+          className="w-full h-1 mb-4 bg-gray-400 rounded-lg appearance-none cursor-pointer slider [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:h-1.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:h-1.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-gray-400 [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-gray-400 [&::-moz-range-track]:rounded-lg"
+          style={{
+            background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${(currentTime / duration) * 100}%, #9ca3af ${(currentTime / duration) * 100}%, #9ca3af 100%)`
+          }}
         />
 
         {/* Control Buttons */}
@@ -245,7 +262,71 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
             <Maximize className="w-6 h-6" />
           </Button>
         </div>
+        </div>
+      )}
       </div>
+
+      {/* Controls below video when not fullscreen */}
+      {!isFullscreen && (
+        <div className="bg-black p-4 rounded-b-lg">
+          {/* Progress Bar */}
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-1 mb-4 bg-gray-400 rounded-lg appearance-none cursor-pointer slider [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:h-1.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:h-1.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-gray-400 [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-gray-400 [&::-moz-range-track]:rounded-lg"
+            style={{
+              background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${(currentTime / duration) * 100}%, #9ca3af ${(currentTime / duration) * 100}%, #9ca3af 100%)`
+            }}
+          />
+
+          {/* Control Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePlay}
+                className="text-white hover:bg-white/20"
+              >
+                {isPlaying ? (
+                  <Pause className="w-6 h-6" />
+                ) : (
+                  <Play className="w-6 h-6" />
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMute}
+                className="text-white hover:bg-white/20"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-6 h-6" />
+                ) : (
+                  <Volume2 className="w-6 h-6" />
+                )}
+              </Button>
+
+              <span className="text-white text-sm">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="text-white hover:bg-white/20"
+            >
+              <Maximize className="w-6 h-6" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

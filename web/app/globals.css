@@ -131,30 +131,30 @@ input[type="range"].slider {
 
 input[type="range"].slider::-webkit-slider-track {
   background: rgba(255, 255, 255, 0.3);
-  height: 4px;
-  border-radius: 2px;
+  height: 6px;
+  border-radius: 3px;
 }
 
 input[type="range"].slider::-moz-range-track {
   background: rgba(255, 255, 255, 0.3);
-  height: 4px;
-  border-radius: 2px;
+  height: 6px;
+  border-radius: 3px;
 }
 
 input[type="range"].slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: white;
   cursor: pointer;
-  margin-top: -6px;
+  margin-top: -1px;
 }
 
 input[type="range"].slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: white;
   cursor: pointer;
