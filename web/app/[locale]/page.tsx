@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { MovieCard } from '@/components/movie-card';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { Footer } from '@/components/footer';
 import { Film } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
@@ -89,14 +90,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white dark:bg-gray-900 mt-20">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          <p className="mb-2">{t('footer.copyright')}</p>
-          <p className="text-xs">
-            {t('footer.tmdbDisclaimer')}
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

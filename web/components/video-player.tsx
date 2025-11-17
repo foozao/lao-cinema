@@ -10,9 +10,23 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   autoPlay?: boolean;
+  videoId?: string; // Unique identifier for saving playback position
 }
 
-export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlayerProps) {
+// Helper to generate localStorage key for video playback position
+const getPlaybackKey = (videoId: string) => `lao-cinema-playback-${videoId}`;
+
+// Playback data structure
+interface PlaybackData {
+  position: number;
+  timestamp: number;
+}
+
+// Time thresholds for continue watching behavior
+const CONTINUE_WATCHING_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days - max age before clearing saved position
+const CONTINUE_WATCHING_MIN_PROMPT_TIME = 30 * 60 * 1000; // 30 minutes - min time before showing prompt
+
+export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,6 +37,53 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [savedPosition, setSavedPosition] = useState<number | null>(null);
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+  const [pendingPosition, setPendingPosition] = useState<number | null>(null);
+
+  // Load saved playback position on mount
+  useEffect(() => {
+    if (!videoId) return;
+    
+    try {
+      const saved = localStorage.getItem(getPlaybackKey(videoId));
+      if (saved) {
+        // Try parsing as new format (with timestamp)
+        try {
+          const data: PlaybackData = JSON.parse(saved);
+          const now = Date.now();
+          const timeSinceLastWatch = now - data.timestamp;
+          
+          if (!isNaN(data.position) && data.position > 0) {
+            if (timeSinceLastWatch > CONTINUE_WATCHING_MAX_AGE) {
+              // Too old (>7 days), clear it
+              localStorage.removeItem(getPlaybackKey(videoId));
+            } else if (timeSinceLastWatch < CONTINUE_WATCHING_MIN_PROMPT_TIME) {
+              // Recent (<30 min), auto-continue without prompt
+              setSavedPosition(data.position);
+              setHasStarted(true);
+            } else {
+              // Over 30 min, always show prompt
+              setPendingPosition(data.position);
+              setShowContinueDialog(true);
+              setHasStarted(true);
+            }
+          }
+        } catch {
+          // Fallback for old format (just a number)
+          const position = parseFloat(saved);
+          if (!isNaN(position) && position > 0) {
+            // Assume it's recent and show dialog
+            setPendingPosition(position);
+            setShowContinueDialog(true);
+            setHasStarted(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved position:', error);
+    }
+  }, [videoId]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -41,6 +102,10 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
+          // Restore saved position if available
+          if (savedPosition !== null && video) {
+            video.currentTime = savedPosition;
+          }
           // Auto-play if requested
           if (autoPlay && video) {
             video.play().catch(err => console.log('Auto-play prevented:', err));
@@ -60,10 +125,15 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
         video.src = src;
-        setIsLoading(false);
-        if (autoPlay) {
-          video.play().catch(err => console.log('Auto-play prevented:', err));
-        }
+        video.addEventListener('loadedmetadata', () => {
+          setIsLoading(false);
+          if (savedPosition !== null) {
+            video.currentTime = savedPosition;
+          }
+          if (autoPlay) {
+            video.play().catch(err => console.log('Auto-play prevented:', err));
+          }
+        }, { once: true });
       }
     } else {
       // Regular MP4 video
@@ -73,13 +143,28 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
         video.play().catch(err => console.log('Auto-play prevented:', err));
       }
     }
-  }, [src, autoPlay]);
+  }, [src, autoPlay, savedPosition]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleTimeUpdate = () => {
+      const time = video.currentTime;
+      setCurrentTime(time);
+      // Save playback position to localStorage with timestamp (throttled by video's timeupdate event)
+      if (videoId && time > 0) {
+        try {
+          const data: PlaybackData = {
+            position: time,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(getPlaybackKey(videoId), JSON.stringify(data));
+        } catch (error) {
+          console.error('Error saving playback position:', error);
+        }
+      }
+    };
     const handleDurationChange = () => setDuration(video.duration);
     const handlePlay = () => {
       setIsPlaying(true);
@@ -104,7 +189,7 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
     };
-  }, []);
+  }, [videoId]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -162,6 +247,21 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleContinueWatching = () => {
+    if (pendingPosition !== null) {
+      setSavedPosition(pendingPosition);
+    }
+    setShowContinueDialog(false);
+  };
+
+  const handleStartFromBeginning = () => {
+    setSavedPosition(null);
+    setShowContinueDialog(false);
+    if (videoId) {
+      localStorage.removeItem(getPlaybackKey(videoId));
+    }
+  };
+
   return (
     <div className="w-full">
       <div
@@ -196,6 +296,33 @@ export function VideoPlayer({ src, poster, title, autoPlay = false }: VideoPlaye
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
+        </div>
+      )}
+
+      {/* Continue Watching Dialog */}
+      {showContinueDialog && pendingPosition !== null && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
+          <div className="bg-gray-900 rounded-lg p-6 max-w-md mx-4 shadow-2xl border border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-3">Continue Watching?</h3>
+            <p className="text-gray-300 mb-6">
+              You were at {formatTime(pendingPosition)}. Would you like to continue from where you left off?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleStartFromBeginning}
+                variant="outline"
+                className="flex-1"
+              >
+                Start from Beginning
+              </Button>
+              <Button
+                onClick={handleContinueWatching}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                Continue Watching
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

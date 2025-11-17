@@ -1,0 +1,258 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
+import { getLocalizedText } from '@/lib/i18n';
+import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
+import { getBackdropUrl, getPosterUrl } from '@/lib/images';
+import { VideoPlayer } from '@/components/video-player';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Info, ExternalLink } from 'lucide-react';
+import { movieAPI } from '@/lib/api/client';
+import type { Movie } from '@/lib/types';
+
+export default function WatchPage() {
+  const params = useParams();
+  const router = useRouter();
+  const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations();
+  const id = params.id as string;
+  
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
+
+  useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const data = await movieAPI.getById(id);
+        setMovie(data);
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMovie();
+  }, [id]);
+
+  const handleBack = () => {
+    router.push(`/movies/${id}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p>{t('common.loading')}</p>
+      </div>
+    );
+  }
+
+  if (!movie) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p>{t('common.error')}</p>
+      </div>
+    );
+  }
+
+  // Get the primary video source (prefer HLS, fallback to MP4)
+  const videoSource =
+    movie.video_sources.find((vs) => vs.format === 'hls') ||
+    movie.video_sources[0];
+
+  if (!videoSource) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="mb-4">{t('common.error')}</p>
+          <Button onClick={handleBack} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {t('nav.back')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const title = getLocalizedText(movie.title, locale);
+  const overview = getLocalizedText(movie.overview, locale);
+  const backdropUrl = getBackdropUrl(movie.backdrop_path, 'large');
+  const posterUrl = getPosterUrl(movie.poster_path, 'large');
+
+  return (
+    <div className="min-h-screen bg-black">
+      {/* Header - Overlay on video */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+            className="text-white hover:bg-white/20 gap-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            {t('nav.back')}
+          </Button>
+          
+          <Button
+            variant="ghost"
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-white hover:bg-white/20 gap-2"
+          >
+            <Info className="w-5 h-5" />
+            {t('movie.info')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Video Player - Full screen with padding for header */}
+      <div className="w-full h-screen pt-16">
+        <VideoPlayer
+          src={videoSource.url}
+          poster={backdropUrl || posterUrl || undefined}
+          title={title}
+          autoPlay={true}
+          videoId={movie.id}
+        />
+      </div>
+
+      {/* Movie Info Sidebar - Slides in from right */}
+      {showInfo && (
+        <div className="fixed top-0 right-0 bottom-0 w-full md:w-96 bg-gray-900 z-40 overflow-y-auto animate-in slide-in-from-right">
+          <div className="p-6">
+            {/* Close button */}
+            <div className="flex justify-end mb-4">
+              <Button
+                variant="ghost"
+                onClick={() => setShowInfo(false)}
+                className="text-white hover:bg-white/20"
+              >
+                ✕
+              </Button>
+            </div>
+
+            {/* Movie Title */}
+            <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
+
+            {/* Meta Info */}
+            <div className="flex flex-wrap gap-3 mb-4 text-sm text-gray-300">
+              {movie.release_date && (
+                <span>{new Date(movie.release_date).getFullYear()}</span>
+              )}
+              {movie.runtime && (
+                <span>{t('movie.minutes', { count: movie.runtime })}</span>
+              )}
+              {movie.vote_average && (
+                <span className="flex items-center gap-1">
+                  ⭐ {movie.vote_average.toFixed(1)}
+                </span>
+              )}
+            </div>
+
+            {/* Genres */}
+            {movie.genres.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {movie.genres.map((genre) => (
+                  <span
+                    key={genre.id}
+                    className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300"
+                  >
+                    {getLocalizedText(genre.name, locale)}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Overview */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {t('movie.overview')}
+              </h3>
+              <p className="text-gray-300 leading-relaxed">{overview}</p>
+            </div>
+
+            {/* Director & Writer */}
+            {movie.crew.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  {t('movie.crew')}
+                </h3>
+                <div className="space-y-2">
+                  {movie.crew
+                    .filter((member) => {
+                      const job = getLocalizedText(member.job, 'en').toLowerCase();
+                      return job === 'director' || job === 'writer' || job === 'screenplay';
+                    })
+                    .map((member, index) => (
+                      <a
+                        key={`crew-${member.person.id}-${index}`}
+                        href={`/${locale}/people/${member.person.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 p-2 -mx-2 rounded transition-colors group"
+                      >
+                        <div className="flex-1">
+                          <p className="text-white font-medium group-hover:text-red-400 transition-colors">
+                            {getLocalizedText(member.person.name, locale)}
+                          </p>
+                          <p className="text-gray-400">
+                            {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
+                          </p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors flex-shrink-0 mt-0.5" />
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cast */}
+            {movie.cast.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  {t('movie.cast')}
+                </h3>
+                <div className="space-y-2">
+                  {movie.cast
+                    .sort((a, b) => a.order - b.order)
+                    .slice(0, 5)
+                    .map((member, index) => (
+                      <a
+                        key={`cast-${member.person.id}-${index}`}
+                        href={`/${locale}/people/${member.person.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 p-2 -mx-2 rounded transition-colors group"
+                      >
+                        <div className="flex-1">
+                          <p className="text-white font-medium group-hover:text-red-400 transition-colors">
+                            {getLocalizedText(member.person.name, locale)}
+                          </p>
+                          <p className="text-gray-400">
+                            {getLocalizedText(member.character, locale)}
+                          </p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors flex-shrink-0 mt-0.5" />
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* View Full Details Button */}
+            <Button
+              onClick={handleBack}
+              variant="outline"
+              className="w-full"
+            >
+              {t('movie.viewFullDetails')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

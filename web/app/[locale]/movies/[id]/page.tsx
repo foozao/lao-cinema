@@ -3,21 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
-import { VideoPlayer } from '@/components/video-player';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { Footer } from '@/components/footer';
 import { ArrowLeft, Calendar, Clock, Star, Users, Play } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
   const params = useParams();
+  const router = useRouter();
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
   const tGenres = useTranslations('genres');
@@ -25,7 +26,6 @@ export default function MoviePage() {
   
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isWatching, setIsWatching] = useState(false);
 
   useEffect(() => {
     const loadMovie = async () => {
@@ -87,17 +87,9 @@ export default function MoviePage() {
 
       {/* Main Content */}
       <main>
-        {/* Hero Section / Video Player */}
+        {/* Hero Section */}
         <section className="mb-8">
-          {isWatching && videoSource ? (
-            <VideoPlayer
-              src={videoSource.url}
-              poster={backdropUrl || posterUrl || undefined}
-              title={title}
-              autoPlay={true}
-            />
-          ) : (
-            <div className="relative">
+          <div className="relative">
               {/* Backdrop Image with Overlay */}
               <div className="absolute inset-0 w-full h-full">
                 {backdropUrl ? (
@@ -182,7 +174,7 @@ export default function MoviePage() {
                     <div className="flex gap-3">
                       <Button
                         size="lg"
-                        onClick={() => setIsWatching(true)}
+                        onClick={() => router.push(`/movies/${id}/watch`)}
                         className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
                         disabled={!videoSource}
                       >
@@ -194,7 +186,6 @@ export default function MoviePage() {
                 </div>
               </div>
             </div>
-          )}
         </section>
 
         <div className="container mx-auto px-4">
@@ -335,6 +326,9 @@ export default function MoviePage() {
         </section>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

@@ -8,7 +8,8 @@
     "home": "Home",
     "movies": "Movies",
     "people": "People",
-    "admin": "Admin"
+    "admin": "Admin",
+    "back": "Back"
   },
   "home": {
     "title": "Lao Cinema",
@@ -31,7 +32,9 @@
     "playTrailer": "Play Trailer",
     "viewAll": "View All",
     "originalTitle": "Original Title",
-    "as": "as"
+    "as": "as",
+    "info": "Info",
+    "viewFullDetails": "View Full Details"
   },
   "crew": {
     "director": "Director",
