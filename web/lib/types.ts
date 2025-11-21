@@ -78,6 +78,7 @@ export interface Person {
   deathday?: string; // ISO date string
   place_of_birth?: string;
   known_for_department?: string; // Acting, Directing, etc.
+  departments?: string[]; // All departments they've worked in (Acting, Directing, Writing, etc.)
   popularity?: number;
   gender?: number; // 0=unknown, 1=female, 2=male, 3=non-binary
   imdb_id?: string;

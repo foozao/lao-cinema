@@ -34,7 +34,11 @@
     "originalTitle": "Original Title",
     "as": "as",
     "info": "Info",
-    "viewFullDetails": "View Full Details"
+    "viewFullDetails": "View Full Details",
+    "status": "Status",
+    "originalLanguage": "Original Language",
+    "productionCountries": "Production Countries",
+    "spokenLanguages": "Spoken Languages"
   },
   "crew": {
     "director": "Director",
@@ -69,6 +73,23 @@
     "en": "English",
     "lo": "Lao",
     "switchLanguage": "Switch Language"
+  },
+  "languages": {
+    "en": "English",
+    "lo": "Lao",
+    "th": "Thai",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "vi": "Vietnamese",
+    "fr": "French",
+    "es": "Spanish",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "ar": "Arabic",
+    "hi": "Hindi"
   },
   "genres": {
     "action": "Action",

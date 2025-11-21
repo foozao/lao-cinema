@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, Users, Download, ArrowRight } from 'lucide-react';
+import { Film, Users, Download, ArrowRight, Home } from 'lucide-react';
 import { movieAPI, peopleAPI } from '@/lib/api/client';
 
 export default function AdminPage() {
@@ -41,7 +41,32 @@ export default function AdminPage() {
         <p className="text-gray-600">Manage your movies and people</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Homepage Card */}
+        <Link href="/admin/homepage">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <Home className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Homepage</CardTitle>
+                    <CardDescription>Customize featured films</CardDescription>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Select which films appear on the homepage
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Movies Card */}
         <Link href="/admin/movies">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
@@ -106,7 +131,7 @@ export default function AdminPage() {
           <CardDescription>Common tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link href="/admin/import">
               <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <Download className="w-5 h-5 text-gray-600" />

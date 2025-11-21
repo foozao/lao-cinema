@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import movieRoutes from './routes/movies.js';
 import peopleRoutes from './routes/people.js';
+import homepageRoutes from './routes/homepage.js';
 
 const fastify = Fastify({
   logger: {
@@ -27,6 +28,7 @@ fastify.get('/health', async () => {
 // Register routes
 await fastify.register(movieRoutes, { prefix: '/api' });
 await fastify.register(peopleRoutes, { prefix: '/api' });
+await fastify.register(homepageRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

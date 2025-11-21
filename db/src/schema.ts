@@ -12,6 +12,7 @@ export const movies = pgTable('movies', {
   imdbId: text('imdb_id').unique(),
   
   originalTitle: text('original_title').notNull(),
+  originalLanguage: text('original_language'),
   
   // Media paths
   posterPath: text('poster_path'),
@@ -36,6 +37,7 @@ export const movieTranslations = pgTable('movie_translations', {
   language: languageEnum('language').notNull(),
   title: text('title').notNull(),
   overview: text('overview').notNull(),
+  tagline: text('tagline'),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.language] }),
 }));
@@ -138,6 +140,15 @@ export const videoSources = pgTable('video_sources', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Homepage featured films table
+export const homepageFeatured = pgTable('homepage_featured', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull().unique(),
+  order: integer('order').notNull(), // Display order on homepage
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type Movie = typeof movies.$inferSelect;
 export type NewMovie = typeof movies.$inferInsert;
@@ -166,3 +177,6 @@ export type NewMovieCrewTranslation = typeof movieCrewTranslations.$inferInsert;
 
 export type VideoSource = typeof videoSources.$inferSelect;
 export type NewVideoSource = typeof videoSources.$inferInsert;
+
+export type HomepageFeatured = typeof homepageFeatured.$inferSelect;
+export type NewHomepageFeatured = typeof homepageFeatured.$inferInsert;

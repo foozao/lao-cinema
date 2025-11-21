@@ -18,7 +18,20 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
             .where(sql`${schema.peopleTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
         : [];
       
-      // Build response with translations
+      // Get all cast and crew credits to determine departments
+      const castCredits = peopleIds.length > 0
+        ? await db.select()
+            .from(schema.movieCast)
+            .where(sql`${schema.movieCast.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      const crewCredits = peopleIds.length > 0
+        ? await db.select()
+            .from(schema.movieCrew)
+            .where(sql`${schema.movieCrew.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      // Build response with translations and departments
       const peopleWithTranslations = allPeople.map(person => {
         const personTranslations = translations.filter(t => t.personId === person.id);
         
@@ -32,6 +45,19 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           }
         }
         
+        // Collect all unique departments this person has worked in
+        const departments = new Set<string>();
+        
+        // Add "Acting" if they have cast credits
+        if (castCredits.some(c => c.personId === person.id)) {
+          departments.add('Acting');
+        }
+        
+        // Add all crew departments
+        crewCredits
+          .filter(c => c.personId === person.id)
+          .forEach(c => departments.add(c.department));
+        
         return {
           id: person.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
@@ -41,6 +67,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           deathday: person.deathday,
           place_of_birth: person.placeOfBirth,
           known_for_department: person.knownForDepartment,
+          departments: Array.from(departments).sort(), // All departments they've worked in
           popularity: person.popularity,
           gender: person.gender,
           imdb_id: person.imdbId,

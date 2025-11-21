@@ -6,10 +6,13 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Search, Edit } from 'lucide-react';
+import { ArrowLeft, Search, Edit, ArrowUpDown } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
+
+type DepartmentFilter = 'all' | 'Acting' | 'Directing' | 'Writing' | 'Production' | 'other';
+type SortOrder = 'asc' | 'desc';
 
 export default function PeopleAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
@@ -17,13 +20,21 @@ export default function PeopleAdminPage() {
   const [filteredPeople, setFilteredPeople] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   useEffect(() => {
     const loadPeople = async () => {
       try {
         const response = await peopleAPI.getAll();
-        setPeople(response.people);
-        setFilteredPeople(response.people);
+        // Sort people alphabetically by English name
+        const sortedPeople = [...response.people].sort((a, b) => {
+          const nameA = (a.name?.en || '').toLowerCase();
+          const nameB = (b.name?.en || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+        setPeople(sortedPeople);
+        setFilteredPeople(sortedPeople);
       } catch (error) {
         console.error('Failed to load people:', error);
       } finally {
@@ -34,19 +45,41 @@ export default function PeopleAdminPage() {
     loadPeople();
   }, []);
 
+  // Filter and sort people based on search, department, and sort order
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredPeople(people);
-    } else {
+    let filtered = [...people];
+
+    // Apply department filter
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter((person) => {
+        const dept = person.known_for_department;
+        if (departmentFilter === 'other') {
+          return dept && !['Acting', 'Directing', 'Writing', 'Production'].includes(dept);
+        }
+        return dept === departmentFilter;
+      });
+    }
+
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      const filtered = people.filter((person) => {
+      filtered = filtered.filter((person) => {
         const nameEn = person.name?.en?.toLowerCase() || '';
         const nameLo = person.name?.lo?.toLowerCase() || '';
         return nameEn.includes(query) || nameLo.includes(query);
       });
-      setFilteredPeople(filtered);
     }
-  }, [searchQuery, people]);
+
+    // Apply sort order
+    filtered.sort((a, b) => {
+      const nameA = (a.name?.en || '').toLowerCase();
+      const nameB = (b.name?.en || '').toLowerCase();
+      const comparison = nameA.localeCompare(nameB);
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    setFilteredPeople(filtered);
+  }, [searchQuery, people, departmentFilter, sortOrder]);
 
   if (loading) {
     return (
@@ -71,8 +104,9 @@ export default function PeopleAdminPage() {
         <div className="w-32" /> {/* Spacer */}
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4">
+        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
@@ -83,6 +117,81 @@ export default function PeopleAdminPage() {
             className="pl-10"
           />
         </div>
+
+        {/* Filters and Sort */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Department Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Filter:</span>
+            <div className="flex gap-2">
+              <Button
+                variant={departmentFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('all')}
+              >
+                All
+              </Button>
+              <Button
+                variant={departmentFilter === 'Acting' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('Acting')}
+              >
+                Acting
+              </Button>
+              <Button
+                variant={departmentFilter === 'Directing' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('Directing')}
+              >
+                Directing
+              </Button>
+              <Button
+                variant={departmentFilter === 'Writing' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('Writing')}
+              >
+                Writing
+              </Button>
+              <Button
+                variant={departmentFilter === 'Production' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('Production')}
+              >
+                Production
+              </Button>
+              <Button
+                variant={departmentFilter === 'other' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDepartmentFilter('other')}
+              >
+                Other
+              </Button>
+            </div>
+          </div>
+
+          {/* Sort Order */}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm font-medium text-gray-700">Sort:</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="gap-2"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              {sortOrder === 'asc' ? 'A → Z' : 'Z → A'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Active Filters Summary */}
+        {(departmentFilter !== 'all' || searchQuery) && (
+          <div className="text-sm text-gray-600">
+            Showing {filteredPeople.length} of {people.length} people
+            {departmentFilter !== 'all' && ` in ${departmentFilter === 'other' ? 'Other' : departmentFilter}`}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </div>
+        )}
       </div>
 
       {/* People List */}
@@ -100,6 +209,7 @@ export default function PeopleAdminPage() {
                 const nameEn = person.name?.en || 'Unknown';
                 const nameLo = person.name?.lo;
                 const hasLaoName = nameLo && nameLo !== nameEn;
+                const departments = person.departments || [];
                 
                 return (
                   <Link
@@ -118,9 +228,9 @@ export default function PeopleAdminPage() {
                           </span>
                         )}
                       </div>
-                      {person.known_for_department && (
+                      {departments.length > 0 && (
                         <span className="text-sm text-gray-500">
-                          · {person.known_for_department}
+                          · {departments.join(', ')}
                         </span>
                       )}
                     </div>

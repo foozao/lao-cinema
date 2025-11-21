@@ -17,8 +17,11 @@ export default function Home() {
   useEffect(() => {
     const loadMovies = async () => {
       try {
-        const response = await movieAPI.getAll();
-        setMovies(response.movies);
+        // Fetch featured films for homepage
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(`${API_BASE_URL}/homepage/featured`);
+        const data = await response.json();
+        setMovies(data.movies || []);
       } catch (error) {
         console.error('Failed to load movies:', error);
       } finally {

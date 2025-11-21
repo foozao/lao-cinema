@@ -229,6 +229,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           tmdb_id: movie.tmdbId,
           imdb_id: movie.imdbId,
           original_title: movie.originalTitle,
+          original_language: movie.originalLanguage,
           poster_path: movie.posterPath,
           backdrop_path: movie.backdropPath,
           release_date: movie.releaseDate,
@@ -394,6 +395,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         tmdb_id: movie.tmdbId,
         imdb_id: movie.imdbId,
         original_title: movie.originalTitle,
+        original_language: movie.originalLanguage,
         poster_path: movie.posterPath,
         backdrop_path: movie.backdropPath,
         release_date: movie.releaseDate,
@@ -444,6 +446,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         // Only include defined values to avoid PostgreSQL undefined errors
         if (movieData.tmdb_id !== undefined) dataToInsert.tmdbId = movieData.tmdb_id;
         if (movieData.imdb_id !== undefined) dataToInsert.imdbId = movieData.imdb_id;
+        if (movieData.original_language !== undefined) dataToInsert.originalLanguage = movieData.original_language;
         if (movieData.poster_path !== undefined) dataToInsert.posterPath = movieData.poster_path;
         if (movieData.backdrop_path !== undefined) dataToInsert.backdropPath = movieData.backdrop_path;
         if (movieData.release_date !== undefined) dataToInsert.releaseDate = movieData.release_date;

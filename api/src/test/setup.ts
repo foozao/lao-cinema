@@ -13,19 +13,29 @@ import { db } from '../db/index.js';
 beforeAll(async () => {
   // Verify we're using the test database
   const dbUrl = process.env.TEST_DATABASE_URL;
-  if (!dbUrl || !dbUrl.includes('lao_cinema_test')) {
-    throw new Error('❌ Tests must use TEST_DATABASE_URL pointing to lao_cinema_test database!');
+  if (!dbUrl) {
+    throw new Error('❌ TEST_DATABASE_URL environment variable is required for tests!');
+  }
+  
+  if (!dbUrl.includes('lao_cinema_test') && !dbUrl.includes('_test')) {
+    throw new Error(
+      `❌ TEST_DATABASE_URL must point to a test database (e.g., lao_cinema_test)!\n` +
+      `   Current: ${dbUrl}\n` +
+      `   This prevents accidentally running tests against production data.`
+    );
   }
   
   console.log('🧪 Setting up test database: lao_cinema_test');
+  console.log('   ⚠️  All data in this database will be cleared before and after each test');
   
-  // Clear all tables
-  await db.execute(sql`TRUNCATE TABLE movies, genres RESTART IDENTITY CASCADE`);
+  // Clear all tables (suppress NOTICE messages)
+  await db.execute(sql`SET client_min_messages TO WARNING`);
+  await db.execute(sql`TRUNCATE TABLE movies, genres, people RESTART IDENTITY CASCADE`);
 });
 
 // Clean up after each test to ensure isolation
 afterEach(async () => {
-  await db.execute(sql`TRUNCATE TABLE movies, genres RESTART IDENTITY CASCADE`);
+  await db.execute(sql`TRUNCATE TABLE movies, genres, people RESTART IDENTITY CASCADE`);
 });
 
 // Close database connection after all tests

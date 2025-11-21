@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
+import { getLanguageName } from '@/lib/i18n/get-language-name';
 import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Badge } from '@/components/ui/badge';
@@ -316,11 +317,56 @@ export default function MoviePage() {
           {/* Sidebar */}
           <div className="md:col-span-1">
             {/* Additional Info */}
-            <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-              <div>
-                <p className="text-sm text-gray-400 mb-1">{t('movie.originalTitle')}</p>
-                <p className="font-medium">{movie.original_title || title}</p>
-              </div>
+            <div className="bg-gray-800/50 rounded-lg p-4 space-y-4">
+              {/* Status */}
+              {movie.status && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">{t('movie.status')}</p>
+                  <p className="font-medium">{movie.status}</p>
+                </div>
+              )}
+
+              {/* Release Date */}
+              {movie.release_date && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">{t('movie.releaseDate')}</p>
+                  <p className="font-medium">
+                    {new Date(movie.release_date).toLocaleDateString(locale, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              )}
+
+              {/* Original Language */}
+              {movie.original_language && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">{t('movie.originalLanguage')}</p>
+                  <p className="font-medium">{getLanguageName(movie.original_language, t)}</p>
+                </div>
+              )}
+
+              {/* Production Countries */}
+              {movie.production_countries && movie.production_countries.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">{t('movie.productionCountries')}</p>
+                  <p className="font-medium">
+                    {movie.production_countries.map(c => c.name).join(', ')}
+                  </p>
+                </div>
+              )}
+
+              {/* Spoken Languages */}
+              {movie.spoken_languages && movie.spoken_languages.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">{t('movie.spokenLanguages')}</p>
+                  <p className="font-medium">
+                    {movie.spoken_languages.map(l => l.english_name).join(', ')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>

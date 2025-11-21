@@ -181,6 +181,54 @@ export default function EditMoviePage() {
     }
   };
 
+  // Silent save for cast/crew updates
+  const saveCastCrewUpdates = async () => {
+    if (!currentMovie) return;
+    
+    try {
+      // Normalize Lao text to prevent encoding issues
+      const normalizeLao = (text: string) => text.normalize('NFC');
+      
+      // Prepare cast with updated translations
+      const updatedCast = currentMovie.cast.map((member) => {
+        const key = `${member.person.id}`;
+        const trans = castTranslations[key];
+        return {
+          person: member.person,
+          character: {
+            en: trans?.character_en || member.character.en || '',
+            lo: trans?.character_lo ? normalizeLao(trans.character_lo) : member.character.lo,
+          },
+          order: member.order,
+        };
+      });
+
+      // Prepare crew with updated translations
+      const updatedCrew = currentMovie.crew.map((member) => {
+        const key = `${member.person.id}-${member.department}`;
+        const trans = crewTranslations[key];
+        return {
+          person: member.person,
+          job: {
+            en: trans?.job_en || member.job.en || '',
+            lo: trans?.job_lo ? normalizeLao(trans.job_lo) : member.job.lo,
+          },
+          department: member.department,
+        };
+      });
+      
+      // Update only cast and crew
+      const updateData = {
+        cast: updatedCast,
+        crew: updatedCrew,
+      };
+
+      await movieAPI.update(movieId, updateData);
+    } catch (error) {
+      console.error('Failed to save cast/crew updates:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -670,6 +718,13 @@ export default function EditMoviePage() {
                                             [key]: { ...prev[key], character_en: e.target.value }
                                           }));
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            setEditingCast(null);
+                                            saveCastCrewUpdates();
+                                          }
+                                        }}
                                         placeholder="Character name in English"
                                         className="text-xs h-8"
                                       />
@@ -684,6 +739,13 @@ export default function EditMoviePage() {
                                             [key]: { ...prev[key], character_lo: e.target.value }
                                           }));
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            setEditingCast(null);
+                                            saveCastCrewUpdates();
+                                          }
+                                        }}
                                         placeholder="ຊື່ຕົວລະຄອນເປັນພາສາລາວ"
                                         className="text-xs h-8"
                                       />
@@ -695,7 +757,12 @@ export default function EditMoviePage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setEditingCast(isEditing ? null : key)}
+                                onClick={() => {
+                                  if (isEditing) {
+                                    saveCastCrewUpdates();
+                                  }
+                                  setEditingCast(isEditing ? null : key);
+                                }}
                                 className="flex-shrink-0"
                               >
                                 {isEditing ? 'Done' : 'Edit'}
@@ -756,6 +823,13 @@ export default function EditMoviePage() {
                                             [key]: { ...prev[key], job_en: e.target.value }
                                           }));
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            setEditingCrew(null);
+                                            saveCastCrewUpdates();
+                                          }
+                                        }}
                                         placeholder="Job title in English"
                                         className="text-xs h-8"
                                       />
@@ -770,6 +844,13 @@ export default function EditMoviePage() {
                                             [key]: { ...prev[key], job_lo: e.target.value }
                                           }));
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            setEditingCrew(null);
+                                            saveCastCrewUpdates();
+                                          }
+                                        }}
                                         placeholder="ຊື່ຕຳແໜ່ງເປັນພາສາລາວ"
                                         className="text-xs h-8"
                                       />
@@ -781,7 +862,12 @@ export default function EditMoviePage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setEditingCrew(isEditing ? null : key)}
+                                onClick={() => {
+                                  if (isEditing) {
+                                    saveCastCrewUpdates();
+                                  }
+                                  setEditingCrew(isEditing ? null : key);
+                                }}
                                 className="flex-shrink-0"
                               >
                                 {isEditing ? 'Done' : 'Edit'}
