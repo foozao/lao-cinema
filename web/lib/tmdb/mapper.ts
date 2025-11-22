@@ -7,22 +7,32 @@ import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails } from './client';
 /**
  * Map TMDB movie details to our Movie schema
  * 
- * Strategy:
- * - English content comes from TMDB
- * - Lao content is left empty for manual translation
- * - Metadata (budget, revenue, etc.) is synced
- * - Preserves existing Lao translations if provided
+ * Safe Sync Strategy:
+ * - English text always updated from TMDB (titles, names, etc.)
+ * - Lao translations ALWAYS preserved from existingMovie
+ * - Metadata synced from TMDB (ratings, budget, revenue, etc.)
+ * - Never overwrites custom Lao translations
+ * 
+ * Preserved Lao translations:
+ * - Movie title, overview, tagline
+ * - Actor/cast names and character names
+ * - Crew names and job titles
+ * - Genre names
+ * - Collection names
  */
 export function mapTMDBToMovie(
   tmdbData: TMDBMovieDetails,
   credits?: TMDBCredits,
   existingMovie?: Partial<Movie>
 ): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources'> {
-  // Map genres
-  const genres: Genre[] = tmdbData.genres.map((g) => ({
-    id: g.id,
-    name: createLocalizedText(g.name, undefined), // English only, Lao added manually
-  }));
+  // Map genres - preserve existing Lao translations
+  const genres: Genre[] = tmdbData.genres.map((g) => {
+    const existingGenre = existingMovie?.genres?.find(eg => eg.id === g.id);
+    return {
+      id: g.id,
+      name: createLocalizedText(g.name, existingGenre?.name?.lo),
+    };
+  });
 
   // Map production companies
   const production_companies: ProductionCompany[] = tmdbData.production_companies.map((pc) => ({
@@ -45,46 +55,57 @@ export function mapTMDBToMovie(
     name: sl.name,
   }));
 
-  // Map collection if exists
+  // Map collection if exists - preserve existing Lao translation
   const belongs_to_collection: Collection | null = tmdbData.belongs_to_collection
     ? {
         id: tmdbData.belongs_to_collection.id,
-        name: createLocalizedText(tmdbData.belongs_to_collection.name, undefined),
+        name: createLocalizedText(
+          tmdbData.belongs_to_collection.name,
+          existingMovie?.belongs_to_collection?.name?.lo
+        ),
         poster_path: tmdbData.belongs_to_collection.poster_path || undefined,
         backdrop_path: tmdbData.belongs_to_collection.backdrop_path || undefined,
       }
     : null;
 
-  // Map cast (top 20 actors)
+  // Map cast (top 20 actors) - preserve existing Lao translations
   // Note: This creates minimal Person objects from credits data
   // Full person details should be fetched separately via getPersonDetails()
-  const cast: CastMember[] = credits?.cast.slice(0, 20).map((c) => ({
-    person: {
-      id: c.id,
-      name: createLocalizedText(c.name, undefined), // English only, Lao added manually
-      profile_path: c.profile_path || undefined,
-      known_for_department: c.known_for_department,
-      gender: c.gender,
-    },
-    character: createLocalizedText(c.character, undefined),
-    order: c.order,
-  })) || [];
+  const cast: CastMember[] = credits?.cast.slice(0, 20).map((c) => {
+    const existingCastMember = existingMovie?.cast?.find(ec => ec.person.id === c.id);
+    return {
+      person: {
+        id: c.id,
+        name: createLocalizedText(c.name, existingCastMember?.person.name?.lo),
+        profile_path: c.profile_path || undefined,
+        known_for_department: c.known_for_department,
+        gender: c.gender,
+      },
+      character: createLocalizedText(c.character, existingCastMember?.character?.lo),
+      order: c.order,
+    };
+  }) || [];
 
-  // Map crew (directors, writers, producers)
+  // Map crew (directors, writers, producers) - preserve existing Lao translations
   const importantJobs = ['Director', 'Writer', 'Screenplay', 'Producer', 'Executive Producer', 'Director of Photography', 'Original Music Composer'];
   const crew: CrewMember[] = credits?.crew
     .filter((c) => importantJobs.includes(c.job))
-    .map((c) => ({
-      person: {
-        id: c.id,
-        name: createLocalizedText(c.name, undefined),
-        profile_path: c.profile_path || undefined,
-        known_for_department: c.department,
-        gender: c.gender,
-      },
-      job: createLocalizedText(c.job, undefined),
-      department: c.department,
-    })) || [];
+    .map((c) => {
+      const existingCrewMember = existingMovie?.crew?.find(
+        ec => ec.person.id === c.id && ec.department === c.department
+      );
+      return {
+        person: {
+          id: c.id,
+          name: createLocalizedText(c.name, existingCrewMember?.person.name?.lo),
+          profile_path: c.profile_path || undefined,
+          known_for_department: c.department,
+          gender: c.gender,
+        },
+        job: createLocalizedText(c.job, existingCrewMember?.job?.lo),
+        department: c.department,
+      };
+    }) || [];
 
   // Preserve existing Lao translations if available
   const existingLaoTitle = existingMovie?.title?.lo;
