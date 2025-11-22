@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Film, Users, Download, ArrowRight, Home } from 'lucide-react';
 import { movieAPI, peopleAPI } from '@/lib/api/client';
 
 export default function AdminPage() {
+  const t = useTranslations('admin');
   const [stats, setStats] = useState({
     moviesCount: 0,
     peopleCount: 0,
@@ -37,8 +39,8 @@ export default function AdminPage() {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h2>
-        <p className="text-gray-600">Manage your movies and people</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('adminDashboard')}</h2>
+        <p className="text-gray-600">{t('manageMoviesAndPeople')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -52,8 +54,8 @@ export default function AdminPage() {
                     <Home className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <CardTitle>Homepage</CardTitle>
-                    <CardDescription>Customize featured films</CardDescription>
+                    <CardTitle>{t('homepage')}</CardTitle>
+                    <CardDescription>{t('customizeFeatured')}</CardDescription>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -61,7 +63,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
-                Select which films appear on the homepage
+                {t('selectHomepageFilms')}
               </p>
             </CardContent>
           </Card>
@@ -77,8 +79,8 @@ export default function AdminPage() {
                     <Film className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle>Movies</CardTitle>
-                    <CardDescription>Manage your movie catalog</CardDescription>
+                    <CardTitle>{t('movies')}</CardTitle>
+                    <CardDescription>{t('manageMovieCatalog')}</CardDescription>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -89,7 +91,7 @@ export default function AdminPage() {
                 {stats.loading ? '...' : stats.moviesCount}
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                Total movies in database
+                {t('totalMoviesInDatabase')}
               </p>
             </CardContent>
           </Card>
@@ -105,8 +107,8 @@ export default function AdminPage() {
                     <Users className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
-                    <CardTitle>People</CardTitle>
-                    <CardDescription>Manage cast and crew</CardDescription>
+                    <CardTitle>{t('people')}</CardTitle>
+                    <CardDescription>{t('manageCastAndCrew')}</CardDescription>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -117,7 +119,7 @@ export default function AdminPage() {
                 {stats.loading ? '...' : stats.peopleCount}
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                Total people in database
+                {t('totalPeopleInDatabase')}
               </p>
             </CardContent>
           </Card>
@@ -127,8 +129,8 @@ export default function AdminPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks</CardDescription>
+          <CardTitle>{t('quickActions')}</CardTitle>
+          <CardDescription>{t('commonTasks')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -136,8 +138,8 @@ export default function AdminPage() {
               <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <Download className="w-5 h-5 text-gray-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Import from TMDB</p>
-                  <p className="text-sm text-gray-600">Add movies from TMDB database</p>
+                  <p className="font-medium text-gray-900">{t('importFromTMDB')}</p>
+                  <p className="text-sm text-gray-600">{t('addMoviesFromTMDB')}</p>
                 </div>
               </div>
             </Link>
@@ -145,8 +147,8 @@ export default function AdminPage() {
               <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <Film className="w-5 h-5 text-gray-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Add New Movie</p>
-                  <p className="text-sm text-gray-600">Manually create a movie entry</p>
+                  <p className="font-medium text-gray-900">{t('addNewMovie')}</p>
+                  <p className="text-sm text-gray-600">{t('manuallyCreateMovie')}</p>
                 </div>
               </div>
             </Link>

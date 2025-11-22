@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Film, Home } from 'lucide-react';
 
@@ -6,6 +7,8 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations();
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin Header */}
@@ -15,7 +18,7 @@ export default function AdminLayout({
             <div className="flex items-center gap-2">
               <Film className="w-6 h-6 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900">
-                Lao Cinema Admin
+                {t('home.title')} {t('admin.dashboard')}
               </h1>
             </div>
             <Link
@@ -23,7 +26,7 @@ export default function AdminLayout({
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
               <Home className="w-4 h-4" />
-              Back to Site
+              {t('admin.backToSite')}
             </Link>
           </div>
         </div>

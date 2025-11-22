@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
 export default function MoviesAdminPage() {
+  const t = useTranslations('admin');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,34 +37,34 @@ export default function MoviesAdminPage() {
           <Link href="/admin">
             <Button variant="ghost" size="sm" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Dashboard
+              {t('dashboard')}
             </Button>
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900">All Movies</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{t('allMovies')}</h2>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/import">
             <Button variant="outline">
               <Download className="w-4 h-4 mr-2" />
-              Import from TMDB
+              {t('importFromTMDB')}
             </Button>
           </Link>
           <Link href="/admin/add">
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Add New Movie
+              {t('addNewMovie')}
             </Button>
           </Link>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-gray-600">Loading movies...</p>
+        <p className="text-gray-600">{t('loadingMovies')}</p>
       ) : movies.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <p className="text-gray-600 text-center">
-              No movies yet. Import one from TMDB to get started!
+              {t('noMoviesYetImport')}
             </p>
           </CardContent>
         </Card>
@@ -95,19 +97,19 @@ export default function MoviesAdminPage() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">Release Date:</span>
+                  <span className="text-gray-600">{t('releaseDate')}:</span>
                   <p className="font-medium">{movie.release_date}</p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Runtime:</span>
-                  <p className="font-medium">{movie.runtime} min</p>
+                  <span className="text-gray-600">{t('runtime')}:</span>
+                  <p className="font-medium">{movie.runtime} {t('min')}</p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Rating:</span>
+                  <span className="text-gray-600">{t('rating')}:</span>
                   <p className="font-medium">{movie.vote_average}/10</p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Genres:</span>
+                  <span className="text-gray-600">{t('genres')}:</span>
                   <p className="font-medium">
                     {movie.genres.map((g) => getLocalizedText(g.name, 'en')).join(', ')}
                   </p>

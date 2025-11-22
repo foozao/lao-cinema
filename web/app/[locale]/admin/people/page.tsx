@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +16,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function PeopleAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations('admin');
   const [people, setPeople] = useState<any[]>([]);
   const [filteredPeople, setFilteredPeople] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,10 +97,10 @@ export default function PeopleAdminPage() {
           <Link href="/admin">
             <Button variant="ghost" size="sm" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Dashboard
+              {t('dashboard')}
             </Button>
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900">All People</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
         </div>
         <div className="w-32" /> {/* Spacer */}
       </div>
@@ -111,7 +112,7 @@ export default function PeopleAdminPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
             type="text"
-            placeholder="Search people..."
+            placeholder={t('searchPeople')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -122,56 +123,56 @@ export default function PeopleAdminPage() {
         <div className="flex items-center gap-4 flex-wrap">
           {/* Department Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Filter:</span>
+            <span className="text-sm font-medium text-gray-700">{t('filter')}:</span>
             <div className="flex gap-2">
               <Button
                 variant={departmentFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('all')}
               >
-                All
+                {t('all')}
               </Button>
               <Button
                 variant={departmentFilter === 'Acting' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('Acting')}
               >
-                Acting
+                {t('acting')}
               </Button>
               <Button
                 variant={departmentFilter === 'Directing' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('Directing')}
               >
-                Directing
+                {t('directing')}
               </Button>
               <Button
                 variant={departmentFilter === 'Writing' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('Writing')}
               >
-                Writing
+                {t('writing')}
               </Button>
               <Button
                 variant={departmentFilter === 'Production' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('Production')}
               >
-                Production
+                {t('production')}
               </Button>
               <Button
                 variant={departmentFilter === 'other' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setDepartmentFilter('other')}
               >
-                Other
+                {t('other')}
               </Button>
             </div>
           </div>
 
           {/* Sort Order */}
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm font-medium text-gray-700">Sort:</span>
+            <span className="text-sm font-medium text-gray-700">{t('sort')}:</span>
             <Button
               variant="outline"
               size="sm"
@@ -179,7 +180,7 @@ export default function PeopleAdminPage() {
               className="gap-2"
             >
               <ArrowUpDown className="w-4 h-4" />
-              {sortOrder === 'asc' ? 'A → Z' : 'Z → A'}
+              {sortOrder === 'asc' ? t('aToZ') : t('zToA')}
             </Button>
           </div>
         </div>
@@ -187,9 +188,9 @@ export default function PeopleAdminPage() {
         {/* Active Filters Summary */}
         {(departmentFilter !== 'all' || searchQuery) && (
           <div className="text-sm text-gray-600">
-            Showing {filteredPeople.length} of {people.length} people
-            {departmentFilter !== 'all' && ` in ${departmentFilter === 'other' ? 'Other' : departmentFilter}`}
-            {searchQuery && ` matching "${searchQuery}"`}
+            {t('showing')} {filteredPeople.length} {t('of')} {people.length} {t('people')}
+            {departmentFilter !== 'all' && ` ${t('in')} ${departmentFilter === 'other' ? t('other') : departmentFilter}`}
+            {searchQuery && ` ${t('matching')} "${searchQuery}"`}
           </div>
         )}
       </div>
@@ -198,7 +199,7 @@ export default function PeopleAdminPage() {
       {filteredPeople.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-gray-500 text-lg">
-            {searchQuery ? 'No people found matching your search.' : 'No people in the database yet. Import a movie to add cast and crew.'}
+            {searchQuery ? t('noPeopleFound') : t('noPeopleYet')}
           </p>
         </div>
       ) : (
