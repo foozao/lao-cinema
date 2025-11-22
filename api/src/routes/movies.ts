@@ -76,6 +76,19 @@ const CrewMemberSchema = z.object({
   department: z.string(),
 });
 
+const MovieImageSchema = z.object({
+  id: z.string().optional(), // Optional for new images
+  type: z.enum(['poster', 'backdrop', 'logo']),
+  file_path: z.string(),
+  aspect_ratio: z.number().optional(),
+  height: z.number().optional(),
+  width: z.number().optional(),
+  iso_639_1: z.string().nullable().optional(),
+  vote_average: z.number().optional(),
+  vote_count: z.number().optional(),
+  is_primary: z.boolean().optional(),
+});
+
 const CreateMovieSchema = z.object({
   // TMDB fields
   tmdb_id: z.number().optional(),
@@ -120,6 +133,9 @@ const CreateMovieSchema = z.object({
   // Cast and crew
   cast: z.array(CastMemberSchema).optional(),
   crew: z.array(CrewMemberSchema).optional(),
+  
+  // Images
+  images: z.array(MovieImageSchema).optional(),
 });
 
 export default async function movieRoutes(fastify: FastifyInstance) {
@@ -389,6 +405,11 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         .from(schema.videoSources)
         .where(eq(schema.videoSources.movieId, id));
 
+      // Get images
+      const images = await db.select()
+        .from(schema.movieImages)
+        .where(eq(schema.movieImages.movieId, id));
+
       // Return in expected format with fallbacks
       return {
         id: movie.id,
@@ -417,6 +438,18 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           url: vs.url,
           size_bytes: vs.sizeBytes,
         })),
+        images: images.map(img => ({
+          id: img.id,
+          type: img.type,
+          file_path: img.filePath,
+          aspect_ratio: img.aspectRatio,
+          height: img.height,
+          width: img.width,
+          iso_639_1: img.iso6391,
+          vote_average: img.voteAverage,
+          vote_count: img.voteCount,
+          is_primary: img.isPrimary,
+        })),
         created_at: movie.createdAt,
         updated_at: movie.updatedAt,
       };
@@ -435,7 +468,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         fastify.log.info({ movieData }, 'Received movie data');
 
         // Extract fields that go into separate tables
-        const { cast, crew, title, overview, tagline, genres, ...movieFields } = movieData;
+        const { cast, crew, title, overview, tagline, genres, images, ...movieFields } = movieData;
         
         // Prepare movie data (only non-localized fields)
         const dataToInsert: any = {
@@ -447,8 +480,18 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         if (movieData.tmdb_id !== undefined) dataToInsert.tmdbId = movieData.tmdb_id;
         if (movieData.imdb_id !== undefined) dataToInsert.imdbId = movieData.imdb_id;
         if (movieData.original_language !== undefined) dataToInsert.originalLanguage = movieData.original_language;
-        if (movieData.poster_path !== undefined) dataToInsert.posterPath = movieData.poster_path;
-        if (movieData.backdrop_path !== undefined) dataToInsert.backdropPath = movieData.backdrop_path;
+        
+        // Set poster_path and backdrop_path from primary images if available, otherwise from top-level fields
+        if (images && images.length > 0) {
+          const primaryPoster = images.find(img => img.type === 'poster' && img.is_primary);
+          const primaryBackdrop = images.find(img => img.type === 'backdrop' && img.is_primary);
+          if (primaryPoster) dataToInsert.posterPath = primaryPoster.file_path;
+          if (primaryBackdrop) dataToInsert.backdropPath = primaryBackdrop.file_path;
+        } else {
+          if (movieData.poster_path !== undefined) dataToInsert.posterPath = movieData.poster_path;
+          if (movieData.backdrop_path !== undefined) dataToInsert.backdropPath = movieData.backdrop_path;
+        }
+        
         if (movieData.release_date !== undefined) dataToInsert.releaseDate = movieData.release_date;
         if (movieData.runtime !== undefined) dataToInsert.runtime = movieData.runtime;
         if (movieData.vote_average !== undefined) dataToInsert.voteAverage = movieData.vote_average;
@@ -685,6 +728,30 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           }
         }
 
+        // Insert images
+        if (images && images.length > 0) {
+          const imageValues = images.map((img) => {
+            const value: any = {
+              movieId: newMovie.id,
+              type: img.type,
+              filePath: img.file_path,
+              isPrimary: img.is_primary || false,
+            };
+            
+            // Only include optional fields if they're defined
+            if (img.aspect_ratio !== undefined) value.aspectRatio = img.aspect_ratio;
+            if (img.height !== undefined) value.height = img.height;
+            if (img.width !== undefined) value.width = img.width;
+            if (img.iso_639_1 !== undefined) value.iso6391 = img.iso_639_1;
+            if (img.vote_average !== undefined) value.voteAverage = img.vote_average;
+            if (img.vote_count !== undefined) value.voteCount = img.vote_count;
+            
+            return value;
+          });
+          
+          await db.insert(schema.movieImages).values(imageValues);
+        }
+
         // Fetch the complete movie with translations to return
         const response = await fastify.inject({
           method: 'GET',
@@ -718,7 +785,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         }
 
         // Extract fields that should be updated in movies table
-        const { title, overview, tagline, cast, crew, genres, ...movieUpdates } = updates;
+        const { title, overview, tagline, cast, crew, genres, images, ...movieUpdates } = updates;
         
         // Update basic movie fields if provided
         const movieFieldsToUpdate: any = {};
@@ -835,6 +902,51 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           }
         }
 
+        // Update images if provided
+        if (images && Array.isArray(images)) {
+          // Delete existing images for this movie
+          await db.delete(schema.movieImages)
+            .where(eq(schema.movieImages.movieId, id));
+
+          // Insert new images
+          if (images.length > 0) {
+            const imageValues = images.map((img) => {
+              const value: any = {
+                movieId: id,
+                type: img.type,
+                filePath: img.file_path,
+                isPrimary: img.is_primary || false,
+              };
+              
+              // Only include optional fields if they're defined
+              if (img.aspect_ratio !== undefined) value.aspectRatio = img.aspect_ratio;
+              if (img.height !== undefined) value.height = img.height;
+              if (img.width !== undefined) value.width = img.width;
+              if (img.iso_639_1 !== undefined) value.iso6391 = img.iso_639_1;
+              if (img.vote_average !== undefined) value.voteAverage = img.vote_average;
+              if (img.vote_count !== undefined) value.voteCount = img.vote_count;
+              
+              return value;
+            });
+            
+            await db.insert(schema.movieImages).values(imageValues);
+
+            // Update poster_path and backdrop_path to match primary images
+            const primaryPoster = images.find(img => img.type === 'poster' && img.is_primary);
+            const primaryBackdrop = images.find(img => img.type === 'backdrop' && img.is_primary);
+            
+            const pathUpdates: any = {};
+            if (primaryPoster) pathUpdates.posterPath = primaryPoster.file_path;
+            if (primaryBackdrop) pathUpdates.backdropPath = primaryBackdrop.file_path;
+            
+            if (Object.keys(pathUpdates).length > 0) {
+              await db.update(schema.movies)
+                .set(pathUpdates)
+                .where(eq(schema.movies.id, id));
+            }
+          }
+        }
+
         // Fetch and return the complete updated movie
         const response = await fastify.inject({
           method: 'GET',
@@ -845,6 +957,73 @@ export default async function movieRoutes(fastify: FastifyInstance) {
       } catch (error) {
         fastify.log.error(error);
         reply.status(500).send({ error: 'Failed to update movie' });
+      }
+    }
+  );
+
+  // Set primary image
+  fastify.put<{ 
+    Params: { id: string; imageId: string }; 
+    Body: { type: 'poster' | 'backdrop' | 'logo' } 
+  }>(
+    '/movies/:id/images/:imageId/primary',
+    async (request, reply) => {
+      try {
+        const { id: movieId, imageId } = request.params;
+        const { type } = request.body;
+
+        // Verify movie exists
+        const [movie] = await db.select()
+          .from(schema.movies)
+          .where(eq(schema.movies.id, movieId))
+          .limit(1);
+
+        if (!movie) {
+          return reply.status(404).send({ error: 'Movie not found' });
+        }
+
+        // Verify image exists and belongs to this movie
+        const [image] = await db.select()
+          .from(schema.movieImages)
+          .where(sql`${schema.movieImages.id} = ${imageId} AND ${schema.movieImages.movieId} = ${movieId}`)
+          .limit(1);
+
+        if (!image) {
+          return reply.status(404).send({ error: 'Image not found' });
+        }
+
+        if (image.type !== type) {
+          return reply.status(400).send({ error: 'Image type mismatch' });
+        }
+
+        // Unset all primary flags for this type
+        await db.update(schema.movieImages)
+          .set({ isPrimary: false })
+          .where(sql`${schema.movieImages.movieId} = ${movieId} AND ${schema.movieImages.type} = ${type}`);
+
+        // Set the selected image as primary
+        await db.update(schema.movieImages)
+          .set({ isPrimary: true })
+          .where(eq(schema.movieImages.id, imageId));
+
+        // Update the movie's poster_path or backdrop_path if applicable
+        if (type === 'poster') {
+          await db.update(schema.movies)
+            .set({ posterPath: image.filePath })
+            .where(eq(schema.movies.id, movieId));
+        } else if (type === 'backdrop') {
+          await db.update(schema.movies)
+            .set({ backdropPath: image.filePath })
+            .where(eq(schema.movies.id, movieId));
+        }
+
+        return reply.status(200).send({ 
+          success: true,
+          message: `Primary ${type} updated successfully`,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({ error: 'Failed to update primary image' });
       }
     }
   );

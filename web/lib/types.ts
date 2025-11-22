@@ -42,6 +42,9 @@ export interface Movie {
   // Video sources (custom for streaming)
   video_sources: VideoSource[];
   
+  // Images (multiple posters/backdrops from TMDB)
+  images?: MovieImage[];
+  
   // Relationships
   genres: Genre[];
   production_companies?: ProductionCompany[];
@@ -61,6 +64,19 @@ export interface VideoSource {
   format: 'hls' | 'mp4';
   url: string;
   size_bytes?: number;
+}
+
+export interface MovieImage {
+  id: string;
+  type: 'poster' | 'backdrop' | 'logo';
+  file_path: string; // TMDB image path (e.g., '/abc123.jpg')
+  aspect_ratio?: number;
+  height?: number;
+  width?: number;
+  iso_639_1?: string | null; // Language code for poster (null for no language)
+  vote_average?: number;
+  vote_count?: number;
+  is_primary?: boolean; // Primary poster/backdrop to display
 }
 
 export interface Genre {

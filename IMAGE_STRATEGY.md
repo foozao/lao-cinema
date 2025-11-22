@@ -1,23 +1,28 @@
 # Image Strategy for Lao Cinema
 
-## Current Implementation
+## Current Implementation (Updated)
 
-### TMDB Images (Imported Movies)
+### TMDB Images (Imported Movies) ✅ 
 - **Method**: Direct links to TMDB CDN
 - **Format**: `https://image.tmdb.org/t/p/{size}{path}`
+- **Fetching**: **All available images** (posters, backdrops, logos) via `/movie/{id}/images` endpoint
 - **Sizes Available**:
   - `w92` - Thumbnails (92px wide)
   - `w185` - Small posters
   - `w500` - Medium posters
   - `w780` - Large posters
   - `original` - Full resolution
-- **Storage**: Only store the path (e.g., `/abc123.jpg`), not full URL
+- **Storage**: 
+  - Primary poster/backdrop stored in `movies.poster_path` / `movies.backdrop_path` (backward compatibility)
+  - All images stored in `movie_images` table with metadata (dimensions, language, votes)
+- **Database**: New `movie_images` table stores multiple images per movie
 - **Legal**: ✅ Allowed per TMDB terms (with attribution)
 
-### Image Types
-1. **Posters** - Movie posters (2:3 aspect ratio)
-2. **Backdrops** - Wide hero images (16:9 aspect ratio)
-3. **Profile Photos** - Cast/crew headshots (square/portrait)
+### Image Types ✅ Implemented
+1. **Posters** - Movie posters (2:3 aspect ratio) - **All variants fetched from TMDB**
+2. **Backdrops** - Wide hero images (16:9 aspect ratio) - **All variants fetched from TMDB**
+3. **Logos** - Movie logos with transparent backgrounds - **All variants fetched from TMDB**
+4. **Profile Photos** - Cast/crew headshots (square/portrait) - Single image per person
 
 ## TMDB Terms Compliance
 
@@ -169,15 +174,20 @@ Assuming 100 movies with custom images:
 
 ### Immediate (Required)
 - [x] Add TMDB attribution to footer
+- [x] Create image helper functions (`getPrimaryImage`, `getImagesByType`)
+- [x] Fetch all TMDB images (posters, backdrops, logos)
+- [x] Store multiple images in database (`movie_images` table)
+- [x] Document image usage in `MULTI_POSTER_IMPLEMENTATION.md`
 - [ ] Add TMDB logo to pages with their data
-- [ ] Create image helper functions
-- [ ] Document image usage in README
 
 ### Short-term (Nice to have)
-- [ ] Add image size optimization
+- [x] Add image size optimization (via helper functions)
 - [ ] Implement lazy loading everywhere
 - [ ] Add placeholder images
 - [ ] Error handling for missing images
+- [ ] Build poster gallery UI component
+- [ ] Add admin UI to select primary poster
+- [ ] Language-aware poster selection (show Lao posters to Lao users)
 
 ### Long-term (Future feature)
 - [ ] Set up CDN (Cloudflare R2 or similar)
@@ -185,19 +195,22 @@ Assuming 100 movies with custom images:
 - [ ] Implement image processing pipeline
 - [ ] Support custom images for Lao films
 
-## Recommendation
+## Current Status ✅
 
-**Keep using TMDB CDN for now** because:
+**We now fetch ALL images from TMDB:**
 1. ✅ Legal and free
 2. ✅ No infrastructure needed
 3. ✅ Global CDN performance
 4. ✅ Multiple size options
 5. ✅ Always up-to-date
+6. ✅ **Complete image library** (all posters, backdrops, logos)
+7. ✅ **Language-specific posters** (English, Lao, language-neutral)
+8. ✅ **Metadata included** (dimensions, votes, language codes)
 
-**Add custom image support later** when:
-- You have original Lao films not in TMDB
-- You need custom promotional materials
-- You want to customize image presentation
+**Next Steps:**
+- Build UI components to display/select from multiple posters
+- Add custom image support for original Lao films not in TMDB
+- Implement language-aware poster selection
 
 ## Code Example: Image Helper
 

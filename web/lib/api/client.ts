@@ -63,6 +63,13 @@ export const movieAPI = {
   delete: (id: string) => fetchAPI<{ message: string; id: string }>(`/movies/${id}`, {
     method: 'DELETE',
   }),
+
+  // Set primary image
+  setPrimaryImage: (movieId: string, imageId: string, type: 'poster' | 'backdrop' | 'logo') =>
+    fetchAPI<{ success: boolean; message: string }>(`/movies/${movieId}/images/${imageId}/primary`, {
+      method: 'PUT',
+      body: JSON.stringify({ type }),
+    }),
 };
 
 // People API methods

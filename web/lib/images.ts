@@ -117,3 +117,97 @@ export function getPlaceholderUrl(type: ImageType = 'poster'): string {
   };
   return placeholders[type];
 }
+
+/**
+ * Get the primary image from a movie's images array
+ * Falls back to the first image of that type if no primary is set
+ * 
+ * @param images - Array of movie images
+ * @param type - Type of image to retrieve ('poster', 'backdrop', 'logo')
+ * @returns The primary image or null if none found
+ */
+export function getPrimaryImage(
+  images: Array<{ type: string; file_path: string; is_primary?: boolean }> | undefined,
+  type: 'poster' | 'backdrop' | 'logo'
+): string | null {
+  if (!images || images.length === 0) return null;
+  
+  const typeImages = images.filter(img => img.type === type);
+  if (typeImages.length === 0) return null;
+  
+  // Find primary image
+  const primary = typeImages.find(img => img.is_primary);
+  if (primary) return primary.file_path;
+  
+  // Fall back to first image of that type
+  return typeImages[0].file_path;
+}
+
+/**
+ * Get all images of a specific type from a movie's images array
+ * 
+ * @param images - Array of movie images
+ * @param type - Type of image to retrieve ('poster', 'backdrop', 'logo')
+ * @returns Array of file paths for that type
+ */
+export function getImagesByType(
+  images: Array<{ type: string; file_path: string }> | undefined,
+  type: 'poster' | 'backdrop' | 'logo'
+): string[] {
+  if (!images || images.length === 0) return [];
+  return images.filter(img => img.type === type).map(img => img.file_path);
+}
+
+/**
+ * Get language-appropriate poster based on user's language preference
+ * Fallback order: user language → language-neutral (null) → primary → first available
+ * 
+ * @param images - Array of movie images
+ * @param type - Type of image to retrieve ('poster', 'backdrop', 'logo')
+ * @param userLanguage - User's language preference ('en', 'lo', etc.)
+ * @returns The best matching image file path or null
+ * 
+ * @example
+ * ```ts
+ * // User prefers Lao
+ * const poster = getLanguageAwarePoster(movie.images, 'poster', 'lo');
+ * // Returns: Lao poster if available, else language-neutral, else primary
+ * ```
+ */
+export function getLanguageAwarePoster(
+  images: Array<{ 
+    type: string; 
+    file_path: string; 
+    iso_639_1?: string | null;
+    is_primary?: boolean;
+    vote_average?: number;
+  }> | undefined,
+  type: 'poster' | 'backdrop' | 'logo',
+  userLanguage: 'en' | 'lo' = 'en'
+): string | null {
+  if (!images || images.length === 0) return null;
+  
+  const typeImages = images.filter(img => img.type === type);
+  if (typeImages.length === 0) return null;
+  
+  // 1. Try to find image in user's language
+  const userLangImages = typeImages.filter(img => img.iso_639_1 === userLanguage);
+  if (userLangImages.length > 0) {
+    // Return highest-rated if multiple
+    return userLangImages.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0].file_path;
+  }
+  
+  // 2. Try language-neutral images (no specific language)
+  const neutralImages = typeImages.filter(img => !img.iso_639_1);
+  if (neutralImages.length > 0) {
+    // Return highest-rated if multiple
+    return neutralImages.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0].file_path;
+  }
+  
+  // 3. Fall back to primary image
+  const primary = typeImages.find(img => img.is_primary);
+  if (primary) return primary.file_path;
+  
+  // 4. Fall back to highest-rated image
+  return typeImages.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0].file_path;
+}

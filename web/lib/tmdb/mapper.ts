@@ -1,8 +1,8 @@
 // Map TMDB API responses to our Movie schema
 
-import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember, Person } from '../types';
+import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember, Person, MovieImage } from '../types';
 import { createLocalizedText } from '../i18n';
-import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails } from './client';
+import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails, TMDBImages } from './client';
 
 /**
  * Map TMDB movie details to our Movie schema
@@ -23,6 +23,7 @@ import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails } from './client';
 export function mapTMDBToMovie(
   tmdbData: TMDBMovieDetails,
   credits?: TMDBCredits,
+  images?: TMDBImages,
   existingMovie?: Partial<Movie>
 ): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources'> {
   // Map genres - preserve existing Lao translations
@@ -71,7 +72,8 @@ export function mapTMDBToMovie(
   // Map cast (top 20 actors) - preserve existing Lao translations
   // Note: This creates minimal Person objects from credits data
   // Full person details should be fetched separately via getPersonDetails()
-  const cast: CastMember[] = credits?.cast.slice(0, 20).map((c) => {
+  const castSource = credits?.cast ?? [];
+  const cast: CastMember[] = castSource.slice(0, 20).map((c) => {
     const existingCastMember = existingMovie?.cast?.find(ec => ec.person.id === c.id);
     return {
       person: {
@@ -88,7 +90,8 @@ export function mapTMDBToMovie(
 
   // Map crew (directors, writers, producers) - preserve existing Lao translations
   const importantJobs = ['Director', 'Writer', 'Screenplay', 'Producer', 'Executive Producer', 'Director of Photography', 'Original Music Composer'];
-  const crew: CrewMember[] = credits?.crew
+  const crewSource = credits?.crew ?? [];
+  const crew: CrewMember[] = crewSource
     .filter((c) => importantJobs.includes(c.job))
     .map((c) => {
       const existingCrewMember = existingMovie?.crew?.find(
@@ -106,6 +109,59 @@ export function mapTMDBToMovie(
         department: c.department,
       };
     }) || [];
+
+  // Map images (posters, backdrops, logos)
+  const mappedImages: MovieImage[] = [];
+  
+  if (images) {
+    // Map posters
+    images.posters.forEach((poster, index) => {
+      mappedImages.push({
+        id: `poster-${index}`, // Temporary ID, will be replaced by DB UUID
+        type: 'poster',
+        file_path: poster.file_path,
+        aspect_ratio: poster.aspect_ratio,
+        height: poster.height,
+        width: poster.width,
+        iso_639_1: poster.iso_639_1,
+        vote_average: poster.vote_average,
+        vote_count: poster.vote_count,
+        is_primary: index === 0, // First poster is primary
+      });
+    });
+    
+    // Map backdrops
+    images.backdrops.forEach((backdrop, index) => {
+      mappedImages.push({
+        id: `backdrop-${index}`, // Temporary ID, will be replaced by DB UUID
+        type: 'backdrop',
+        file_path: backdrop.file_path,
+        aspect_ratio: backdrop.aspect_ratio,
+        height: backdrop.height,
+        width: backdrop.width,
+        iso_639_1: backdrop.iso_639_1,
+        vote_average: backdrop.vote_average,
+        vote_count: backdrop.vote_count,
+        is_primary: index === 0, // First backdrop is primary
+      });
+    });
+    
+    // Map logos
+    images.logos.forEach((logo, index) => {
+      mappedImages.push({
+        id: `logo-${index}`, // Temporary ID, will be replaced by DB UUID
+        type: 'logo',
+        file_path: logo.file_path,
+        aspect_ratio: logo.aspect_ratio,
+        height: logo.height,
+        width: logo.width,
+        iso_639_1: logo.iso_639_1,
+        vote_average: logo.vote_average,
+        vote_count: logo.vote_count,
+        is_primary: false,
+      });
+    });
+  }
 
   // Preserve existing Lao translations if available
   const existingLaoTitle = existingMovie?.title?.lo;
@@ -155,6 +211,9 @@ export function mapTMDBToMovie(
     // People
     cast,
     crew,
+    
+    // Images
+    images: mappedImages.length > 0 ? mappedImages : undefined,
   };
 }
 

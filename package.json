@@ -6,10 +6,10 @@
   "scripts": {
     "test": "npm run test:web && npm run test:api",
     "test:web": "cd web && npm test",
-    "test:api": "cd api && npm run test:run",
+    "test:api": "cd api && npm run test",
     "test:watch": "npm run test:watch:web",
     "test:watch:web": "cd web && npm run test:watch",
-    "test:watch:api": "cd api && npm test",
+    "test:watch:api": "cd api && npm test:watch",
     "test:coverage": "npm run test:coverage:web && npm run test:coverage:api",
     "test:coverage:web": "cd web && npm run test:coverage",
     "test:coverage:api": "cd api && npm run test:coverage"

@@ -4,6 +4,7 @@ import { pgTable, text, integer, real, boolean, timestamp, uuid, pgEnum, primary
 export const languageEnum = pgEnum('language', ['en', 'lo']);
 export const videoFormatEnum = pgEnum('video_format', ['mp4', 'hls', 'dash']);
 export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '720p', '480p', '360p']);
+export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
 
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
@@ -41,6 +42,22 @@ export const movieTranslations = pgTable('movie_translations', {
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.language] }),
 }));
+
+// Movie images table - stores multiple posters/backdrops from TMDB
+export const movieImages = pgTable('movie_images', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  type: imageTypeEnum('type').notNull(),
+  filePath: text('file_path').notNull(), // TMDB image path
+  aspectRatio: real('aspect_ratio'),
+  height: integer('height'),
+  width: integer('width'),
+  iso6391: text('iso_639_1'), // Language code for poster (null for no language)
+  voteAverage: real('vote_average'),
+  voteCount: integer('vote_count'),
+  isPrimary: boolean('is_primary').default(false), // Primary poster/backdrop to display
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // Genres table
 export const genres = pgTable('genres', {
@@ -180,3 +197,6 @@ export type NewVideoSource = typeof videoSources.$inferInsert;
 
 export type HomepageFeatured = typeof homepageFeatured.$inferSelect;
 export type NewHomepageFeatured = typeof homepageFeatured.$inferInsert;
+
+export type MovieImage = typeof movieImages.$inferSelect;
+export type NewMovieImage = typeof movieImages.$inferInsert;

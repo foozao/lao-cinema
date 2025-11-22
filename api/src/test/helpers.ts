@@ -105,3 +105,55 @@ export function createMinimalMovie(overrides?: any): any {
     ...overrides,
   };
 }
+
+/**
+ * Create sample movie images for testing
+ */
+export function createSampleImages() {
+  return [
+    {
+      type: 'poster' as const,
+      file_path: '/poster1.jpg',
+      aspect_ratio: 0.667,
+      height: 3000,
+      width: 2000,
+      iso_639_1: 'en',
+      vote_average: 5.3,
+      vote_count: 10,
+      is_primary: true,
+    },
+    {
+      type: 'poster' as const,
+      file_path: '/poster2.jpg',
+      aspect_ratio: 0.667,
+      height: 3000,
+      width: 2000,
+      iso_639_1: 'lo',
+      vote_average: 4.8,
+      vote_count: 5,
+      is_primary: false,
+    },
+    {
+      type: 'backdrop' as const,
+      file_path: '/backdrop1.jpg',
+      aspect_ratio: 1.778,
+      height: 1080,
+      width: 1920,
+      iso_639_1: null,
+      vote_average: 5.5,
+      vote_count: 8,
+      is_primary: true,
+    },
+    {
+      type: 'logo' as const,
+      file_path: '/logo1.png',
+      aspect_ratio: 2.5,
+      height: 200,
+      width: 500,
+      iso_639_1: 'en',
+      vote_average: 5.0,
+      vote_count: 3,
+      is_primary: false,
+    },
+  ];
+}

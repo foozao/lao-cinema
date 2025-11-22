@@ -14,8 +14,9 @@ import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie } from '@/lib/types';
-import { syncMovieFromTMDB } from './actions';
+import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI } from '@/lib/api/client';
+import { PosterManager } from '@/components/admin/poster-manager';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function EditMoviePage() {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [fetchingImages, setFetchingImages] = useState(false);
   const [formData, setFormData] = useState({
     // English fields
     title_en: '',
@@ -148,9 +150,11 @@ export default function EditMoviePage() {
 
       const tmdbData = result.data;
       const credits = result.credits;
+      const images = result.images;
       
       // Map to our schema, preserving Lao translations
-      const syncedData = mapTMDBToMovie(tmdbData, credits, currentMovie);
+      // Note: mapper signature is (tmdbData, credits?, images?, existingMovie?)
+      const syncedData = mapTMDBToMovie(tmdbData, credits, images, currentMovie);
 
       // Update form with synced data (preserving Lao fields)
       setFormData((prev) => ({
@@ -173,11 +177,135 @@ export default function EditMoviePage() {
         backdrop_path: syncedData.backdrop_path || '',
       }));
 
-      alert('Successfully synced from TMDB! English content and metadata updated.');
+      // Update currentMovie with synced data including images
+      setCurrentMovie((prev) => prev ? {
+        ...prev,
+        ...syncedData,
+        images: syncedData.images,
+      } : null);
+
+      alert('Successfully synced from TMDB! English content, metadata, and images updated.');
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handlePrimaryImageChange = async (
+    imageId: string,
+    type: 'poster' | 'backdrop' | 'logo'
+  ) => {
+    if (!currentMovie) return;
+    const selected = currentMovie.images?.find((img) => img.id === imageId && img.type === type);
+    if (!selected) return;
+
+    // Update form data with selected image path
+    if (type === 'poster') {
+      setFormData((prev) => ({ ...prev, poster_path: selected.file_path }));
+    } else if (type === 'backdrop') {
+      setFormData((prev) => ({ ...prev, backdrop_path: selected.file_path }));
+    }
+
+    // Update currentMovie to mark the selected image as primary
+    setCurrentMovie((prev) =>
+      prev
+        ? {
+            ...prev,
+            images: prev.images?.map((img) =>
+              img.type === type
+                ? { ...img, is_primary: img.id === imageId }
+                : img
+            ),
+          }
+        : null
+    );
+
+    // If the image has a real UUID (not temporary ID like "poster-0"), persist to database
+    const isTemporaryId = imageId.startsWith('poster-') || imageId.startsWith('backdrop-') || imageId.startsWith('logo-');
+    if (!isTemporaryId) {
+      try {
+        await movieAPI.setPrimaryImage(movieId, imageId, type);
+      } catch (error) {
+        console.error('Failed to persist primary image:', error);
+        // Don't show error to user - it will be saved when they save the form
+      }
+    }
+  };
+
+  const handleFetchImages = async () => {
+    if (!currentMovie?.tmdb_id) return;
+    
+    setFetchingImages(true);
+    setSyncError(null);
+    
+    try {
+      const result = await fetchMovieImages(currentMovie.tmdb_id);
+      
+      if (!result.success || !result.images) {
+        throw new Error(result.error || 'Failed to fetch images from TMDB');
+      }
+
+      const images = result.images;
+      
+      // Map images to MovieImage format
+      const mappedImages = [];
+      
+      images.posters.forEach((poster, index) => {
+        mappedImages.push({
+          id: `poster-${index}`,
+          type: 'poster' as const,
+          file_path: poster.file_path,
+          aspect_ratio: poster.aspect_ratio,
+          height: poster.height,
+          width: poster.width,
+          iso_639_1: poster.iso_639_1,
+          vote_average: poster.vote_average,
+          vote_count: poster.vote_count,
+          is_primary: index === 0,
+        });
+      });
+      
+      images.backdrops.forEach((backdrop, index) => {
+        mappedImages.push({
+          id: `backdrop-${index}`,
+          type: 'backdrop' as const,
+          file_path: backdrop.file_path,
+          aspect_ratio: backdrop.aspect_ratio,
+          height: backdrop.height,
+          width: backdrop.width,
+          iso_639_1: backdrop.iso_639_1,
+          vote_average: backdrop.vote_average,
+          vote_count: backdrop.vote_count,
+          is_primary: index === 0,
+        });
+      });
+      
+      images.logos.forEach((logo, index) => {
+        mappedImages.push({
+          id: `logo-${index}`,
+          type: 'logo' as const,
+          file_path: logo.file_path,
+          aspect_ratio: logo.aspect_ratio,
+          height: logo.height,
+          width: logo.width,
+          iso_639_1: logo.iso_639_1,
+          vote_average: logo.vote_average,
+          vote_count: logo.vote_count,
+          is_primary: false,
+        });
+      });
+
+      // Update currentMovie with fetched images
+      setCurrentMovie((prev) => prev ? {
+        ...prev,
+        images: mappedImages,
+      } : null);
+
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Failed to fetch images from TMDB');
+    } finally {
+      setFetchingImages(false);
     }
   };
 
@@ -290,6 +418,7 @@ export default function EditMoviePage() {
         }] : [],
         cast: updatedCast,
         crew: updatedCrew,
+        images: currentMovie?.images, // Include images array
       };
 
       await movieAPI.update(movieId, updateData);
@@ -665,6 +794,37 @@ export default function EditMoviePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Poster Management */}
+          {currentMovie?.images && currentMovie.images.length > 0 ? (
+            <PosterManager
+              images={currentMovie.images}
+              movieId={movieId}
+              onPrimaryChange={handlePrimaryImageChange}
+              onRefresh={handleFetchImages}
+              refreshing={fetchingImages}
+            />
+          ) : currentMovie?.tmdb_id ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Poster & Image Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">
+                  Load posters, backdrops, and logos from TMDB to choose which images to display.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleFetchImages}
+                  disabled={fetchingImages}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
+                  {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* Cast & Crew */}
           {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (

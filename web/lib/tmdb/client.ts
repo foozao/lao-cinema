@@ -95,6 +95,23 @@ export interface TMDBCredits {
   }>;
 }
 
+export interface TMDBImage {
+  aspect_ratio: number;
+  height: number;
+  iso_639_1: string | null; // Language code (null for no language)
+  file_path: string;
+  vote_average: number;
+  vote_count: number;
+  width: number;
+}
+
+export interface TMDBImages {
+  id: number;
+  posters: TMDBImage[];
+  backdrops: TMDBImage[];
+  logos: TMDBImage[];
+}
+
 export interface TMDBPersonDetails {
   id: number;
   name: string;
@@ -167,6 +184,13 @@ class TMDBClient {
   }
 
   /**
+   * Get all images (posters, backdrops, logos) for a movie
+   */
+  async getMovieImages(tmdbId: number): Promise<TMDBImages> {
+    return this.fetch<TMDBImages>(`/movie/${tmdbId}/images`);
+  }
+
+  /**
    * Get detailed information about a person (actor, director, etc.)
    */
   async getPersonDetails(personId: number): Promise<TMDBPersonDetails> {
@@ -199,6 +223,10 @@ export const tmdbClient = {
   getMovieCredits: (tmdbId: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();
     return _tmdbClient.getMovieCredits(tmdbId);
+  },
+  getMovieImages: (tmdbId: number) => {
+    if (!_tmdbClient) _tmdbClient = new TMDBClient();
+    return _tmdbClient.getMovieImages(tmdbId);
   },
   getPersonDetails: (personId: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();

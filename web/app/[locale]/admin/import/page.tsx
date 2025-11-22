@@ -51,9 +51,10 @@ export default function ImportFromTMDBPage() {
 
       const tmdbData = result.data;
       const credits = result.credits;
+      const images = result.images;
       
-      // Map to our schema (including cast/crew)
-      const mappedMovie = mapTMDBToMovie(tmdbData, credits);
+      // Map to our schema (including cast/crew and images)
+      const mappedMovie = mapTMDBToMovie(tmdbData, credits, images);
       
       // Check for missing translations
       const missingTranslations = getMissingTranslations(mappedMovie);
@@ -228,6 +229,33 @@ export default function ImportFromTMDBPage() {
                   <p className="font-medium">{preview.tmdbData.status}</p>
                 </div>
               </div>
+
+              {/* Images Count */}
+              {preview.mappedMovie.images && preview.mappedMovie.images.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <span className="text-sm font-medium text-blue-900">Images Fetched:</span>
+                  <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                    <div>
+                      <span className="text-blue-700">Posters:</span>
+                      <p className="font-medium text-blue-900">
+                        {preview.mappedMovie.images.filter(img => img.type === 'poster').length}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Backdrops:</span>
+                      <p className="font-medium text-blue-900">
+                        {preview.mappedMovie.images.filter(img => img.type === 'backdrop').length}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Logos:</span>
+                      <p className="font-medium text-blue-900">
+                        {preview.mappedMovie.images.filter(img => img.type === 'logo').length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Overview */}
               <div>
