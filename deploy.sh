@@ -1,0 +1,219 @@
+#!/bin/bash
+# Lao Cinema - GCP Cloud Run Deployment Script
+# Make sure to configure the variables below before running
+
+set -e  # Exit on error
+
+# ========================================
+# CONFIGURATION - UPDATE THESE VALUES
+# ========================================
+export PROJECT_ID="lao-cinema"
+export REGION="asia-southeast1"  # Singapore - closest to Laos
+export DB_INSTANCE_NAME="lao-cinema-db"
+export CONNECTION_NAME=""  # Will be fetched automatically if empty
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# ========================================
+# FUNCTIONS
+# ========================================
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# ========================================
+# PRE-FLIGHT CHECKS
+# ========================================
+log_info "Starting deployment to GCP Cloud Run..."
+
+# Check if gcloud is installed
+if ! command -v gcloud &> /dev/null; then
+    log_error "gcloud CLI is not installed. Please install it first."
+    exit 1
+fi
+
+# Check if docker is installed
+if ! command -v docker &> /dev/null; then
+    log_error "Docker is not installed. Please install it first."
+    exit 1
+fi
+
+# Check if project ID is set
+if [ "$PROJECT_ID" = "your-gcp-project-id" ]; then
+    log_error "Please set PROJECT_ID in the script"
+    exit 1
+fi
+
+# Set project
+gcloud config set project $PROJECT_ID
+
+# Get Cloud SQL connection name if not set
+if [ -z "$CONNECTION_NAME" ]; then
+    log_info "Fetching Cloud SQL connection name..."
+    CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME \
+        --format='value(connectionName)' 2>/dev/null || echo "")
+    
+    if [ -z "$CONNECTION_NAME" ]; then
+        log_warn "Could not fetch Cloud SQL connection name. Make sure the instance exists."
+        log_warn "Or set CONNECTION_NAME manually in the script."
+    else
+        log_info "Found connection name: $CONNECTION_NAME"
+    fi
+fi
+
+# ========================================
+# BUILD DOCKER IMAGES
+# ========================================
+log_info "Building Docker images..."
+
+# Determine API URL (use existing service URL or construct expected URL)
+EXISTING_API_URL=$(gcloud run services describe lao-cinema-api \
+    --region=$REGION \
+    --format='value(status.url)' 2>/dev/null || echo "")
+
+if [ -z "$EXISTING_API_URL" ]; then
+    # Construct expected URL for new deployment
+    API_URL="https://lao-cinema-api-$PROJECT_NUMBER.$REGION.run.app"
+    log_info "New deployment - using expected API URL: $API_URL"
+else
+    API_URL=$EXISTING_API_URL
+    log_info "Using existing API URL: $API_URL"
+fi
+
+# Build API (build from root to include /db directory)
+log_info "Building API image..."
+docker build --platform linux/amd64 -f api/Dockerfile -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest .
+if [ $? -ne 0 ]; then
+    log_error "Failed to build API image"
+    exit 1
+fi
+
+# Build Web (pass API URL as build arg, force clean build)
+# Add /api suffix since the client expects it
+log_info "Building Web image with API_URL=$API_URL/api..."
+cd web
+docker build --no-cache --platform linux/amd64 \
+    --build-arg NEXT_PUBLIC_API_URL=$API_URL/api \
+    -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest .
+if [ $? -ne 0 ]; then
+    log_error "Failed to build Web image"
+    exit 1
+fi
+cd ..
+
+# ========================================
+# PUSH IMAGES TO ARTIFACT REGISTRY
+# ========================================
+log_info "Pushing images to Artifact Registry..."
+
+docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest
+if [ $? -ne 0 ]; then
+    log_error "Failed to push API image"
+    exit 1
+fi
+
+docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
+if [ $? -ne 0 ]; then
+    log_error "Failed to push Web image"
+    exit 1
+fi
+
+# ========================================
+# DEPLOY TO CLOUD RUN
+# ========================================
+log_info "Deploying to Cloud Run..."
+
+# Deploy API
+log_info "Deploying API service..."
+if [ -z "$CONNECTION_NAME" ]; then
+    log_warn "Deploying API without Cloud SQL connection. Set CONNECTION_NAME if you need database access."
+    gcloud run deploy lao-cinema-api \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
+        --region=$REGION \
+        --platform=managed \
+        --allow-unauthenticated \
+        --port=8080 \
+        --clear-env-vars \
+        --memory=512Mi \
+        --cpu=1 \
+        --min-instances=0 \
+        --max-instances=10
+else
+    # Deploy with Cloud SQL connection via unix socket
+    # Use separate env vars for cleaner connection setup
+    gcloud run deploy lao-cinema-api \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
+        --region=$REGION \
+        --platform=managed \
+        --allow-unauthenticated \
+        --port=8080 \
+        --set-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME,DB_NAME=laocinema,DB_USER=laocinema,DB_PASS=LaoC1nema_Dev_2024\!" \
+        --add-cloudsql-instances=$CONNECTION_NAME \
+        --memory=512Mi \
+        --cpu=1 \
+        --min-instances=0 \
+        --max-instances=10
+fi
+
+# Get API URL
+API_URL=$(gcloud run services describe lao-cinema-api \
+    --region=$REGION \
+    --format='value(status.url)')
+log_info "API deployed at: $API_URL"
+
+# Deploy Web
+log_info "Deploying Web service..."
+gcloud run deploy lao-cinema-web \
+    --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest \
+    --region=$REGION \
+    --platform=managed \
+    --allow-unauthenticated \
+    --port=3000 \
+    --set-env-vars="NEXT_PUBLIC_API_URL=$API_URL" \
+    --memory=512Mi \
+    --cpu=1 \
+    --min-instances=0 \
+    --max-instances=10
+
+# Get Web URL
+WEB_URL=$(gcloud run services describe lao-cinema-web \
+    --region=$REGION \
+    --format='value(status.url)')
+
+# ========================================
+# UPDATE API CORS
+# ========================================
+log_info "Updating API CORS configuration..."
+gcloud run services update lao-cinema-api \
+    --region=$REGION \
+    --set-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME,DB_NAME=laocinema,DB_USER=laocinema,DB_PASS=LaoC1nema_Dev_2024\!,CORS_ORIGIN=$WEB_URL" \
+    --quiet
+
+# ========================================
+# DEPLOYMENT COMPLETE
+# ========================================
+echo ""
+log_info "========================================="
+log_info "Deployment completed successfully! 🚀"
+log_info "========================================="
+echo ""
+log_info "Web App URL:  $WEB_URL"
+log_info "API URL:      $API_URL"
+echo ""
+log_info "Next steps:"
+log_info "1. Run database migrations (see DEPLOYMENT.md)"
+log_info "2. Test the application: $WEB_URL"
+log_info "3. Check logs: gcloud run services logs read lao-cinema-web --region=$REGION"
+echo ""
