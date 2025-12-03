@@ -362,6 +362,23 @@ docker rmi $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
 
 ---
 
+## Security: Password Protection
+
+The web app includes **role-based HTTP Basic Auth** middleware. See `PASSWORD_PROTECTION.md` for full details.
+
+**Two user roles**:
+- `admin` - Full access including admin pages
+- `viewer` - Public pages only (no admin access)
+
+To enable, set the `AUTH_USERS` environment variable:
+```bash
+--set-env-vars="AUTH_USERS=admin:AdminPass:admin,test:TestPass:viewer"
+```
+
+Format: `username:password:role` separated by commas
+
+---
+
 ## Next Steps
 
 - Set up **Cloud Build** for CI/CD from GitHub

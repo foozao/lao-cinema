@@ -152,14 +152,17 @@ if [ -z "$CONNECTION_NAME" ]; then
         --max-instances=10
 else
     # Deploy with Cloud SQL connection via unix socket
-    # Use separate env vars for cleaner connection setup
+    # Set env vars individually to avoid delimiter issues
     gcloud run deploy lao-cinema-api \
         --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
         --region=$REGION \
         --platform=managed \
         --allow-unauthenticated \
         --port=8080 \
-        --set-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME,DB_NAME=laocinema,DB_USER=laocinema,DB_PASS=LaoC1nema_Dev_2024\!" \
+        --update-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME" \
+        --update-env-vars="DB_NAME=laocinema" \
+        --update-env-vars="DB_USER=laocinema" \
+        --update-env-vars="DB_PASS=LaoC1nema_Dev_2024!" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \
         --cpu=1 \
@@ -175,17 +178,28 @@ log_info "API deployed at: $API_URL"
 
 # Deploy Web
 log_info "Deploying Web service..."
+# AUTH_USERS format: "username:password:role,username2:password2:role2"
+# Roles: admin (full access) or viewer (no admin pages)
+# Create temporary env file with API URL
+cat > scripts/.env.web.yaml.tmp <<EOF
+NEXT_PUBLIC_API_URL: "$API_URL"
+AUTH_USERS: "admin:uCQkoNT_DsUTo6:admin,test:LaoCinema5050:viewer"
+EOF
+
 gcloud run deploy lao-cinema-web \
     --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest \
     --region=$REGION \
     --platform=managed \
     --allow-unauthenticated \
     --port=3000 \
-    --set-env-vars="NEXT_PUBLIC_API_URL=$API_URL" \
+    --env-vars-file="scripts/.env.web.yaml.tmp" \
     --memory=512Mi \
     --cpu=1 \
     --min-instances=0 \
     --max-instances=10
+
+# Clean up temp file
+rm -f scripts/.env.web.yaml.tmp
 
 # Get Web URL
 WEB_URL=$(gcloud run services describe lao-cinema-web \
@@ -198,7 +212,7 @@ WEB_URL=$(gcloud run services describe lao-cinema-web \
 log_info "Updating API CORS configuration..."
 gcloud run services update lao-cinema-api \
     --region=$REGION \
-    --set-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME,DB_NAME=laocinema,DB_USER=laocinema,DB_PASS=LaoC1nema_Dev_2024\!,CORS_ORIGIN=$WEB_URL" \
+    --update-env-vars="CORS_ORIGIN=$WEB_URL" \
     --quiet
 
 # ========================================
