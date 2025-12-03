@@ -63,9 +63,12 @@ upload_video() {
 }
 
 # Upload videos
+# Videos are now stored in video-server/videos/hls/
+VIDEOS_DIR="video-server/videos/hls"
+
 if [ -n "$SPECIFIC_MOVIE" ]; then
     # Upload specific movie
-    video_path="web/public/videos/hls/$SPECIFIC_MOVIE"
+    video_path="$VIDEOS_DIR/$SPECIFIC_MOVIE"
     
     if [ -d "$video_path" ]; then
         log_info "Uploading specific movie: $SPECIFIC_MOVIE"
@@ -74,15 +77,15 @@ if [ -n "$SPECIFIC_MOVIE" ]; then
         log_warn "Movie not found: $video_path"
         echo ""
         echo "Available movies:"
-        ls -1 web/public/videos/hls/ 2>/dev/null | grep -v "\.old$" || echo "  (none)"
+        ls -1 "$VIDEOS_DIR" 2>/dev/null | grep -v "\.old$" || echo "  (none)"
         exit 1
     fi
 else
     # Upload all videos
-    if [ -d "web/public/videos/hls" ]; then
+    if [ -d "$VIDEOS_DIR" ]; then
         log_info "Found local HLS videos, uploading all..."
         
-        for video_dir in web/public/videos/hls/*/; do
+        for video_dir in "$VIDEOS_DIR"/*/; do
             if [ -d "$video_dir" ]; then
                 movie_id=$(basename "$video_dir")
                 # Skip .old directories
@@ -92,7 +95,7 @@ else
             fi
         done
     else
-        log_warn "No local videos found in web/public/videos/hls/"
+        log_warn "No local videos found in $VIDEOS_DIR"
     fi
 fi
 

@@ -5,7 +5,7 @@ This document explains the complete setup for environment-aware video URLs that 
 ## Overview
 
 **Problem**: Videos need to be served from different locations:
-- **Local development**: `/public/videos/hls/` (Next.js dev server)
+- **Local development**: Separate video server on port 3002 (mimics CDN)
 - **Production (GCP)**: Google Cloud Storage
 
 **Solution**: Store only the movie slug in the database (e.g., `last-dance`), and construct the full URL based on environment variables.

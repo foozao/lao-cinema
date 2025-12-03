@@ -1,0 +1,14 @@
+{
+  "name": "lao-cinema-video-server",
+  "version": "1.0.0",
+  "description": "Local video server for development (mimics GCS/CDN)",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1",
+    "@fastify/static": "^7.0.4",
+    "@fastify/cors": "^9.0.1"
+  }
+}

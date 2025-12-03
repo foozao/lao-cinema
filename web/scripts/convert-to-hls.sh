@@ -21,7 +21,8 @@ fi
 
 INPUT_FILE="$1"
 OUTPUT_NAME="$2"
-OUTPUT_DIR="public/videos/hls/${OUTPUT_NAME}"
+# Output to video-server directory (used by local video server)
+OUTPUT_DIR="../video-server/videos/hls/${OUTPUT_NAME}"
 
 # Validate input file exists
 if [ ! -f "$INPUT_FILE" ]; then
