@@ -256,7 +256,47 @@ const videoUrl = getSignedUrl(
 
 **Break-even:** ~5TB/month delivery
 
-**See `SELF_HOSTED_VIDEO.md` for complete implementation guide.**
+**Implementation Details:**
+
+**Architecture:**
+```
+User → CDN Edge (BunnyCDN) → Your Origin Server → Your Storage (MinIO)
+```
+
+**Components:**
+- **Storage**: MinIO (S3-compatible) in your data center
+- **Origin Server**: NGINX (serves only to CDN, not end users)
+- **CDN**: BunnyCDN for global edge delivery
+- **Transcoding**: FFmpeg with job queue (BullMQ + Redis)
+
+**Cost Comparison (50TB/month):**
+- Self-hosted + CDN: ~$2,000/month
+- Pure Cloudflare Stream: ~$6,400/month
+- **Savings: $4,370/month or $52,440/year**
+
+**Minimum Hardware:**
+- Storage: 2x 10TB HDD (RAID 1)
+- Server: 4 vCPU, 8GB RAM, 1Gbps uplink
+- Can use existing data center infrastructure
+
+**Implementation Path:**
+1. **Week 1-2**: Launch with BunnyCDN only (fast start)
+2. **Month 2-3**: Build self-hosted origin in parallel
+3. **Month 4**: Migrate to hybrid approach
+4. **Month 6**: Fully automated and optimized
+
+**When to Choose Self-Hosted:**
+- ✅ Have data center access
+- ✅ Traffic >5TB/month (or will be)
+- ✅ Have 1-2 technical staff
+- ✅ Can invest 2-3 months setup
+- ✅ Want 70% cost savings long-term
+
+**When to Choose Pure CDN:**
+- ✅ Need to launch in <2 weeks
+- ✅ Traffic <5TB/month
+- ✅ No DevOps team
+- ✅ Want hands-off management
 
 ---
 
@@ -658,9 +698,7 @@ export async function getVideoUrl(movieId: string, quality: string): Promise<str
 ## Additional Resources
 
 ### Internal Documentation
-- `SELF_HOSTED_VIDEO.md` - Complete self-hosting guide for data center deployment
-- `VIDEO_STREAMING.md` - Local HLS development setup
-- `NEXT_STEPS.md` - Overall project roadmap
+- `docs/STATUS.md` - Project status and roadmap
 
 ### External Resources
 - [Cloudflare Stream Docs](https://developers.cloudflare.com/stream/)

@@ -47,8 +47,7 @@ docker-compose up -d
 
 ### Getting Started
 - **[AGENTS.md](AGENTS.md)** - AI assistant guidelines and project overview
-- **[docs/STATUS.md](docs/STATUS.md)** - Current project status
-- **[docs/NEXT_STEPS.md](docs/NEXT_STEPS.md)** - Development roadmap
+- **[docs/STATUS.md](docs/STATUS.md)** - Current project status and roadmap
 
 ### Architecture
 - **[docs/architecture/STACK.md](docs/architecture/STACK.md)** - Complete technology stack
@@ -67,18 +66,13 @@ docker-compose up -d
 
 ### Features & Implementation
 - **[docs/features/ADMIN_I18N.md](docs/features/ADMIN_I18N.md)** - Admin panel internationalization
-- **[docs/features/ADMIN_I18N_COMPLETE.md](docs/features/ADMIN_I18N_COMPLETE.md)** - Admin i18n completion guide
 - **[docs/features/MULTI_POSTER_IMPLEMENTATION.md](docs/features/MULTI_POSTER_IMPLEMENTATION.md)** - Multiple poster support
 - **[docs/features/POSTER_UI_GUIDE.md](docs/features/POSTER_UI_GUIDE.md)** - Poster UI implementation
-- **[docs/features/LINKING_VIDEOS.md](docs/features/LINKING_VIDEOS.md)** - Video linking system
-- **[docs/features/SELF_HOSTED_VIDEO.md](docs/features/SELF_HOSTED_VIDEO.md)** - Self-hosted video setup
 - **[docs/features/BACKEND_IMAGE_API.md](docs/features/BACKEND_IMAGE_API.md)** - Image API endpoints
 - **[docs/features/SAFE_SYNC_STRATEGY.md](docs/features/SAFE_SYNC_STRATEGY.md)** - Data synchronization strategy
 
-### Migrations & History
-- **[docs/migrations/PEOPLE_MIGRATION.md](docs/migrations/PEOPLE_MIGRATION.md)** - People data migration guide
+### History
 - **[docs/changelog/CHANGELOG.md](docs/changelog/CHANGELOG.md)** - Project changelog
-- **[docs/changelog/CHANGELOG_PEOPLE.md](docs/changelog/CHANGELOG_PEOPLE.md)** - People feature changelog
 - **[docs/changelog/TEST_SUMMARY.md](docs/changelog/TEST_SUMMARY.md)** - Testing summary
 
 ## 🛠️ Scripts

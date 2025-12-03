@@ -1,23 +1,29 @@
-# Project Status
+# Project Status & Roadmap
 
-**Last Updated**: November 16, 2024
+**Last Updated**: December 3, 2024
 
-Quick reference for the current state of Lao Cinema platform development.
+Quick reference for the current state of Lao Cinema platform development and next steps.
 
-## ✅ Implemented Features
+## 📊 Overview
+
+Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built with modern web technologies and designed for scalability.
+
+## ✅ Completed Features
 
 ### Frontend (`/web`)
 - [x] Next.js 16.0.3 with React 19.2.0
-- [x] Tailwind CSS v4 styling
+- [x] Tailwind CSS v4 styling with shadcn/ui components
 - [x] Responsive design (mobile, tablet, desktop)
 - [x] URL-based i18n routing (`/en/*`, `/lo/*`)
 - [x] Language switcher component
-- [x] Movie catalog homepage
+- [x] Movie catalog homepage with grid display
 - [x] Movie detail pages
-- [x] HLS video player (UI ready)
-- [x] TMDB import interface (`/admin/import`)
+- [x] HLS video player with adaptive bitrate
+- [x] TMDB import admin panel (`/admin/import`)
 - [x] Movie edit interface (`/admin/edit/[id]`)
-- [x] Jest testing (70+ tests, 100% utility coverage)
+- [x] People admin page (`/admin/people`)
+- [x] Admin dashboard with bilingual support
+- [x] Jest testing framework (70+ tests, 100% utility coverage)
 
 ### Backend (`/api`)
 - [x] Fastify REST API server
@@ -30,54 +36,69 @@ Quick reference for the current state of Lao Cinema platform development.
 ### Database (`/db`)
 - [x] Docker Compose setup
 - [x] Drizzle schema with translation tables
-- [x] People-centric architecture
+- [x] People-centric architecture (separate people table)
 - [x] Bilingual support (English/Lao)
 - [x] Migration system
 - [x] Seed scripts
 
 ### Integrations
 - [x] TMDB API client
-- [x] Movie data import
+- [x] Movie data import from TMDB
 - [x] Cast/crew import (top 20 actors)
 - [x] Person details fetching
 - [x] Genre mapping
 
-## 🚧 Partially Implemented
+### Video Streaming (Development)
+- [x] FFmpeg conversion scripts for HLS transcoding
+- [x] Local HLS playback with adaptive bitrate (1080p/720p/480p/360p)
+- [x] HLS.js integration with custom controls
+- [x] Test environment at `/test-video`
 
-- [ ] Video hosting (player ready, needs CDN)
-- [ ] Admin search/filtering
+## 🚧 In Progress
+
+- [ ] Video hosting (player ready, needs CDN configuration)
+- [ ] Admin search/filtering improvements
 - [ ] Bulk import operations
 
-## 📋 Planned Features
+## 🎯 Roadmap
 
-### Phase 1: Content Management
-- [ ] Video hosting (Cloudflare/Bunny Stream)
+### Phase 1: Video Infrastructure (Current Priority)
+- [x] Local HLS streaming setup for development
+- [x] FFmpeg conversion scripts
+- [ ] Choose and set up CDN provider (Bunny/Cloudflare)
+- [ ] Implement video_files database schema
+- [ ] Create signed URL API endpoints
+- [ ] Build admin video upload interface
+- [ ] Test with production CDN
+
+### Phase 2: Content Management
 - [ ] Bulk TMDB import
-- [ ] Admin movie search
-- [ ] Video source management UI
-- [ ] Batch translation workflow
+- [ ] Movie search/filtering in admin
+- [ ] Batch Lao translation workflow
+- [ ] Video processing queue management
 
-### Phase 2: User Features
+### Phase 3: User Features
 - [ ] User authentication (JWT)
 - [ ] User profiles
-- [ ] Watchlist
-- [ ] Watch history
-- [ ] Resume playback
+- [ ] Watchlist functionality
+- [ ] Watch history tracking
+- [ ] Resume playback points
 - [ ] User ratings/reviews
 
-### Phase 3: Advanced Features
+### Phase 4: Advanced Features
 - [ ] Search and filtering (frontend)
 - [ ] Recommendations engine
 - [ ] Person detail pages
 - [ ] Awards and nominations
 - [ ] Social features
 
-### Phase 4: Mobile & Deployment
-- [ ] React Native mobile app
+### Phase 5: Mobile & Deployment
+- [ ] React Native mobile app (Expo)
 - [ ] Production deployment (Vercel + GCP)
 - [ ] Monitoring and analytics
 - [ ] CDN configuration
 - [ ] Automated backups
+- [ ] Offline viewing support
 
 ## 🔧 Technology Stack
 
@@ -99,54 +120,210 @@ Quick reference for the current state of Lao Cinema platform development.
 - **Backend**: Fastify plugins, Zod (planned)
 - **Database**: Drizzle ORM, pg
 
-## 📊 Metrics
+## 📈 Metrics
 
 - **Total Tests**: 70+
 - **Test Coverage**: 100% (utilities)
 - **Database Tables**: 11 (movies, people, translations, etc.)
 - **API Endpoints**: 5 (movies CRUD + health)
 - **Languages Supported**: 2 (English, Lao)
-- **Documentation Files**: 15+
+- **Documentation Files**: 20+
 
 ## 🚀 Quick Start
 
-### Start All Services
-```bash
-# Terminal 1: Database
-docker-compose up -d
-cd db && npm run db:migrate
+### Prerequisites
+- Node.js 20.9.0+ (see `.nvmrc`)
+- PostgreSQL (via Docker recommended)
+- TMDB API key
 
-# Terminal 2: Backend API
+### Installation
+
+**1. Install Dependencies**
+```bash
+# Web app
+cd web && npm install
+
+# Backend API
+cd ../api && npm install
+
+# Database utilities
+cd ../db && npm install
+```
+
+**2. Start Database**
+```bash
+# From project root
+docker-compose up -d
+cd db
+npm run db:migrate
+npm run db:seed
+```
+
+**3. Configure Environment**
+```bash
+# Web app
+cd web
+cp env.example .env.local
+# Add TMDB_API_KEY to .env.local
+
+# Backend API
+cd ../api
+cp .env.example .env
+# Add DATABASE_URL to .env
+```
+
+**4. Start Development Servers**
+```bash
+# Terminal 1: Backend (port 3001)
 cd api && npm run dev
 
-# Terminal 3: Frontend
+# Terminal 2: Frontend (port 3000)
 cd web && npm run dev
 ```
 
 ### Access Points
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- Admin Panel: http://localhost:3000/en/admin/import
-- Database: localhost:5432 (via Drizzle Studio)
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3001
+- **Admin Panel**: http://localhost:3000/en/admin
+- **TMDB Import**: http://localhost:3000/en/admin/import
+- **Database**: localhost:5432 (via Drizzle Studio)
+
+## 📥 Importing Movies from TMDB
+
+### Using the Admin Panel
+
+1. **Get TMDB API Key**:
+   - Sign up at https://www.themoviedb.org
+   - Get API key from Settings → API
+   - Add to `web/.env.local`: `TMDB_API_KEY=your_key`
+
+2. **Import a Movie**:
+   - Navigate to `/admin/import`
+   - Find TMDB ID from themoviedb.org URL (e.g., `550` for Fight Club)
+   - Enter ID and click "Fetch"
+   - Review imported data (English only)
+   - Click "Import Movie" to save to database
+   - Redirects to edit page
+
+3. **Add Lao Translations**:
+   - On edit page, add Lao translations for:
+     - Title
+     - Overview
+     - Tagline
+     - Cast/crew names
+   - Save changes
+
+## 🎬 Video Delivery (Next Priority)
+
+### Current State
+- **Development**: Local HLS streaming functional
+  - FFmpeg conversion script: `scripts/convert-to-hls.sh`
+  - 4 quality variants with adaptive bitrate
+  - Test page: `http://localhost:3000/en/test-video`
+- **Production**: Architecture designed, not implemented
+
+### Immediate Next Steps
+
+1. **Choose CDN Provider** (Week 1)
+   - **Recommended**: Bunny Stream (most cost-effective at $2.50/month base)
+   - Alternative: Cloudflare Stream (easier setup, $128/month estimated)
+   - See `docs/architecture/VIDEO_ARCHITECTURE.md` for comparison
+
+2. **Database Schema** (Week 2)
+   - Implement `video_files` table
+   - Support multiple providers (local, bunny, cloudflare)
+   - Track transcoding status and metadata
+
+3. **API Layer** (Week 3)
+   - Signed URL generation endpoint
+   - Video upload/processing endpoints
+   - Webhook handlers for transcoding status
+
+4. **Admin Upload Interface** (Week 4)
+   - Video upload form in admin panel
+   - Progress tracking
+   - Batch upload support
+
+## 🧪 Testing
+
+### Completed ✅
+- [x] Homepage loads and displays movies
+- [x] Movie detail page displays correctly
+- [x] Language switcher works (en/lo)
+- [x] TMDB import functionality
+- [x] Admin edit interface
+- [x] Database operations (CRUD)
+- [x] Bilingual content support
+- [x] Unit tests (70 tests passing)
+
+### To Test
+- [ ] Video player with CDN video files
+- [ ] Video controls (play/pause, seek, volume, fullscreen)
+- [ ] Responsive design on mobile devices
+- [ ] Search and filtering (when implemented)
+- [ ] User authentication (when implemented)
+
+## 💻 Development Commands
+
+### Frontend
+```bash
+cd web
+npm run dev          # Start dev server (port 3000)
+npm run build        # Build for production
+npm start            # Run production build
+npm run lint         # Lint code
+npm test             # Run tests
+npm run test:watch   # Run tests in watch mode
+```
+
+### Backend
+```bash
+cd api
+npm run dev          # Start API server (port 3001)
+npm run build        # Build for production
+npm start            # Run production build
+npm run db:generate  # Generate migrations
+npm run db:push      # Push schema to database
+npm run db:studio    # Open Drizzle Studio
+```
+
+### Database
+```bash
+cd db
+npm run db:migrate   # Run migrations
+npm run db:seed      # Seed with sample data
+npm run db:studio    # Open Drizzle Studio
+```
 
 ## 📖 Documentation
 
 ### Setup Guides
-- [BACKEND_SETUP.md](./BACKEND_SETUP.md) - Backend configuration
-- [DATABASE_SETUP.md](./DATABASE_SETUP.md) - Database setup
-- [TMDB_SETUP.md](./TMDB_SETUP.md) - TMDB integration
-- [I18N_SETUP.md](./web/I18N_SETUP.md) - Internationalization
+- [docs/setup/BACKEND_SETUP.md](setup/BACKEND_SETUP.md) - Backend configuration
+- [docs/setup/DATABASE_SETUP.md](setup/DATABASE_SETUP.md) - Database setup
+- [docs/setup/TMDB_SETUP.md](setup/TMDB_SETUP.md) - TMDB integration
+- [docs/setup/DEPLOYMENT.md](setup/DEPLOYMENT.md) - Deployment guide
+- [web/I18N_SETUP.md](../web/I18N_SETUP.md) - Internationalization
 
 ### Architecture
-- [STACK.md](./STACK.md) - Technology stack overview
-- [PEOPLE_ARCHITECTURE.md](./PEOPLE_ARCHITECTURE.md) - People system design
-- [LANGUAGE_SYSTEM.md](./LANGUAGE_SYSTEM.md) - Multi-language approach
-- [IMAGE_STRATEGY.md](./IMAGE_STRATEGY.md) - Image handling
+- [docs/architecture/STACK.md](architecture/STACK.md) - Technology stack overview
+- [docs/architecture/PEOPLE_ARCHITECTURE.md](architecture/PEOPLE_ARCHITECTURE.md) - People system design
+- [docs/architecture/LANGUAGE_SYSTEM.md](architecture/LANGUAGE_SYSTEM.md) - Multi-language approach
+- [docs/architecture/IMAGE_STRATEGY.md](architecture/IMAGE_STRATEGY.md) - Image handling
+- [docs/architecture/VIDEO_ARCHITECTURE.md](architecture/VIDEO_ARCHITECTURE.md) - Video storage and CDN strategy
+- [docs/architecture/CAST_CREW.md](architecture/CAST_CREW.md) - Cast/crew implementation
+
+### Features
+- [docs/features/ADMIN_I18N.md](features/ADMIN_I18N.md) - Admin internationalization
+- [docs/features/MULTI_POSTER_IMPLEMENTATION.md](features/MULTI_POSTER_IMPLEMENTATION.md) - Multiple poster support
+- [docs/features/POSTER_UI_GUIDE.md](features/POSTER_UI_GUIDE.md) - Poster UI guide
+- [docs/features/SELF_HOSTED_VIDEO.md](features/SELF_HOSTED_VIDEO.md) - Self-hosting analysis
+- [docs/features/BACKEND_IMAGE_API.md](features/BACKEND_IMAGE_API.md) - Image API endpoints
+- [docs/features/SAFE_SYNC_STRATEGY.md](features/SAFE_SYNC_STRATEGY.md) - Data sync strategy
 
 ### Development
-- [NEXT_STEPS.md](./NEXT_STEPS.md) - Roadmap and next tasks
-- [TESTING.md](./web/TESTING.md) - Testing guide
-- [AGENTS.md](./AGENTS.md) - AI coding guidelines
+- [AGENTS.md](../AGENTS.md) - AI agent guidelines
+- [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) - Change history
+- [docs/changelog/TEST_SUMMARY.md](changelog/TEST_SUMMARY.md) - Testing summary
 
 ## 🐛 Known Issues
 
@@ -154,20 +331,31 @@ None currently. See GitHub Issues (when created) for bug tracking.
 
 ## 📝 Recent Changes
 
-See [CHANGELOG.md](./CHANGELOG.md) for full history.
+See [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) for full history.
 
-**Latest (Nov 16, 2024)**:
+**Latest Updates**:
 - Implemented people-centric architecture
 - Added TMDB import and edit interfaces
-- Set up testing framework
+- Set up testing framework with 70+ tests
 - Completed backend API and database
+- Added admin bilingual support (English/Lao)
+- Reorganized documentation structure
 
-## 🎯 Next Priority
+## 🎯 Current Priority
 
-1. Configure video hosting (Cloudflare Stream)
-2. Add video sources to imported movies
-3. Test video playback end-to-end
-4. Implement user authentication
+1. **Configure video hosting** - Choose CDN provider (Bunny/Cloudflare)
+2. **Implement video_files schema** - Database support for video sources
+3. **Add video upload to admin** - Interface for uploading/linking videos
+4. **Test video playback end-to-end** - Verify CDN integration works
+5. **Implement user authentication** - JWT-based auth system
+
+## 📚 External Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Fastify Documentation](https://fastify.dev)
+- [Drizzle ORM Documentation](https://orm.drizzle.team)
+- [TMDB API Documentation](https://developer.themoviedb.org/docs)
+- [next-intl Documentation](https://next-intl-docs.vercel.app/)
 
 ---
 
