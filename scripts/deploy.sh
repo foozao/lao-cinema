@@ -163,6 +163,7 @@ else
         --update-env-vars="DB_NAME=laocinema" \
         --update-env-vars="DB_USER=laocinema" \
         --update-env-vars="DB_PASS=LaoC1nema_Dev_2024!" \
+        --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \
         --cpu=1 \
@@ -180,9 +181,10 @@ log_info "API deployed at: $API_URL"
 log_info "Deploying Web service..."
 # AUTH_USERS format: "username:password:role,username2:password2:role2"
 # Roles: admin (full access) or viewer (no admin pages)
-# Create temporary env file with API URL
+# Create temporary env file with API URL and video base URL
 cat > scripts/.env.web.yaml.tmp <<EOF
 NEXT_PUBLIC_API_URL: "$API_URL"
+NEXT_PUBLIC_VIDEO_BASE_URL: "https://storage.googleapis.com/lao-cinema-videos/hls"
 AUTH_USERS: "admin:uCQkoNT_DsUTo6:admin,test:LaoCinema5050:viewer"
 EOF
 

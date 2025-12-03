@@ -1,9 +1,9 @@
 import { VideoPlayer } from '@/components/video-player';
+import { getVideoUrl } from '@/lib/video-url';
 
 export default function TestVideoPage() {
-  // Update this URL to point to your converted HLS video
-  // Example: const videoUrl = '/videos/hls/sample-movie/master.m3u8';
-  const videoUrl = '/videos/hls/the-signal/master.m3u8';
+  // Automatically uses local files in dev, GCS in production
+  const videoUrl = getVideoUrl('last-dance');
   const posterUrl = 'https://image.tmdb.org/t/p/original/placeholder.jpg';
 
   return (

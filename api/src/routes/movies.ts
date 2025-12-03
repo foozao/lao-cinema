@@ -431,13 +431,20 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         genres,
         cast,
         crew,
-        video_sources: videoSources.map(vs => ({
-          id: vs.id,
-          quality: vs.quality,
-          format: vs.format,
-          url: vs.url,
-          size_bytes: vs.sizeBytes,
-        })),
+        video_sources: videoSources.map(vs => {
+          // Construct full URL from slug
+          // vs.url is now just the movie slug (e.g., 'last-dance')
+          const baseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
+          const fullUrl = `${baseUrl}/${vs.url}/master.m3u8`;
+          
+          return {
+            id: vs.id,
+            quality: vs.quality,
+            format: vs.format,
+            url: fullUrl,
+            size_bytes: vs.sizeBytes,
+          };
+        }),
         images: images.map(img => ({
           id: img.id,
           type: img.type,
