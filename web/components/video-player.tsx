@@ -15,6 +15,7 @@ interface VideoPlayerProps {
   movieId?: string; // Movie ID for analytics tracking
   movieTitle?: string; // Movie title for analytics
   movieDuration?: number; // Movie duration in seconds for analytics
+  constrainToViewport?: boolean; // Constrain video height to fit within viewport
 }
 
 // Helper to generate localStorage key for video playback position
@@ -39,6 +40,7 @@ export function VideoPlayer({
   movieId,
   movieTitle,
   movieDuration,
+  constrainToViewport = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -296,11 +298,21 @@ export function VideoPlayer({
     }
   };
 
+  // When constrainToViewport is true, limit max-height so video + controls fit in viewport
+  // Header is ~64px, controls are ~72px, add some padding
+  const containerClasses = constrainToViewport
+    ? "w-full max-w-full"
+    : "w-full";
+  
+  const videoContainerClasses = constrainToViewport
+    ? "relative w-full bg-black rounded-lg overflow-hidden group max-h-[calc(100vh-200px)] aspect-video"
+    : "relative w-full aspect-video bg-black rounded-lg overflow-hidden group";
+
   return (
-    <div className="w-full">
+    <div className={containerClasses}>
       <div
         ref={containerRef}
-        className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
+        className={videoContainerClasses}
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
       >

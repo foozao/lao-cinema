@@ -5,9 +5,10 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 
 interface HeaderProps {
   variant?: 'light' | 'dark';
+  fullWidth?: boolean; // Use full width instead of container
 }
 
-export function Header({ variant = 'light' }: HeaderProps) {
+export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
   const t = useTranslations();
 
   const bgClass = variant === 'dark' 
@@ -20,7 +21,7 @@ export function Header({ variant = 'light' }: HeaderProps) {
 
   return (
     <header className={`border-b backdrop-blur-sm sticky top-0 z-50 ${bgClass}`}>
-      <div className="container mx-auto px-4 py-4">
+      <div className={fullWidth ? "px-4 py-4" : "container mx-auto px-4 py-4"}>
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Film className="w-8 h-8 text-red-600" />

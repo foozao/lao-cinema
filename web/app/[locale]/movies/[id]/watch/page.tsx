@@ -107,7 +107,7 @@ export default function WatchPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
-      <Header variant="dark" />
+      <Header variant="dark" fullWidth />
 
       {/* Grace Period Warning Banner */}
       {inGracePeriod && graceTimeRemaining && (
@@ -119,8 +119,8 @@ export default function WatchPage() {
         </div>
       )}
 
-      {/* Video Player - Full screen */}
-      <div className="flex-1 w-full">
+      {/* Video Player - Constrained to viewport height */}
+      <div className="flex-1 w-full flex items-center justify-center">
         <VideoPlayer
           src={videoSource.url}
           poster={backdropUrl || posterUrl || undefined}
@@ -130,6 +130,7 @@ export default function WatchPage() {
           movieId={movie.id}
           movieTitle={title}
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
+          constrainToViewport={true}
         />
       </div>
 
