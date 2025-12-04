@@ -1,5 +1,21 @@
 // Analytics module exports
 
 export * from './types';
-export * from './storage';
+export {
+  generateSessionId,
+  getViewerId,
+  getDeviceType,
+  getSessions,
+  saveSession,
+  getSessionById,
+  findResumableSession,
+  getEvents,
+  logEvent,
+  getMovieSessions,
+  getMovieAnalytics,
+  getAllMovieAnalytics,
+  getAnalyticsSummary,
+  clearAnalytics,
+  exportAnalyticsData,
+} from './storage';
 export { useVideoAnalytics } from './tracker';

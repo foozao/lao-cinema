@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,7 +14,8 @@ import {
   Download,
   Trash2,
   RefreshCw,
-  Film
+  Film,
+  ExternalLink,
 } from 'lucide-react';
 import { 
   getAnalyticsSummary, 
@@ -323,11 +325,12 @@ export default function AnalyticsPage() {
                         <th className="pb-3 font-medium text-right">{t('completions')}</th>
                         <th className="pb-3 font-medium text-right">{t('completionRate')}</th>
                         <th className="pb-3 font-medium text-right">{t('avgProgress')}</th>
+                        <th className="pb-3 font-medium text-right"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {summary.movieStats.map((movie) => (
-                        <tr key={movie.movieId} className="border-b last:border-0">
+                        <tr key={movie.movieId} className="border-b last:border-0 hover:bg-gray-50">
                           <td className="py-3 font-medium">{movie.movieTitle}</td>
                           <td className="py-3 text-right">{movie.totalViews}</td>
                           <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
@@ -335,6 +338,14 @@ export default function AnalyticsPage() {
                           <td className="py-3 text-right">{movie.completions}</td>
                           <td className="py-3 text-right">{movie.completionRate.toFixed(0)}%</td>
                           <td className="py-3 text-right">{movie.averageProgress.toFixed(0)}%</td>
+                          <td className="py-3 text-right">
+                            <Link href={`/admin/analytics/${movie.movieId}`}>
+                              <Button variant="ghost" size="sm">
+                                {t('viewDetails')}
+                                <ExternalLink className="w-3 h-3 ml-1" />
+                              </Button>
+                            </Link>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

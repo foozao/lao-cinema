@@ -244,6 +244,21 @@
     "avgSession": "Avg. Session",
     "avgProgress": "Avg. Progress",
     "recentActivity": "Recent Activity",
-    "recentWatchSessions": "Latest viewing sessions"
+    "recentWatchSessions": "Latest viewing sessions",
+    "backToAnalytics": "Back to Analytics",
+    "noDataForMovie": "No Analytics Data",
+    "noDataForMovieDescription": "No one has watched this movie yet.",
+    "movieAnalyticsDescription": "Detailed viewing analytics for this film",
+    "avgPerSession": "Avg per session",
+    "averageWatched": "of movie watched on average",
+    "viewingStats": "Viewing Statistics",
+    "engagementStats": "Engagement Statistics",
+    "lastWatched": "Last Watched",
+    "sessionHistory": "Session History",
+    "allViewingSessions": "All viewing sessions for this movie",
+    "watched": "watched",
+    "completed": "Completed",
+    "progress": "progress",
+    "viewDetails": "View Details"
   }
 }

@@ -244,6 +244,21 @@
     "avgSession": "ສະເລ່ຍ",
     "avgProgress": "ຄວາມຄືບໜ້າສະເລ່ຍ",
     "recentActivity": "ກິດຈະກຳຫຼ້າສຸດ",
-    "recentWatchSessions": "ການເບິ່ງຫຼ້າສຸດ"
+    "recentWatchSessions": "ການເບິ່ງຫຼ້າສຸດ",
+    "backToAnalytics": "ກັບໄປການວິເຄາະ",
+    "noDataForMovie": "ບໍ່ມີຂໍ້ມູນການວິເຄາະ",
+    "noDataForMovieDescription": "ຍັງບໍ່ມີຜູ້ໃດເບິ່ງຮູບເງົານີ້.",
+    "movieAnalyticsDescription": "ການວິເຄາະການເບິ່ງລະອຽດສຳລັບຮູບເງົານີ້",
+    "avgPerSession": "ສະເລ່ຍຕໍ່ຄັ້ງ",
+    "averageWatched": "ຂອງຮູບເງົາທີ່ເບິ່ງໂດຍສະເລ່ຍ",
+    "viewingStats": "ສະຖິຕິການເບິ່ງ",
+    "engagementStats": "ສະຖິຕິການມີສ່ວນຮ່ວມ",
+    "lastWatched": "ເບິ່ງຫຼ້າສຸດ",
+    "sessionHistory": "ປະຫວັດການເບິ່ງ",
+    "allViewingSessions": "ການເບິ່ງທັງໝົດສຳລັບຮູບເງົານີ້",
+    "watched": "ເບິ່ງແລ້ວ",
+    "completed": "ເບິ່ງຈົບ",
+    "progress": "ຄວາມຄືບໜ້າ",
+    "viewDetails": "ເບິ່ງລາຍລະອຽດ"
   }
 }

@@ -119,6 +119,11 @@ export function logEvent(event: AnalyticsEvent): void {
   setStoredData(STORAGE_KEYS.EVENTS, trimmedEvents);
 }
 
+// Get sessions for a specific movie
+export function getMovieSessions(movieId: string): WatchSession[] {
+  return getSessions().filter(s => s.movieId === movieId);
+}
+
 // Analytics calculations
 export function getMovieAnalytics(movieId: string): MovieAnalytics | null {
   const sessions = getSessions().filter(s => s.movieId === movieId);

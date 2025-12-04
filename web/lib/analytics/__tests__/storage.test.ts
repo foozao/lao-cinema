@@ -9,6 +9,7 @@ import {
   findResumableSession,
   getEvents,
   logEvent,
+  getMovieSessions,
   getMovieAnalytics,
   getAllMovieAnalytics,
   getAnalyticsSummary,
@@ -289,6 +290,25 @@ describe('Analytics Storage', () => {
         const found = findResumableSession('movie-1', 'viewer-1');
         
         expect(found).not.toBeNull();
+      });
+    });
+
+    describe('getMovieSessions', () => {
+      it('should return sessions for a specific movie', () => {
+        saveSession(createTestSession({ id: 'session-1', movieId: 'movie-1' }));
+        saveSession(createTestSession({ id: 'session-2', movieId: 'movie-1' }));
+        saveSession(createTestSession({ id: 'session-3', movieId: 'movie-2' }));
+        
+        const sessions = getMovieSessions('movie-1');
+        
+        expect(sessions).toHaveLength(2);
+        expect(sessions.every(s => s.movieId === 'movie-1')).toBe(true);
+      });
+
+      it('should return empty array for movie with no sessions', () => {
+        const sessions = getMovieSessions('non-existent');
+        
+        expect(sessions).toHaveLength(0);
       });
     });
   });
