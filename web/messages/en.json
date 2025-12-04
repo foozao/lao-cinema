@@ -67,7 +67,7 @@
   },
   "footer": {
     "copyright": "© 2024 Lao Cinema. All rights reserved.",
-    "tmdbDisclaimer": "This product uses the TMDB API but is not endorsed or certified by TMDB."
+    "tmdbPrefix": "Film data from"
   },
   "language": {
     "en": "English",

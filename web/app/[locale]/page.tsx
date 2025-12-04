@@ -33,21 +33,16 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-gray-900/80 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Film className="w-8 h-8 text-red-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {t('home.title')}
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('home.subtitle')}
-                </p>
-              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t('home.title')}
+              </h1>
             </div>
             <LanguageSwitcher />
           </div>
@@ -55,15 +50,12 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         {/* Hero Section */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
             {t('home.featured')}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            {t('home.tagline')}
-          </p>
         </section>
 
         {/* Movie Grid */}
