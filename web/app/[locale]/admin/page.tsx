@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, Users, Download, ArrowRight, Home } from 'lucide-react';
+import { Film, Users, Download, ArrowRight, Home, BarChart3 } from 'lucide-react';
 import { movieAPI, peopleAPI } from '@/lib/api/client';
 
 export default function AdminPage() {
@@ -43,7 +43,7 @@ export default function AdminPage() {
         <p className="text-gray-600">{t('manageMoviesAndPeople')}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Homepage Card */}
         <Link href="/admin/homepage">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
@@ -120,6 +120,31 @@ export default function AdminPage() {
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 {t('totalPeopleInDatabase')}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Analytics Card */}
+        <Link href="/admin/analytics">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <BarChart3 className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle>{t('analytics')}</CardTitle>
+                    <CardDescription>{t('viewAnalytics')}</CardDescription>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Track watch time, completions, and engagement metrics
               </p>
             </CardContent>
           </Card>

@@ -127,6 +127,9 @@ export default function WatchPage() {
           title={title}
           autoPlay={true}
           videoId={movie.id}
+          movieId={movie.id}
+          movieTitle={title}
+          movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
         />
       </div>
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { useVideoAnalytics } from '@/lib/analytics';
 
 interface VideoPlayerProps {
   src: string;
@@ -11,6 +12,9 @@ interface VideoPlayerProps {
   title?: string;
   autoPlay?: boolean;
   videoId?: string; // Unique identifier for saving playback position
+  movieId?: string; // Movie ID for analytics tracking
+  movieTitle?: string; // Movie title for analytics
+  movieDuration?: number; // Movie duration in seconds for analytics
 }
 
 // Helper to generate localStorage key for video playback position
@@ -26,7 +30,16 @@ interface PlaybackData {
 const CONTINUE_WATCHING_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days - max age before clearing saved position
 const CONTINUE_WATCHING_MIN_PROMPT_TIME = 30 * 60 * 1000; // 30 minutes - min time before showing prompt
 
-export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: VideoPlayerProps) {
+export function VideoPlayer({ 
+  src, 
+  poster, 
+  title, 
+  autoPlay = false, 
+  videoId,
+  movieId,
+  movieTitle,
+  movieDuration,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -40,6 +53,14 @@ export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: V
   const [savedPosition, setSavedPosition] = useState<number | null>(null);
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [pendingPosition, setPendingPosition] = useState<number | null>(null);
+
+  // Analytics tracking
+  const analytics = useVideoAnalytics({
+    movieId: movieId || videoId || 'unknown',
+    movieTitle: movieTitle || title || 'Unknown Movie',
+    duration: movieDuration || duration || 0,
+    source: 'watch_page',
+  });
 
   // Load saved playback position on mount
   useEffect(() => {
@@ -152,6 +173,8 @@ export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: V
     const handleTimeUpdate = () => {
       const time = video.currentTime;
       setCurrentTime(time);
+      // Track analytics
+      analytics.trackTimeUpdate(time);
       // Save playback position to localStorage with timestamp (throttled by video's timeupdate event)
       if (videoId && time > 0) {
         try {
@@ -169,8 +192,15 @@ export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: V
     const handlePlay = () => {
       setIsPlaying(true);
       setHasStarted(true);
+      analytics.trackPlay(video.currentTime);
     };
-    const handlePause = () => setIsPlaying(false);
+    const handlePause = () => {
+      setIsPlaying(false);
+      analytics.trackPause(video.currentTime);
+    };
+    const handleEnded = () => {
+      analytics.trackComplete();
+    };
     const handleWaiting = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
 
@@ -178,6 +208,7 @@ export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: V
     video.addEventListener('durationchange', handleDurationChange);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
 
@@ -186,10 +217,13 @@ export function VideoPlayer({ src, poster, title, autoPlay = false, videoId }: V
       video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
+      analytics.trackEnd();
     };
-  }, [videoId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]); // analytics functions are stable (use refs internally)
 
   const togglePlay = () => {
     const video = videoRef.current;
