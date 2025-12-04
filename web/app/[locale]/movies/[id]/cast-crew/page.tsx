@@ -8,8 +8,8 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getProfileUrl } from '@/lib/images';
 import { getDepartmentKey } from '@/lib/crew';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users } from 'lucide-react';
+import { Header } from '@/components/header';
+import { Users } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
@@ -80,16 +80,7 @@ export default function CastCrewPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <Link href={`/movies/${movieId}`}>
-            <Button variant="ghost" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              {t('nav.home')}
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <Header variant="dark" />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

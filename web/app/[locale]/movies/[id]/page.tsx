@@ -11,9 +11,9 @@ import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LanguageSwitcher } from '@/components/language-switcher';
+import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { ArrowLeft, Calendar, Clock, Star, Users, Play } from 'lucide-react';
+import { Calendar, Clock, Star, Users, Play } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
@@ -74,17 +74,7 @@ export default function MoviePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/">
-            <Button variant="ghost" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              {t('nav.home')}
-            </Button>
-          </Link>
-          <LanguageSwitcher />
-        </div>
-      </header>
+      <Header variant="dark" />
 
       {/* Main Content */}
       <main>

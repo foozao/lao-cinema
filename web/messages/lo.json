@@ -16,8 +16,27 @@
     "subtitle": "ຮູບເງົາລາວ",
     "tagline": "ຄົ້ນພົບຮູບເງົາລາວທີ່ໜ້າປະທັບໃຈ",
     "featured": "ຮູບເງົາແນະນຳ",
+    "browseAll": "ເບິ່ງຮູບເງົາທັງໝົດ",
     "noFilms": "ຍັງບໍ່ມີຮູບເງົາ",
     "noFilmsDescription": "ກະລຸນາກັບມາໃໝ່ໃນໄວໆນີ້"
+  },
+  "movies": {
+    "all": "ທັງໝົດ",
+    "people": "ບຸກຄົນ",
+    "feature": "ຮູບເງົາຍາວ",
+    "short": "ຮູບເງົາສັ້ນ",
+    "searchPlaceholder": "ຄົ້ນຫາຕາມຊື່, ນັກສະແດງ, ຫຼື ທີມງານ...",
+    "matchType": {
+      "cast": "ພົບໃນນັກສະແດງ",
+      "crew": "ພົບໃນທີມງານ"
+    },
+    "moviesSection": "ຮູບເງົາ",
+    "peopleSection": "ບຸກຄົນ",
+    "otherMovies": "ຮູບເງົາອື່ນໆ",
+    "andMore": "+ {count} ເພີ່ມເຕີມ",
+    "andMoreMovies": "+ {count} ຮູບເງົາເພີ່ມເຕີມ",
+    "searchForPeople": "ຄົ້ນຫານັກສະແດງຫຼືທີມງານ",
+    "searchForPeopleDescription": "ໃສ່ຊື່ເພື່ອຊອກຫານັກສະແດງ, ຜູ້ກຳກັບ, ແລະທີມງານ"
   },
   "movie": {
     "cast": "ນັກສະແດງ",

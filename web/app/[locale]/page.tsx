@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { MovieCard } from '@/components/movie-card';
-import { LanguageSwitcher } from '@/components/language-switcher';
+import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Film } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
@@ -35,27 +36,24 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-gray-900/80 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Film className="w-8 h-8 text-red-600" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t('home.title')}
-              </h1>
-            </div>
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </header>
+      <Header variant="light" />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 flex-grow">
         {/* Hero Section */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('home.featured')}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              {t('home.featured')}
+            </h2>
+            <Link
+              href="/movies"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              {t('home.browseAll')}
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </section>
 
         {/* Movie Grid */}

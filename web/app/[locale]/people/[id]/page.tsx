@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Button } from '@/components/ui/button';
+import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Film } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText, getBilingualName } from '@/lib/i18n';
 import { getPosterUrl, getProfileUrl } from '@/lib/images';
@@ -56,14 +56,7 @@ export default function PersonPage() {
   if (error || !person) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-        <header className="border-b border-gray-800 bg-black/50 backdrop-blur-sm">
-          <div className="container mx-auto px-4 py-4">
-            <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
-          </div>
-        </header>
+        <Header variant="dark" />
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-xl text-gray-400">Person not found</p>
         </div>
@@ -77,14 +70,7 @@ export default function PersonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-        </div>
-      </header>
+      <Header variant="dark" />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

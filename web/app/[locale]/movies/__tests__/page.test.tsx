@@ -1,0 +1,424 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import MoviesPage from '../page';
+
+// Mock Next.js navigation
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+  useSearchParams: jest.fn(),
+}));
+
+// Mock next-intl
+jest.mock('next-intl', () => ({
+  useTranslations: jest.fn(),
+  useLocale: jest.fn(),
+}));
+
+// Mock i18n routing
+jest.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+// Mock components
+jest.mock('@/components/header', () => ({
+  Header: ({ variant }: { variant: string }) => <div data-testid="header">{variant}</div>,
+}));
+
+jest.mock('@/components/footer', () => ({
+  Footer: () => <div data-testid="footer">Footer</div>,
+}));
+
+jest.mock('@/components/movie-card', () => ({
+  MovieCard: ({ movie }: { movie: any }) => (
+    <div data-testid={`movie-card-${movie.id}`}>{movie.title.en}</div>
+  ),
+}));
+
+// Mock fetch
+global.fetch = jest.fn();
+
+describe('MoviesPage', () => {
+  const mockRouter = {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  };
+
+  const mockSearchParams = {
+    get: jest.fn(),
+  };
+
+  const mockT = jest.fn((key: string) => key);
+
+  const mockMovies = [
+    {
+      id: '1',
+      title: { en: 'The Signal', lo: 'ສັນຍານ' },
+      runtime: 90,
+      cast: [
+        {
+          person: {
+            id: 1,
+            name: { en: 'John Doe', lo: 'ຈອນ ໂດ' },
+          },
+          character: { en: 'Hero' },
+          order: 0,
+        },
+      ],
+      crew: [
+        {
+          person: {
+            id: 2,
+            name: { en: 'Jane Smith', lo: 'ເຈນ ສະມິດ' },
+          },
+          job: { en: 'Director' },
+          department: 'Directing',
+        },
+      ],
+    },
+    {
+      id: '2',
+      title: { en: 'Short Film', lo: 'ຮູບເງົາສັ້ນ' },
+      runtime: 30,
+      cast: [],
+      crew: [],
+    },
+    {
+      id: '3',
+      title: { en: 'Feature Film', lo: 'ຮູບເງົາຍາວ' },
+      runtime: 120,
+      cast: [],
+      crew: [],
+    },
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue(mockRouter);
+    (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
+    (useTranslations as jest.Mock).mockReturnValue(mockT);
+    (useLocale as jest.Mock).mockReturnValue('en');
+    mockSearchParams.get.mockReturnValue(null);
+    
+    (global.fetch as jest.Mock).mockResolvedValue({
+      json: async () => ({ movies: mockMovies }),
+    });
+  });
+
+  describe('Initial Load', () => {
+    it('renders header and footer', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('header')).toBeInTheDocument();
+        expect(screen.getByTestId('footer')).toBeInTheDocument();
+      });
+    });
+
+    it('fetches and displays movies', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+        expect(screen.getByTestId('movie-card-2')).toBeInTheDocument();
+        expect(screen.getByTestId('movie-card-3')).toBeInTheDocument();
+      });
+    });
+
+    it('shows loading state initially', () => {
+      render(<MoviesPage />);
+      expect(screen.getByText('common.loading')).toBeInTheDocument();
+    });
+  });
+
+  describe('Search Functionality', () => {
+    it('filters movies by title', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'Signal' } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+        expect(screen.queryByTestId('movie-card-2')).not.toBeInTheDocument();
+      });
+    });
+
+    it('filters movies by cast member', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'John' } });
+
+      await waitFor(() => {
+        // Should show John Doe in people section
+        expect(screen.getByText('John Doe')).toBeInTheDocument();
+      });
+    });
+
+    it('filters movies by crew member', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'Jane' } });
+
+      await waitFor(() => {
+        // Should show Jane Smith in people section
+        expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+      });
+    });
+
+    it('shows people section when searching for cast/crew', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'John' } });
+
+      await waitFor(() => {
+        // Check that John Doe appears in the results (person name)
+        expect(screen.getByText('John Doe')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Filter Functionality', () => {
+    it('filters to show all movies by default', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+        expect(screen.getByTestId('movie-card-2')).toBeInTheDocument();
+        expect(screen.getByTestId('movie-card-3')).toBeInTheDocument();
+      });
+    });
+
+    it('filters to show only feature films', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const featureButton = screen.getByText('movies.feature');
+      fireEvent.click(featureButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument(); // 90 min
+        expect(screen.queryByTestId('movie-card-2')).not.toBeInTheDocument(); // 30 min
+        expect(screen.getByTestId('movie-card-3')).toBeInTheDocument(); // 120 min
+      });
+    });
+
+    it('filters to show only short films', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const shortButton = screen.getByText('movies.short');
+      fireEvent.click(shortButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('movie-card-1')).not.toBeInTheDocument(); // 90 min
+        expect(screen.getByTestId('movie-card-2')).toBeInTheDocument(); // 30 min
+        expect(screen.queryByTestId('movie-card-3')).not.toBeInTheDocument(); // 120 min
+      });
+    });
+
+    it('shows people filter and hides movies when selected', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const peopleButton = screen.getByText('movies.people');
+      fireEvent.click(peopleButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('movies.searchForPeople')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('URL State Management', () => {
+    it('initializes search from URL params', async () => {
+      mockSearchParams.get.mockImplementation((key: string) => {
+        if (key === 'q') return 'Signal';
+        if (key === 'filter') return 'feature';
+        return null;
+      });
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder') as HTMLInputElement;
+        expect(searchInput.value).toBe('Signal');
+      });
+    });
+
+    it('updates URL when search query changes', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'test' } });
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith(
+          expect.stringContaining('?q=test'),
+          expect.objectContaining({ scroll: false })
+        );
+      });
+    });
+
+    it('updates URL when filter changes', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const featureButton = screen.getByText('movies.feature');
+      fireEvent.click(featureButton);
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith(
+          expect.stringContaining('filter=feature'),
+          expect.objectContaining({ scroll: false })
+        );
+      });
+    });
+
+    it('clears URL params when returning to default state', async () => {
+      mockSearchParams.get.mockImplementation((key: string) => {
+        if (key === 'q') return 'test';
+        return null;
+      });
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder') as HTMLInputElement;
+        expect(searchInput.value).toBe('test');
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: '' } });
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith(
+          expect.not.stringContaining('?'),
+          expect.objectContaining({ scroll: false })
+        );
+      });
+    });
+  });
+
+  describe('Empty States', () => {
+    it('shows empty state when no movies exist', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: async () => ({ movies: [] }),
+      });
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('home.noFilms')).toBeInTheDocument();
+      });
+    });
+
+    it('shows no results message when search returns nothing', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.noMoviesFound')).toBeInTheDocument();
+      });
+    });
+
+    it('shows search prompt when People filter selected without search', async () => {
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
+      });
+
+      const peopleButton = screen.getByText('movies.people');
+      fireEvent.click(peopleButton);
+
+      await waitFor(() => {
+        const searchPrompt = screen.queryByText('movies.searchForPeople');
+        const searchDescription = screen.queryByText('movies.searchForPeopleDescription');
+        expect(searchPrompt || searchDescription).toBeTruthy();
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('handles fetch errors gracefully', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith('Failed to load movies:', expect.any(Error));
+      });
+
+      consoleError.mockRestore();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has accessible search input', async () => {
+      render(<MoviesPage />);
+      
+      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      expect(searchInput).toHaveAttribute('type', 'text');
+    });
+
+    it('has accessible filter buttons', async () => {
+      render(<MoviesPage />);
+      
+      const allButton = screen.getByText('movies.all');
+      const peopleButton = screen.getByText('movies.people');
+      const featureButton = screen.getByText('movies.feature');
+      const shortButton = screen.getByText('movies.short');
+
+      expect(allButton).toBeInTheDocument();
+      expect(peopleButton).toBeInTheDocument();
+      expect(featureButton).toBeInTheDocument();
+      expect(shortButton).toBeInTheDocument();
+    });
+  });
+});

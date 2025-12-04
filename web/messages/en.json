@@ -16,8 +16,27 @@
     "subtitle": "Lao Films",
     "tagline": "Discover amazing Lao cinema",
     "featured": "Featured Films",
+    "browseAll": "Browse All Movies",
     "noFilms": "No films available yet",
     "noFilmsDescription": "Check back soon for new content"
+  },
+  "movies": {
+    "all": "All",
+    "people": "People",
+    "feature": "Feature Films",
+    "short": "Short Films",
+    "searchPlaceholder": "Search by title, cast, or crew...",
+    "matchType": {
+      "cast": "Found in Cast",
+      "crew": "Found in Crew"
+    },
+    "moviesSection": "Movies",
+    "peopleSection": "People",
+    "otherMovies": "Other Movies",
+    "andMore": "+ {count} more",
+    "andMoreMovies": "+ {count} more movies",
+    "searchForPeople": "Search for cast or crew",
+    "searchForPeopleDescription": "Enter a name to find actors, directors, and crew members"
   },
   "movie": {
     "cast": "Cast",

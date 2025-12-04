@@ -9,7 +9,8 @@ import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Info, ExternalLink } from 'lucide-react';
+import { Header } from '@/components/header';
+import { Info, ExternalLink } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
@@ -39,10 +40,6 @@ export default function WatchPage() {
     loadMovie();
   }, [id]);
 
-  const handleBack = () => {
-    router.push(`/movies/${id}`);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -68,11 +65,7 @@ export default function WatchPage() {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <p className="mb-4">{t('common.error')}</p>
-          <Button onClick={handleBack} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('nav.back')}
-          </Button>
+          <p>{t('common.error')}</p>
         </div>
       </div>
     );
@@ -84,32 +77,12 @@ export default function WatchPage() {
   const posterUrl = getPosterUrl(movie.poster_path, 'large');
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Header - Overlay on video */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-            className="text-white hover:bg-white/20 gap-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            {t('nav.back')}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            onClick={() => setShowInfo(!showInfo)}
-            className="text-white hover:bg-white/20 gap-2"
-          >
-            <Info className="w-5 h-5" />
-            {t('movie.info')}
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-black flex flex-col">
+      {/* Header */}
+      <Header variant="dark" />
 
-      {/* Video Player - Full screen with padding for header */}
-      <div className="w-full h-screen pt-16">
+      {/* Video Player - Full screen */}
+      <div className="flex-1 w-full">
         <VideoPlayer
           src={videoSource.url}
           poster={backdropUrl || posterUrl || undefined}
@@ -244,7 +217,7 @@ export default function WatchPage() {
 
             {/* View Full Details Button */}
             <Button
-              onClick={handleBack}
+              onClick={() => router.push(`/movies/${id}`)}
               variant="outline"
               className="w-full"
             >

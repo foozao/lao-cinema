@@ -1,0 +1,36 @@
+import { Film } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
+import { LanguageSwitcher } from '@/components/language-switcher';
+
+interface HeaderProps {
+  variant?: 'light' | 'dark';
+}
+
+export function Header({ variant = 'light' }: HeaderProps) {
+  const t = useTranslations();
+
+  const bgClass = variant === 'dark' 
+    ? 'bg-black/50 border-gray-800' 
+    : 'bg-white/80 border-gray-200 dark:bg-gray-900/80 dark:border-gray-800';
+
+  const textClass = variant === 'dark'
+    ? 'text-white'
+    : 'text-gray-900 dark:text-white';
+
+  return (
+    <header className={`border-b backdrop-blur-sm sticky top-0 z-50 ${bgClass}`}>
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <Film className="w-8 h-8 text-red-600" />
+            <h1 className={`text-2xl font-bold ${textClass}`}>
+              {t('home.title')}
+            </h1>
+          </Link>
+          <LanguageSwitcher />
+        </div>
+      </div>
+    </header>
+  );
+}
