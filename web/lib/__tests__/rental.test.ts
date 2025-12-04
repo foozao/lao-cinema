@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import {
   RENTAL_DURATION_MS,
+  GRACE_PERIOD_MS,
   getRental,
   isRentalValid,
+  isInGracePeriod,
+  canWatch,
   getRemainingTime,
+  getRemainingGraceTime,
   formatRemainingTime,
+  formatRemainingGraceTime,
   storeRental,
   clearRental,
   getAllRentals,
@@ -309,6 +314,195 @@ describe('Rental Service', () => {
       expect(isRentalValid('keep-1')).toBe(true);
       expect(isRentalValid('remove-1')).toBe(false);
       expect(isRentalValid('keep-2')).toBe(true);
+    });
+  });
+
+  describe('Grace Period', () => {
+    describe('GRACE_PERIOD_MS', () => {
+      it('should be 2 hours in milliseconds', () => {
+        expect(GRACE_PERIOD_MS).toBe(2 * 60 * 60 * 1000);
+      });
+    });
+
+    describe('isInGracePeriod', () => {
+      it('should return false for valid rental', () => {
+        const movieId = 'valid-movie';
+        storeRental(movieId);
+        
+        expect(isInGracePeriod(movieId)).toBe(false);
+      });
+
+      it('should return true when rental just expired', () => {
+        const movieId = 'just-expired';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to 1 minute after expiration
+        jest.setSystemTime(now + RENTAL_DURATION_MS + 60 * 1000);
+        
+        expect(isInGracePeriod(movieId)).toBe(true);
+      });
+
+      it('should return true throughout grace period', () => {
+        const movieId = 'in-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to middle of grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS + GRACE_PERIOD_MS / 2);
+        
+        expect(isInGracePeriod(movieId)).toBe(true);
+      });
+
+      it('should return false after grace period ends', () => {
+        const movieId = 'grace-ended';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance past grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS + GRACE_PERIOD_MS + 1000);
+        
+        expect(isInGracePeriod(movieId)).toBe(false);
+      });
+
+      it('should return false for non-existent rental', () => {
+        expect(isInGracePeriod('non-existent')).toBe(false);
+      });
+    });
+
+    describe('canWatch', () => {
+      it('should return true for valid rental', () => {
+        const movieId = 'can-watch-valid';
+        storeRental(movieId);
+        
+        expect(canWatch(movieId)).toBe(true);
+      });
+
+      it('should return true during grace period', () => {
+        const movieId = 'can-watch-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance into grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS + 30 * 60 * 1000);
+        
+        expect(canWatch(movieId)).toBe(true);
+      });
+
+      it('should return false after grace period', () => {
+        const movieId = 'cannot-watch';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance past grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS + GRACE_PERIOD_MS + 1000);
+        
+        expect(canWatch(movieId)).toBe(false);
+      });
+
+      it('should return false for non-existent rental', () => {
+        expect(canWatch('non-existent')).toBe(false);
+      });
+    });
+
+    describe('getRemainingGraceTime', () => {
+      it('should return 0 for valid rental', () => {
+        const movieId = 'valid-no-grace';
+        storeRental(movieId);
+        
+        expect(getRemainingGraceTime(movieId)).toBe(0);
+      });
+
+      it('should return full grace period when just expired', () => {
+        const movieId = 'just-expired-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to exactly expiration
+        jest.setSystemTime(now + RENTAL_DURATION_MS);
+        
+        expect(getRemainingGraceTime(movieId)).toBe(GRACE_PERIOD_MS);
+      });
+
+      it('should decrease over grace period', () => {
+        const movieId = 'decreasing-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to 1 hour into grace period
+        const oneHour = 60 * 60 * 1000;
+        jest.setSystemTime(now + RENTAL_DURATION_MS + oneHour);
+        
+        expect(getRemainingGraceTime(movieId)).toBe(GRACE_PERIOD_MS - oneHour);
+      });
+
+      it('should return 0 after grace period ends', () => {
+        const movieId = 'grace-ended-time';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance past grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS + GRACE_PERIOD_MS + 1000);
+        
+        expect(getRemainingGraceTime(movieId)).toBe(0);
+      });
+
+      it('should return 0 for non-existent rental', () => {
+        expect(getRemainingGraceTime('non-existent')).toBe(0);
+      });
+    });
+
+    describe('formatRemainingGraceTime', () => {
+      it('should format grace time correctly', () => {
+        const movieId = 'format-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to start of grace period
+        jest.setSystemTime(now + RENTAL_DURATION_MS);
+        
+        const formatted = formatRemainingGraceTime(movieId);
+        expect(formatted).toMatch(/^\d+h \d+m$/);
+      });
+
+      it('should show only minutes when less than 1 hour', () => {
+        const movieId = 'short-grace';
+        const now = Date.now();
+        jest.setSystemTime(now);
+        
+        storeRental(movieId);
+        
+        // Advance to 30 minutes remaining in grace
+        jest.setSystemTime(now + RENTAL_DURATION_MS + GRACE_PERIOD_MS - 30 * 60 * 1000);
+        
+        const formatted = formatRemainingGraceTime(movieId);
+        expect(formatted).toBe('30m');
+      });
+
+      it('should return empty string when not in grace period', () => {
+        const movieId = 'no-grace-format';
+        storeRental(movieId);
+        
+        expect(formatRemainingGraceTime(movieId)).toBe('');
+      });
     });
   });
 });

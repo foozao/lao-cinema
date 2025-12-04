@@ -22,6 +22,14 @@
 export const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
+ * Grace period after rental expiration.
+ * Users can still start/continue watching if they access the watch page
+ * within this window after expiration.
+ * Default: 2 hours
+ */
+export const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/**
  * localStorage key prefix for rental records
  */
 const STORAGE_KEY_PREFIX = 'lao_cinema_rental_';
@@ -82,6 +90,64 @@ export function isRentalValid(movieId: string): boolean {
   
   const now = Date.now();
   return now < record.expiresAt;
+}
+
+/**
+ * Check if a rental is within the grace period.
+ * Returns true if rental is expired but within grace period window.
+ */
+export function isInGracePeriod(movieId: string): boolean {
+  const record = getRental(movieId);
+  if (!record) return false;
+  
+  const now = Date.now();
+  const gracePeriodEnd = record.expiresAt + GRACE_PERIOD_MS;
+  
+  // Must be expired but within grace period
+  return now >= record.expiresAt && now < gracePeriodEnd;
+}
+
+/**
+ * Check if user can access the watch page.
+ * Returns true if rental is valid OR within grace period.
+ */
+export function canWatch(movieId: string): boolean {
+  return isRentalValid(movieId) || isInGracePeriod(movieId);
+}
+
+/**
+ * Get remaining grace period time in milliseconds.
+ * Returns 0 if not in grace period.
+ */
+export function getRemainingGraceTime(movieId: string): number {
+  const record = getRental(movieId);
+  if (!record) return 0;
+  
+  const now = Date.now();
+  const gracePeriodEnd = record.expiresAt + GRACE_PERIOD_MS;
+  
+  // Only return time if we're in grace period
+  if (now >= record.expiresAt && now < gracePeriodEnd) {
+    return gracePeriodEnd - now;
+  }
+  
+  return 0;
+}
+
+/**
+ * Format remaining grace time as human-readable string.
+ */
+export function formatRemainingGraceTime(movieId: string): string {
+  const remaining = getRemainingGraceTime(movieId);
+  if (remaining <= 0) return '';
+  
+  const hours = Math.floor(remaining / (60 * 60 * 1000));
+  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
 }
 
 /**
@@ -202,6 +268,7 @@ export async function initiatePayment(movieId: string): Promise<{ paymentUrl: st
   // 1. Call backend to create a payment session
   // 2. Return payment URL or QR code data
   // 3. Store transaction ID for verification
+  // 4. Track analytics event (payment initiated)
   
   return {
     paymentUrl: 'https://en.wikipedia.org/wiki/Cinema_of_Laos',
@@ -226,7 +293,8 @@ export async function completeRental(movieId: string, transactionId: string): Pr
   // In real implementation:
   // 1. Verify payment with backend
   // 2. Backend stores rental in database (for authenticated users)
-  // 3. Return rental record
+  // 3. Track analytics event (rental completed)
+  // 4. Return rental record
   
   const isValid = await verifyPayment(transactionId);
   if (!isValid) {

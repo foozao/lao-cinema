@@ -59,6 +59,9 @@
     "productionCountries": "Production Countries",
     "spokenLanguages": "Spoken Languages"
   },
+  "watch": {
+    "gracePeriodWarning": "Your rental has expired, but you have {time} remaining to finish watching. Don't close this page!"
+  },
   "crew": {
     "director": "Director",
     "writer": "Writer",

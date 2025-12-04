@@ -59,6 +59,9 @@
     "productionCountries": "ປະເທດຜະລິດ",
     "spokenLanguages": "ພາສາທີ່ໃຊ້"
   },
+  "watch": {
+    "gracePeriodWarning": "ການເຊົ່າຂອງທ່ານໝົດອາຍຸແລ້ວ, ແຕ່ທ່ານມີເວລາອີກ {time} ເພື່ອເບິ່ງໃຫ້ຈົບ. ຢ່າປິດໜ້ານີ້!"
+  },
   "crew": {
     "director": "ຜູ້ກຳກັບ",
     "writer": "ນັກຂຽນ",

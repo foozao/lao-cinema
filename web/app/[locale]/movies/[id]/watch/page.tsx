@@ -10,9 +10,9 @@ import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
-import { Info, ExternalLink } from 'lucide-react';
+import { Info, ExternalLink, AlertCircle } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
-import { isRentalValid, getRental } from '@/lib/rental';
+import { canWatch, isInGracePeriod, formatRemainingGraceTime } from '@/lib/rental';
 import type { Movie } from '@/lib/types';
 
 export default function WatchPage() {
@@ -26,17 +26,25 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
   const [rentalChecked, setRentalChecked] = useState(false);
+  const [inGracePeriod, setInGracePeriod] = useState(false);
+  const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
 
   // Check rental validity on mount
   useEffect(() => {
-    const rental = getRental(id);
-    const valid = isRentalValid(id);
+    const canAccess = canWatch(id);
     
-    if (!valid) {
-      // Determine reason for redirect
-      const reason = rental ? 'expired' : 'required';
-      router.push(`/movies/${id}?rental=${reason}`);
+    if (!canAccess) {
+      // No valid rental and not in grace period - redirect
+      router.push(`/movies/${id}?rental=expired`);
       return;
+    }
+    
+    // Check if in grace period
+    const gracePeriod = isInGracePeriod(id);
+    setInGracePeriod(gracePeriod);
+    
+    if (gracePeriod) {
+      setGraceTimeRemaining(formatRemainingGraceTime(id));
     }
     
     setRentalChecked(true);
@@ -100,6 +108,16 @@ export default function WatchPage() {
     <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
       <Header variant="dark" />
+
+      {/* Grace Period Warning Banner */}
+      {inGracePeriod && graceTimeRemaining && (
+        <div className="bg-yellow-600/90 text-white px-4 py-3 flex items-center justify-center gap-2 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <p>
+            {t('watch.gracePeriodWarning', { time: graceTimeRemaining })}
+          </p>
+        </div>
+      )}
 
       {/* Video Player - Full screen */}
       <div className="flex-1 w-full">
