@@ -130,6 +130,20 @@
     "war": "ສົງຄາມ",
     "western": "ຕາເວັນຕົກ"
   },
+  "payment": {
+    "title": "ເຊົ່າຮູບເງົາ",
+    "description": "ສະແກນ QR ເພື່ອເຊົ່າ \"{movie}\" ເປັນເວລາ 24 ຊົ່ວໂມງ",
+    "descriptionRequired": "ເພື່ອເບິ່ງ \"{movie}\" ທ່ານຕ້ອງເຊົ່າກ່ອນ. ການເຊົ່າມີອາຍຸ 24 ຊົ່ວໂມງ.",
+    "descriptionExpired": "ການເຊົ່າ \"{movie}\" ຂອງທ່ານໝົດອາຍຸແລ້ວ. ເຊົ່າອີກຄັ້ງເພື່ອເບິ່ງຕໍ່.",
+    "scanInstructions": "ສະແກນດ້ວຍແອັບທະນາຄານເພື່ອຊຳລະເງິນ",
+    "emulatePayment": "ຈຳລອງການຊຳລະ QR",
+    "processing": "ກຳລັງດຳເນີນການ...",
+    "complete": "ຊຳລະສຳເລັດ",
+    "paymentSuccess": "ຊຳລະເງິນສຳເລັດ!",
+    "demoNotice": "ໂໝດທົດລອງ: ບໍ່ຕ້ອງຊຳລະເງິນຈິງ",
+    "rentalActive": "ການເຊົ່າໃຊ້ງານຢູ່",
+    "expiresIn": "ໝົດອາຍຸໃນ {time}"
+  },
   "admin": {
     "dashboard": "ໜ້າຫຼັກຈັດການ",
     "adminDashboard": "ໜ້າຫຼັກຈັດການ",

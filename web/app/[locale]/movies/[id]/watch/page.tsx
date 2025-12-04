@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Info, ExternalLink } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
+import { isRentalValid, getRental } from '@/lib/rental';
 import type { Movie } from '@/lib/types';
 
 export default function WatchPage() {
@@ -24,8 +25,27 @@ export default function WatchPage() {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
+  const [rentalChecked, setRentalChecked] = useState(false);
+
+  // Check rental validity on mount
+  useEffect(() => {
+    const rental = getRental(id);
+    const valid = isRentalValid(id);
+    
+    if (!valid) {
+      // Determine reason for redirect
+      const reason = rental ? 'expired' : 'required';
+      router.push(`/movies/${id}?rental=${reason}`);
+      return;
+    }
+    
+    setRentalChecked(true);
+  }, [id, router]);
 
   useEffect(() => {
+    // Only load movie if rental is valid
+    if (!rentalChecked) return;
+    
     const loadMovie = async () => {
       try {
         const data = await movieAPI.getById(id);
@@ -38,7 +58,7 @@ export default function WatchPage() {
     };
 
     loadMovie();
-  }, [id]);
+  }, [id, rentalChecked]);
 
   if (loading) {
     return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
@@ -15,10 +15,13 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Calendar, Clock, Star, Users, Play } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
+import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
+import { isRentalValid, storeRental, formatRemainingTime } from '@/lib/rental';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
@@ -27,6 +30,22 @@ export default function MoviePage() {
   
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentReason, setPaymentReason] = useState<PaymentReason>('default');
+  const [hasValidRental, setHasValidRental] = useState(false);
+  const [remainingTime, setRemainingTime] = useState('');
+
+  // Check for rental query param (redirect from watch page)
+  useEffect(() => {
+    const rentalParam = searchParams.get('rental');
+    if (rentalParam === 'required' || rentalParam === 'expired') {
+      const reason: PaymentReason = rentalParam === 'expired' ? 'rental_expired' : 'rental_required';
+      setPaymentReason(reason);
+      setShowPaymentModal(true);
+      // Clean up the URL without triggering a navigation
+      window.history.replaceState({}, '', `/${locale}/movies/${id}`);
+    }
+  }, [searchParams, locale, id]);
 
   useEffect(() => {
     const loadMovie = async () => {
@@ -42,6 +61,43 @@ export default function MoviePage() {
 
     loadMovie();
   }, [id]);
+
+  // Check rental validity on mount and periodically
+  useEffect(() => {
+    const checkRental = () => {
+      const valid = isRentalValid(id);
+      setHasValidRental(valid);
+      if (valid) {
+        setRemainingTime(formatRemainingTime(id));
+      }
+    };
+
+    checkRental();
+    // Check every minute to update remaining time
+    const interval = setInterval(checkRental, 60000);
+    return () => clearInterval(interval);
+  }, [id]);
+
+  const handleWatchNowClick = () => {
+    if (isRentalValid(id)) {
+      // Rental is valid, go directly to watch page
+      router.push(`/movies/${id}/watch`);
+    } else {
+      // No valid rental, show payment modal
+      setPaymentReason('default');
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePaymentComplete = () => {
+    // Store the rental
+    storeRental(id);
+    setHasValidRental(true);
+    setRemainingTime(formatRemainingTime(id));
+    setShowPaymentModal(false);
+    // Navigate to watch page
+    router.push(`/movies/${id}/watch`);
+  };
 
   if (loading) {
     return (
@@ -162,16 +218,23 @@ export default function MoviePage() {
                     </div>
 
                     {/* Watch Now Button */}
-                    <div className="flex gap-3">
-                      <Button
-                        size="lg"
-                        onClick={() => router.push(`/movies/${id}/watch`)}
-                        className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
-                        disabled={!videoSource}
-                      >
-                        <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
-                        {t('movie.watchNow')}
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-3">
+                        <Button
+                          size="lg"
+                          onClick={handleWatchNowClick}
+                          className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
+                          disabled={!videoSource}
+                        >
+                          <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
+                          {t('movie.watchNow')}
+                        </Button>
+                      </div>
+                      {hasValidRental && remainingTime && (
+                        <p className="text-sm text-green-400">
+                          {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -365,6 +428,15 @@ export default function MoviePage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={showPaymentModal}
+        onOpenChange={setShowPaymentModal}
+        movieTitle={title}
+        onPaymentComplete={handlePaymentComplete}
+        reason={paymentReason}
+      />
     </div>
   );
 }
