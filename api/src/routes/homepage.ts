@@ -59,8 +59,8 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
             .where(sql`${schema.genreTranslations.genreId} IN (${sql.join(genreIds.map(id => sql`${id}`), sql`, `)})`)
         : [];
 
-      // Build movie objects with translations and genres
-      const moviesWithData = movies.map(movie => {
+      // Build movie objects with translations, genres, cast, and crew
+      const moviesWithData = await Promise.all(movies.map(async (movie) => {
         const movieTranslations = translations.filter(t => t.movieId === movie.id);
         const title: any = {};
         const overview: any = {};
@@ -91,6 +91,78 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           };
         }).filter(g => g !== null);
 
+        // Get cast (limit to top 3 for performance)
+        const castData = await db.select()
+          .from(schema.movieCast)
+          .where(eq(schema.movieCast.movieId, movie.id))
+          .orderBy(asc(schema.movieCast.order))
+          .limit(3);
+        
+        const cast = await Promise.all(castData.map(async (castMember) => {
+          const person = await db.select().from(schema.people).where(eq(schema.people.id, castMember.personId)).limit(1);
+          const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, castMember.personId));
+          const characterTranslations = await db.select().from(schema.movieCastTranslations)
+            .where(sql`${schema.movieCastTranslations.movieId} = ${movie.id} AND ${schema.movieCastTranslations.personId} = ${castMember.personId}`);
+          
+          if (person[0]) {
+            const personName: any = {};
+            const character: any = {};
+            
+            for (const trans of personTranslations) {
+              personName[trans.language] = trans.name;
+            }
+            for (const trans of characterTranslations) {
+              character[trans.language] = trans.character;
+            }
+            
+            return {
+              person: {
+                id: person[0].id,
+                name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
+                profile_path: person[0].profilePath,
+              },
+              character: Object.keys(character).length > 0 ? character : { en: '' },
+              order: castMember.order,
+            };
+          }
+          return null;
+        }));
+        
+        // Get crew (only director and writer for performance)
+        const crewData = await db.select()
+          .from(schema.movieCrew)
+          .where(eq(schema.movieCrew.movieId, movie.id));
+        
+        const crew = await Promise.all(crewData.map(async (crewMember) => {
+          const person = await db.select().from(schema.people).where(eq(schema.people.id, crewMember.personId)).limit(1);
+          const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, crewMember.personId));
+          const jobTranslations = await db.select().from(schema.movieCrewTranslations)
+            .where(sql`${schema.movieCrewTranslations.movieId} = ${movie.id} AND ${schema.movieCrewTranslations.personId} = ${crewMember.personId} AND ${schema.movieCrewTranslations.department} = ${crewMember.department}`);
+          
+          if (person[0]) {
+            const personName: any = {};
+            const job: any = {};
+            
+            for (const trans of personTranslations) {
+              personName[trans.language] = trans.name;
+            }
+            for (const trans of jobTranslations) {
+              job[trans.language] = trans.job;
+            }
+            
+            return {
+              person: {
+                id: person[0].id,
+                name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
+                profile_path: person[0].profilePath,
+              },
+              job: Object.keys(job).length > 0 ? job : { en: crewMember.department },
+              department: crewMember.department,
+            };
+          }
+          return null;
+        }));
+
         return {
           id: movie.id,
           tmdb_id: movie.tmdbId,
@@ -106,10 +178,10 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           overview: Object.keys(overview).length > 0 ? overview : { en: '' },
           genres: movieGenresList,
           video_sources: [],
-          cast: [],
-          crew: [],
+          cast: cast.filter(c => c !== null),
+          crew: crew.filter(c => c !== null),
         };
-      });
+      }));
 
       // Sort by featured order
       const sortedMovies = featured.map(f => {
