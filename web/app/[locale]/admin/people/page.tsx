@@ -6,7 +6,7 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Search, Edit, ArrowUpDown } from 'lucide-react';
+import { Search, Edit, ArrowUpDown } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
@@ -92,17 +92,8 @@ export default function PeopleAdminPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              {t('dashboard')}
-            </Button>
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
-        </div>
-        <div className="w-32" /> {/* Spacer */}
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
       </div>
 
       {/* Search and Filters */}

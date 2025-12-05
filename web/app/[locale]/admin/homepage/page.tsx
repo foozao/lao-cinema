@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, X, GripVertical, Save } from 'lucide-react';
+import { Plus, X, GripVertical, Save } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 
@@ -30,7 +28,6 @@ interface Movie {
 }
 
 export default function HomepageAdminPage() {
-  const router = useRouter();
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
   
@@ -162,34 +159,24 @@ export default function HomepageAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button variant="ghost" className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Admin
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Homepage Featured Films</h1>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowAddModal(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Film
-            </Button>
-            <Button onClick={saveOrder} disabled={saving} className="gap-2 bg-green-600 hover:bg-green-700">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Order'}
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Homepage Featured Films</h1>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowAddModal(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Add Film
+          </Button>
+          <Button onClick={saveOrder} disabled={saving} className="gap-2 bg-green-600 hover:bg-green-700">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save Order'}
+          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Featured Films ({featured.length}/5 recommended)</CardTitle>
@@ -242,7 +229,7 @@ export default function HomepageAdminPage() {
             )}
           </CardContent>
         </Card>
-      </main>
+      </div>
 
       {/* Add Film Modal */}
       {showAddModal && (

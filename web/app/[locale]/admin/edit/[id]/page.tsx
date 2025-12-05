@@ -908,35 +908,37 @@ export default function EditMoviePage() {
           </Card>
 
           {/* Poster Management */}
-          {currentMovie?.images && currentMovie.images.length > 0 ? (
-            <PosterManager
-              images={currentMovie.images}
-              movieId={movieId}
-              onPrimaryChange={handlePrimaryImageChange}
-              onRefresh={handleFetchImages}
-              refreshing={fetchingImages}
-            />
-          ) : currentMovie?.tmdb_id ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Poster & Image Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  Load posters, backdrops, and logos from TMDB to choose which images to display.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleFetchImages}
-                  disabled={fetchingImages}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
-                  {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
+          {currentMovie?.tmdb_id && (
+            currentMovie.images && currentMovie.images.length > 0 ? (
+              <PosterManager
+                images={currentMovie.images}
+                movieId={movieId}
+                onPrimaryChange={handlePrimaryImageChange}
+                onRefresh={handleFetchImages}
+                refreshing={fetchingImages}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Poster & Image Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Load posters, backdrops, and logos from TMDB to choose which images to display.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFetchImages}
+                    disabled={fetchingImages}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
+                    {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          )}
 
           {/* Cast & Crew */}
           {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (
