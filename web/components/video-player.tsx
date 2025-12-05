@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Loader2, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { useVideoAnalytics } from '@/lib/analytics';
 
@@ -16,6 +16,8 @@ interface VideoPlayerProps {
   movieTitle?: string; // Movie title for analytics
   movieDuration?: number; // Movie duration in seconds for analytics
   constrainToViewport?: boolean; // Constrain video height to fit within viewport
+  aspectRatio?: string; // Known aspect ratio from metadata (e.g., '16:9', '2.35:1')
+  onInfoClick?: () => void; // Callback when info button is clicked
 }
 
 // Helper to generate localStorage key for video playback position
@@ -41,6 +43,8 @@ export function VideoPlayer({
   movieTitle,
   movieDuration,
   constrainToViewport = false,
+  aspectRatio,
+  onInfoClick,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -227,6 +231,60 @@ export function VideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]); // analytics functions are stable (use refs internally)
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          if (isPlaying) {
+            video.pause();
+          } else {
+            video.play();
+          }
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'm':
+        case 'M':
+          e.preventDefault();
+          video.muted = !video.muted;
+          setIsMuted(!video.muted);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          video.currentTime = Math.max(0, video.currentTime - 10);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          video.currentTime = Math.min(duration, video.currentTime + 10);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          video.volume = Math.min(1, video.volume + 0.1);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          video.volume = Math.max(0, video.volume - 0.1);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, duration]);
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -298,15 +356,13 @@ export function VideoPlayer({
     }
   };
 
-  // When constrainToViewport is true, limit max-height so video + controls fit in viewport
-  // Header is ~64px, controls are ~72px, add some padding
-  const containerClasses = constrainToViewport
-    ? "w-full max-w-full"
-    : "w-full";
+  // Simple approach: let video fill available space naturally
+  // Controls now overlay on video, so we only need space for header ~64px
+  const containerClasses = "w-full";
   
   const videoContainerClasses = constrainToViewport
-    ? "relative w-full bg-black rounded-lg overflow-hidden group max-h-[calc(100vh-200px)] aspect-video"
-    : "relative w-full aspect-video bg-black rounded-lg overflow-hidden group";
+    ? "relative bg-black rounded-lg overflow-hidden group w-full h-[calc(100vh-64px)] flex items-center justify-center"
+    : "relative bg-black rounded-lg overflow-hidden group w-full";
 
   return (
     <div className={containerClasses}>
@@ -318,7 +374,7 @@ export function VideoPlayer({
       >
       <video
         ref={videoRef}
-        className="w-full h-full"
+        className="max-w-full max-h-full"
         poster={!hasStarted ? poster : undefined}
         playsInline
         onClick={togglePlay}
@@ -372,25 +428,25 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Controls - overlay in fullscreen, below video otherwise */}
-      {isFullscreen && (
-        <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
-            showControls ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-        {/* Progress Bar */}
-        <input
-          type="range"
-          min="0"
-          max={duration || 0}
-          value={currentTime}
-          onChange={handleSeek}
-          className="w-full h-1 mb-4 bg-gray-400 rounded-lg appearance-none cursor-pointer slider [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:h-1.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:h-1.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-gray-400 [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-gray-400 [&::-moz-range-track]:rounded-lg"
-          style={{
-            background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${(currentTime / duration) * 100}%, #9ca3af ${(currentTime / duration) * 100}%, #9ca3af 100%)`
-          }}
-        />
+      {/* Controls - always overlay on video like native player */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
+          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Progress Bar - simple like native player */}
+        <div className="w-full h-1 mb-4 bg-white/30 rounded cursor-pointer" onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const percent = (e.clientX - rect.left) / rect.width;
+          if (videoRef.current && duration) {
+            videoRef.current.currentTime = percent * duration;
+          }
+        }}>
+          <div 
+            className="h-full bg-white rounded"
+            style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+          />
+        </div>
 
         {/* Control Buttons */}
         <div className="flex items-center justify-between">
@@ -426,69 +482,17 @@ export function VideoPlayer({
             </span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleFullscreen}
-            className="text-white hover:bg-white/20"
-          >
-            <Maximize className="w-6 h-6" />
-          </Button>
-        </div>
-        </div>
-      )}
-      </div>
-
-      {/* Controls below video when not fullscreen */}
-      {!isFullscreen && (
-        <div className="bg-black p-4 rounded-b-lg">
-          {/* Progress Bar */}
-          <input
-            type="range"
-            min="0"
-            max={duration || 0}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1 mb-4 bg-gray-400 rounded-lg appearance-none cursor-pointer slider [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:h-1.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:h-1.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-gray-400 [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-gray-400 [&::-moz-range-track]:rounded-lg"
-            style={{
-              background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${(currentTime / duration) * 100}%, #9ca3af ${(currentTime / duration) * 100}%, #9ca3af 100%)`
-            }}
-          />
-
-          {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {onInfoClick && !isFullscreen && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={togglePlay}
+                onClick={onInfoClick}
                 className="text-white hover:bg-white/20"
               >
-                {isPlaying ? (
-                  <Pause className="w-6 h-6" />
-                ) : (
-                  <Play className="w-6 h-6" />
-                )}
+                <Info className="w-6 h-6" />
               </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleMute}
-                className="text-white hover:bg-white/20"
-              >
-                {isMuted ? (
-                  <VolumeX className="w-6 h-6" />
-                ) : (
-                  <Volume2 className="w-6 h-6" />
-                )}
-              </Button>
-
-              <span className="text-white text-sm">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -499,7 +503,8 @@ export function VideoPlayer({
             </Button>
           </div>
         </div>
-      )}
+      </div>
+      </div>
     </div>
   );
 }

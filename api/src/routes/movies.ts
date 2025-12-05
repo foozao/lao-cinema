@@ -47,6 +47,9 @@ const VideoSourceSchema = z.object({
   format: z.enum(['hls', 'mp4']),
   url: z.string(),
   size_bytes: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  aspect_ratio: z.string().optional(),
 });
 
 const PersonSchema = z.object({
@@ -443,6 +446,9 @@ export default async function movieRoutes(fastify: FastifyInstance) {
             format: vs.format,
             url: fullUrl,
             size_bytes: vs.sizeBytes,
+            width: vs.width,
+            height: vs.height,
+            aspect_ratio: vs.aspectRatio,
           };
         }),
         images: images.map(img => ({
@@ -792,7 +798,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         }
 
         // Extract fields that should be updated in movies table
-        const { title, overview, tagline, cast, crew, genres, images, ...movieUpdates } = updates;
+        const { title, overview, tagline, cast, crew, genres, images, video_sources, ...movieUpdates } = updates;
         
         // Update basic movie fields if provided
         const movieFieldsToUpdate: any = {};
@@ -905,6 +911,31 @@ export default async function movieRoutes(fastify: FastifyInstance) {
                   }
                 }
               }
+            }
+          }
+        }
+
+        // Update video sources if provided
+        if (video_sources && Array.isArray(video_sources)) {
+          for (const vs of video_sources) {
+            // Check if video source exists for this movie
+            const existingVS = await db.select()
+              .from(schema.videoSources)
+              .where(eq(schema.videoSources.movieId, id))
+              .limit(1);
+
+            const vsData: any = {};
+            if (vs.quality !== undefined) vsData.quality = vs.quality;
+            if (vs.format !== undefined) vsData.format = vs.format;
+            if (vs.width !== undefined) vsData.width = vs.width;
+            if (vs.height !== undefined) vsData.height = vs.height;
+            if (vs.aspect_ratio !== undefined) vsData.aspectRatio = vs.aspect_ratio;
+
+            if (existingVS.length > 0) {
+              // Update existing video source
+              await db.update(schema.videoSources)
+                .set(vsData)
+                .where(eq(schema.videoSources.movieId, id));
             }
           }
         }

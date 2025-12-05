@@ -10,7 +10,7 @@ import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
-import { Info, ExternalLink, AlertCircle } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, formatRemainingGraceTime } from '@/lib/rental';
 import type { Movie } from '@/lib/types';
@@ -49,6 +49,19 @@ export default function WatchPage() {
     
     setRentalChecked(true);
   }, [id, router]);
+
+  // Esc key to close info panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showInfo) {
+        e.preventDefault();
+        setShowInfo(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showInfo]);
 
   useEffect(() => {
     // Only load movie if rental is valid
@@ -131,26 +144,27 @@ export default function WatchPage() {
           movieTitle={title}
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
           constrainToViewport={true}
+          aspectRatio={videoSource.aspect_ratio}
+          onInfoClick={() => setShowInfo(true)}
         />
       </div>
 
       {/* Movie Info Sidebar - Slides in from right */}
       {showInfo && (
         <div className="fixed top-0 right-0 bottom-0 w-full md:w-96 bg-gray-900 z-40 overflow-y-auto animate-in slide-in-from-right">
-          <div className="p-6">
-            {/* Close button */}
-            <div className="flex justify-end mb-4">
+          <div className="p-6 pt-20">
+            {/* Movie Title with Close button */}
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h2 className="text-2xl font-bold text-white">{title}</h2>
               <Button
                 variant="ghost"
+                size="icon"
                 onClick={() => setShowInfo(false)}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 flex-shrink-0"
               >
-                ✕
+                <X className="w-6 h-6" />
               </Button>
             </div>
-
-            {/* Movie Title */}
-            <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
 
             {/* Meta Info */}
             <div className="flex flex-wrap gap-3 mb-4 text-sm text-gray-300">
@@ -159,11 +173,6 @@ export default function WatchPage() {
               )}
               {movie.runtime && (
                 <span>{t('movie.minutes', { count: movie.runtime })}</span>
-              )}
-              {movie.vote_average && (
-                <span className="flex items-center gap-1">
-                  ⭐ {movie.vote_average.toFixed(1)}
-                </span>
               )}
             </div>
 
@@ -195,7 +204,7 @@ export default function WatchPage() {
                 <h3 className="text-lg font-semibold text-white mb-3">
                   {t('movie.crew')}
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {movie.crew
                     .filter((member) => {
                       const job = getLocalizedText(member.job, 'en').toLowerCase();
@@ -207,7 +216,7 @@ export default function WatchPage() {
                         href={`/${locale}/people/${member.person.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 p-2 -mx-2 rounded transition-colors group"
+                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 py-1 px-2 -mx-2 rounded transition-colors group"
                       >
                         <div className="flex-1">
                           <p className="text-white font-medium group-hover:text-red-400 transition-colors">
@@ -217,7 +226,6 @@ export default function WatchPage() {
                             {translateCrewJob(getLocalizedText(member.job, 'en'), t)}
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors flex-shrink-0 mt-0.5" />
                       </a>
                     ))}
                 </div>
@@ -230,7 +238,7 @@ export default function WatchPage() {
                 <h3 className="text-lg font-semibold text-white mb-3">
                   {t('movie.cast')}
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {movie.cast
                     .sort((a, b) => a.order - b.order)
                     .slice(0, 5)
@@ -240,7 +248,7 @@ export default function WatchPage() {
                         href={`/${locale}/people/${member.person.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 p-2 -mx-2 rounded transition-colors group"
+                        className="flex items-start gap-2 text-sm hover:bg-gray-800/50 py-1 px-2 -mx-2 rounded transition-colors group"
                       >
                         <div className="flex-1">
                           <p className="text-white font-medium group-hover:text-red-400 transition-colors">
@@ -250,7 +258,6 @@ export default function WatchPage() {
                             {getLocalizedText(member.character, locale)}
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors flex-shrink-0 mt-0.5" />
                       </a>
                     ))}
                 </div>
@@ -258,13 +265,19 @@ export default function WatchPage() {
             )}
 
             {/* View Full Details Button */}
-            <Button
-              onClick={() => router.push(`/movies/${id}`)}
-              variant="outline"
-              className="w-full"
+            <a
+              href={`/${locale}/movies/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full cursor-pointer"
             >
-              {t('movie.viewFullDetails')}
-            </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+              >
+                {t('movie.viewFullDetails')}
+              </Button>
+            </a>
           </div>
         </div>
       )}

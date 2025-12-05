@@ -64,6 +64,10 @@ export interface VideoSource {
   format: 'hls' | 'mp4';
   url: string;
   size_bytes?: number;
+  // Video dimensions (from transcoding metadata)
+  width?: number;
+  height?: number;
+  aspect_ratio?: '16:9' | '4:3' | '2.35:1' | '2.39:1' | '1.85:1' | '21:9' | 'mixed' | string;
 }
 
 export interface MovieImage {

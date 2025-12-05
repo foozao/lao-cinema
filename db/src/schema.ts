@@ -154,6 +154,9 @@ export const videoSources = pgTable('video_sources', {
   format: videoFormatEnum('format').notNull(),
   url: text('url').notNull(),
   sizeBytes: integer('size_bytes'),
+  width: integer('width'),
+  height: integer('height'),
+  aspectRatio: text('aspect_ratio'), // e.g., '16:9', '2.35:1', 'mixed'
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

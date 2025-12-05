@@ -22,7 +22,8 @@ fi
 INPUT_FILE="$1"
 OUTPUT_NAME="$2"
 # Output to video-server directory (used by local video server)
-OUTPUT_DIR="../video-server/videos/hls/${OUTPUT_NAME}"
+SCRIPT_DIR="$(dirname "$0")"
+OUTPUT_DIR="${SCRIPT_DIR}/../video-server/videos/hls/${OUTPUT_NAME}"
 
 # Validate input file exists
 if [ ! -f "$INPUT_FILE" ]; then
@@ -40,18 +41,22 @@ echo ""
 
 # Convert to HLS with multiple bitrates (adaptive streaming)
 # This creates:
-# - 1080p @ 5000k
-# - 720p @ 2800k
-# - 480p @ 1400k
-# - 360p @ 800k
+# - 1080p @ 5000k (max width 1920, height auto to preserve aspect ratio)
+# - 720p @ 2800k (max width 1280)
+# - 480p @ 1400k (max width 854)
+# - 360p @ 800k (max width 640)
+#
+# Using scale=-2 ensures height is divisible by 2 (required for h264)
+# This preserves the original aspect ratio instead of forcing 16:9
 
+# First pass: generate HLS streams (master playlist will have wrong paths)
 ffmpeg -i "$INPUT_FILE" \
   -filter_complex \
   "[0:v]split=4[v1][v2][v3][v4]; \
-   [v1]scale=w=1920:h=1080[v1out]; \
-   [v2]scale=w=1280:h=720[v2out]; \
-   [v3]scale=w=854:h=480[v3out]; \
-   [v4]scale=w=640:h=360[v4out]" \
+   [v1]scale=w='min(1920,iw)':h=-2[v1out]; \
+   [v2]scale=w='min(1280,iw)':h=-2[v2out]; \
+   [v3]scale=w='min(854,iw)':h=-2[v3out]; \
+   [v4]scale=w='min(640,iw)':h=-2[v4out]" \
   -map "[v1out]" -c:v:0 libx264 -b:v:0 5000k -maxrate:v:0 5350k -bufsize:v:0 7500k -preset medium -g 48 -sc_threshold 0 \
   -map "[v2out]" -c:v:1 libx264 -b:v:1 2800k -maxrate:v:1 2996k -bufsize:v:1 4200k -preset medium -g 48 -sc_threshold 0 \
   -map "[v3out]" -c:v:2 libx264 -b:v:2 1400k -maxrate:v:2 1498k -bufsize:v:2 2100k -preset medium -g 48 -sc_threshold 0 \
@@ -69,6 +74,18 @@ ffmpeg -i "$INPUT_FILE" \
   -master_pl_name master.m3u8 \
   -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3" \
   "${OUTPUT_DIR}/stream_%v/playlist.m3u8"
+
+# FFmpeg generates master.m3u8 inside stream_0/ with incorrect relative paths
+# Move it to the correct location and fix the paths
+if [ -f "${OUTPUT_DIR}/stream_0/master.m3u8" ]; then
+  # Fix paths: stream_0.m3u8 -> stream_0/playlist.m3u8, etc.
+  sed -e 's|stream_0\.m3u8|stream_0/playlist.m3u8|g' \
+      -e 's|stream_1\.m3u8|stream_1/playlist.m3u8|g' \
+      -e 's|stream_2\.m3u8|stream_2/playlist.m3u8|g' \
+      -e 's|stream_3\.m3u8|stream_3/playlist.m3u8|g' \
+      "${OUTPUT_DIR}/stream_0/master.m3u8" > "${OUTPUT_DIR}/master.m3u8"
+  rm "${OUTPUT_DIR}/stream_0/master.m3u8"
+fi
 
 echo ""
 echo "✅ Conversion complete!"

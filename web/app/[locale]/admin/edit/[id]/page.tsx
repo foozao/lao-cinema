@@ -55,6 +55,7 @@ export default function EditMoviePage() {
     video_url: '',
     video_quality: 'original',
     video_format: 'mp4',
+    video_aspect_ratio: '',
   });
 
   // State for cast/crew translations
@@ -92,6 +93,7 @@ export default function EditMoviePage() {
           video_url: movie.video_sources[0]?.url || '',
           video_quality: movie.video_sources[0]?.quality || 'original',
           video_format: movie.video_sources[0]?.format || 'mp4',
+          video_aspect_ratio: movie.video_sources[0]?.aspect_ratio || '',
         });
 
         // Initialize cast translations
@@ -415,6 +417,7 @@ export default function EditMoviePage() {
           url: formData.video_url,
           format: formData.video_format as 'hls' | 'mp4',
           quality: formData.video_quality as any,
+          aspect_ratio: formData.video_aspect_ratio || undefined,
         }] : [],
         cast: updatedCast,
         crew: updatedCrew,
@@ -791,6 +794,29 @@ export default function EditMoviePage() {
                     <option value="480p">480p</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="video_aspect_ratio">Aspect Ratio</Label>
+                <select
+                  id="video_aspect_ratio"
+                  name="video_aspect_ratio"
+                  value={formData.video_aspect_ratio}
+                  onChange={(e) => handleChange(e as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Unknown / Not Set</option>
+                  <option value="16:9">16:9 (Widescreen)</option>
+                  <option value="4:3">4:3 (Standard)</option>
+                  <option value="2.35:1">2.35:1 (Cinemascope)</option>
+                  <option value="2.39:1">2.39:1 (Anamorphic)</option>
+                  <option value="1.85:1">1.85:1 (Theatrical)</option>
+                  <option value="21:9">21:9 (Ultra-wide)</option>
+                  <option value="mixed">Mixed (Multiple ratios)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
+                </p>
               </div>
             </CardContent>
           </Card>
