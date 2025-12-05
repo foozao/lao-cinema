@@ -10,7 +10,7 @@ import { getPosterUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Clock } from 'lucide-react';
+import { Clock, ExternalLink } from 'lucide-react';
 
 interface MovieCardProps {
   movie: Movie;
@@ -42,6 +42,9 @@ export function MovieCard({ movie }: MovieCardProps) {
         .sort((a, b) => a.order - b.order)
         .slice(0, 3)
     : [];
+
+  // Check if film is only available externally
+  const isExternalOnly = movie.external_platforms && movie.external_platforms.length > 0;
   
   return (
     <Link href={`/movies/${movie.id}`}>
@@ -62,6 +65,13 @@ export function MovieCard({ movie }: MovieCardProps) {
                 <span className="text-white text-4xl font-bold opacity-50">
                   {title.charAt(0)}
                 </span>
+              </div>
+            )}
+            {/* External-only indicator */}
+            {isExternalOnly && (
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                <ExternalLink className="w-3 h-3" />
+                <span>{t('externalOnly')}</span>
               </div>
             )}
           </div>

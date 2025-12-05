@@ -7,6 +7,14 @@ export interface LocalizedText {
   lo?: string; // Lao (optional)
 }
 
+// Streaming platforms where a film may be exclusively available
+export type StreamingPlatform = 'netflix' | 'prime' | 'disney' | 'hbo' | 'apple' | 'hulu' | 'other';
+
+export interface ExternalPlatform {
+  platform: StreamingPlatform;
+  url?: string; // Optional link to the film on that platform
+}
+
 export interface Movie {
   id: string;
   
@@ -44,6 +52,9 @@ export interface Movie {
   
   // Images (multiple posters/backdrops from TMDB)
   images?: MovieImage[];
+  
+  // External availability (for films not available on our platform)
+  external_platforms?: ExternalPlatform[];
   
   // Relationships
   genres: Genre[];

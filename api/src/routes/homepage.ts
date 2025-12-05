@@ -128,6 +128,11 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           return null;
         }));
         
+        // Get external platforms
+        const externalPlatforms = await db.select()
+          .from(schema.movieExternalPlatforms)
+          .where(eq(schema.movieExternalPlatforms.movieId, movie.id));
+
         // Get crew (only director and writer for performance)
         const crewData = await db.select()
           .from(schema.movieCrew)
@@ -180,6 +185,10 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           video_sources: [],
           cast: cast.filter(c => c !== null),
           crew: crew.filter(c => c !== null),
+          external_platforms: externalPlatforms.map(ep => ({
+            platform: ep.platform,
+            url: ep.url,
+          })),
         };
       }));
 

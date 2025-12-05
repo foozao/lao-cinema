@@ -92,6 +92,11 @@ const MovieImageSchema = z.object({
   is_primary: z.boolean().optional(),
 });
 
+const ExternalPlatformSchema = z.object({
+  platform: z.enum(['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']),
+  url: z.string().optional(),
+});
+
 const CreateMovieSchema = z.object({
   // TMDB fields
   tmdb_id: z.number().optional(),
@@ -139,6 +144,9 @@ const CreateMovieSchema = z.object({
   
   // Images
   images: z.array(MovieImageSchema).optional(),
+  
+  // External platforms (for films not available on our platform)
+  external_platforms: z.array(ExternalPlatformSchema).optional(),
 });
 
 export default async function movieRoutes(fastify: FastifyInstance) {
@@ -208,6 +216,11 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           return null;
         }));
         
+        // Get external platforms
+        const externalPlatforms = await db.select()
+          .from(schema.movieExternalPlatforms)
+          .where(eq(schema.movieExternalPlatforms.movieId, movie.id));
+
         // Get crew (only director and writer for performance)
         const crewData = await db.select()
           .from(schema.movieCrew)
@@ -264,6 +277,10 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           cast: cast.filter(c => c !== null),
           crew: crew.filter(c => c !== null),
           video_sources: [],
+          external_platforms: externalPlatforms.map(ep => ({
+            platform: ep.platform,
+            url: ep.url,
+          })),
           created_at: movie.createdAt,
           updated_at: movie.updatedAt,
         };
@@ -413,6 +430,11 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         .from(schema.movieImages)
         .where(eq(schema.movieImages.movieId, id));
 
+      // Get external platforms
+      const externalPlatforms = await db.select()
+        .from(schema.movieExternalPlatforms)
+        .where(eq(schema.movieExternalPlatforms.movieId, id));
+
       // Return in expected format with fallbacks
       return {
         id: movie.id,
@@ -462,6 +484,10 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           vote_average: img.voteAverage,
           vote_count: img.voteCount,
           is_primary: img.isPrimary,
+        })),
+        external_platforms: externalPlatforms.map(ep => ({
+          platform: ep.platform,
+          url: ep.url,
         })),
         created_at: movie.createdAt,
         updated_at: movie.updatedAt,
@@ -765,6 +791,17 @@ export default async function movieRoutes(fastify: FastifyInstance) {
           await db.insert(schema.movieImages).values(imageValues);
         }
 
+        // Insert external platforms
+        if (movieData.external_platforms && movieData.external_platforms.length > 0) {
+          const platformValues = movieData.external_platforms.map((ep) => ({
+            movieId: newMovie.id,
+            platform: ep.platform,
+            url: ep.url || null,
+          }));
+          
+          await db.insert(schema.movieExternalPlatforms).values(platformValues);
+        }
+
         // Fetch the complete movie with translations to return
         const response = await fastify.inject({
           method: 'GET',
@@ -798,7 +835,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         }
 
         // Extract fields that should be updated in movies table
-        const { title, overview, tagline, cast, crew, genres, images, video_sources, ...movieUpdates } = updates;
+        const { title, overview, tagline, cast, crew, genres, images, video_sources, external_platforms, ...movieUpdates } = updates;
         
         // Update basic movie fields if provided
         const movieFieldsToUpdate: any = {};
@@ -982,6 +1019,24 @@ export default async function movieRoutes(fastify: FastifyInstance) {
                 .set(pathUpdates)
                 .where(eq(schema.movies.id, id));
             }
+          }
+        }
+
+        // Update external platforms if provided
+        if (external_platforms !== undefined) {
+          // Delete existing external platforms for this movie
+          await db.delete(schema.movieExternalPlatforms)
+            .where(eq(schema.movieExternalPlatforms.movieId, id));
+
+          // Insert new external platforms
+          if (external_platforms.length > 0) {
+            const platformValues = external_platforms.map((ep) => ({
+              movieId: id,
+              platform: ep.platform,
+              url: ep.url || null,
+            }));
+            
+            await db.insert(schema.movieExternalPlatforms).values(platformValues);
           }
         }
 

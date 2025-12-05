@@ -57,7 +57,9 @@
     "status": "Status",
     "originalLanguage": "Original Language",
     "productionCountries": "Production Countries",
-    "spokenLanguages": "Spoken Languages"
+    "spokenLanguages": "Spoken Languages",
+    "availableOn": "This film is available on:",
+    "externalOnly": "External"
   },
   "watch": {
     "gracePeriodWarning": "Your rental has expired, but you have {time} remaining to finish watching. Don't close this page!"

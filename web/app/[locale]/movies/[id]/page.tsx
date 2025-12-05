@@ -16,6 +16,7 @@ import { Footer } from '@/components/footer';
 import { Calendar, Clock, Star, Users, Play } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
+import { StreamingPlatformList } from '@/components/streaming-platform-badge';
 import { isRentalValid, storeRental, formatRemainingTime } from '@/lib/rental';
 import type { Movie } from '@/lib/types';
 
@@ -120,6 +121,10 @@ export default function MoviePage() {
     movie.video_sources.find((vs) => vs.format === 'hls') ||
     movie.video_sources[0];
 
+  // Check if film is only available on external platforms
+  const hasExternalPlatforms = movie.external_platforms && movie.external_platforms.length > 0;
+  const isAvailableOnSite = videoSource && !hasExternalPlatforms;
+
   const title = getLocalizedText(movie.title, locale);
   const overview = getLocalizedText(movie.overview, locale);
   
@@ -217,24 +222,34 @@ export default function MoviePage() {
                       </p>
                     </div>
 
-                    {/* Watch Now Button */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-3">
-                        <Button
-                          size="lg"
-                          onClick={handleWatchNowClick}
-                          className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
-                          disabled={!videoSource}
-                        >
-                          <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
-                          {t('movie.watchNow')}
-                        </Button>
-                      </div>
-                      {hasValidRental && remainingTime && (
-                        <p className="text-sm text-green-400">
-                          {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
-                        </p>
-                      )}
+                    {/* Watch Now Button or External Platforms */}
+                    <div className="flex flex-col gap-3">
+                      {isAvailableOnSite ? (
+                        <>
+                          <div className="flex gap-3">
+                            <Button
+                              size="lg"
+                              onClick={handleWatchNowClick}
+                              className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
+                            >
+                              <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
+                              {t('movie.watchNow')}
+                            </Button>
+                          </div>
+                          {hasValidRental && remainingTime && (
+                            <p className="text-sm text-green-400">
+                              {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
+                            </p>
+                          )}
+                        </>
+                      ) : hasExternalPlatforms ? (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-300">
+                            {t('movie.availableOn')}
+                          </p>
+                          <StreamingPlatformList platforms={movie.external_platforms!} size="lg" />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

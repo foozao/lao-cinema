@@ -5,6 +5,7 @@ export const languageEnum = pgEnum('language', ['en', 'lo']);
 export const videoFormatEnum = pgEnum('video_format', ['mp4', 'hls', 'dash']);
 export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '720p', '480p', '360p']);
 export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
+export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']);
 
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
@@ -169,6 +170,15 @@ export const homepageFeatured = pgTable('homepage_featured', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// External platforms table - tracks where films are available externally (e.g., Netflix)
+export const movieExternalPlatforms = pgTable('movie_external_platforms', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  platform: streamingPlatformEnum('platform').notNull(),
+  url: text('url'), // Optional link to the film on that platform
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type Movie = typeof movies.$inferSelect;
 export type NewMovie = typeof movies.$inferInsert;
@@ -203,3 +213,6 @@ export type NewHomepageFeatured = typeof homepageFeatured.$inferInsert;
 
 export type MovieImage = typeof movieImages.$inferSelect;
 export type NewMovieImage = typeof movieImages.$inferInsert;
+
+export type MovieExternalPlatform = typeof movieExternalPlatforms.$inferSelect;
+export type NewMovieExternalPlatform = typeof movieExternalPlatforms.$inferInsert;

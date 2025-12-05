@@ -13,7 +13,7 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
-import type { Movie } from '@/lib/types';
+import type { Movie, StreamingPlatform, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
@@ -63,6 +63,9 @@ export default function EditMoviePage() {
   const [crewTranslations, setCrewTranslations] = useState<Record<string, { job_en: string; job_lo: string }>>({});
   const [editingCast, setEditingCast] = useState<string | null>(null);
   const [editingCrew, setEditingCrew] = useState<string | null>(null);
+  
+  // State for external platforms
+  const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
 
   // Load movie data on mount
   useEffect(() => {
@@ -117,6 +120,9 @@ export default function EditMoviePage() {
           };
         });
         setCrewTranslations(crewTrans);
+
+        // Initialize external platforms
+        setExternalPlatforms(movie.external_platforms || []);
       } catch (error) {
         console.error('Failed to load movie:', error);
         setSyncError('Failed to load movie from database');
@@ -422,6 +428,7 @@ export default function EditMoviePage() {
         cast: updatedCast,
         crew: updatedCrew,
         images: currentMovie?.images, // Include images array
+        external_platforms: externalPlatforms,
       };
 
       await movieAPI.update(movieId, updateData);
@@ -818,6 +825,85 @@ export default function EditMoviePage() {
                   Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* External Platforms */}
+          <Card>
+            <CardHeader>
+              <CardTitle>External Availability</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                If this film is not available on Lao Cinema but can be watched on other platforms, add them here. 
+                This will hide the Watch button and show where viewers can find the film.
+              </p>
+              
+              {/* Current platforms */}
+              {externalPlatforms.length > 0 && (
+                <div className="space-y-2">
+                  {externalPlatforms.map((platform, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <span className="font-medium capitalize flex-1">{platform.platform}</span>
+                      <Input
+                        value={platform.url || ''}
+                        onChange={(e) => {
+                          const updated = [...externalPlatforms];
+                          updated[index] = { ...updated[index], url: e.target.value };
+                          setExternalPlatforms(updated);
+                        }}
+                        placeholder="URL (optional)"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setExternalPlatforms(externalPlatforms.filter((_, i) => i !== index));
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Add platform */}
+              <div className="flex items-center gap-3">
+                <select
+                  id="add-platform"
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const platform = e.target.value as StreamingPlatform;
+                      // Don't add if already exists
+                      if (!externalPlatforms.some(p => p.platform === platform)) {
+                        setExternalPlatforms([...externalPlatforms, { platform }]);
+                      }
+                      e.target.value = '';
+                    }
+                  }}
+                >
+                  <option value="">Add platform...</option>
+                  <option value="netflix" disabled={externalPlatforms.some(p => p.platform === 'netflix')}>Netflix</option>
+                  <option value="prime" disabled={externalPlatforms.some(p => p.platform === 'prime')}>Amazon Prime Video</option>
+                  <option value="disney" disabled={externalPlatforms.some(p => p.platform === 'disney')}>Disney+</option>
+                  <option value="hbo" disabled={externalPlatforms.some(p => p.platform === 'hbo')}>HBO Max</option>
+                  <option value="apple" disabled={externalPlatforms.some(p => p.platform === 'apple')}>Apple TV+</option>
+                  <option value="hulu" disabled={externalPlatforms.some(p => p.platform === 'hulu')}>Hulu</option>
+                  <option value="other" disabled={externalPlatforms.some(p => p.platform === 'other')}>Other</option>
+                </select>
+              </div>
+              
+              {externalPlatforms.length > 0 && (
+                <p className="text-xs text-amber-600">
+                  ⚠️ Films with external platforms will not show a Watch button on the site.
+                </p>
+              )}
             </CardContent>
           </Card>
 

@@ -57,7 +57,9 @@
     "status": "ສະຖານະ",
     "originalLanguage": "ພາສາຕົ້ນສະບັບ",
     "productionCountries": "ປະເທດຜະລິດ",
-    "spokenLanguages": "ພາສາທີ່ໃຊ້"
+    "spokenLanguages": "ພາສາທີ່ໃຊ້",
+    "availableOn": "ຮູບເງົານີ້ມີຢູ່ໃນ:",
+    "externalOnly": "ພາຍນອກ"
   },
   "watch": {
     "gracePeriodWarning": "ການເຊົ່າຂອງທ່ານໝົດອາຍຸແລ້ວ, ແຕ່ທ່ານມີເວລາອີກ {time} ເພື່ອເບິ່ງໃຫ້ຈົບ. ຢ່າປິດໜ້ານີ້!"
