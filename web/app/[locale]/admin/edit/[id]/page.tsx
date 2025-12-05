@@ -9,15 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, RefreshCw, AlertCircle } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, StreamingPlatform, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
-import { movieAPI } from '@/lib/api/client';
+import { movieAPI, castCrewAPI, peopleAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
+import { PersonSearch } from '@/components/admin/person-search';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -70,6 +71,17 @@ export default function EditMoviePage() {
   
   // Track if form has been modified
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // State for adding new cast/crew
+  const [showAddCast, setShowAddCast] = useState(false);
+  const [showAddCrew, setShowAddCrew] = useState(false);
+  const [newCastCharacterEn, setNewCastCharacterEn] = useState('');
+  const [newCastCharacterLo, setNewCastCharacterLo] = useState('');
+  const [newCrewDepartment, setNewCrewDepartment] = useState('Directing');
+  const [newCrewJobEn, setNewCrewJobEn] = useState('');
+  const [newCrewJobLo, setNewCrewJobLo] = useState('');
+  const [addingCast, setAddingCast] = useState(false);
+  const [addingCrew, setAddingCrew] = useState(false);
 
   // Load movie data on mount
   useEffect(() => {
@@ -367,6 +379,121 @@ export default function EditMoviePage() {
       await movieAPI.update(movieId, updateData);
     } catch (error) {
       console.error('Failed to save cast/crew updates:', error);
+    }
+  };
+
+  // Handler for adding a new cast member
+  const handleAddCast = async (person: { id: number; name: { en?: string; lo?: string } }) => {
+    if (!currentMovie) return;
+    
+    try {
+      setAddingCast(true);
+      await castCrewAPI.addCast(movieId, {
+        person_id: person.id,
+        character: {
+          en: newCastCharacterEn || '',
+          lo: newCastCharacterLo || undefined,
+        },
+      });
+      
+      // Reload movie to get updated cast list
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+      
+      // Reset form
+      setNewCastCharacterEn('');
+      setNewCastCharacterLo('');
+    } catch (error) {
+      console.error('Failed to add cast member:', error);
+      alert('Failed to add cast member');
+    } finally {
+      setAddingCast(false);
+    }
+  };
+
+  // Handler for adding a new crew member
+  const handleAddCrew = async (person: { id: number; name: { en?: string; lo?: string } }) => {
+    if (!currentMovie) return;
+    
+    try {
+      setAddingCrew(true);
+      await castCrewAPI.addCrew(movieId, {
+        person_id: person.id,
+        department: newCrewDepartment,
+        job: {
+          en: newCrewJobEn || newCrewDepartment,
+          lo: newCrewJobLo || undefined,
+        },
+      });
+      
+      // Reload movie to get updated crew list
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+      
+      // Reset form
+      setNewCrewJobEn('');
+      setNewCrewJobLo('');
+    } catch (error) {
+      console.error('Failed to add crew member:', error);
+      alert('Failed to add crew member');
+    } finally {
+      setAddingCrew(false);
+    }
+  };
+
+  // Handler for creating a new person and adding as cast
+  const handleCreatePersonForCast = async (name: string) => {
+    try {
+      const newPerson = await peopleAPI.create({
+        name: { en: name },
+        known_for_department: 'Acting',
+      });
+      await handleAddCast(newPerson);
+    } catch (error) {
+      console.error('Failed to create person:', error);
+      alert('Failed to create person');
+    }
+  };
+
+  // Handler for creating a new person and adding as crew
+  const handleCreatePersonForCrew = async (name: string) => {
+    try {
+      const newPerson = await peopleAPI.create({
+        name: { en: name },
+        known_for_department: newCrewDepartment,
+      });
+      await handleAddCrew(newPerson);
+    } catch (error) {
+      console.error('Failed to create person:', error);
+      alert('Failed to create person');
+    }
+  };
+
+  // Handler for removing a cast member
+  const handleRemoveCast = async (personId: number) => {
+    if (!currentMovie || !confirm('Remove this cast member?')) return;
+    
+    try {
+      await castCrewAPI.removeCast(movieId, personId);
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (error) {
+      console.error('Failed to remove cast member:', error);
+      alert('Failed to remove cast member');
+    }
+  };
+
+  // Handler for removing a crew member
+  const handleRemoveCrew = async (personId: number, department: string) => {
+    if (!currentMovie || !confirm('Remove this crew member?')) return;
+    
+    try {
+      await castCrewAPI.removeCrew(movieId, personId, department);
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (error) {
+      console.error('Failed to remove crew member:', error);
+      alert('Failed to remove crew member');
     }
   };
 
@@ -855,11 +982,122 @@ export default function EditMoviePage() {
           </TabsContent>
 
           <TabsContent value="cast" className="space-y-6">
-          {/* Cast & Crew */}
+          {/* Add Cast Member - Collapsible */}
+          <Card>
+            <CardHeader 
+              className="cursor-pointer select-none" 
+              onClick={() => setShowAddCast(!showAddCast)}
+            >
+              <CardTitle className="flex items-center gap-2">
+                {showAddCast ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                Add Cast Member
+              </CardTitle>
+            </CardHeader>
+            {showAddCast && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Search for Person</Label>
+                  <PersonSearch
+                    onSelect={handleAddCast}
+                    onCreateNew={handleCreatePersonForCast}
+                    placeholder="Search for an actor..."
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Character Name (English)</Label>
+                    <Input
+                      value={newCastCharacterEn}
+                      onChange={(e) => setNewCastCharacterEn(e.target.value)}
+                      placeholder="e.g., John Smith"
+                    />
+                  </div>
+                  <div>
+                    <Label>Character Name (Lao)</Label>
+                    <Input
+                      value={newCastCharacterLo}
+                      onChange={(e) => setNewCastCharacterLo(e.target.value)}
+                      placeholder="ຊື່ຕົວລະຄອນ"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Search for a person above, then click to add them. The character name will be assigned automatically.
+                </p>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Add Crew Member - Collapsible */}
+          <Card>
+            <CardHeader 
+              className="cursor-pointer select-none" 
+              onClick={() => setShowAddCrew(!showAddCrew)}
+            >
+              <CardTitle className="flex items-center gap-2">
+                {showAddCrew ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                Add Crew Member
+              </CardTitle>
+            </CardHeader>
+            {showAddCrew && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Search for Person</Label>
+                  <PersonSearch
+                    onSelect={handleAddCrew}
+                    onCreateNew={handleCreatePersonForCrew}
+                    placeholder="Search for a crew member..."
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Department</Label>
+                    <select
+                      value={newCrewDepartment}
+                      onChange={(e) => setNewCrewDepartment(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Directing">Directing</option>
+                      <option value="Writing">Writing</option>
+                      <option value="Production">Production</option>
+                      <option value="Camera">Camera</option>
+                      <option value="Editing">Editing</option>
+                      <option value="Sound">Sound</option>
+                      <option value="Art">Art</option>
+                      <option value="Costume & Make-Up">Costume & Make-Up</option>
+                      <option value="Visual Effects">Visual Effects</option>
+                      <option value="Crew">Crew</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Job Title (English)</Label>
+                    <Input
+                      value={newCrewJobEn}
+                      onChange={(e) => setNewCrewJobEn(e.target.value)}
+                      placeholder="e.g., Director"
+                    />
+                  </div>
+                  <div>
+                    <Label>Job Title (Lao)</Label>
+                    <Input
+                      value={newCrewJobLo}
+                      onChange={(e) => setNewCrewJobLo(e.target.value)}
+                      placeholder="ຕຳແໜ່ງ"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Search for a person above, then click to add them with the selected department and job title.
+                </p>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Existing Cast & Crew */}
           {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (
             <Card>
               <CardHeader>
-                <CardTitle>Cast & Crew</CardTitle>
+                <CardTitle>Current Cast & Crew</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Cast */}
@@ -964,6 +1202,15 @@ export default function EditMoviePage() {
                                   }}
                                 >
                                   {isEditing ? 'Done' : 'Edit Role'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleRemoveCast(member.person.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                             </div>
@@ -1079,6 +1326,15 @@ export default function EditMoviePage() {
                                   }}
                                 >
                                   {isEditing ? 'Done' : 'Edit Role'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleRemoveCrew(member.person.id, member.department)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                             </div>

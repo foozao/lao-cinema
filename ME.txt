@@ -1,0 +1,2 @@
+[INFO] Web App URL:  https://lao-cinema-web-3ra6tqt7cq-as.a.run.app
+[INFO] API URL:      https://lao-cinema-api-3ra6tqt7cq-as.a.run.app

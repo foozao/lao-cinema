@@ -74,11 +74,33 @@ export const movieAPI = {
 
 // People API methods
 export const peopleAPI = {
-  // Get all people
-  getAll: () => fetchAPI<{ people: any[] }>('/people'),
+  // Get all people (with optional search)
+  getAll: (params?: { search?: string; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    const query = searchParams.toString();
+    return fetchAPI<{ people: any[] }>(`/people${query ? `?${query}` : ''}`);
+  },
+  
+  // Search people (convenience method)
+  search: (query: string, limit = 10) => 
+    fetchAPI<{ people: any[] }>(`/people?search=${encodeURIComponent(query)}&limit=${limit}`),
   
   // Get person by ID
   getById: (id: string | number) => fetchAPI<any>(`/people/${id}`),
+  
+  // Create person
+  create: (data: {
+    name: { en: string; lo?: string };
+    biography?: { en?: string; lo?: string };
+    known_for_department?: string;
+    birthday?: string;
+  }) => fetchAPI<any>('/people', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
   
   // Update person
   update: (id: string | number, data: any) => fetchAPI<any>(`/people/${id}`, {
@@ -86,4 +108,39 @@ export const peopleAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
+};
+
+// Cast/Crew API methods
+export const castCrewAPI = {
+  // Add cast member to movie
+  addCast: (movieId: string, data: {
+    person_id: number;
+    character: { en: string; lo?: string };
+    order?: number;
+  }) => fetchAPI(`/movies/${movieId}/cast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  
+  // Add crew member to movie
+  addCrew: (movieId: string, data: {
+    person_id: number;
+    department: string;
+    job: { en: string; lo?: string };
+  }) => fetchAPI(`/movies/${movieId}/crew`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  
+  // Remove cast member from movie
+  removeCast: (movieId: string, personId: number) =>
+    fetchAPI(`/movies/${movieId}/cast/${personId}`, { method: 'DELETE' }),
+  
+  // Remove crew member from movie
+  removeCrew: (movieId: string, personId: number, department?: string) => {
+    const query = department ? `?department=${encodeURIComponent(department)}` : '';
+    return fetchAPI(`/movies/${movieId}/crew/${personId}${query}`, { method: 'DELETE' });
+  },
 };

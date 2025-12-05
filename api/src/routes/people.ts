@@ -2,13 +2,39 @@
 
 import { FastifyInstance } from 'fastify';
 import { db, schema } from '../db/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, ilike, or } from 'drizzle-orm';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
-  // Get all people
-  fastify.get('/people', async (request, reply) => {
+  // Get all people (with optional search)
+  fastify.get<{ Querystring: { search?: string; limit?: string } }>('/people', async (request, reply) => {
     try {
-      const allPeople = await db.select().from(schema.people);
+      const { search, limit } = request.query;
+      const limitNum = limit ? parseInt(limit) : undefined;
+
+      let allPeople;
+      
+      if (search && search.trim()) {
+        // Search in translations
+        const searchResults = await db.select({ personId: schema.peopleTranslations.personId })
+          .from(schema.peopleTranslations)
+          .where(ilike(schema.peopleTranslations.name, `%${search.trim()}%`));
+        
+        const personIds = [...new Set(searchResults.map(r => r.personId))];
+        
+        if (personIds.length === 0) {
+          return { people: [] };
+        }
+        
+        allPeople = await db.select()
+          .from(schema.people)
+          .where(sql`${schema.people.id} IN (${sql.join(personIds.map(id => sql`${id}`), sql`, `)})`);
+        
+        if (limitNum) {
+          allPeople = allPeople.slice(0, limitNum);
+        }
+      } else {
+        allPeople = await db.select().from(schema.people);
+      }
       
       // Get translations for all people
       const peopleIds = allPeople.map(p => p.id);
@@ -79,6 +105,70 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
     } catch (error) {
       fastify.log.error(error);
       reply.status(500).send({ error: 'Failed to fetch people' });
+    }
+  });
+
+  // Create a new person
+  fastify.post<{
+    Body: {
+      name: { en: string; lo?: string };
+      biography?: { en?: string; lo?: string };
+      known_for_department?: string;
+      birthday?: string;
+      profile_path?: string;
+    };
+  }>('/people', async (request, reply) => {
+    try {
+      const { name, biography, known_for_department, birthday, profile_path } = request.body;
+
+      if (!name?.en) {
+        return reply.status(400).send({ error: 'English name is required' });
+      }
+
+      // Generate a unique ID for manually created people
+      // Use negative IDs to distinguish from TMDB IDs (which are positive)
+      const [minIdResult] = await db.select({ minId: sql<number>`COALESCE(MIN(id), 0)` })
+        .from(schema.people);
+      const newId = Math.min(minIdResult.minId - 1, -1);
+
+      // Insert person
+      const [newPerson] = await db.insert(schema.people)
+        .values({
+          id: newId,
+          knownForDepartment: known_for_department || null,
+          birthday: birthday || null,
+          profilePath: profile_path || null,
+        })
+        .returning();
+
+      // Insert translations
+      await db.insert(schema.peopleTranslations).values({
+        personId: newPerson.id,
+        language: 'en',
+        name: name.en,
+        biography: biography?.en || null,
+      });
+
+      if (name.lo) {
+        await db.insert(schema.peopleTranslations).values({
+          personId: newPerson.id,
+          language: 'lo',
+          name: name.lo,
+          biography: biography?.lo || null,
+        });
+      }
+
+      return {
+        id: newPerson.id,
+        name,
+        biography: biography || undefined,
+        known_for_department: known_for_department || undefined,
+        birthday: birthday || undefined,
+        profile_path: profile_path || undefined,
+      };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to create person' });
     }
   });
 

@@ -1121,6 +1121,203 @@ export default async function movieRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Add cast member to movie
+  fastify.post<{
+    Params: { id: string };
+    Body: {
+      person_id: number;
+      character: { en: string; lo?: string };
+      order?: number;
+    };
+  }>('/movies/:id/cast', async (request, reply) => {
+    try {
+      const { id: movieId } = request.params;
+      const { person_id, character, order } = request.body;
+
+      // Verify movie exists
+      const [movie] = await db.select()
+        .from(schema.movies)
+        .where(eq(schema.movies.id, movieId))
+        .limit(1);
+
+      if (!movie) {
+        return reply.status(404).send({ error: 'Movie not found' });
+      }
+
+      // Verify person exists
+      const [person] = await db.select()
+        .from(schema.people)
+        .where(eq(schema.people.id, person_id))
+        .limit(1);
+
+      if (!person) {
+        return reply.status(404).send({ error: 'Person not found' });
+      }
+
+      // Get the next order number if not provided
+      let castOrder = order;
+      if (castOrder === undefined) {
+        const existingCast = await db.select({ order: schema.movieCast.order })
+          .from(schema.movieCast)
+          .where(eq(schema.movieCast.movieId, movieId));
+        castOrder = existingCast.length > 0 ? Math.max(...existingCast.map(c => c.order)) + 1 : 0;
+      }
+
+      // Insert cast record
+      await db.insert(schema.movieCast).values({
+        movieId,
+        personId: person_id,
+        order: castOrder,
+      });
+
+      // Insert character translations
+      if (character.en) {
+        await db.insert(schema.movieCastTranslations).values({
+          movieId,
+          personId: person_id,
+          language: 'en',
+          character: character.en,
+        });
+      }
+
+      if (character.lo) {
+        await db.insert(schema.movieCastTranslations).values({
+          movieId,
+          personId: person_id,
+          language: 'lo',
+          character: character.lo,
+        });
+      }
+
+      return { success: true, message: 'Cast member added successfully' };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to add cast member' });
+    }
+  });
+
+  // Add crew member to movie
+  fastify.post<{
+    Params: { id: string };
+    Body: {
+      person_id: number;
+      department: string;
+      job: { en: string; lo?: string };
+    };
+  }>('/movies/:id/crew', async (request, reply) => {
+    try {
+      const { id: movieId } = request.params;
+      const { person_id, department, job } = request.body;
+
+      // Verify movie exists
+      const [movie] = await db.select()
+        .from(schema.movies)
+        .where(eq(schema.movies.id, movieId))
+        .limit(1);
+
+      if (!movie) {
+        return reply.status(404).send({ error: 'Movie not found' });
+      }
+
+      // Verify person exists
+      const [person] = await db.select()
+        .from(schema.people)
+        .where(eq(schema.people.id, person_id))
+        .limit(1);
+
+      if (!person) {
+        return reply.status(404).send({ error: 'Person not found' });
+      }
+
+      // Insert crew record
+      await db.insert(schema.movieCrew).values({
+        movieId,
+        personId: person_id,
+        department,
+      });
+
+      // Insert job translations
+      if (job.en) {
+        await db.insert(schema.movieCrewTranslations).values({
+          movieId,
+          personId: person_id,
+          department,
+          language: 'en',
+          job: job.en,
+        });
+      }
+
+      if (job.lo) {
+        await db.insert(schema.movieCrewTranslations).values({
+          movieId,
+          personId: person_id,
+          department,
+          language: 'lo',
+          job: job.lo,
+        });
+      }
+
+      return { success: true, message: 'Crew member added successfully' };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to add crew member' });
+    }
+  });
+
+  // Remove cast member from movie
+  fastify.delete<{
+    Params: { id: string; personId: string };
+  }>('/movies/:id/cast/:personId', async (request, reply) => {
+    try {
+      const { id: movieId, personId } = request.params;
+      const personIdNum = parseInt(personId);
+
+      // Delete cast translations first
+      await db.delete(schema.movieCastTranslations)
+        .where(sql`${schema.movieCastTranslations.movieId} = ${movieId} AND ${schema.movieCastTranslations.personId} = ${personIdNum}`);
+
+      // Delete cast record
+      await db.delete(schema.movieCast)
+        .where(sql`${schema.movieCast.movieId} = ${movieId} AND ${schema.movieCast.personId} = ${personIdNum}`);
+
+      return { success: true, message: 'Cast member removed successfully' };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to remove cast member' });
+    }
+  });
+
+  // Remove crew member from movie
+  fastify.delete<{
+    Params: { id: string; personId: string };
+    Querystring: { department?: string };
+  }>('/movies/:id/crew/:personId', async (request, reply) => {
+    try {
+      const { id: movieId, personId } = request.params;
+      const { department } = request.query;
+      const personIdNum = parseInt(personId);
+
+      if (department) {
+        // Delete specific department entry
+        await db.delete(schema.movieCrewTranslations)
+          .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personIdNum} AND ${schema.movieCrewTranslations.department} = ${department}`);
+        await db.delete(schema.movieCrew)
+          .where(sql`${schema.movieCrew.movieId} = ${movieId} AND ${schema.movieCrew.personId} = ${personIdNum} AND ${schema.movieCrew.department} = ${department}`);
+      } else {
+        // Delete all crew entries for this person
+        await db.delete(schema.movieCrewTranslations)
+          .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personIdNum}`);
+        await db.delete(schema.movieCrew)
+          .where(sql`${schema.movieCrew.movieId} = ${movieId} AND ${schema.movieCrew.personId} = ${personIdNum}`);
+      }
+
+      return { success: true, message: 'Crew member removed successfully' };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to remove crew member' });
+    }
+  });
+
   // Delete movie
   fastify.delete<{ Params: { id: string } }>('/movies/:id', async (request, reply) => {
     try {
