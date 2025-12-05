@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter } from '@/i18n/routing';
+import { useRouter, Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Save, RefreshCw, AlertCircle } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
@@ -66,6 +67,9 @@ export default function EditMoviePage() {
   
   // State for external platforms
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
+  
+  // Track if form has been modified
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Load movie data on mount
   useEffect(() => {
@@ -137,6 +141,7 @@ export default function EditMoviePage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setHasChanges(true);
   };
 
   const handleSync = async () => {
@@ -444,7 +449,14 @@ export default function EditMoviePage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">Edit Movie</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Edit Movie</h2>
+          {currentMovie && (
+            <p className="text-lg text-gray-600 mt-1">
+              {getLocalizedText(currentMovie.title, 'en')}
+            </p>
+          )}
+        </div>
         {currentMovie?.tmdb_id && (
           <Button
             type="button"
@@ -479,7 +491,14 @@ export default function EditMoviePage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="space-y-6">
+        <Tabs defaultValue="content" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="media">Video & Images</TabsTrigger>
+            <TabsTrigger value="cast">Cast & Crew</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="content" className="space-y-6">
           {/* English Content */}
           <Card>
             <CardHeader>
@@ -629,41 +648,6 @@ export default function EditMoviePage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="vote_average">Rating (0-10)</Label>
-                  <Input
-                    id="vote_average"
-                    name="vote_average"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="10"
-                    value={formData.vote_average}
-                    onChange={handleChange}
-                    placeholder="8.5"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={(e) => handleChange(e as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="Released">Released</option>
-                    <option value="Post Production">Post Production</option>
-                    <option value="In Production">In Production</option>
-                    <option value="Planned">Planned</option>
-                    <option value="Rumored">Rumored</option>
-                    <option value="Canceled">Canceled</option>
-                  </select>
-                </div>
-
-                <div>
                   <Label htmlFor="imdb_id">IMDB ID</Label>
                   <Input
                     id="imdb_id"
@@ -674,83 +658,12 @@ export default function EditMoviePage() {
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="budget">Budget (USD)</Label>
-                  <Input
-                    id="budget"
-                    name="budget"
-                    type="number"
-                    value={formData.budget}
-                    onChange={handleChange}
-                    placeholder="500000"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="revenue">Revenue (USD)</Label>
-                  <Input
-                    id="revenue"
-                    name="revenue"
-                    type="number"
-                    value={formData.revenue}
-                    onChange={handleChange}
-                    placeholder="1200000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="homepage">Homepage URL</Label>
-                <Input
-                  id="homepage"
-                  name="homepage"
-                  type="url"
-                  value={formData.homepage}
-                  onChange={handleChange}
-                  placeholder="https://example.com/movie"
-                />
-              </div>
             </CardContent>
           </Card>
 
-          {/* Media Files */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Media Files</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="poster_path">Poster Image Path</Label>
-                <Input
-                  id="poster_path"
-                  name="poster_path"
-                  value={formData.poster_path}
-                  onChange={handleChange}
-                  placeholder="/posters/movie-poster.jpg"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Upload image to /public/posters/ and enter the path here
-                </p>
-              </div>
+          </TabsContent>
 
-              <div>
-                <Label htmlFor="backdrop_path">Backdrop Image Path</Label>
-                <Input
-                  id="backdrop_path"
-                  name="backdrop_path"
-                  value={formData.backdrop_path}
-                  onChange={handleChange}
-                  placeholder="/backdrops/movie-backdrop.jpg"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Upload image to /public/backdrops/ and enter the path here
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
+          <TabsContent value="media" className="space-y-6">
           {/* Video Source */}
           <Card>
             <CardHeader>
@@ -939,7 +852,9 @@ export default function EditMoviePage() {
               </Card>
             )
           )}
+          </TabsContent>
 
+          <TabsContent value="cast" className="space-y-6">
           {/* Cast & Crew */}
           {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (
             <Card>
@@ -1027,20 +942,30 @@ export default function EditMoviePage() {
                                   </div>
                                 )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (isEditing) {
-                                    saveCastCrewUpdates();
-                                  }
-                                  setEditingCast(isEditing ? null : key);
-                                }}
-                                className="flex-shrink-0"
-                              >
-                                {isEditing ? 'Done' : 'Edit'}
-                              </Button>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <Link href={`/admin/people/${member.person.id}`}>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    View Person
+                                  </Button>
+                                </Link>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (isEditing) {
+                                      saveCastCrewUpdates();
+                                    }
+                                    setEditingCast(isEditing ? null : key);
+                                  }}
+                                >
+                                  {isEditing ? 'Done' : 'Edit Role'}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -1132,20 +1057,30 @@ export default function EditMoviePage() {
                                   </div>
                                 )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (isEditing) {
-                                    saveCastCrewUpdates();
-                                  }
-                                  setEditingCrew(isEditing ? null : key);
-                                }}
-                                className="flex-shrink-0"
-                              >
-                                {isEditing ? 'Done' : 'Edit'}
-                              </Button>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <Link href={`/admin/people/${member.person.id}`}>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    View Person
+                                  </Button>
+                                </Link>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (isEditing) {
+                                      saveCastCrewUpdates();
+                                    }
+                                    setEditingCrew(isEditing ? null : key);
+                                  }}
+                                >
+                                  {isEditing ? 'Done' : 'Edit Role'}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -1156,9 +1091,10 @@ export default function EditMoviePage() {
               </CardContent>
             </Card>
           )}
+          </TabsContent>
 
-          {/* Submit Button */}
-          <div className="flex justify-end gap-4">
+          {/* Submit Button - Outside tabs so it's always visible */}
+          <div className="flex justify-end gap-4 pt-6">
             <Button
               type="button"
               variant="outline"
@@ -1166,12 +1102,12 @@ export default function EditMoviePage() {
             >
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={!hasChanges}>
               <Save className="w-4 h-4 mr-2" />
               Update Movie
             </Button>
           </div>
-        </div>
+        </Tabs>
       </form>
     </div>
   );

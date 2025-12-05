@@ -53,11 +53,13 @@ export default function PeopleAdminPage() {
     // Apply department filter
     if (departmentFilter !== 'all') {
       filtered = filtered.filter((person) => {
-        const dept = person.known_for_department;
+        const departments = person.departments || [];
         if (departmentFilter === 'other') {
-          return dept && !['Acting', 'Directing', 'Writing', 'Production'].includes(dept);
+          // Check if person has any department that's not in the main categories
+          return departments.some((dept: string) => !['Acting', 'Directing', 'Writing', 'Production'].includes(dept));
         }
-        return dept === departmentFilter;
+        // Check if the selected department is in the person's departments array
+        return departments.includes(departmentFilter);
       });
     }
 
@@ -194,47 +196,54 @@ export default function PeopleAdminPage() {
           </p>
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-200">
-              {filteredPeople.map((person) => {
-                const nameEn = person.name?.en || 'Unknown';
-                const nameLo = person.name?.lo;
-                const hasLaoName = nameLo && nameLo !== nameEn;
-                const departments = person.departments || [];
-                
-                return (
-                  <Link
-                    key={person.id}
-                    href={`/admin/people/${person.id}`}
-                    className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex-1 flex items-baseline gap-3">
-                      <div>
-                        <span className="font-semibold text-gray-900">
-                          {nameEn}
-                        </span>
-                        {hasLaoName && (
-                          <span className="text-gray-600 ml-2">
-                            ({nameLo})
-                          </span>
-                        )}
+        <div className="space-y-3">
+          {filteredPeople.map((person) => {
+            const nameEn = person.name?.en || 'Unknown';
+            const nameLo = person.name?.lo;
+            const hasLaoName = nameLo && nameLo !== nameEn;
+            const departments = person.departments || [];
+            const profileUrl = getProfileUrl(person.profile_path, 'small');
+            
+            return (
+              <Link key={person.id} href={`/admin/people/${person.id}`} className="block mb-3">
+                <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md hover:bg-gray-50 transition-all cursor-pointer h-24">
+                  {/* Profile Photo */}
+                  <div className="flex-shrink-0 flex items-center justify-center w-24">
+                    {profileUrl ? (
+                      <img
+                        src={profileUrl}
+                        alt={nameEn}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">👤</span>
                       </div>
-                      {departments.length > 0 && (
-                        <span className="text-sm text-gray-500">
-                          · {departments.join(', ')}
-                        </span>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Person Info */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center px-4">
+                    <div className="mb-1">
+                      <h3 className="text-base font-semibold text-gray-900 leading-tight">
+                        {hasLaoName ? nameLo : nameEn}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {hasLaoName ? nameEn : ''}
+                      </p>
                     </div>
-                    <Button size="sm" variant="ghost" className="shrink-0">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+
+                    {departments.length > 0 && (
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
+                        <span>{departments.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       )}
     </div>
   );
