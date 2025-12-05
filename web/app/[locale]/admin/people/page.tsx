@@ -6,7 +6,7 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Edit, ArrowUpDown } from 'lucide-react';
+import { Search, Edit, ArrowUpDown, Plus } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
@@ -94,8 +94,14 @@ export default function PeopleAdminPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h2 className="text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
+        <Link href="/admin/people/add">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Person
+          </Button>
+        </Link>
       </div>
 
       {/* Search and Filters */}

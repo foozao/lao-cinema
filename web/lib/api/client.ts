@@ -96,6 +96,7 @@ export const peopleAPI = {
     biography?: { en?: string; lo?: string };
     known_for_department?: string;
     birthday?: string;
+    place_of_birth?: string;
   }) => fetchAPI<any>('/people', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -115,11 +115,12 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       biography?: { en?: string; lo?: string };
       known_for_department?: string;
       birthday?: string;
+      place_of_birth?: string;
       profile_path?: string;
     };
   }>('/people', async (request, reply) => {
     try {
-      const { name, biography, known_for_department, birthday, profile_path } = request.body;
+      const { name, biography, known_for_department, birthday, place_of_birth, profile_path } = request.body;
 
       if (!name?.en) {
         return reply.status(400).send({ error: 'English name is required' });
@@ -137,6 +138,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           id: newId,
           knownForDepartment: known_for_department || null,
           birthday: birthday || null,
+          placeOfBirth: place_of_birth || null,
           profilePath: profile_path || null,
         })
         .returning();
@@ -164,6 +166,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         biography: biography || undefined,
         known_for_department: known_for_department || undefined,
         birthday: birthday || undefined,
+        place_of_birth: place_of_birth || undefined,
         profile_path: profile_path || undefined,
       };
     } catch (error) {
