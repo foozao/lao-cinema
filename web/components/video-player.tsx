@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Loader2, Info } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Loader2, Info, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { useVideoAnalytics } from '@/lib/analytics';
+import { useTranslations } from 'next-intl';
 
 interface VideoPlayerProps {
   src: string;
@@ -59,6 +60,11 @@ export function VideoPlayer({
   const [savedPosition, setSavedPosition] = useState<number | null>(null);
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [pendingPosition, setPendingPosition] = useState<number | null>(null);
+  const [error, setError] = useState<{ type: 'network' | 'fatal' | 'media'; message: string } | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  // Translations
+  const t = useTranslations('video');
 
   // Analytics tracking
   const analytics = useVideoAnalytics({
@@ -112,9 +118,34 @@ export function VideoPlayer({
     }
   }, [videoId]);
 
-  useEffect(() => {
+  // Retry loading video
+  const retryLoad = () => {
+    setError(null);
+    setIsLoading(true);
+    
+    // Clean up existing HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    
+    // Force re-initialization by updating a ref
+    const video = videoRef.current;
+    if (video) {
+      video.src = '';
+      // Small delay to allow cleanup
+      setTimeout(() => {
+        initializeVideo();
+      }, 100);
+    }
+  };
+
+  const initializeVideo = () => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Reset error state
+    setError(null);
 
     // Check if HLS is supported
     if (src.endsWith('.m3u8')) {
@@ -122,13 +153,21 @@ export function VideoPlayer({
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
+          // Retry settings for network issues
+          manifestLoadingMaxRetry: 3,
+          manifestLoadingRetryDelay: 1000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingMaxRetry: 3,
         });
+        
+        hlsRef.current = hls;
 
         hls.loadSource(src);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
+          setError(null);
           // Restore saved position if available
           if (savedPosition !== null && video) {
             video.currentTime = savedPosition;
@@ -141,19 +180,70 @@ export function VideoPlayer({
 
         hls.on(Hls.Events.ERROR, (event, data) => {
           console.error('HLS error:', data);
+          
           if (data.fatal) {
             setIsLoading(false);
+            
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                // Network error - could be video server unreachable
+                if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                    data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+                  setError({
+                    type: 'network',
+                    message: t('unableToConnectServer'),
+                  });
+                } else if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
+                           data.details === Hls.ErrorDetails.FRAG_LOAD_TIMEOUT) {
+                  setError({
+                    type: 'network',
+                    message: t('streamInterrupted'),
+                  });
+                } else {
+                  setError({
+                    type: 'network',
+                    message: t('networkError'),
+                  });
+                }
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                // Try to recover from media errors
+                setError({
+                  type: 'media',
+                  message: t('mediaError'),
+                });
+                hls.recoverMediaError();
+                break;
+              default:
+                setError({
+                  type: 'fatal',
+                  message: t('genericError'),
+                });
+                break;
+            }
           }
         });
 
         return () => {
           hls.destroy();
+          hlsRef.current = null;
         };
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
         video.src = src;
+        
+        const handleError = () => {
+          setIsLoading(false);
+          setError({
+            type: 'network',
+            message: t('unableToLoad'),
+          });
+        };
+        
+        video.addEventListener('error', handleError, { once: true });
         video.addEventListener('loadedmetadata', () => {
           setIsLoading(false);
+          setError(null);
           if (savedPosition !== null) {
             video.currentTime = savedPosition;
           }
@@ -161,15 +251,42 @@ export function VideoPlayer({
             video.play().catch(err => console.log('Auto-play prevented:', err));
           }
         }, { once: true });
+        
+        return () => {
+          video.removeEventListener('error', handleError);
+        };
       }
     } else {
       // Regular MP4 video
       video.src = src;
-      setIsLoading(false);
+      
+      const handleError = () => {
+        setIsLoading(false);
+        setError({
+          type: 'network',
+          message: t('unableToLoad'),
+        });
+      };
+      
+      video.addEventListener('error', handleError, { once: true });
+      video.addEventListener('loadeddata', () => {
+        setIsLoading(false);
+        setError(null);
+      }, { once: true });
+      
       if (autoPlay) {
         video.play().catch(err => console.log('Auto-play prevented:', err));
       }
+      
+      return () => {
+        video.removeEventListener('error', handleError);
+      };
     }
+  };
+
+  useEffect(() => {
+    return initializeVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, autoPlay, savedPosition]);
 
   useEffect(() => {
@@ -395,9 +512,31 @@ export function VideoPlayer({
       )}
 
       {/* Loading Spinner */}
-      {isLoading && (
+      {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <Loader2 className="w-12 h-12 text-white animate-spin" />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/90">
+          <div className="text-center max-w-md mx-4 p-6">
+            <div className="bg-red-600/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {error.type === 'network' ? t('connectionError') : t('playbackError')}
+            </h3>
+            <p className="text-gray-400 mb-6">{error.message}</p>
+            <Button
+              onClick={retryLoad}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {t('tryAgain')}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -405,9 +544,9 @@ export function VideoPlayer({
       {showContinueDialog && pendingPosition !== null && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50">
           <div className="bg-gray-900 rounded-lg p-6 max-w-md mx-4 shadow-2xl border border-gray-700">
-            <h3 className="text-xl font-bold text-white mb-3">Continue Watching?</h3>
+            <h3 className="text-xl font-bold text-white mb-3">{t('continueWatching')}</h3>
             <p className="text-gray-300 mb-6">
-              You were at {formatTime(pendingPosition)}. Would you like to continue from where you left off?
+              {t('youWereAt', { time: formatTime(pendingPosition) })}
             </p>
             <div className="flex gap-3">
               <Button
@@ -415,13 +554,13 @@ export function VideoPlayer({
                 variant="outline"
                 className="flex-1"
               >
-                Start from Beginning
+                {t('startFromBeginning')}
               </Button>
               <Button
                 onClick={handleContinueWatching}
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
-                Continue Watching
+                {t('continue')}
               </Button>
             </div>
           </div>

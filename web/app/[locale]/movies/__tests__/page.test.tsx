@@ -37,6 +37,14 @@ jest.mock('@/components/movie-card', () => ({
   ),
 }));
 
+jest.mock('@/components/api-error', () => ({
+  APIError: ({ onRetry, type }: { onRetry: () => void; type: string }) => (
+    <div data-testid="api-error" data-type={type}>
+      <button onClick={onRetry}>Retry</button>
+    </div>
+  ),
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
 
@@ -104,6 +112,7 @@ describe('MoviesPage', () => {
     mockSearchParams.get.mockReturnValue(null);
     
     (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: async () => ({ movies: mockMovies }),
     });
   });
@@ -341,6 +350,7 @@ describe('MoviesPage', () => {
   describe('Empty States', () => {
     it('shows empty state when no movies exist', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
         json: async () => ({ movies: [] }),
       });
 
@@ -385,14 +395,55 @@ describe('MoviesPage', () => {
   });
 
   describe('Error Handling', () => {
-    it('handles fetch errors gracefully', async () => {
+    it('shows error state when network fails', async () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       render(<MoviesPage />);
       
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith('Failed to load movies:', expect.any(Error));
+        expect(screen.getByTestId('api-error')).toBeInTheDocument();
+        expect(screen.getByTestId('api-error')).toHaveAttribute('data-type', 'network');
+      });
+
+      consoleError.mockRestore();
+    });
+
+    it('shows error state when server returns error', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Server error' }),
+      });
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('api-error')).toBeInTheDocument();
+        expect(screen.getByTestId('api-error')).toHaveAttribute('data-type', 'server');
+      });
+    });
+
+    it('allows retry after error', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+      (global.fetch as jest.Mock)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ movies: mockMovies }),
+        });
+
+      render(<MoviesPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('api-error')).toBeInTheDocument();
+      });
+
+      // Click retry button
+      fireEvent.click(screen.getByText('Retry'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       consoleError.mockRestore();

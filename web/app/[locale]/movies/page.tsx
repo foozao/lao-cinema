@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
@@ -8,6 +8,7 @@ import { MovieCard } from '@/components/movie-card';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Search, User, Film } from 'lucide-react';
+import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
 
@@ -19,6 +20,8 @@ function MoviesPageContent() {
   
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<'network' | 'server' | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short' | 'people'>('all');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -36,22 +39,37 @@ function MoviesPageContent() {
   }, [searchParams]);
 
   // Load movies
-  useEffect(() => {
-    const loadMovies = async () => {
-      try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${API_BASE_URL}/movies`);
-        const data = await response.json();
-        setMovies(data.movies || []);
-      } catch (error) {
-        console.error('Failed to load movies:', error);
-      } finally {
-        setLoading(false);
+  const loadMovies = useCallback(async () => {
+    try {
+      setError(null);
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/movies`);
+      
+      if (!response.ok) {
+        setError('server');
+        return;
       }
-    };
-
-    loadMovies();
+      
+      const data = await response.json();
+      setMovies(data.movies || []);
+    } catch (err) {
+      console.error('Failed to load movies:', err);
+      setError('network');
+    } finally {
+      setLoading(false);
+      setIsRetrying(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadMovies();
+  }, [loadMovies]);
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    setLoading(true);
+    loadMovies();
+  };
 
   // Update URL when search query or filter changes (after initialization)
   useEffect(() => {
@@ -278,6 +296,12 @@ function MoviesPageContent() {
             <div className="text-center py-20">
               <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
             </div>
+          ) : error ? (
+            <APIError 
+              type={error} 
+              onRetry={handleRetry} 
+              isRetrying={isRetrying} 
+            />
           ) : filterType === 'people' && !searchQuery ? (
             <div className="text-center py-20">
               <Search className="w-16 h-16 mx-auto text-gray-400 mb-4" />

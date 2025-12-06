@@ -1,37 +1,56 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { MovieCard } from '@/components/movie-card';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Film } from 'lucide-react';
-import { movieAPI } from '@/lib/api/client';
+import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
 
 export default function Home() {
   const t = useTranslations();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<'network' | 'server' | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const loadMovies = useCallback(async () => {
+    try {
+      setError(null);
+      // Fetch featured films for homepage
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_BASE_URL}/homepage/featured`);
+      
+      if (!response.ok) {
+        // Server returned an error status
+        setError('server');
+        return;
+      }
+      
+      const data = await response.json();
+      setMovies(data.movies || []);
+    } catch (err) {
+      console.error('Failed to load movies:', err);
+      // Network error (server unreachable, CORS, etc.)
+      setError('network');
+    } finally {
+      setLoading(false);
+      setIsRetrying(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadMovies = async () => {
-      try {
-        // Fetch featured films for homepage
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${API_BASE_URL}/homepage/featured`);
-        const data = await response.json();
-        setMovies(data.movies || []);
-      } catch (error) {
-        console.error('Failed to load movies:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadMovies();
-  }, []);
+  }, [loadMovies]);
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    setLoading(true);
+    loadMovies();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
@@ -62,6 +81,12 @@ export default function Home() {
             <div className="text-center py-20">
               <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
             </div>
+          ) : error ? (
+            <APIError 
+              type={error} 
+              onRetry={handleRetry} 
+              isRetrying={isRetrying} 
+            />
           ) : movies.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {movies.map((movie) => (

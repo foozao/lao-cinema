@@ -4,6 +4,16 @@
     "error": "Something went wrong",
     "noResults": "No results found"
   },
+  "apiError": {
+    "networkErrorTitle": "Service Temporarily Unavailable",
+    "networkErrorMessage": "We're having trouble connecting to our servers. Please try again in a few moments.",
+    "serverErrorTitle": "Server Error",
+    "serverErrorMessage": "Something went wrong on our end. We're working on it. Please try again shortly.",
+    "genericErrorTitle": "Something Went Wrong",
+    "genericErrorMessage": "An unexpected error occurred. Please try again.",
+    "tryAgain": "Try Again",
+    "retrying": "Retrying..."
+  },
   "nav": {
     "home": "Home",
     "movies": "Movies",
@@ -63,6 +73,21 @@
   },
   "watch": {
     "gracePeriodWarning": "Your rental has expired, but you have {time} remaining to finish watching. Don't close this page!"
+  },
+  "video": {
+    "connectionError": "Connection Error",
+    "playbackError": "Playback Error",
+    "unableToConnectServer": "Unable to connect to video server. Please check your connection and try again.",
+    "streamInterrupted": "Video stream interrupted. Please check your connection and try again.",
+    "networkError": "Network error occurred. Please try again.",
+    "mediaError": "Media playback error. Attempting to recover...",
+    "genericError": "An error occurred while loading the video.",
+    "unableToLoad": "Unable to load video. Please check your connection and try again.",
+    "tryAgain": "Try Again",
+    "continueWatching": "Continue Watching?",
+    "youWereAt": "You were at {time}. Would you like to continue from where you left off?",
+    "startFromBeginning": "Start from Beginning",
+    "continue": "Continue Watching"
   },
   "crew": {
     "director": "Director",
