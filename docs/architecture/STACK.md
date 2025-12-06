@@ -9,20 +9,23 @@ This document defines the technology stack for the Lao Cinema streaming platform
 - TMDB integration (import movies, cast, crew)
 - Bilingual support (English/Lao) with next-intl
 - People-centric architecture (separate people table)
-- Admin panel (import and edit movies)
+- Admin panel (import, edit, analytics, people management)
+- Video streaming (HLS via GCS in production, local in dev)
+- Authentication (HTTP Basic Auth with role-based access)
+- Rental system and analytics framework
 - Testing framework (70+ tests)
 - Docker Compose development environment
+- GCP Cloud Run deployment
 
 **🚧 Partially Implemented:**
-- Video player (UI ready, needs video hosting)
 - Admin features (import/edit complete, missing search/bulk operations)
+- User accounts (HTTP Basic Auth working, need full user system)
 
 **📋 Planned:**
-- User authentication and profiles
-- Video hosting and delivery (Cloudflare/Bunny Stream)
+- User authentication and profiles (full accounts)
 - Watchlist and watch history
 - Mobile app (React Native/Expo)
-- Production deployment
+- Automated video transcoding pipeline
 
 ⸻
 

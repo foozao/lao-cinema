@@ -105,7 +105,7 @@ The data structure mirrors TMDB's API for easy integration:
 
 ### Frontend (Next.js)
 
-1. **App Router**: Use Next.js 15 App Router conventions
+1. **App Router**: Use Next.js 16 App Router conventions
    - Server Components by default
    - Add `'use client'` only when needed (hooks, events, context)
    - Use Server Actions for mutations
@@ -136,15 +136,15 @@ The data structure mirrors TMDB's API for easy integration:
    /public      - Static assets
    ```
 
-### Backend (Future)
+### Backend (Implemented)
 
-When implementing the backend:
+The backend is fully implemented:
 
-1. **Framework**: Use Fastify with TypeScript
-2. **Database**: PostgreSQL with Drizzle ORM
-3. **API Style**: RESTful endpoints (see `STACK.md` for routes)
-4. **Auth**: JWT-based with access + refresh tokens
-5. **Validation**: Use Zod for request/response schemas
+1. **Framework**: Fastify with TypeScript (`/api`)
+2. **Database**: PostgreSQL 16 with Drizzle ORM (`/db`)
+3. **API Style**: RESTful endpoints (see `docs/architecture/STACK.md`)
+4. **Auth**: HTTP Basic Auth with role-based access (admin/viewer)
+5. **Validation**: Zod for request/response schemas
 
 ## Common Tasks
 
@@ -184,7 +184,7 @@ When implementing the backend:
 |------|---------|
 | `STACK.md` | Complete technology stack and architecture |
 | `LANGUAGE_SYSTEM.md` | Multi-language system documentation |
-| `NEXT_STEPS.md` | Development roadmap and immediate tasks |
+| `docs/STATUS.md` | Development roadmap and project status |
 | `/web/lib/types.ts` | All TypeScript type definitions |
 | `/web/lib/data/movies.ts` | Sample movie data |
 | `/web/components/video-player.tsx` | HLS video player component |
@@ -277,24 +277,29 @@ export default function StaticContent() { }
 - VS Code with TypeScript and Tailwind CSS extensions
 - ESLint and Prettier configured
 
-## Future Considerations
+## Implementation Status
 
-When these features are implemented, update this guide:
+**Completed:**
+- [x] Backend API integration (Fastify + PostgreSQL)
+- [x] Authentication system (HTTP Basic Auth with roles)
+- [x] Admin panel (TMDB import, movie editing, people management, analytics)
+- [x] Database schema (Drizzle ORM with migrations)
+- [x] Deployment configuration (GCP Cloud Run)
+- [x] Video streaming (HLS with GCS)
+- [x] Rental system
+- [x] Analytics framework
 
-- [ ] Backend API integration
-- [ ] Authentication system
-- [ ] Admin panel
-- [ ] Mobile app
-- [ ] Database schema
-- [ ] Video transcoding pipeline
-- [ ] Deployment configuration
+**Planned:**
+- [ ] Mobile app (React Native/Expo)
+- [ ] Video transcoding pipeline automation
+- [ ] User accounts and profiles
 
 ## Questions?
 
 Refer to:
-- `STACK.md` - Full architecture
-- `LANGUAGE_SYSTEM.md` - Localization details
-- `NEXT_STEPS.md` - Current development status
+- `docs/architecture/STACK.md` - Full architecture
+- `docs/architecture/LANGUAGE_SYSTEM.md` - Localization details
+- `docs/STATUS.md` - Current development status and roadmap
 - `/web/README.md` - Web app specifics
 
 ## Contributing

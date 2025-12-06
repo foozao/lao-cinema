@@ -1,5 +1,58 @@
 # Changelog
 
+## 2025-12 - Video Delivery, Analytics, Rentals & Auth
+
+### Added
+
+**Video Streaming (Production)**:
+- Google Cloud Storage integration for HLS videos
+- Environment-aware video URLs (local dev vs GCS)
+- `video_sources` table with full metadata support
+- Aspect ratio handling for different video formats
+
+**Analytics Framework** (`/web/lib/analytics/`):
+- Video watch tracking (start, progress, pause, complete, end)
+- Session storage with localStorage persistence
+- Admin analytics dashboard (`/admin/analytics`)
+- Per-movie analytics view
+- Export and data management
+
+**Rental System** (`/web/lib/rental.ts`):
+- Movie rental with expiration
+- localStorage-based persistence (demo mode)
+- Watch page rental validation with redirect
+- Payment modal integration
+
+**User Features**:
+- Continue watching / resume playback
+- Person detail pages (`/people/[id]`)
+- Cast & crew pages (`/movies/[id]/cast-crew`)
+
+**Authentication**:
+- HTTP Basic Auth via Next.js middleware
+- Role-based access control (admin/viewer)
+- Password protection for GCP deployments
+- Multi-user support with `AUTH_USERS` env var
+
+**Admin Panel Expansion**:
+- Analytics dashboard (`/admin/analytics`)
+- Homepage management (`/admin/homepage`)
+- Movies list view (`/admin/movies`)
+- Person add/edit pages (`/admin/people/add`, `/admin/people/[id]`)
+
+**Deployment**:
+- GCP Cloud Run deployment scripts
+- Database sync scripts (to/from cloud)
+- CORS configuration for GCS
+
+### Documentation
+- `PASSWORD_PROTECTION.md` - Auth setup guide
+- `AUTH_EXAMPLE.md` - Auth flow examples
+- `VIDEO_ENV_COMPLETE.md` - Video URL environment setup
+- `VIDEO_UPLOAD_GCS.md` - GCS upload guide
+
+---
+
 ## 2024-11-16 - Backend, Database & Admin Features
 
 ### Added

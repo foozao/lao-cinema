@@ -709,6 +709,6 @@ export async function getVideoUrl(movieId: string, quality: string): Promise<str
 
 ---
 
-**Last Updated:** November 2025  
-**Status:** Development phase (local HLS)  
-**Next Milestone:** Choose CDN provider and implement database schema
+**Last Updated:** December 2025  
+**Status:** Production (GCS + local dev)  
+**Current Setup:** Google Cloud Storage for production, local files for development

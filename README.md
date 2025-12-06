@@ -63,6 +63,8 @@ docker-compose up -d
 - **[docs/setup/TMDB_SETUP.md](docs/setup/TMDB_SETUP.md)** - TMDB integration
 - **[docs/setup/DEPLOYMENT.md](docs/setup/DEPLOYMENT.md)** - Deployment guide
 - **[docs/setup/DATABASE_SYNC.md](docs/setup/DATABASE_SYNC.md)** - Database synchronization
+- **[docs/setup/PASSWORD_PROTECTION.md](docs/setup/PASSWORD_PROTECTION.md)** - Authentication setup
+- **[docs/setup/VIDEO_ENV_COMPLETE.md](docs/setup/VIDEO_ENV_COMPLETE.md)** - Video URL environment setup
 
 ### Features & Implementation
 - **[docs/features/ADMIN_I18N.md](docs/features/ADMIN_I18N.md)** - Admin panel internationalization
@@ -73,7 +75,6 @@ docker-compose up -d
 
 ### History
 - **[docs/changelog/CHANGELOG.md](docs/changelog/CHANGELOG.md)** - Project changelog
-- **[docs/changelog/TEST_SUMMARY.md](docs/changelog/TEST_SUMMARY.md)** - Testing summary
 
 ## 🛠️ Scripts
 

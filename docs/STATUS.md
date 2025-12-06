@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 3, 2024
+**Last Updated**: December 6, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -48,28 +48,51 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Person details fetching
 - [x] Genre mapping
 
-### Video Streaming (Development)
+### Video Streaming
 - [x] FFmpeg conversion scripts for HLS transcoding
 - [x] Local HLS playback with adaptive bitrate (1080p/720p/480p/360p)
 - [x] HLS.js integration with custom controls
 - [x] Test environment at `/test-video`
+- [x] Google Cloud Storage integration for production
+- [x] Environment-aware video URLs (local dev vs GCS)
+
+### User Features
+- [x] Rental system with localStorage persistence
+- [x] Continue watching / resume playback
+- [x] Video analytics tracking (watch time, completion)
+- [x] Person detail pages (`/people/[id]`)
+- [x] Cast & crew pages (`/movies/[id]/cast-crew`)
+
+### Authentication & Security
+- [x] HTTP Basic Auth with role-based access
+- [x] Admin role (full access)
+- [x] Viewer role (no admin access)
+- [x] Password protection for GCP deployment
+
+### Admin Panel
+- [x] TMDB import interface (`/admin/import`)
+- [x] Movie edit interface (`/admin/edit/[id]`)
+- [x] People management (`/admin/people`)
+- [x] Analytics dashboard (`/admin/analytics`)
+- [x] Homepage management (`/admin/homepage`)
+- [x] Movies list with management (`/admin/movies`)
 
 ## 🚧 In Progress
 
-- [ ] Video hosting (player ready, needs CDN configuration)
-- [ ] Admin search/filtering improvements
+- [ ] User accounts and profiles
+- [ ] Search and filtering (frontend)
 - [ ] Bulk import operations
 
 ## 🎯 Roadmap
 
-### Phase 1: Video Infrastructure (Current Priority)
+### Phase 1: Video Infrastructure ✅ Complete
 - [x] Local HLS streaming setup for development
 - [x] FFmpeg conversion scripts
-- [ ] Choose and set up CDN provider (Bunny/Cloudflare)
-- [ ] Implement video_files database schema
-- [ ] Create signed URL API endpoints
-- [ ] Build admin video upload interface
-- [ ] Test with production CDN
+- [x] Google Cloud Storage for production hosting
+- [x] video_sources database schema
+- [x] Environment-aware URL generation
+- [x] Admin video source management
+- [x] Production video playback working
 
 ### Phase 2: Content Management
 - [ ] Bulk TMDB import
@@ -77,18 +100,20 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [ ] Batch Lao translation workflow
 - [ ] Video processing queue management
 
-### Phase 3: User Features
-- [ ] User authentication (JWT)
+### Phase 3: User Features (Partial)
+- [x] Resume playback points (continue watching)
+- [x] Watch analytics tracking
+- [x] Rental system
+- [ ] User authentication (accounts)
 - [ ] User profiles
 - [ ] Watchlist functionality
-- [ ] Watch history tracking
-- [ ] Resume playback points
 - [ ] User ratings/reviews
 
-### Phase 4: Advanced Features
+### Phase 4: Advanced Features (Partial)
+- [x] Person detail pages (`/people/[id]`)
+- [x] Cast & crew pages
 - [ ] Search and filtering (frontend)
 - [ ] Recommendations engine
-- [ ] Person detail pages
 - [ ] Awards and nominations
 - [ ] Social features
 
@@ -124,8 +149,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 - **Total Tests**: 70+
 - **Test Coverage**: 100% (utilities)
-- **Database Tables**: 11 (movies, people, translations, etc.)
-- **API Endpoints**: 5 (movies CRUD + health)
+- **Database Tables**: 15+ (movies, people, video_sources, rentals, etc.)
+- **API Endpoints**: 10+ (movies, people, images, health)
 - **Languages Supported**: 2 (English, Lao)
 - **Documentation Files**: 20+
 
@@ -213,36 +238,18 @@ cd web && npm run dev
      - Cast/crew names
    - Save changes
 
-## 🎬 Video Delivery (Next Priority)
+## 🎬 Video Delivery ✅ Working
 
 ### Current State
-- **Development**: Local HLS streaming functional
-  - FFmpeg conversion script: `scripts/convert-to-hls.sh`
-  - 4 quality variants with adaptive bitrate
-  - Test page: `http://localhost:3000/en/test-video`
-- **Production**: Architecture designed, not implemented
+- **Development**: Local HLS streaming from `public/videos/hls/`
+- **Production**: Google Cloud Storage with environment-aware URLs
 
-### Immediate Next Steps
-
-1. **Choose CDN Provider** (Week 1)
-   - **Recommended**: Bunny Stream (most cost-effective at $2.50/month base)
-   - Alternative: Cloudflare Stream (easier setup, $128/month estimated)
-   - See `docs/architecture/VIDEO_ARCHITECTURE.md` for comparison
-
-2. **Database Schema** (Week 2)
-   - Implement `video_files` table
-   - Support multiple providers (local, bunny, cloudflare)
-   - Track transcoding status and metadata
-
-3. **API Layer** (Week 3)
-   - Signed URL generation endpoint
-   - Video upload/processing endpoints
-   - Webhook handlers for transcoding status
-
-4. **Admin Upload Interface** (Week 4)
-   - Video upload form in admin panel
-   - Progress tracking
-   - Batch upload support
+### Implementation
+- FFmpeg conversion script: `scripts/convert-to-hls.sh`
+- 4 quality variants with adaptive bitrate
+- Test page: `http://localhost:3000/en/test-video`
+- GCS bucket: `lao-cinema-videos`
+- See `docs/setup/VIDEO_ENV_COMPLETE.md` for full setup
 
 ## 🧪 Testing
 
@@ -343,11 +350,11 @@ See [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) for full history.
 
 ## 🎯 Current Priority
 
-1. **Configure video hosting** - Choose CDN provider (Bunny/Cloudflare)
-2. **Implement video_files schema** - Database support for video sources
-3. **Add video upload to admin** - Interface for uploading/linking videos
-4. **Test video playback end-to-end** - Verify CDN integration works
-5. **Implement user authentication** - JWT-based auth system
+1. **User accounts** - Move from HTTP Basic Auth to proper user system
+2. **Search & filtering** - Frontend movie search and filter UI
+3. **Mobile app** - React Native/Expo companion app
+4. **Transcoding automation** - Automated video processing pipeline
+5. **Recommendations** - Basic recommendation engine
 
 ## 📚 External Resources
 

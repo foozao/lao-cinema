@@ -188,8 +188,8 @@ Get your TMDB API key from: https://www.themoviedb.org/settings/api
 
 - [I18N_SETUP.md](./I18N_SETUP.md) - Internationalization guide
 - [TESTING.md](./TESTING.md) - Testing documentation
-- [../LANGUAGE_SYSTEM.md](../LANGUAGE_SYSTEM.md) - Multi-language architecture
-- [../NEXT_STEPS.md](../NEXT_STEPS.md) - Project roadmap
+- [../docs/architecture/LANGUAGE_SYSTEM.md](../docs/architecture/LANGUAGE_SYSTEM.md) - Multi-language architecture
+- [../docs/STATUS.md](../docs/STATUS.md) - Project roadmap and status
 - [../AGENTS.md](../AGENTS.md) - AI coding guidelines
 
 ## Related Repositories
