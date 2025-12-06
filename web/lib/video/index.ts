@@ -2,4 +2,5 @@
 export { useHlsPlayer, type VideoError } from './use-hls-player';
 export { useContinueWatching } from './use-continue-watching';
 export { useVideoKeyboard } from './use-video-keyboard';
+export { useCasting } from './use-casting';
 export { formatVideoTime } from './utils';

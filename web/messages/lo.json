@@ -95,7 +95,11 @@
     "continueWatching": "ເບິ່ງຕໍ່ບໍ?",
     "youWereAt": "ທ່ານຢູ່ທີ່ {time}. ທ່ານຕ້ອງການເບິ່ງຕໍ່ຈາກບ່ອນທີ່ຢຸດບໍ?",
     "startFromBeginning": "ເລີ່ມຈາກຕົ້ນ",
-    "continue": "ເບິ່ງຕໍ່"
+    "continue": "ເບິ່ງຕໍ່",
+    "castToTV": "ສົ່ງໄປໂທລະພາບ",
+    "stopCasting": "ຢຸດການສົ່ງ",
+    "castingNotSupported": "ບໍ່ຮອງຮັບການສົ່ງ",
+    "noCastDevicesFound": "ບໍ່ພົບອຸປະກອນສົ່ງ"
   },
   "crew": {
     "director": "ຜູ້ກຳກັບ",

@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Pause, Volume2, VolumeX, Maximize, Info } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Info, Cast } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatVideoTime } from '@/lib/video/utils';
 
@@ -16,6 +16,10 @@ interface VideoControlsProps {
   onToggleMute: () => void;
   onToggleFullscreen: () => void;
   onInfoClick?: () => void;
+  // Casting
+  isCastAvailable?: boolean;
+  isCasting?: boolean;
+  onToggleCast?: () => void;
 }
 
 export function VideoControls({
@@ -30,6 +34,9 @@ export function VideoControls({
   onToggleMute,
   onToggleFullscreen,
   onInfoClick,
+  isCastAvailable,
+  isCasting,
+  onToggleCast,
 }: VideoControlsProps) {
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -99,6 +106,17 @@ export function VideoControls({
               className="text-white hover:bg-white/20"
             >
               <Info className="w-6 h-6" />
+            </Button>
+          )}
+          {isCastAvailable && onToggleCast && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleCast}
+              className={`text-white hover:bg-white/20 ${isCasting ? 'text-blue-400' : ''}`}
+              title={isCasting ? 'Stop casting' : 'Cast to TV'}
+            >
+              <Cast className="w-6 h-6" />
             </Button>
           )}
           <Button

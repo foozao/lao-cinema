@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useVideoAnalytics } from '@/lib/analytics';
-import { useHlsPlayer, useContinueWatching, useVideoKeyboard } from '@/lib/video';
+import { useHlsPlayer, useContinueWatching, useVideoKeyboard, useCasting } from '@/lib/video';
 import { 
   VideoControls, 
   BigPlayButton, 
@@ -108,6 +108,13 @@ export function VideoPlayer({
     onToggleFullscreen: toggleFullscreen,
     onMuteChange: setIsMuted,
   });
+
+  // Casting to TV
+  const {
+    isCastAvailable,
+    isCasting,
+    toggleCasting,
+  } = useCasting({ videoRef, src });
 
   // Video event listeners
   useEffect(() => {
@@ -228,6 +235,9 @@ export function VideoPlayer({
           onToggleMute={toggleMute}
           onToggleFullscreen={toggleFullscreen}
           onInfoClick={onInfoClick}
+          isCastAvailable={isCastAvailable}
+          isCasting={isCasting}
+          onToggleCast={toggleCasting}
         />
       </div>
     </div>

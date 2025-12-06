@@ -95,7 +95,11 @@
     "continueWatching": "Continue Watching?",
     "youWereAt": "You were at {time}. Would you like to continue from where you left off?",
     "startFromBeginning": "Start from Beginning",
-    "continue": "Continue Watching"
+    "continue": "Continue Watching",
+    "castToTV": "Cast to TV",
+    "stopCasting": "Stop casting",
+    "castingNotSupported": "Casting not supported",
+    "noCastDevicesFound": "No cast devices found"
   },
   "crew": {
     "director": "Director",
