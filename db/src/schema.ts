@@ -7,6 +7,8 @@ export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '7
 export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
 export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']);
 export const availabilityStatusEnum = pgEnum('availability_status', ['available', 'external', 'unavailable', 'coming_soon']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
+export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
@@ -220,3 +222,108 @@ export type NewMovieImage = typeof movieImages.$inferInsert;
 
 export type MovieExternalPlatform = typeof movieExternalPlatforms.$inferSelect;
 export type NewMovieExternalPlatform = typeof movieExternalPlatforms.$inferInsert;
+
+// =============================================================================
+// USER ACCOUNTS & AUTHENTICATION
+// =============================================================================
+
+// Users table - core user account data
+export const users = pgTable('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  email: text('email').unique().notNull(),
+  passwordHash: text('password_hash'), // Nullable for OAuth-only accounts
+  displayName: text('display_name'),
+  profileImageUrl: text('profile_image_url'),
+  role: userRoleEnum('role').default('user').notNull(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastLoginAt: timestamp('last_login_at'),
+});
+
+// OAuth accounts table - links users to external OAuth providers
+// Allows multiple OAuth providers per user (e.g., Google + Apple)
+export const oauthAccounts = pgTable('oauth_accounts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  provider: authProviderEnum('provider').notNull(),
+  providerAccountId: text('provider_account_id').notNull(), // OAuth provider's user ID
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// User sessions table - tracks active login sessions
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token: text('token').unique().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+});
+
+// Rentals table - supports both authenticated and anonymous users
+export const rentals = pgTable('rentals', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // Nullable for anonymous
+  anonymousId: text('anonymous_id'), // Nullable for authenticated
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  purchasedAt: timestamp('purchased_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  transactionId: text('transaction_id').notNull(),
+  amount: integer('amount').notNull(), // Amount in cents
+  currency: text('currency').default('USD').notNull(),
+  paymentMethod: text('payment_method'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Watch progress table - supports both authenticated and anonymous users
+export const watchProgress = pgTable('watch_progress', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // Nullable for anonymous
+  anonymousId: text('anonymous_id'), // Nullable for authenticated
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  progressSeconds: integer('progress_seconds').notNull(),
+  durationSeconds: integer('duration_seconds').notNull(),
+  completed: boolean('completed').default(false).notNull(),
+  lastWatchedAt: timestamp('last_watched_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Video analytics events table - enhanced with user tracking
+export const videoAnalyticsEvents = pgTable('video_analytics_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // Nullable
+  anonymousId: text('anonymous_id'), // Nullable
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  eventType: text('event_type').notNull(), // 'movie_start', 'movie_progress', 'movie_pause', etc.
+  progressSeconds: integer('progress_seconds'),
+  durationSeconds: integer('duration_seconds'),
+  deviceType: text('device_type'),
+  source: text('source'),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+});
+
+// Types for TypeScript
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
+
+export type UserSession = typeof userSessions.$inferSelect;
+export type NewUserSession = typeof userSessions.$inferInsert;
+
+export type Rental = typeof rentals.$inferSelect;
+export type NewRental = typeof rentals.$inferInsert;
+
+export type WatchProgress = typeof watchProgress.$inferSelect;
+export type NewWatchProgress = typeof watchProgress.$inferInsert;
+
+export type VideoAnalyticsEvent = typeof videoAnalyticsEvents.$inferSelect;
+export type NewVideoAnalyticsEvent = typeof videoAnalyticsEvents.$inferInsert;

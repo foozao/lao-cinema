@@ -1,0 +1,129 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
+import { useAuth } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
+import { User, LogOut, Settings, Film } from 'lucide-react';
+import { Link } from '@/i18n/routing';
+
+export function UserMenu() {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const locale = useLocale();
+  
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      // Logout function handles redirect
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setIsLoggingOut(false);
+    }
+  };
+  
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Link href="/login">
+          <Button variant="ghost" size="sm">
+            Sign In
+          </Button>
+        </Link>
+        <Link href="/register">
+          <Button size="sm">
+            Sign Up
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 transition-colors"
+      >
+        {user.profileImageUrl ? (
+          <img
+            src={user.profileImageUrl}
+            alt={user.displayName || user.email}
+            className="h-8 w-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+            <User className="h-5 w-5 text-white" />
+          </div>
+        )}
+      </button>
+      
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+            {/* User Info */}
+            <div className="px-4 py-3 border-b border-gray-200">
+              <p className="text-sm font-medium text-gray-900">
+                {user.displayName || 'User'}
+              </p>
+              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            </div>
+            
+            {/* Menu Items */}
+            <div className="py-1">
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+              
+              <Link
+                href="/profile/rentals"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Film className="h-4 w-4" />
+                My Rentals
+              </Link>
+              
+              <Link
+                href="/profile/settings"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Link>
+            </div>
+            
+            {/* Logout */}
+            <div className="border-t border-gray-200 py-1">
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                <LogOut className="h-4 w-4" />
+                {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

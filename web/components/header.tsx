@@ -2,6 +2,7 @@ import { Film } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { UserMenu } from '@/components/auth/user-menu';
 
 interface HeaderProps {
   variant?: 'light' | 'dark';
@@ -29,7 +30,10 @@ export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
               {t('home.title')}
             </h1>
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-4">
+            <UserMenu />
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </header>

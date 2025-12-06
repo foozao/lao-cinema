@@ -7,6 +7,10 @@ import cors from '@fastify/cors';
 import movieRoutes from './routes/movies.js';
 import peopleRoutes from './routes/people.js';
 import homepageRoutes from './routes/homepage.js';
+import authRoutes from './routes/auth.js';
+import rentalRoutes from './routes/rentals.js';
+import watchProgressRoutes from './routes/watch-progress.js';
+import userDataRoutes from './routes/user-data.js';
 
 const fastify = Fastify({
   logger: {
@@ -26,6 +30,10 @@ fastify.get('/health', async () => {
 });
 
 // Register routes
+await fastify.register(authRoutes, { prefix: '/api' });
+await fastify.register(userDataRoutes, { prefix: '/api' });
+await fastify.register(rentalRoutes, { prefix: '/api' });
+await fastify.register(watchProgressRoutes, { prefix: '/api' });
 await fastify.register(movieRoutes, { prefix: '/api' });
 await fastify.register(peopleRoutes, { prefix: '/api' });
 await fastify.register(homepageRoutes, { prefix: '/api' });

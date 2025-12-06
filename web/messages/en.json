@@ -299,5 +299,19 @@
     "completed": "Completed",
     "progress": "progress",
     "viewDetails": "View Details"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In - Lao Cinema",
+      "description": "Sign in to your Lao Cinema account"
+    },
+    "register": {
+      "title": "Create Account - Lao Cinema",
+      "description": "Create a Lao Cinema account to sync your rentals"
+    }
+  },
+  "profile": {
+    "title": "My Profile - Lao Cinema",
+    "description": "Manage your Lao Cinema account and view your activity"
   }
 }
