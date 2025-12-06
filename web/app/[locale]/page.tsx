@@ -67,7 +67,7 @@ export default function Home() {
             </h2>
             <Link
               href="/movies"
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               {t('home.browseAll')}
               <span aria-hidden="true">→</span>
