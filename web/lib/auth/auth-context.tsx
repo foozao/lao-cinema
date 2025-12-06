@@ -9,7 +9,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAnonymousId, clearAnonymousId, hasAnonymousId } from '../anonymous-id';
+import { getAnonymousId, clearAnonymousId } from '../anonymous-id';
 import * as authApi from './api-client';
 import type { User, LoginCredentials, RegisterCredentials } from './types';
 
@@ -83,14 +83,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: newUser } = await authApi.register(credentials);
       setUser(newUser);
       
-      // Auto-migrate data if anonymous ID exists
-      const hadAnonymousData = hasAnonymousId();
-      if (hadAnonymousData && anonymousId) {
+      // Migrate database records from anonymousId to userId
+      if (anonymousId) {
         try {
-          await authApi.migrateAnonymousData(anonymousId);
+          console.log('[Auth] Migrating data for anonymous user:', anonymousId);
+          const result = await authApi.migrateAnonymousData(anonymousId);
+          console.log('[Auth] Migration successful:', result);
           clearAnonymousId();
         } catch (migrationError) {
-          console.error('Data migration failed:', migrationError);
+          console.error('[Auth] Migration failed:', migrationError);
           // Don't fail registration if migration fails
         }
       }
@@ -110,14 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: authenticatedUser } = await authApi.login(credentials);
       setUser(authenticatedUser);
       
-      // Auto-migrate data if anonymous ID exists
-      const hadAnonymousData = hasAnonymousId();
-      if (hadAnonymousData && anonymousId) {
+      // Migrate database records from anonymousId to userId
+      if (anonymousId) {
         try {
-          await authApi.migrateAnonymousData(anonymousId);
+          console.log('[Auth] Migrating data for anonymous user:', anonymousId);
+          const result = await authApi.migrateAnonymousData(anonymousId);
+          console.log('[Auth] Migration successful:', result);
           clearAnonymousId();
         } catch (migrationError) {
-          console.error('Data migration failed:', migrationError);
+          console.error('[Auth] Migration failed:', migrationError);
           // Don't fail login if migration fails
         }
       }

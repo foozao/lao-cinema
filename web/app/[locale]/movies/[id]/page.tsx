@@ -17,7 +17,7 @@ import { Calendar, Clock, Star, Users, Play, Ban, Sparkles } from 'lucide-react'
 import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
-import { isRentalValid, storeRental, formatRemainingTime } from '@/lib/rental';
+import { isRentalValid, purchaseRental, getFormattedRemainingTime } from '@/lib/rental-service';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -65,11 +65,12 @@ export default function MoviePage() {
 
   // Check rental validity on mount and periodically
   useEffect(() => {
-    const checkRental = () => {
-      const valid = isRentalValid(id);
+    const checkRental = async () => {
+      const valid = await isRentalValid(id);
       setHasValidRental(valid);
       if (valid) {
-        setRemainingTime(formatRemainingTime(id));
+        const time = await getFormattedRemainingTime(id);
+        setRemainingTime(time);
       }
     };
 
@@ -79,8 +80,9 @@ export default function MoviePage() {
     return () => clearInterval(interval);
   }, [id]);
 
-  const handleWatchNowClick = () => {
-    if (isRentalValid(id)) {
+  const handleWatchNowClick = async () => {
+    const valid = await isRentalValid(id);
+    if (valid) {
       // Rental is valid, go directly to watch page
       router.push(`/movies/${id}/watch`);
     } else {
@@ -90,14 +92,27 @@ export default function MoviePage() {
     }
   };
 
-  const handlePaymentComplete = () => {
-    // Store the rental
-    storeRental(id);
-    setHasValidRental(true);
-    setRemainingTime(formatRemainingTime(id));
-    setShowPaymentModal(false);
-    // Navigate to watch page
-    router.push(`/movies/${id}/watch`);
+  const handlePaymentComplete = async () => {
+    try {
+      // Create the rental via API
+      await purchaseRental(
+        id,
+        `demo_txn_${Date.now()}`,
+        500,
+        'demo'
+      );
+      
+      setHasValidRental(true);
+      const time = await getFormattedRemainingTime(id);
+      setRemainingTime(time);
+      setShowPaymentModal(false);
+      
+      // Navigate to watch page
+      router.push(`/movies/${id}/watch`);
+    } catch (error) {
+      console.error('Failed to create rental:', error);
+      alert('Failed to complete rental. Please try again.');
+    }
   };
 
   if (loading) {

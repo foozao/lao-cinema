@@ -13,6 +13,7 @@ import {
   saveSession, 
   logEvent,
 } from './storage';
+import { updateWatchProgress } from '../api/watch-progress-client';
 
 interface UseVideoAnalyticsProps {
   movieId: string;
@@ -49,6 +50,36 @@ function createAndLogEvent(
     data,
   };
   logEvent(event);
+}
+
+/**
+ * Save session to both localStorage (analytics) and database (continue watching)
+ */
+async function saveSessionDual(session: WatchSession, durationSeconds: number): Promise<void> {
+  // Save to localStorage for analytics (synchronous)
+  saveSession(session);
+  
+  // Save to database for continue watching (async, non-blocking)
+  try {
+    const progressSeconds = (session.maxProgress / 100) * durationSeconds;
+    console.log('[Analytics] Syncing watch progress to database:', {
+      movieId: session.movieId,
+      progressSeconds: Math.floor(progressSeconds),
+      durationSeconds: Math.floor(durationSeconds),
+      maxProgress: session.maxProgress,
+    });
+    
+    await updateWatchProgress(session.movieId, {
+      progressSeconds: Math.floor(progressSeconds),
+      durationSeconds: Math.floor(durationSeconds),
+      completed: session.completed,
+    });
+    
+    console.log('[Analytics] Successfully synced watch progress to database');
+  } catch (error) {
+    // Don't block on database errors
+    console.error('[Analytics] Failed to sync watch progress to database:', error);
+  }
 }
 
 export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'direct' }: UseVideoAnalyticsProps) {
@@ -100,7 +131,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
       // Update session with new activity
       existingSession.lastActiveAt = Date.now();
       sessionRef.current = existingSession;
-      saveSession(existingSession);
+      saveSessionDual(existingSession, duration);
       
       console.log('[Analytics] Resumed session:', existingSession.id);
     } else {
@@ -138,7 +169,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
         sessionRef.current.totalWatchTime = stateRef.current.totalWatchTime;
         sessionRef.current.maxProgress = stateRef.current.maxProgress;
         sessionRef.current.lastActiveAt = Date.now();
-        saveSession(sessionRef.current);
+        saveSessionDual(sessionRef.current, durationRef.current);
         console.log('[Analytics] Saved session on unmount:', sessionRef.current.totalWatchTime, 'seconds');
       }
       if (progressIntervalRef.current) {
@@ -170,7 +201,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     // Increment play count and update activity timestamp
     sessionRef.current.playCount = (sessionRef.current.playCount || 0) + 1;
     sessionRef.current.lastActiveAt = Date.now();
-    saveSession(sessionRef.current);
+    saveSessionDual(sessionRef.current, durationRef.current);
     
     // Log event
     const dur = durationRef.current;
@@ -212,7 +243,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     sessionRef.current.totalWatchTime = stateRef.current.totalWatchTime;
     sessionRef.current.maxProgress = stateRef.current.maxProgress;
     sessionRef.current.lastActiveAt = Date.now();
-    saveSession(sessionRef.current);
+    saveSessionDual(sessionRef.current, durationRef.current);
     
     // Log event
     const dur = durationRef.current;
@@ -227,10 +258,12 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
   // Track time update (called frequently)
   const trackTimeUpdate = useCallback((currentTime: number) => {
     if (!sessionRef.current) {
+      console.log('[Analytics] trackTimeUpdate: No session ref');
       return;
     }
     if (!stateRef.current.isTracking) {
       // Not tracking yet - user hasn't pressed play or trackPlay wasn't called
+      console.log('[Analytics] trackTimeUpdate: Not tracking yet');
       return;
     }
     
@@ -247,6 +280,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     const progress = dur > 0 ? (currentTime / dur) * 100 : 0;
     if (progress > stateRef.current.maxProgress) {
       stateRef.current.maxProgress = progress;
+      console.log('[Analytics] Updated maxProgress:', progress, 'currentTime:', currentTime);
     }
     
     // Check for completion
@@ -261,7 +295,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     // Save session every 5 seconds of watch time (more frequent for better accuracy)
     const currentSecond = Math.floor(stateRef.current.totalWatchTime);
     if (currentSecond > 0 && currentSecond % 5 === 0) {
-      saveSession(sessionRef.current);
+      saveSessionDual(sessionRef.current, durationRef.current);
     }
   }, []); // No dependencies - uses refs
 
@@ -274,7 +308,7 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     sessionRef.current.maxProgress = 100;
     sessionRef.current.totalWatchTime = stateRef.current.totalWatchTime;
     sessionRef.current.endedAt = Date.now();
-    saveSession(sessionRef.current);
+    saveSessionDual(sessionRef.current, durationRef.current);
     
     // Clear interval
     if (progressIntervalRef.current) {
@@ -294,12 +328,22 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
   const trackEnd = useCallback(() => {
     if (!sessionRef.current) return;
     
+    // Prevent trackEnd from interfering with active playback
+    // Only stop tracking if we've been inactive for >2 seconds
+    const now = Date.now();
+    const timeSinceActivity = now - (sessionRef.current.lastActiveAt || 0);
+    
+    if (stateRef.current.isTracking && timeSinceActivity < 2000) {
+      console.log('[Analytics] trackEnd ignored - recently active (', timeSinceActivity, 'ms ago)');
+      return;
+    }
+    
     console.log('[Analytics] trackEnd called, watchTime:', stateRef.current.totalWatchTime);
     stateRef.current.isTracking = false;
     sessionRef.current.totalWatchTime = stateRef.current.totalWatchTime;
     sessionRef.current.maxProgress = stateRef.current.maxProgress;
     sessionRef.current.endedAt = Date.now();
-    saveSession(sessionRef.current);
+    saveSessionDual(sessionRef.current, durationRef.current);
     
     // Clear interval
     if (progressIntervalRef.current) {

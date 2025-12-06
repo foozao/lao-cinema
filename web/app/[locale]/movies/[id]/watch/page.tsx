@@ -12,8 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
-import { canWatch, isInGracePeriod, formatRemainingGraceTime } from '@/lib/rental';
+import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
 import type { Movie } from '@/lib/types';
+
+// Helper to format grace time
+function formatDurationMs(ms: number): string {
+  if (ms <= 0) return '';
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
 
 export default function WatchPage() {
   const params = useParams();
@@ -31,23 +40,28 @@ export default function WatchPage() {
 
   // Check rental validity on mount
   useEffect(() => {
-    const canAccess = canWatch(id);
+    const checkAccess = async () => {
+      const canAccess = await canWatch(id);
+      
+      if (!canAccess) {
+        // No valid rental and not in grace period - redirect
+        router.push(`/movies/${id}?rental=expired`);
+        return;
+      }
+      
+      // Check if in grace period
+      const gracePeriod = await isInGracePeriod(id);
+      setInGracePeriod(gracePeriod);
+      
+      if (gracePeriod) {
+        const graceMs = await getRemainingGraceTime(id);
+        setGraceTimeRemaining(formatDurationMs(graceMs));
+      }
+      
+      setRentalChecked(true);
+    };
     
-    if (!canAccess) {
-      // No valid rental and not in grace period - redirect
-      router.push(`/movies/${id}?rental=expired`);
-      return;
-    }
-    
-    // Check if in grace period
-    const gracePeriod = isInGracePeriod(id);
-    setInGracePeriod(gracePeriod);
-    
-    if (gracePeriod) {
-      setGraceTimeRemaining(formatRemainingGraceTime(id));
-    }
-    
-    setRentalChecked(true);
+    checkAccess();
   }, [id, router]);
 
   // Esc key to close info panel
