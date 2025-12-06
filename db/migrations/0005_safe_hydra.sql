@@ -1,0 +1,1 @@
+ALTER TABLE "movie_translations" ADD COLUMN "tagline" text;
