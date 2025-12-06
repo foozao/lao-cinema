@@ -3,12 +3,14 @@ import 'dotenv/config';
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import movieRoutes from '../routes/movies.js';
+import authRoutes from '../routes/auth.js';
+import userDataRoutes from '../routes/user-data.js';
 
 /**
  * Build a Fastify app instance for testing
  * This creates a fresh app for each test to ensure isolation
  */
-export async function build(): Promise<FastifyInstance> {
+export async function build(options: { includeAuth?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: false, // Disable logging in tests
   });
@@ -20,6 +22,11 @@ export async function build(): Promise<FastifyInstance> {
 
   // Register routes
   await app.register(movieRoutes, { prefix: '/api' });
+  
+  if (options.includeAuth) {
+    await app.register(authRoutes, { prefix: '/api' });
+    await app.register(userDataRoutes, { prefix: '/api' });
+  }
 
   return app;
 }

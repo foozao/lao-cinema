@@ -30,12 +30,14 @@ beforeAll(async () => {
   
   // Clear all tables (suppress NOTICE messages)
   await db.execute(sql`SET client_min_messages TO WARNING`);
-  await db.execute(sql`TRUNCATE TABLE movies, genres, people RESTART IDENTITY CASCADE`);
+  // Truncate in correct order to avoid foreign key issues
+  await db.execute(sql`TRUNCATE TABLE users, movies RESTART IDENTITY CASCADE`);
 });
 
 // Clean up after each test to ensure isolation
 afterEach(async () => {
-  await db.execute(sql`TRUNCATE TABLE movies, genres, people RESTART IDENTITY CASCADE`);
+  // Truncate in correct order to avoid foreign key issues
+  await db.execute(sql`TRUNCATE TABLE users, movies RESTART IDENTITY CASCADE`);
 });
 
 // Close database connection after all tests
