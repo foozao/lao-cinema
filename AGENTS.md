@@ -182,12 +182,15 @@ The backend is fully implemented:
 
 | File | Purpose |
 |------|---------|
-| `STACK.md` | Complete technology stack and architecture |
-| `LANGUAGE_SYSTEM.md` | Multi-language system documentation |
+| `docs/architecture/STACK.md` | Complete technology stack and architecture |
+| `docs/architecture/API_REFERENCE.md` | All API endpoints with request/response shapes |
+| `docs/architecture/DATA_FLOW.md` | How data flows through the system |
+| `docs/architecture/SCHEMA_OVERVIEW.md` | Database tables and relationships |
+| `docs/architecture/LANGUAGE_SYSTEM.md` | Multi-language system documentation |
+| `web/COMPONENTS.md` | Component inventory with props and usage |
 | `docs/STATUS.md` | Development roadmap and project status |
 | `/web/lib/types.ts` | All TypeScript type definitions |
-| `/web/lib/data/movies.ts` | Sample movie data |
-| `/web/components/video-player.tsx` | HLS video player component |
+| `/db/src/schema.ts` | Database schema (Drizzle ORM) |
 
 ## Development Workflow
 
