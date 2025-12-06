@@ -4,7 +4,8 @@
   "description": "Lao Cinema streaming platform monorepo",
   "private": true,
   "scripts": {
-    "test": "npm run test:web && npm run test:api",
+    "test": "node scripts/run-tests.mjs",
+    "test:simple": "npm run test:web && npm run test:api",
     "test:web": "cd web && npm test",
     "test:api": "cd api && npm run test",
     "test:watch": "npm run test:watch:web",
