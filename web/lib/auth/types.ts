@@ -9,6 +9,7 @@ export interface User {
   email: string;
   displayName?: string;
   profileImageUrl?: string;
+  timezone?: string; // IANA timezone, e.g., 'Asia/Vientiane'
   role: 'user' | 'admin';
   emailVerified: boolean;
   createdAt: string;
@@ -39,6 +40,7 @@ export interface RegisterCredentials {
 export interface UpdateProfileData {
   displayName?: string;
   profileImageUrl?: string;
+  timezone?: string; // IANA timezone, e.g., 'Asia/Vientiane'
 }
 
 export interface ChangePasswordData {

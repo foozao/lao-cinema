@@ -98,6 +98,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           email: user.email,
           displayName: user.displayName,
           profileImageUrl: user.profileImageUrl,
+          timezone: user.timezone,
           role: user.role,
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,
@@ -163,6 +164,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           email: user.email,
           displayName: user.displayName,
           profileImageUrl: user.profileImageUrl,
+          timezone: user.timezone,
           role: user.role,
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,
@@ -252,6 +254,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         email: request.user!.email,
         displayName: request.user!.displayName,
         profileImageUrl: request.user!.profileImageUrl,
+        timezone: request.user!.timezone,
         role: request.user!.role,
         emailVerified: request.user!.emailVerified,
         createdAt: request.user!.createdAt,
@@ -269,15 +272,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
    * Update current user profile
    */
   fastify.patch('/auth/me', { preHandler: requireAuth }, async (request, reply) => {
-    const { displayName, profileImageUrl } = request.body as {
+    const { displayName, profileImageUrl, timezone } = request.body as {
       displayName?: string;
       profileImageUrl?: string;
+      timezone?: string;
     };
     
     try {
       const user = await updateUser(request.userId!, {
         displayName,
         profileImageUrl,
+        timezone,
       });
       
       return reply.send({
@@ -286,6 +291,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           email: user.email,
           displayName: user.displayName,
           profileImageUrl: user.profileImageUrl,
+          timezone: user.timezone,
           role: user.role,
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,

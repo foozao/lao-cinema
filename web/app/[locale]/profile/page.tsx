@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
 import { Film, Clock, Settings, User as UserIcon, Loader2 } from 'lucide-react';
 import { authApi, type UserStats } from '@/lib/auth';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export default function ProfilePage() {
+  const t = useTranslations('profile');
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -44,12 +48,13 @@ export default function ProfilePage() {
     );
   }
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header variant="light" />
+      <div className="max-w-4xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your account and view your activity</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('myProfile')}</h1>
+          <p className="text-gray-600 mt-2">{t('manageAccount')}</p>
         </div>
         
         {/* Quick Links Grid */}
@@ -62,9 +67,9 @@ export default function ProfilePage() {
                   <Film className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">My Rentals</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.myRentals')}</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    View your rented movies and rental history
+                    {t('quickLinks.myRentalsDesc')}
                   </p>
                 </div>
               </div>
@@ -79,9 +84,9 @@ export default function ProfilePage() {
                   <Clock className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Continue Watching</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.continueWatching')}</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Resume movies from where you left off
+                    {t('quickLinks.continueWatchingDesc')}
                   </p>
                 </div>
               </div>
@@ -96,9 +101,9 @@ export default function ProfilePage() {
                   <UserIcon className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Edit Profile</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.editProfile')}</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Update your display name and profile picture
+                    {t('quickLinks.editProfileDesc')}
                   </p>
                 </div>
               </div>
@@ -113,9 +118,9 @@ export default function ProfilePage() {
                   <Settings className="h-6 w-6 text-gray-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.settings')}</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Manage your account settings and preferences
+                    {t('quickLinks.settingsDesc')}
                   </p>
                 </div>
               </div>
@@ -127,26 +132,19 @@ export default function ProfilePage() {
         {user && (
           <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-4 mb-4">
-              {user.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt={user.displayName || user.email}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
-                  <UserIcon className="h-8 w-8 text-white" />
-                </div>
-              )}
+              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
+                <UserIcon className="h-8 w-8 text-white" />
+              </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
                   {user.displayName || 'User'}
                 </h3>
                 <p className="text-sm text-gray-600">{user.email}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Member since {new Date(user.createdAt).toLocaleDateString('en-US', { 
+                  {t('memberSince')} {new Date(user.createdAt).toLocaleDateString('en-US', { 
                     month: 'long', 
-                    year: 'numeric' 
+                    year: 'numeric',
+                    timeZone: user.timezone || 'Asia/Vientiane',
                   })}
                 </p>
               </div>
@@ -157,23 +155,23 @@ export default function ProfilePage() {
         {/* Stats Card */}
         {stats && (
           <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Activity</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('yourActivity')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
                 <p className="text-2xl font-bold text-blue-600">{stats.totalRentals}</p>
-                <p className="text-sm text-gray-600">Total Rentals</p>
+                <p className="text-sm text-gray-600">{t('totalRentals')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-600">{stats.activeRentals}</p>
-                <p className="text-sm text-gray-600">Active Now</p>
+                <p className="text-sm text-gray-600">{t('activeNow')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600">{stats.totalWatchProgress}</p>
-                <p className="text-sm text-gray-600">In Progress</p>
+                <p className="text-sm text-gray-600">{t('inProgress')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-orange-600">{stats.completedMovies}</p>
-                <p className="text-sm text-gray-600">Completed</p>
+                <p className="text-sm text-gray-600">{t('completed')}</p>
               </div>
             </div>
           </div>
@@ -185,6 +183,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

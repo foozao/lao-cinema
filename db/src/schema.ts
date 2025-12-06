@@ -234,6 +234,7 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash'), // Nullable for OAuth-only accounts
   displayName: text('display_name'),
   profileImageUrl: text('profile_image_url'),
+  timezone: text('timezone').default('Asia/Vientiane'), // IANA timezone
   role: userRoleEnum('role').default('user').notNull(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

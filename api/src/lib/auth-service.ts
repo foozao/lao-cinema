@@ -86,6 +86,7 @@ export async function findUserById(id: string): Promise<User | null> {
 export async function updateUser(userId: string, data: {
   displayName?: string;
   profileImageUrl?: string;
+  timezone?: string;
 }): Promise<User> {
   const [user] = await db.update(users)
     .set({

@@ -2,19 +2,45 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Lock, Trash2, Loader2, AlertTriangle, LogOut } from 'lucide-react';
+import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
+
+// Common timezone options
+const TIMEZONE_OPTIONS = [
+  { value: 'Asia/Vientiane', label: 'Lao Time (GMT+7)' },
+  { value: 'Asia/Bangkok', label: 'Thailand (GMT+7)' },
+  { value: 'Asia/Ho_Chi_Minh', label: 'Vietnam (GMT+7)' },
+  { value: 'Asia/Singapore', label: 'Singapore (GMT+8)' },
+  { value: 'Asia/Tokyo', label: 'Japan (GMT+9)' },
+  { value: 'Asia/Shanghai', label: 'China (GMT+8)' },
+  { value: 'Asia/Kolkata', label: 'India (GMT+5:30)' },
+  { value: 'Europe/London', label: 'UK (GMT+0/+1)' },
+  { value: 'Europe/Paris', label: 'Central Europe (GMT+1/+2)' },
+  { value: 'America/New_York', label: 'US Eastern (GMT-5/-4)' },
+  { value: 'America/Los_Angeles', label: 'US Pacific (GMT-8/-7)' },
+  { value: 'Australia/Sydney', label: 'Australia Eastern (GMT+10/+11)' },
+];
 
 export default function SettingsPage() {
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const t = useTranslations('profile.settings');
+  const { user, isAuthenticated, isLoading: authLoading, logout, refreshUser } = useAuth();
   const router = useRouter();
   
+  // Timezone state
+  const [timezone, setTimezone] = useState('Asia/Vientiane');
+  const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
+  const [timezoneSuccess, setTimezoneSuccess] = useState(false);
+  
   // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,8 +56,32 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login');
+      return;
     }
-  }, [isAuthenticated, authLoading, router]);
+    
+    if (user) {
+      setTimezone(user.timezone || 'Asia/Vientiane');
+    }
+  }, [isAuthenticated, authLoading, router, user]);
+  
+  const handleTimezoneChange = async (newTimezone: string) => {
+    setTimezone(newTimezone);
+    setIsUpdatingTimezone(true);
+    setTimezoneSuccess(false);
+    
+    try {
+      await authApi.updateProfile({ timezone: newTimezone });
+      await refreshUser();
+      setTimezoneSuccess(true);
+      setTimeout(() => setTimezoneSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to update timezone:', err);
+      // Revert on error
+      setTimezone(user?.timezone || 'Asia/Vientiane');
+    } finally {
+      setIsUpdatingTimezone(false);
+    }
+  };
   
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +90,12 @@ export default function SettingsPage() {
     
     // Validate
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError(t('password.errorMinLength'));
       return;
     }
     
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('password.errorMismatch'));
       return;
     }
     
@@ -108,32 +158,92 @@ export default function SettingsPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header variant="light" />
+      <div className="max-w-2xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← Back to Profile
+            ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
-          <p className="text-gray-600 mt-2">Manage your security and account preferences</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
         
-        {/* Change Password */}
+        {/* Timezone */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
           <div className="flex items-start gap-3 mb-6">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Lock className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Globe className="h-5 w-5 text-green-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Change Password</h2>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-900">{t('timezone.title')}</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Update your password to keep your account secure
+                {t('timezone.description')}
               </p>
             </div>
           </div>
           
-          <form onSubmit={handleChangePassword} className="space-y-4">
+          {timezoneSuccess && (
+            <div className="rounded-md bg-green-50 p-4 mb-4">
+              <p className="text-sm text-green-800">{t('timezone.successMessage')}</p>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="timezone">{t('timezone.label')}</Label>
+            <select
+              id="timezone"
+              value={timezone}
+              onChange={(e) => handleTimezoneChange(e.target.value)}
+              disabled={isUpdatingTimezone}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              {t('timezone.help')}
+            </p>
+          </div>
+        </div>
+        
+        {/* Change Password */}
+        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+          <button
+            type="button"
+            onClick={() => {
+              setShowPasswordForm(!showPasswordForm);
+              if (!showPasswordForm) {
+                setPasswordError('');
+                setPasswordSuccess(false);
+              }
+            }}
+            className="w-full flex items-start gap-3 text-left"
+          >
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Lock className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-900">{t('password.title')}</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('password.description')}
+              </p>
+            </div>
+            <div className="p-2">
+              {showPasswordForm ? (
+                <ChevronUp className="h-5 w-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-400" />
+              )}
+            </div>
+          </button>
+          
+          {showPasswordForm && (
+          <form onSubmit={handleChangePassword} className="space-y-4 mt-6 pt-6 border-t border-gray-200">
             {passwordError && (
               <div className="rounded-md bg-red-50 p-4">
                 <p className="text-sm text-red-800">{passwordError}</p>
@@ -142,12 +252,12 @@ export default function SettingsPage() {
             
             {passwordSuccess && (
               <div className="rounded-md bg-green-50 p-4">
-                <p className="text-sm text-green-800">Password changed successfully!</p>
+                <p className="text-sm text-green-800">{t('password.successMessage')}</p>
               </div>
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword">{t('password.currentPassword')}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -159,7 +269,7 @@ export default function SettingsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">{t('password.newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -169,11 +279,11 @@ export default function SettingsPage() {
                 minLength={8}
                 disabled={isChangingPassword}
               />
-              <p className="text-xs text-gray-500">At least 8 characters</p>
+              <p className="text-xs text-gray-500">{t('password.requirements')}</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">{t('password.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -189,13 +299,14 @@ export default function SettingsPage() {
               {isChangingPassword ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Changing Password...
+                  {t('password.changing')}
                 </>
               ) : (
-                'Change Password'
+                t('password.change')
               )}
             </Button>
           </form>
+          )}
         </div>
         
         {/* Sessions */}
@@ -205,17 +316,16 @@ export default function SettingsPage() {
               <LogOut className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Active Sessions</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{t('sessions.title')}</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Manage your login sessions across devices
+                {t('sessions.description')}
               </p>
             </div>
           </div>
           
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              You are currently signed in. If you suspect unauthorized access to your account, 
-              you can log out from all devices.
+              {t('sessions.confirmMessage')}
             </p>
             
             <Button 
@@ -224,7 +334,7 @@ export default function SettingsPage() {
               className="w-full"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Log Out From All Devices
+              {t('sessions.logoutAll')}
             </Button>
           </div>
         </div>
@@ -236,9 +346,9 @@ export default function SettingsPage() {
               <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-red-900">Danger Zone</h2>
+              <h2 className="text-xl font-semibold text-red-900">{t('deleteAccount.title')}</h2>
               <p className="text-sm text-red-600 mt-1">
-                Irreversible actions that affect your account
+                {t('deleteAccount.description')}
               </p>
             </div>
           </div>
@@ -246,8 +356,7 @@ export default function SettingsPage() {
           {!showDeleteConfirm ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Deleting your account will permanently remove all your data, including rentals, 
-                watch progress, and profile information. This action cannot be undone.
+                {t('deleteAccount.warningMessage')}
               </p>
               
               <Button
@@ -256,24 +365,18 @@ export default function SettingsPage() {
                 className="border-red-300 text-red-600 hover:bg-red-50"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete Account
+                {t('deleteAccount.deleteButton')}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleDeleteAccount} className="space-y-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm font-semibold text-red-900 mb-2">
-                  ⚠️ This action cannot be undone!
+                  ⚠️ {t('deleteAccount.warning')}
                 </p>
                 <p className="text-sm text-red-800">
-                  All your data will be permanently deleted, including:
+                  {t('deleteAccount.confirmMessage')}
                 </p>
-                <ul className="text-sm text-red-800 list-disc ml-5 mt-2">
-                  <li>Your profile and account information</li>
-                  <li>All rental history</li>
-                  <li>Watch progress for all movies</li>
-                  <li>Saved preferences and settings</li>
-                </ul>
               </div>
               
               <div className="space-y-2">
@@ -298,12 +401,12 @@ export default function SettingsPage() {
                   {isDeletingAccount ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
+                      {t('deleteAccount.deleting')}
                     </>
                   ) : (
                     <>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Yes, Delete My Account
+                      {t('deleteAccount.deleteButton')}
                     </>
                   )}
                 </Button>
@@ -317,13 +420,14 @@ export default function SettingsPage() {
                   }}
                   disabled={isDeletingAccount}
                 >
-                  Cancel
+                  {t('deleteAccount.cancel')}
                 </Button>
               </div>
             </form>
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

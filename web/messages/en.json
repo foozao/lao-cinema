@@ -312,6 +312,119 @@
   },
   "profile": {
     "title": "My Profile - Lao Cinema",
-    "description": "Manage your Lao Cinema account and view your activity"
+    "description": "Manage your Lao Cinema account and view your activity",
+    "myProfile": "My Profile",
+    "manageAccount": "Manage your account and view your activity",
+    "memberSince": "Member since",
+    "yourActivity": "Your Activity",
+    "totalRentals": "Total Rentals",
+    "activeNow": "Active Now",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "quickLinks": {
+      "myRentals": "My Rentals",
+      "myRentalsDesc": "View your rented movies and rental history",
+      "continueWatching": "Continue Watching",
+      "continueWatchingDesc": "Resume movies from where you left off",
+      "editProfile": "Edit Profile",
+      "editProfileDesc": "Update your display name",
+      "settings": "Settings",
+      "settingsDesc": "Manage your account settings and preferences"
+    },
+    "edit": {
+      "title": "Edit Profile",
+      "subtitle": "Update your display name",
+      "backToProfile": "Back to Profile",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "Your name",
+      "displayNameHelp": "This is how your name will appear across the site",
+      "saving": "Saving...",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "successMessage": "Profile updated successfully!",
+      "accountInfo": "Account Information",
+      "email": "Email",
+      "memberSince": "Member Since"
+    },
+    "settings": {
+      "title": "Account Settings",
+      "subtitle": "Manage your security and account preferences",
+      "backToProfile": "Back to Profile",
+      "timezone": {
+        "title": "Time Zone",
+        "description": "Set your timezone to display dates and times correctly",
+        "label": "Your Time Zone",
+        "help": "All dates and times will be displayed in your selected timezone",
+        "successMessage": "Timezone updated successfully!"
+      },
+      "password": {
+        "title": "Change Password",
+        "description": "Update your password to keep your account secure",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm New Password",
+        "requirements": "Password must be at least 8 characters",
+        "changing": "Changing Password...",
+        "change": "Change Password",
+        "cancel": "Cancel",
+        "successMessage": "Password changed successfully!",
+        "errorMinLength": "Password must be at least 8 characters",
+        "errorMismatch": "Passwords do not match"
+      },
+      "sessions": {
+        "title": "Active Sessions",
+        "description": "Manage your active login sessions",
+        "logoutAll": "Logout from all devices",
+        "loggingOut": "Logging out...",
+        "confirmMessage": "This will log you out from all devices including this one. You'll need to log in again."
+      },
+      "deleteAccount": {
+        "title": "Delete Account",
+        "description": "Permanently delete your account and all associated data",
+        "warning": "Warning: This action cannot be undone",
+        "warningMessage": "Deleting your account will permanently remove all your data, including rentals and watch history. This action cannot be reversed.",
+        "deleteButton": "Delete My Account",
+        "deleting": "Deleting Account...",
+        "cancel": "Cancel",
+        "confirmTitle": "Are you absolutely sure?",
+        "confirmMessage": "This will permanently delete your account and all associated data. This action cannot be undone."
+      }
+    },
+    "rentals": {
+      "title": "My Rentals",
+      "subtitle": "View and manage your rented movies",
+      "backToProfile": "Back to Profile",
+      "active": "Active Rentals",
+      "expired": "Rental History",
+      "noActive": "No active rentals",
+      "noActiveDesc": "You don't have any active rentals at the moment.",
+      "noExpired": "No rental history",
+      "noExpiredDesc": "Your past rentals will appear here.",
+      "browseMovies": "Browse Movies",
+      "status": {
+        "active": "Active",
+        "expired": "Expired"
+      },
+      "purchased": "Purchased",
+      "expires": "Expires",
+      "remaining": "remaining",
+      "watchNow": "Watch Now",
+      "rentAgain": "Rent Again"
+    },
+    "continueWatching": {
+      "title": "Continue Watching",
+      "subtitle": "Resume your movies from where you left off",
+      "backToProfile": "Back to Profile",
+      "noProgress": "No movies in progress",
+      "noProgressDesc": "Movies you've started watching will appear here.",
+      "browseMovies": "Browse Movies",
+      "lastWatched": "Last watched",
+      "remove": "Remove",
+      "removing": "Removing...",
+      "justNow": "Just now",
+      "hoursAgo": "{hours}h ago",
+      "yesterday": "Yesterday",
+      "daysAgo": "{days} days ago"
+    }
   }
 }

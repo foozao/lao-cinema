@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { getContinueWatching, deleteWatchProgress, type WatchProgress } from '@/lib/api/watch-progress-client';
 import { Link } from '@/i18n/routing';
 import { Play, Clock, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export default function ContinueWatchingPage() {
-  const { isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
+  const t = useTranslations('profile.continueWatching');
+  const { user, isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
   const [progress, setProgress] = useState<WatchProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,12 +81,17 @@ export default function ContinueWatchingPage() {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffHours < 1) return t('justNow');
+    if (diffHours < 24) return t('hoursAgo', { hours: diffHours });
+    if (diffDays === 1) return t('yesterday');
+    if (diffDays < 7) return t('daysAgo', { days: diffDays });
     
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timezone = user?.timezone || 'Asia/Vientiane';
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      timeZone: timezone,
+    });
   };
   
   if (authLoading || isLoading) {
@@ -94,15 +103,16 @@ export default function ContinueWatchingPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header variant="light" />
+      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← Back to Profile
+            ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Continue Watching</h1>
-          <p className="text-gray-600 mt-2">Pick up where you left off</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
         
         {/* Error */}
@@ -125,12 +135,14 @@ export default function ContinueWatchingPage() {
         {progress.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No movies in progress</h2>
-            <p className="text-gray-600 mb-6">
-              Start watching a movie and it will appear here so you can pick up where you left off.
+            <p className="text-gray-600 mb-4">{t('noProgress')}</p>
+            <p className="text-sm text-gray-500 mb-6">
+              {t('noProgressDesc')}
             </p>
             <Link href="/movies">
-              <Button>Browse Movies</Button>
+              <Button>
+                {t('browseMovies')}
+              </Button>
             </Link>
           </div>
         ) : (
@@ -195,9 +207,9 @@ export default function ContinueWatchingPage() {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">
-                      {formatLastWatched(item.lastWatchedAt)}
-                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('lastWatched')} {formatLastWatched(item.lastWatchedAt)}
+                    </p>
                     
                     <button
                       onClick={() => handleDelete(item.movieId)}
@@ -249,6 +261,7 @@ export default function ContinueWatchingPage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

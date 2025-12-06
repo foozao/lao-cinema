@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
 import { Link } from '@/i18n/routing';
 import { Film, Calendar, Clock, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPosterUrl } from '@/lib/images';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export default function RentalsPage() {
-  const { isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
+  const t = useTranslations('profile.rentals');
+  const { user, isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,12 +45,14 @@ export default function RentalsPage() {
   }, [isAuthenticated, anonymousId, authLoading, router]);
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const timezone = user?.timezone || 'Asia/Vientiane';
+    return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: timezone,
     });
   };
   
@@ -81,15 +87,16 @@ export default function RentalsPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header variant="light" />
+      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← Back to Profile
+            ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">My Rentals</h1>
-          <p className="text-gray-600 mt-2">View your rental history and active rentals</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
         
         {/* Error */}
@@ -112,12 +119,15 @@ export default function RentalsPage() {
         {rentals.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Film className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No rentals yet</h2>
-            <p className="text-gray-600 mb-6">
-              Rent a movie to start watching. Rentals are valid for 24 hours.
+            <p className="text-gray-600 mb-4">{t('noActive')}</p>
+            <p className="text-sm text-gray-500 mb-6">
+              {t('noActiveDesc')}
             </p>
             <Link href="/movies">
-              <Button>Browse Movies</Button>
+              <Button>
+                <Film className="mr-2 h-4 w-4" />
+                {t('browseMovies')}
+              </Button>
             </Link>
           </div>
         ) : (
@@ -151,44 +161,37 @@ export default function RentalsPage() {
                           <h3 className="text-xl font-semibold text-gray-900 mb-1">
                             {rental.movieTitle || 'Movie'}
                           </h3>
-                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            expired 
-                              ? 'bg-gray-100 text-gray-600' 
-                              : 'bg-green-100 text-green-700'
-                          }`}>
-                            {expired ? 'Expired' : 'Active'}
-                          </div>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {t('status.active')}
+                          </span>
                         </div>
                         {!expired && (
-                          <Link href={`/movies/${rental.movieId}/watch`}>
-                            <Button size="sm">Watch Now</Button>
+                          <Link href={`/watch/${rental.movieId}`}>
+                            <Button size="sm">
+                              {t('watchNow')}
+                            </Button>
                           </Link>
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
+                      <div className="text-sm text-gray-600">
+                        <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          <span>Purchased: {formatDate(rental.purchasedAt)}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-gray-600">
+                          <strong>{t('purchased')}:</strong> {formatDate(rental.purchasedAt)}
+                        </p>
+                        <p className="flex items-center gap-2 mt-1">
                           <Clock className="h-4 w-4" />
-                          <span className={expired ? 'text-red-600' : 'text-green-600'}>
-                            {getTimeRemaining(rental.expiresAt)}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <CreditCard className="h-4 w-4" />
-                          <span>
-                            {rental.amount / 100} {rental.currency} · {rental.paymentMethod}
-                          </span>
-                        </div>
-                        
-                        <div className="text-gray-500 text-xs">
-                          Expires: {formatDate(rental.expiresAt)}
-                        </div>
+                          <strong className="text-green-600">{getTimeRemaining(rental.expiresAt)}</strong>
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('expires')}: {formatDate(rental.expiresAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <CreditCard className="h-4 w-4" />
+                        <span>
+                          {rental.amount / 100} {rental.currency} · {rental.paymentMethod}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -198,33 +201,8 @@ export default function RentalsPage() {
           </div>
         )}
         
-        {/* Stats */}
-        {rentals.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <p className="text-2xl font-bold text-blue-600">
-                  {rentals.length}
-                </p>
-                <p className="text-sm text-gray-600">Total Rentals</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">
-                  {rentals.filter(r => !isExpired(r.expiresAt)).length}
-                </p>
-                <p className="text-sm text-gray-600">Active Rentals</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-600">
-                  {rentals.filter(r => isExpired(r.expiresAt)).length}
-                </p>
-                <p className="text-sm text-gray-600">Expired Rentals</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+      <Footer />
     </div>
   );
 }
