@@ -18,6 +18,8 @@ import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
 import { isRentalValid, purchaseRental, getFormattedRemainingTime } from '@/lib/rental-service';
+import { ShareButton } from '@/components/share-button';
+import { getMoviePath } from '@/lib/movie-url';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -263,6 +265,13 @@ export default function MoviePage() {
                               <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
                               {t('movie.watchNow')}
                             </Button>
+                            <ShareButton
+                              path={`/movies/${getMoviePath(movie)}`}
+                              title={title}
+                              size="lg"
+                              variant="secondary"
+                              className="px-6 md:px-8 py-5 md:py-6"
+                            />
                           </div>
                           {hasValidRental && remainingTime && (
                             <p className="text-sm text-green-400">
@@ -276,20 +285,32 @@ export default function MoviePage() {
                             {t('movie.availableOn')}
                           </p>
                           <StreamingPlatformList platforms={movie.external_platforms!} size="lg" />
+                          <ShareButton
+                            path={`/movies/${getMoviePath(movie)}`}
+                            title={title}
+                            variant="secondary"
+                          />
                         </div>
                       ) : isComingSoon ? (
-                        <div className="bg-purple-600/20 border border-purple-600/50 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <h4 className="font-semibold text-purple-200 mb-1">
-                                {t('movie.availabilityStatus.comingSoon')}
-                              </h4>
-                              <p className="text-sm text-purple-300">
-                                {t('movie.comingSoonMessage')}
-                              </p>
+                        <div className="space-y-3">
+                          <div className="bg-purple-600/20 border border-purple-600/50 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h4 className="font-semibold text-purple-200 mb-1">
+                                  {t('movie.availabilityStatus.comingSoon')}
+                                </h4>
+                                <p className="text-sm text-purple-300">
+                                  {t('movie.comingSoonMessage')}
+                                </p>
+                              </div>
                             </div>
                           </div>
+                          <ShareButton
+                            path={`/movies/${getMoviePath(movie)}`}
+                            title={title}
+                            variant="secondary"
+                          />
                         </div>
                       ) : isUnavailable ? (
                         <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-4">
