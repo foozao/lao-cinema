@@ -96,7 +96,7 @@ export async function buildMovieWithRelations(
     updated_at: movie.updatedAt,
   };
 
-  // Fetch cast if requested
+  // Fetch cast if requested - using batch fetching to avoid N+1 queries
   if (includeCast) {
     let castQuery = db.select()
       .from(schema.movieCast)
@@ -109,42 +109,71 @@ export async function buildMovieWithRelations(
 
     const castData = await castQuery;
 
-    const cast = await Promise.all(castData.map(async (castMember: any) => {
-      const person = await db.select().from(schema.people).where(eq(schema.people.id, castMember.personId)).limit(1);
-      const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, castMember.personId));
-      const characterTranslations = await db.select().from(schema.movieCastTranslations)
-        .where(sql`${schema.movieCastTranslations.movieId} = ${movie.id} AND ${schema.movieCastTranslations.personId} = ${castMember.personId}`);
+    if (castData.length > 0) {
+      // Batch fetch all data in 3 queries instead of 3N queries
+      const personIds = castData.map((c: any) => c.personId);
+      
+      const [people, personTranslations, characterTranslations] = await Promise.all([
+        db.select().from(schema.people)
+          .where(sql`${schema.people.id} IN (${sql.join(personIds.map((id: any) => sql`${id}`), sql`, `)})`),
+        db.select().from(schema.peopleTranslations)
+          .where(sql`${schema.peopleTranslations.personId} IN (${sql.join(personIds.map((id: any) => sql`${id}`), sql`, `)})`),
+        db.select().from(schema.movieCastTranslations)
+          .where(eq(schema.movieCastTranslations.movieId, movie.id)),
+      ]);
 
-      if (person[0]) {
-        const personName: any = {};
-        const character: any = {};
-
-        for (const trans of personTranslations) {
-          personName[trans.language] = trans.name;
+      // Create lookup maps for O(1) access
+      const peopleMap = new Map(people.map((p: any) => [p.id, p]));
+      const personTransMap = new Map<number, any[]>();
+      for (const trans of personTranslations) {
+        if (!personTransMap.has(trans.personId)) {
+          personTransMap.set(trans.personId, []);
         }
-        for (const trans of characterTranslations) {
-          character[trans.language] = trans.character;
-        }
-
-        return {
-          person: {
-            id: person[0].id,
-            name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-            profile_path: person[0].profilePath,
-          },
-          character: Object.keys(character).length > 0 ? character : { en: '' },
-          order: castMember.order,
-        };
+        personTransMap.get(trans.personId)!.push(trans);
       }
-      return null;
-    }));
+      const charTransMap = new Map<number, any[]>();
+      for (const trans of characterTranslations) {
+        if (!charTransMap.has(trans.personId)) {
+          charTransMap.set(trans.personId, []);
+        }
+        charTransMap.get(trans.personId)!.push(trans);
+      }
 
-    movieData.cast = cast.filter((c: any) => c !== null);
+      // Build cast array using maps
+      movieData.cast = castData
+        .map((castMember: any) => {
+          const person = peopleMap.get(castMember.personId);
+          if (!person) return null;
+
+          const personName: any = {};
+          const character: any = {};
+
+          for (const trans of personTransMap.get(castMember.personId) || []) {
+            personName[trans.language] = trans.name;
+          }
+          for (const trans of charTransMap.get(castMember.personId) || []) {
+            character[trans.language] = trans.character;
+          }
+
+          return {
+            person: {
+              id: person.id,
+              name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
+              profile_path: person.profilePath,
+            },
+            character: Object.keys(character).length > 0 ? character : { en: '' },
+            order: castMember.order,
+          };
+        })
+        .filter((c: any) => c !== null);
+    } else {
+      movieData.cast = [];
+    }
   } else {
     movieData.cast = [];
   }
 
-  // Fetch crew if requested
+  // Fetch crew if requested - using batch fetching to avoid N+1 queries
   if (includeCrew) {
     let crewQuery = db.select()
       .from(schema.movieCrew)
@@ -156,37 +185,66 @@ export async function buildMovieWithRelations(
 
     const crewData = await crewQuery;
 
-    const crew = await Promise.all(crewData.map(async (crewMember: any) => {
-      const person = await db.select().from(schema.people).where(eq(schema.people.id, crewMember.personId)).limit(1);
-      const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, crewMember.personId));
-      const jobTranslations = await db.select().from(schema.movieCrewTranslations)
-        .where(sql`${schema.movieCrewTranslations.movieId} = ${movie.id} AND ${schema.movieCrewTranslations.personId} = ${crewMember.personId}`);
+    if (crewData.length > 0) {
+      // Batch fetch all data in 3 queries instead of 3N queries
+      const personIds = crewData.map((c: any) => c.personId);
+      
+      const [people, personTranslations, jobTranslations] = await Promise.all([
+        db.select().from(schema.people)
+          .where(sql`${schema.people.id} IN (${sql.join(personIds.map((id: any) => sql`${id}`), sql`, `)})`),
+        db.select().from(schema.peopleTranslations)
+          .where(sql`${schema.peopleTranslations.personId} IN (${sql.join(personIds.map((id: any) => sql`${id}`), sql`, `)})`),
+        db.select().from(schema.movieCrewTranslations)
+          .where(eq(schema.movieCrewTranslations.movieId, movie.id)),
+      ]);
 
-      if (person[0]) {
-        const personName: any = {};
-        const job: any = {};
-
-        for (const trans of personTranslations) {
-          personName[trans.language] = trans.name;
+      // Create lookup maps for O(1) access
+      const peopleMap = new Map(people.map((p: any) => [p.id, p]));
+      const personTransMap = new Map<number, any[]>();
+      for (const trans of personTranslations) {
+        if (!personTransMap.has(trans.personId)) {
+          personTransMap.set(trans.personId, []);
         }
-        for (const trans of jobTranslations) {
-          job[trans.language] = trans.job;
-        }
-
-        return {
-          person: {
-            id: person[0].id,
-            name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-            profile_path: person[0].profilePath,
-          },
-          job: Object.keys(job).length > 0 ? job : { en: crewMember.department },
-          department: crewMember.department,
-        };
+        personTransMap.get(trans.personId)!.push(trans);
       }
-      return null;
-    }));
+      const jobTransMap = new Map<number, any[]>();
+      for (const trans of jobTranslations) {
+        if (!jobTransMap.has(trans.personId)) {
+          jobTransMap.set(trans.personId, []);
+        }
+        jobTransMap.get(trans.personId)!.push(trans);
+      }
 
-    movieData.crew = crew.filter((c: any) => c !== null);
+      // Build crew array using maps
+      movieData.crew = crewData
+        .map((crewMember: any) => {
+          const person = peopleMap.get(crewMember.personId);
+          if (!person) return null;
+
+          const personName: any = {};
+          const job: any = {};
+
+          for (const trans of personTransMap.get(crewMember.personId) || []) {
+            personName[trans.language] = trans.name;
+          }
+          for (const trans of jobTransMap.get(crewMember.personId) || []) {
+            job[trans.language] = trans.job;
+          }
+
+          return {
+            person: {
+              id: person.id,
+              name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
+              profile_path: person.profilePath,
+            },
+            job: Object.keys(job).length > 0 ? job : { en: crewMember.department },
+            department: crewMember.department,
+          };
+        })
+        .filter((c: any) => c !== null);
+    } else {
+      movieData.crew = [];
+    }
   } else {
     movieData.crew = [];
   }
