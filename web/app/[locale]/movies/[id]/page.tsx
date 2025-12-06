@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Calendar, Clock, Star, Users, Play } from 'lucide-react';
+import { Calendar, Clock, Star, Users, Play, Ban, Sparkles } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
@@ -121,9 +121,22 @@ export default function MoviePage() {
     movie.video_sources.find((vs) => vs.format === 'hls') ||
     movie.video_sources[0];
 
-  // Check if film is only available on external platforms
-  const hasExternalPlatforms = movie.external_platforms && movie.external_platforms.length > 0;
-  const isAvailableOnSite = videoSource && !hasExternalPlatforms;
+  // Determine availability status with smart defaults
+  let availabilityStatus = movie.availability_status;
+  if (!availabilityStatus) {
+    if (movie.video_sources && movie.video_sources.length > 0) {
+      availabilityStatus = 'available';
+    } else if (movie.external_platforms && movie.external_platforms.length > 0) {
+      availabilityStatus = 'external';
+    } else {
+      availabilityStatus = 'unavailable';
+    }
+  }
+
+  const isAvailableOnSite = availabilityStatus === 'available' && videoSource;
+  const hasExternalPlatforms = availabilityStatus === 'external' && movie.external_platforms && movie.external_platforms.length > 0;
+  const isComingSoon = availabilityStatus === 'coming_soon';
+  const isUnavailable = availabilityStatus === 'unavailable';
 
   const title = getLocalizedText(movie.title, locale);
   const overview = getLocalizedText(movie.overview, locale);
@@ -222,7 +235,7 @@ export default function MoviePage() {
                       </p>
                     </div>
 
-                    {/* Watch Now Button or External Platforms */}
+                    {/* Watch Now Button or Status Message */}
                     <div className="flex flex-col gap-3">
                       {isAvailableOnSite ? (
                         <>
@@ -248,6 +261,34 @@ export default function MoviePage() {
                             {t('movie.availableOn')}
                           </p>
                           <StreamingPlatformList platforms={movie.external_platforms!} size="lg" />
+                        </div>
+                      ) : isComingSoon ? (
+                        <div className="bg-purple-600/20 border border-purple-600/50 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-purple-200 mb-1">
+                                {t('movie.availabilityStatus.comingSoon')}
+                              </h4>
+                              <p className="text-sm text-purple-300">
+                                {t('movie.comingSoonMessage')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : isUnavailable ? (
+                        <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <Ban className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-gray-200 mb-1">
+                                {t('movie.availabilityStatus.unavailable')}
+                              </h4>
+                              <p className="text-sm text-gray-400">
+                                {t('movie.unavailableMessage')}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       ) : null}
                     </div>

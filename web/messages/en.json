@@ -69,7 +69,15 @@
     "productionCountries": "Production Countries",
     "spokenLanguages": "Spoken Languages",
     "availableOn": "This film is available on:",
-    "externalOnly": "External"
+    "externalOnly": "External",
+    "comingSoonMessage": "This film will be available to watch soon. Check back later!",
+    "unavailableMessage": "This film is not currently available to watch.",
+    "availabilityStatus": {
+      "available": "Available",
+      "external": "External",
+      "unavailable": "Unavailable",
+      "comingSoon": "Coming Soon"
+    }
   },
   "watch": {
     "gracePeriodWarning": "Your rental has expired, but you have {time} remaining to finish watching. Don't close this page!"

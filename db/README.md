@@ -132,6 +132,25 @@ You can override with the `DATABASE_URL` environment variable:
 export DATABASE_URL="postgres://user:password@host:port/database"
 ```
 
+## Directory Structure
+
+```
+/db/
+├── src/
+│   ├── schema.ts          # Database schema (source of truth)
+│   ├── db.ts              # Database connection
+│   └── migrate.ts         # Migration runner
+├── migrations/            # Tracked SQL migrations (committed to git)
+│   ├── 0001_initial.sql
+│   ├── 0009_add_availability_status.sql
+│   └── meta/              # Migration metadata
+├── drizzle/              # Generated artifacts (gitignored)
+├── drizzle.config.ts     # Drizzle configuration
+└── package.json
+```
+
+**Important**: The `migrations/` folder contains tracked SQL files that should be committed to git. The `drizzle/` folder is for temporary generated files and is gitignored.
+
 ## Schema Changes
 
 When you modify `src/schema.ts`:
@@ -141,7 +160,7 @@ When you modify `src/schema.ts`:
    npm run db:generate
    ```
 
-2. Review the generated SQL in `drizzle/` folder
+2. Review the generated SQL in `migrations/` folder
 
 3. Run the migration:
    ```bash

@@ -69,7 +69,15 @@
     "productionCountries": "ປະເທດຜະລິດ",
     "spokenLanguages": "ພາສາທີ່ໃຊ້",
     "availableOn": "ຮູບເງົານີ້ມີຢູ່ໃນ:",
-    "externalOnly": "ພາຍນອກ"
+    "externalOnly": "ພາຍນອກ",
+    "comingSoonMessage": "ຮູບເງົານີ້ຈະມີໃຫ້ເບິ່ງໃນໄວໆນີ້. ກະລຸນາກັບມາໃໝ່ພາຍຫຼັງ!",
+    "unavailableMessage": "ຮູບເງົານີ້ບໍ່ມີໃຫ້ເບິ່ງໃນຕອນນີ້.",
+    "availabilityStatus": {
+      "available": "ມີໃຫ້ເບິ່ງ",
+      "external": "ພາຍນອກ",
+      "unavailable": "ບໍ່ມີໃຫ້ເບິ່ງ",
+      "comingSoon": "ເລັ່ງມາໃນໄວໆນີ້"
+    }
   },
   "watch": {
     "gracePeriodWarning": "ການເຊົ່າຂອງທ່ານໝົດອາຍຸແລ້ວ, ແຕ່ທ່ານມີເວລາອີກ {time} ເພື່ອເບິ່ງໃຫ້ຈົບ. ຢ່າປິດໜ້ານີ້!"

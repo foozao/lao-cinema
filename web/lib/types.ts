@@ -15,6 +15,9 @@ export interface ExternalPlatform {
   url?: string; // Optional link to the film on that platform
 }
 
+// Availability status for movies
+export type AvailabilityStatus = 'available' | 'external' | 'unavailable' | 'coming_soon';
+
 export interface Movie {
   id: string;
   
@@ -52,6 +55,9 @@ export interface Movie {
   
   // Images (multiple posters/backdrops from TMDB)
   images?: MovieImage[];
+  
+  // Availability status
+  availability_status?: AvailabilityStatus;
   
   // External availability (for films not available on our platform)
   external_platforms?: ExternalPlatform[];

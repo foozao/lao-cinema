@@ -10,7 +10,7 @@ import { getPosterUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Clock, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink, Calendar, Ban } from 'lucide-react';
 
 interface MovieCardProps {
   movie: Movie;
@@ -43,8 +43,53 @@ export function MovieCard({ movie }: MovieCardProps) {
         .slice(0, 3)
     : [];
 
-  // Check if film is only available externally
-  const isExternalOnly = movie.external_platforms && movie.external_platforms.length > 0;
+  // Get availability badge configuration
+  // Only show badges for non-available states (external, unavailable, coming soon)
+  const getAvailabilityBadge = () => {
+    // Determine status with smart defaults
+    let status = movie.availability_status;
+    
+    // If no explicit status is set, use smart defaults
+    if (!status) {
+      if (movie.video_sources && movie.video_sources.length > 0) {
+        status = 'available'; // Has video sources on our platform
+      } else if (movie.external_platforms && movie.external_platforms.length > 0) {
+        status = 'external'; // Available on external platforms
+      } else {
+        status = 'unavailable'; // Not available anywhere
+      }
+    }
+    
+    // Don't show badge for available movies (this is the default/expected state)
+    if (status === 'available') {
+      return null;
+    }
+    
+    switch (status) {
+      case 'external':
+        return {
+          icon: <ExternalLink className="w-3 h-3" />,
+          text: t('availabilityStatus.external'),
+          className: 'bg-gray-500/80 text-white',
+        };
+      case 'unavailable':
+        return {
+          icon: <Ban className="w-3 h-3" />,
+          text: t('availabilityStatus.unavailable'),
+          className: 'bg-gray-700/90 text-white',
+        };
+      case 'coming_soon':
+        return {
+          icon: <Calendar className="w-3 h-3" />,
+          text: t('availabilityStatus.comingSoon'),
+          className: 'bg-purple-600/90 text-white',
+        };
+      default:
+        return null;
+    }
+  };
+
+  const availabilityBadge = getAvailabilityBadge();
   
   return (
     <Link href={`/movies/${movie.id}`}>
@@ -67,11 +112,11 @@ export function MovieCard({ movie }: MovieCardProps) {
                 </span>
               </div>
             )}
-            {/* External-only indicator */}
-            {isExternalOnly && (
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" />
-                <span>{t('externalOnly')}</span>
+            {/* Availability status badge - only show for non-available states */}
+            {availabilityBadge && (
+              <div className={`absolute bottom-2 left-2 text-xs px-2 py-1 rounded flex items-center gap-1 ${availabilityBadge.className}`}>
+                {availabilityBadge.icon}
+                <span>{availabilityBadge.text}</span>
               </div>
             )}
           </div>

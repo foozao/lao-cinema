@@ -69,6 +69,9 @@ export default function EditMoviePage() {
   // State for external platforms
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
   
+  // State for availability status
+  const [availabilityStatus, setAvailabilityStatus] = useState<'available' | 'external' | 'unavailable' | 'coming_soon' | ''>('');
+  
   // Track if form has been modified
   const [hasChanges, setHasChanges] = useState(false);
   
@@ -139,6 +142,9 @@ export default function EditMoviePage() {
 
         // Initialize external platforms
         setExternalPlatforms(movie.external_platforms || []);
+
+        // Load availability status
+        setAvailabilityStatus(movie.availability_status || '');
       } catch (error) {
         console.error('Failed to load movie:', error);
         setSyncError('Failed to load movie from database');
@@ -561,6 +567,7 @@ export default function EditMoviePage() {
         crew: updatedCrew,
         images: currentMovie?.images, // Include images array
         external_platforms: externalPlatforms,
+        availability_status: availabilityStatus || undefined,
       };
 
       await movieAPI.update(movieId, updateData);
@@ -868,6 +875,41 @@ export default function EditMoviePage() {
             </CardContent>
           </Card>
 
+          {/* Availability Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Availability Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="availability_status">Status Override (Optional)</Label>
+                <select
+                  id="availability_status"
+                  value={availabilityStatus}
+                  onChange={(e) => {
+                    setAvailabilityStatus(e.target.value as any);
+                    setHasChanges(true);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Auto (based on video sources and external platforms)</option>
+                  <option value="available">Available - Movie is on our platform</option>
+                  <option value="external">External - Available on external platforms only</option>
+                  <option value="unavailable">Unavailable - Not available anywhere</option>
+                  <option value="coming_soon">Coming Soon - Will be available soon</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-2">
+                  <strong>Auto behavior:</strong>
+                  <br />• If video sources exist → Available
+                  <br />• If external platforms exist → External
+                  <br />• Otherwise → Unavailable
+                  <br /><br />
+                  Select a specific status to override the automatic behavior.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* External Platforms */}
           <Card>
             <CardHeader>
@@ -891,6 +933,7 @@ export default function EditMoviePage() {
                           const updated = [...externalPlatforms];
                           updated[index] = { ...updated[index], url: e.target.value };
                           setExternalPlatforms(updated);
+                          setHasChanges(true);
                         }}
                         placeholder="URL (optional)"
                         className="flex-1"
@@ -901,6 +944,7 @@ export default function EditMoviePage() {
                         size="sm"
                         onClick={() => {
                           setExternalPlatforms(externalPlatforms.filter((_, i) => i !== index));
+                          setHasChanges(true);
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -923,6 +967,7 @@ export default function EditMoviePage() {
                       // Don't add if already exists
                       if (!externalPlatforms.some(p => p.platform === platform)) {
                         setExternalPlatforms([...externalPlatforms, { platform }]);
+                        setHasChanges(true);
                       }
                       e.target.value = '';
                     }

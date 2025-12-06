@@ -4,6 +4,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, schema } from '../db/index.js';
 import { eq, sql } from 'drizzle-orm';
+import { buildMovieWithRelations } from '../lib/movie-builder.js';
 
 // Validation schemas
 const LocalizedTextSchema = z.object({
@@ -128,6 +129,9 @@ const CreateMovieSchema = z.object({
   overview: LocalizedTextSchema,
   tagline: LocalizedTextSchema.optional(),
   
+  // Availability
+  availability_status: z.enum(['available', 'external', 'unavailable', 'coming_soon']),
+  
   // Relationships
   genres: z.array(GenreSchema),
   production_companies: z.array(ProductionCompanySchema).optional(),
@@ -155,138 +159,17 @@ export default async function movieRoutes(fastify: FastifyInstance) {
     try {
       const allMovies = await db.select().from(schema.movies);
       
-      // Get translations for all movies
-      const movieIds = allMovies.map(m => m.id);
-      const translations = movieIds.length > 0 
-        ? await db.select()
-            .from(schema.movieTranslations)
-            .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(movieIds.map(id => sql`${id}`), sql`, `)})`)
-        : [];
+      // Build complete movie objects using shared builder
+      const moviesWithData = await Promise.all(
+        allMovies.map(movie => buildMovieWithRelations(movie, db, schema, {
+          includeCast: true,
+          includeCrew: true,
+          includeGenres: false, // Not needed for list view
+          castLimit: 3, // Limit for performance
+        }))
+      );
       
-      // Build response with translations, cast, and crew
-      const moviesWithTranslations = await Promise.all(allMovies.map(async (movie) => {
-        const movieTranslations = translations.filter(t => t.movieId === movie.id);
-        
-        const title: any = {};
-        const overview: any = {};
-        const tagline: any = {};
-        
-        for (const trans of movieTranslations) {
-          title[trans.language] = trans.title;
-          overview[trans.language] = trans.overview;
-          if (trans.tagline) {
-            tagline[trans.language] = trans.tagline;
-          }
-        }
-        
-        // Get cast (limit to top 3 for performance)
-        const castData = await db.select()
-          .from(schema.movieCast)
-          .where(eq(schema.movieCast.movieId, movie.id))
-          .orderBy(schema.movieCast.order)
-          .limit(3);
-        
-        const cast = await Promise.all(castData.map(async (castMember) => {
-          const person = await db.select().from(schema.people).where(eq(schema.people.id, castMember.personId)).limit(1);
-          const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, castMember.personId));
-          const characterTranslations = await db.select().from(schema.movieCastTranslations)
-            .where(sql`${schema.movieCastTranslations.movieId} = ${movie.id} AND ${schema.movieCastTranslations.personId} = ${castMember.personId}`);
-          
-          if (person[0]) {
-            const personName: any = {};
-            const character: any = {};
-            
-            for (const trans of personTranslations) {
-              personName[trans.language] = trans.name;
-            }
-            for (const trans of characterTranslations) {
-              character[trans.language] = trans.character;
-            }
-            
-            return {
-              person: {
-                id: person[0].id,
-                name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-                profile_path: person[0].profilePath,
-              },
-              character: Object.keys(character).length > 0 ? character : { en: '' },
-              order: castMember.order,
-            };
-          }
-          return null;
-        }));
-        
-        // Get external platforms
-        const externalPlatforms = await db.select()
-          .from(schema.movieExternalPlatforms)
-          .where(eq(schema.movieExternalPlatforms.movieId, movie.id));
-
-        // Get crew (only director and writer for performance)
-        const crewData = await db.select()
-          .from(schema.movieCrew)
-          .where(eq(schema.movieCrew.movieId, movie.id));
-        
-        const crew = await Promise.all(crewData.map(async (crewMember) => {
-          const person = await db.select().from(schema.people).where(eq(schema.people.id, crewMember.personId)).limit(1);
-          const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, crewMember.personId));
-          const jobTranslations = await db.select().from(schema.movieCrewTranslations)
-            .where(sql`${schema.movieCrewTranslations.movieId} = ${movie.id} AND ${schema.movieCrewTranslations.personId} = ${crewMember.personId} AND ${schema.movieCrewTranslations.department} = ${crewMember.department}`);
-          
-          if (person[0]) {
-            const personName: any = {};
-            const job: any = {};
-            
-            for (const trans of personTranslations) {
-              personName[trans.language] = trans.name;
-            }
-            for (const trans of jobTranslations) {
-              job[trans.language] = trans.job;
-            }
-            
-            return {
-              person: {
-                id: person[0].id,
-                name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-                profile_path: person[0].profilePath,
-              },
-              job: Object.keys(job).length > 0 ? job : { en: crewMember.department },
-              department: crewMember.department,
-            };
-          }
-          return null;
-        }));
-        
-        return {
-          id: movie.id,
-          tmdb_id: movie.tmdbId,
-          imdb_id: movie.imdbId,
-          original_title: movie.originalTitle,
-          original_language: movie.originalLanguage,
-          poster_path: movie.posterPath,
-          backdrop_path: movie.backdropPath,
-          release_date: movie.releaseDate,
-          runtime: movie.runtime,
-          vote_average: movie.voteAverage,
-          vote_count: movie.voteCount,
-          popularity: movie.popularity,
-          adult: movie.adult,
-          title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
-          overview: Object.keys(overview).length > 0 ? overview : { en: '' },
-          tagline: Object.keys(tagline).length > 0 ? tagline : undefined,
-          genres: [],
-          cast: cast.filter(c => c !== null),
-          crew: crew.filter(c => c !== null),
-          video_sources: [],
-          external_platforms: externalPlatforms.map(ep => ({
-            platform: ep.platform,
-            url: ep.url,
-          })),
-          created_at: movie.createdAt,
-          updated_at: movie.updatedAt,
-        };
-      }));
-      
-      return { movies: moviesWithTranslations };
+      return { movies: moviesWithData };
     } catch (error) {
       fastify.log.error(error);
       reply.status(500).send({ error: 'Failed to fetch movies' });
@@ -308,190 +191,15 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Movie not found' });
       }
 
-      // Get translations
-      const translations = await db.select()
-        .from(schema.movieTranslations)
-        .where(eq(schema.movieTranslations.movieId, id));
+      // Build complete movie object using shared builder
+      const movieData = await buildMovieWithRelations(movie, db, schema, {
+        includeCast: true,
+        includeCrew: true,
+        includeGenres: true,
+        includeImages: true, // Include images for detail view
+      });
 
-      // Build localized text objects
-      const title: any = {};
-      const overview: any = {};
-      const tagline: any = {};
-      
-      for (const trans of translations) {
-        title[trans.language] = trans.title;
-        overview[trans.language] = trans.overview;
-        if (trans.tagline) {
-          tagline[trans.language] = trans.tagline;
-        }
-      }
-
-      // Get cast with person data
-      const castData = await db.select()
-        .from(schema.movieCast)
-        .where(eq(schema.movieCast.movieId, id));
-      
-      const cast = [];
-      for (const castMember of castData) {
-        const person = await db.select().from(schema.people).where(eq(schema.people.id, castMember.personId)).limit(1);
-        const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, castMember.personId));
-        const characterTranslations = await db.select().from(schema.movieCastTranslations)
-          .where(sql`${schema.movieCastTranslations.movieId} = ${id} AND ${schema.movieCastTranslations.personId} = ${castMember.personId}`);
-        
-        if (person[0]) {
-          const personName: any = {};
-          const character: any = {};
-          
-          for (const trans of personTranslations) {
-            personName[trans.language] = trans.name;
-          }
-          for (const trans of characterTranslations) {
-            character[trans.language] = trans.character;
-          }
-          
-          cast.push({
-            person: {
-              id: person[0].id,
-              name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-              profile_path: person[0].profilePath,
-            },
-            character: Object.keys(character).length > 0 ? character : { en: '' },
-            order: castMember.order,
-          });
-        }
-      }
-
-      // Get crew with person data
-      const crewData = await db.select()
-        .from(schema.movieCrew)
-        .where(eq(schema.movieCrew.movieId, id));
-      
-      const crew = [];
-      for (const crewMember of crewData) {
-        const person = await db.select().from(schema.people).where(eq(schema.people.id, crewMember.personId)).limit(1);
-        const personTranslations = await db.select().from(schema.peopleTranslations).where(eq(schema.peopleTranslations.personId, crewMember.personId));
-        const jobTranslations = await db.select().from(schema.movieCrewTranslations)
-          .where(sql`${schema.movieCrewTranslations.movieId} = ${id} AND ${schema.movieCrewTranslations.personId} = ${crewMember.personId} AND ${schema.movieCrewTranslations.department} = ${crewMember.department}`);
-        
-        if (person[0]) {
-          const personName: any = {};
-          const job: any = {};
-          
-          for (const trans of personTranslations) {
-            personName[trans.language] = trans.name;
-          }
-          for (const trans of jobTranslations) {
-            job[trans.language] = trans.job;
-          }
-          
-          crew.push({
-            person: {
-              id: person[0].id,
-              name: Object.keys(personName).length > 0 ? personName : { en: 'Unknown' },
-              profile_path: person[0].profilePath,
-            },
-            job: Object.keys(job).length > 0 ? job : { en: '' },
-            department: crewMember.department,
-          });
-        }
-      }
-
-      // Get genres
-      const genreData = await db.select()
-        .from(schema.movieGenres)
-        .where(eq(schema.movieGenres.movieId, id));
-      
-      const genres = [];
-      for (const movieGenre of genreData) {
-        const genre = await db.select().from(schema.genres).where(eq(schema.genres.id, movieGenre.genreId)).limit(1);
-        const genreTranslations = await db.select().from(schema.genreTranslations).where(eq(schema.genreTranslations.genreId, movieGenre.genreId));
-        
-        if (genre[0]) {
-          const genreName: any = {};
-          
-          for (const trans of genreTranslations) {
-            genreName[trans.language] = trans.name;
-          }
-          
-          genres.push({
-            id: genre[0].id,
-            name: Object.keys(genreName).length > 0 ? genreName : { en: 'Unknown' },
-          });
-        }
-      }
-
-      // Get video sources
-      const videoSources = await db.select()
-        .from(schema.videoSources)
-        .where(eq(schema.videoSources.movieId, id));
-
-      // Get images
-      const images = await db.select()
-        .from(schema.movieImages)
-        .where(eq(schema.movieImages.movieId, id));
-
-      // Get external platforms
-      const externalPlatforms = await db.select()
-        .from(schema.movieExternalPlatforms)
-        .where(eq(schema.movieExternalPlatforms.movieId, id));
-
-      // Return in expected format with fallbacks
-      return {
-        id: movie.id,
-        tmdb_id: movie.tmdbId,
-        imdb_id: movie.imdbId,
-        original_title: movie.originalTitle,
-        original_language: movie.originalLanguage,
-        poster_path: movie.posterPath,
-        backdrop_path: movie.backdropPath,
-        release_date: movie.releaseDate,
-        runtime: movie.runtime,
-        vote_average: movie.voteAverage,
-        vote_count: movie.voteCount,
-        popularity: movie.popularity,
-        adult: movie.adult,
-        title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
-        overview: Object.keys(overview).length > 0 ? overview : { en: '' },
-        tagline: Object.keys(tagline).length > 0 ? tagline : undefined,
-        genres,
-        cast,
-        crew,
-        video_sources: videoSources.map(vs => {
-          // Construct full URL from slug
-          // vs.url is now just the movie slug (e.g., 'last-dance')
-          const baseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
-          const fullUrl = `${baseUrl}/${vs.url}/master.m3u8`;
-          
-          return {
-            id: vs.id,
-            quality: vs.quality,
-            format: vs.format,
-            url: fullUrl,
-            size_bytes: vs.sizeBytes,
-            width: vs.width,
-            height: vs.height,
-            aspect_ratio: vs.aspectRatio,
-          };
-        }),
-        images: images.map(img => ({
-          id: img.id,
-          type: img.type,
-          file_path: img.filePath,
-          aspect_ratio: img.aspectRatio,
-          height: img.height,
-          width: img.width,
-          iso_639_1: img.iso6391,
-          vote_average: img.voteAverage,
-          vote_count: img.voteCount,
-          is_primary: img.isPrimary,
-        })),
-        external_platforms: externalPlatforms.map(ep => ({
-          platform: ep.platform,
-          url: ep.url,
-        })),
-        created_at: movie.createdAt,
-        updated_at: movie.updatedAt,
-      };
+      return movieData;
     } catch (error) {
       fastify.log.error(error);
       reply.status(500).send({ error: 'Failed to fetch movie' });
@@ -513,6 +221,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         const dataToInsert: any = {
           originalTitle: movieData.original_title || 'Untitled',
           adult: movieData.adult || false,
+          availabilityStatus: movieData.availability_status || 'available',
         };
         
         // Only include defined values to avoid PostgreSQL undefined errors
@@ -846,6 +555,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
         if (movieUpdates.release_date !== undefined) movieFieldsToUpdate.releaseDate = movieUpdates.release_date;
         if (movieUpdates.poster_path !== undefined) movieFieldsToUpdate.posterPath = movieUpdates.poster_path;
         if (movieUpdates.backdrop_path !== undefined) movieFieldsToUpdate.backdropPath = movieUpdates.backdrop_path;
+        if (movieUpdates.availability_status !== undefined) movieFieldsToUpdate.availabilityStatus = movieUpdates.availability_status;
 
         if (Object.keys(movieFieldsToUpdate).length > 0) {
           await db.update(schema.movies)
