@@ -30,6 +30,27 @@ interface VideoAnalyticsState {
   isResumedSession: boolean;
 }
 
+/**
+ * Create and log an analytics event with common fields
+ */
+function createAndLogEvent(
+  type: AnalyticsEvent['type'],
+  stateRef: React.RefObject<VideoAnalyticsState>,
+  movieIdRef: React.RefObject<string>,
+  movieTitleRef: React.RefObject<string>,
+  data: AnalyticsEvent['data']
+): void {
+  const event: AnalyticsEvent = {
+    type,
+    sessionId: stateRef.current.sessionId,
+    movieId: movieIdRef.current,
+    movieTitle: movieTitleRef.current,
+    timestamp: Date.now(),
+    data,
+  };
+  logEvent(event);
+}
+
 export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'direct' }: UseVideoAnalyticsProps) {
   const stateRef = useRef<VideoAnalyticsState>({
     sessionId: '',
@@ -153,19 +174,11 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     
     // Log event
     const dur = durationRef.current;
-    const event: AnalyticsEvent = {
-      type: 'movie_start',
-      sessionId: stateRef.current.sessionId,
-      movieId: movieIdRef.current,
-      movieTitle: movieTitleRef.current,
-      timestamp: Date.now(),
-      data: {
-        currentTime,
-        duration: dur,
-        progress: dur > 0 ? (currentTime / dur) * 100 : 0,
-      },
-    };
-    logEvent(event);
+    createAndLogEvent('movie_start', stateRef, movieIdRef, movieTitleRef, {
+      currentTime,
+      duration: dur,
+      progress: dur > 0 ? (currentTime / dur) * 100 : 0,
+    });
     
     // Start progress tracking interval
     if (progressIntervalRef.current) {
@@ -174,18 +187,10 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     
     progressIntervalRef.current = setInterval(() => {
       if (sessionRef.current && stateRef.current.isTracking) {
-        const event: AnalyticsEvent = {
-          type: 'movie_progress',
-          sessionId: stateRef.current.sessionId,
-          movieId: movieIdRef.current,
-          movieTitle: movieTitleRef.current,
-          timestamp: Date.now(),
-          data: {
-            watchTime: stateRef.current.totalWatchTime,
-            progress: stateRef.current.maxProgress,
-          },
-        };
-        logEvent(event);
+        createAndLogEvent('movie_progress', stateRef, movieIdRef, movieTitleRef, {
+          watchTime: stateRef.current.totalWatchTime,
+          progress: stateRef.current.maxProgress,
+        });
       }
     }, PROGRESS_INTERVAL_MS);
   }, []); // No dependencies - uses refs
@@ -211,20 +216,12 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     
     // Log event
     const dur = durationRef.current;
-    const event: AnalyticsEvent = {
-      type: 'movie_pause',
-      sessionId: stateRef.current.sessionId,
-      movieId: movieIdRef.current,
-      movieTitle: movieTitleRef.current,
-      timestamp: Date.now(),
-      data: {
-        currentTime,
-        duration: dur,
-        progress: dur > 0 ? (currentTime / dur) * 100 : 0,
-        watchTime: stateRef.current.totalWatchTime,
-      },
-    };
-    logEvent(event);
+    createAndLogEvent('movie_pause', stateRef, movieIdRef, movieTitleRef, {
+      currentTime,
+      duration: dur,
+      progress: dur > 0 ? (currentTime / dur) * 100 : 0,
+      watchTime: stateRef.current.totalWatchTime,
+    });
   }, []); // No dependencies - uses refs
 
   // Track time update (called frequently)
@@ -286,19 +283,11 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     }
     
     // Log event
-    const event: AnalyticsEvent = {
-      type: 'movie_complete',
-      sessionId: stateRef.current.sessionId,
-      movieId: movieIdRef.current,
-      movieTitle: movieTitleRef.current,
-      timestamp: Date.now(),
-      data: {
-        duration: durationRef.current,
-        watchTime: stateRef.current.totalWatchTime,
-        progress: 100,
-      },
-    };
-    logEvent(event);
+    createAndLogEvent('movie_complete', stateRef, movieIdRef, movieTitleRef, {
+      duration: durationRef.current,
+      watchTime: stateRef.current.totalWatchTime,
+      progress: 100,
+    });
   }, []); // No dependencies - uses refs
 
   // Track end (video ended or user left)
@@ -319,18 +308,10 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     }
     
     // Log event
-    const event: AnalyticsEvent = {
-      type: 'movie_end',
-      sessionId: stateRef.current.sessionId,
-      movieId: movieIdRef.current,
-      movieTitle: movieTitleRef.current,
-      timestamp: Date.now(),
-      data: {
-        watchTime: stateRef.current.totalWatchTime,
-        progress: stateRef.current.maxProgress,
-      },
-    };
-    logEvent(event);
+    createAndLogEvent('movie_end', stateRef, movieIdRef, movieTitleRef, {
+      watchTime: stateRef.current.totalWatchTime,
+      progress: stateRef.current.maxProgress,
+    });
   }, []); // No dependencies - uses refs
 
   return {

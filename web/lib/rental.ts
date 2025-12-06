@@ -35,6 +35,25 @@ export const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000; // 2 hours
 const STORAGE_KEY_PREFIX = 'lao_cinema_rental_';
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Format milliseconds as human-readable duration string (e.g., "2h 30m" or "45m")
+ */
+function formatDurationMs(ms: number): string {
+  if (ms <= 0) return '';
+  
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -138,16 +157,7 @@ export function getRemainingGraceTime(movieId: string): number {
  * Format remaining grace time as human-readable string.
  */
 export function formatRemainingGraceTime(movieId: string): string {
-  const remaining = getRemainingGraceTime(movieId);
-  if (remaining <= 0) return '';
-  
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
+  return formatDurationMs(getRemainingGraceTime(movieId));
 }
 
 /**
@@ -166,16 +176,7 @@ export function getRemainingTime(movieId: string): number {
  * Format remaining time as human-readable string
  */
 export function formatRemainingTime(movieId: string): string {
-  const remaining = getRemainingTime(movieId);
-  if (remaining <= 0) return '';
-  
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
+  return formatDurationMs(getRemainingTime(movieId));
 }
 
 /**
