@@ -274,6 +274,7 @@ export function findPrimaryImage(
 interface MovieInput {
   tmdb_id?: number;
   imdb_id?: string;
+  slug?: string;
   original_title?: string;
   original_language?: string;
   poster_path?: string;
@@ -303,6 +304,7 @@ export function mapMovieToInsertData(
   // Only include defined values to avoid PostgreSQL undefined errors
   if (movie.tmdb_id !== undefined) data.tmdbId = movie.tmdb_id;
   if (movie.imdb_id !== undefined) data.imdbId = movie.imdb_id;
+  if (movie.slug !== undefined) data.slug = movie.slug;
   if (movie.original_language !== undefined) data.originalLanguage = movie.original_language;
   
   // Set poster/backdrop from primary images if available, otherwise from top-level fields
@@ -331,6 +333,7 @@ export function mapMovieToInsertData(
 export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<string, any> {
   const data: any = {};
   
+  if (updates.slug !== undefined) data.slug = updates.slug;
   if (updates.runtime !== undefined) data.runtime = updates.runtime;
   if (updates.vote_average !== undefined) data.voteAverage = updates.vote_average;
   if (updates.vote_count !== undefined) data.voteCount = updates.vote_count;

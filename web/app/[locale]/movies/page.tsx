@@ -383,10 +383,11 @@ function MoviesPageContent() {
                               <div className="space-y-1">
                                 {personMatch.movies.slice(0, 3).map((movieRole, idx) => {
                                   const movieTitle = movieRole.movie.title?.[locale as 'en' | 'lo'] || movieRole.movie.title?.en || '';
+                                  const moviePath = movieRole.movie.slug || movieRole.movie.id;
                                   return (
                                     <p key={idx} className="text-sm text-gray-600 dark:text-gray-400">
                                       <Link 
-                                        href={`/movies/${movieRole.movie.id}`}
+                                        href={`/movies/${moviePath}`}
                                         className="font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                                       >
                                         {movieTitle}

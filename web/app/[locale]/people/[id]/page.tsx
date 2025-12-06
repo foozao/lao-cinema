@@ -157,10 +157,11 @@ export default function PersonPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {sortedCredits.map((credit) => {
                   const posterUrl = getPosterUrl(credit.movie.poster_path, 'small');
+                  const moviePath = credit.movie.slug || credit.movie.id;
                   return (
                     <Link
                       key={credit.movie.id}
-                      href={`/movies/${credit.movie.id}`}
+                      href={`/movies/${moviePath}`}
                       className="group"
                     >
                       <div className="bg-gray-800/50 rounded-lg overflow-hidden hover:bg-gray-700/50 transition-colors">

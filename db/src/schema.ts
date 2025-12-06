@@ -15,6 +15,7 @@ export const movies = pgTable('movies', {
   id: uuid('id').defaultRandom().primaryKey(),
   tmdbId: integer('tmdb_id').unique(),
   imdbId: text('imdb_id').unique(),
+  slug: text('slug').unique(), // Vanity URL slug (e.g., 'the-signal')
   
   originalTitle: text('original_title').notNull(),
   originalLanguage: text('original_language'),

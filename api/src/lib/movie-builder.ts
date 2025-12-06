@@ -62,6 +62,7 @@ export async function buildMovieWithRelations(
     id: movie.id,
     tmdb_id: movie.tmdbId,
     imdb_id: movie.imdbId,
+    slug: movie.slug,
     original_title: movie.originalTitle,
     original_language: movie.originalLanguage,
     poster_path: movie.posterPath,

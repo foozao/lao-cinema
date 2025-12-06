@@ -19,6 +19,7 @@ import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
+import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function EditMoviePage() {
     tagline_lo: '',
     
     // Common fields
+    slug: '',
     original_title: '',
     original_language: 'lo',
     release_date: '',
@@ -85,6 +87,7 @@ export default function EditMoviePage() {
   const [newCrewJobLo, setNewCrewJobLo] = useState('');
   const [addingCast, setAddingCast] = useState(false);
   const [addingCrew, setAddingCrew] = useState(false);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   // Load movie data on mount
   useEffect(() => {
@@ -100,6 +103,7 @@ export default function EditMoviePage() {
           overview_lo: movie.overview.lo || '',
           tagline_en: movie.tagline?.en || '',
           tagline_lo: movie.tagline?.lo || '',
+          slug: movie.slug || '',
           original_title: movie.original_title || '',
           original_language: movie.original_language || 'lo',
           release_date: movie.release_date,
@@ -159,6 +163,19 @@ export default function EditMoviePage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setHasChanges(true);
+  };
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Auto-sanitize as user types
+    const sanitized = sanitizeSlug(value);
+    setFormData((prev) => ({ ...prev, slug: sanitized }));
+    
+    // Validate
+    const error = getSlugValidationError(sanitized);
+    setSlugError(error);
     setHasChanges(true);
   };
 
@@ -506,6 +523,12 @@ export default function EditMoviePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate slug before submitting
+    if (formData.slug && slugError) {
+      alert('Please fix the slug error before saving.');
+      return;
+    }
+    
     try {
       // Normalize Lao text to prevent encoding issues
       const normalizeLao = (text: string) => text.normalize('NFC');
@@ -552,6 +575,7 @@ export default function EditMoviePage() {
           en: formData.tagline_en || '',
           lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
         } : undefined,
+        slug: formData.slug || undefined,
         release_date: formData.release_date,
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
         poster_path: formData.poster_path || undefined,
@@ -725,6 +749,45 @@ export default function EditMoviePage() {
               <CardTitle>Movie Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="slug">Vanity URL Slug</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const generated = sanitizeSlug(formData.title_en);
+                      setFormData((prev) => ({ ...prev, slug: generated }));
+                      const error = getSlugValidationError(generated);
+                      setSlugError(error);
+                      setHasChanges(true);
+                    }}
+                    className="text-xs"
+                  >
+                    Generate from title
+                  </Button>
+                </div>
+                <Input
+                  id="slug"
+                  name="slug"
+                  value={formData.slug}
+                  onChange={handleSlugChange}
+                  placeholder="the-signal"
+                  className={slugError ? 'border-red-500' : ''}
+                />
+                {slugError ? (
+                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {slugError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Custom URL path for this movie (e.g., &quot;the-signal&quot; → /movies/the-signal). Leave empty to use ID.
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="original_title">Original Title</Label>

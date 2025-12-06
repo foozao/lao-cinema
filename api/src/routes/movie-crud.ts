@@ -45,15 +45,18 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Get movie by ID
+  // Get movie by ID or slug
   fastify.get<{ Params: { id: string } }>('/movies/:id', async (request, reply) => {
     try {
       const { id } = request.params;
       
-      // Get movie
+      // Check if id is a UUID or a slug
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      
+      // Get movie by ID or slug
       const [movie] = await db.select()
         .from(schema.movies)
-        .where(eq(schema.movies.id, id))
+        .where(isUUID ? eq(schema.movies.id, id) : eq(schema.movies.slug, id))
         .limit(1);
 
       if (!movie) {
