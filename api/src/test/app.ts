@@ -8,12 +8,14 @@ import userDataRoutes from '../routes/user-data.js';
 import rentalRoutes from '../routes/rentals.js';
 import watchProgressRoutes from '../routes/watch-progress.js';
 import peopleRoutes from '../routes/people.js';
+import homepageRoutes from '../routes/homepage.js';
 
 interface BuildOptions {
   includeAuth?: boolean;
   includeRentals?: boolean;
   includeWatchProgress?: boolean;
   includePeople?: boolean;
+  includeHomepage?: boolean;
 }
 
 /**
@@ -48,6 +50,10 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   
   if (options.includePeople) {
     await app.register(peopleRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeHomepage) {
+    await app.register(homepageRoutes, { prefix: '/api' });
   }
 
   return app;
