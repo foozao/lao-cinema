@@ -4,7 +4,13 @@
  * Tests the database-backed rental service that wraps the API client.
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+
+// Mock the API client module
+jest.mock('../api/rentals-client');
+
+// Import the mocked module
+import * as rentalsClient from '../api/rentals-client';
 import {
   RENTAL_DURATION_MS,
   GRACE_PERIOD_MS,
@@ -20,26 +26,11 @@ import {
   hasActiveRental,
 } from '../rental-service';
 
-// Mock the API client
-jest.mock('../api/rentals-client', () => ({
-  getRentals: jest.fn(),
-  getRentalStatus: jest.fn(),
-  createRental: jest.fn(),
-  hasActiveRental: jest.fn(),
-}));
-
-// Import mocked functions
-import { 
-  getRentals, 
-  getRentalStatus, 
-  createRental as apiCreateRental,
-  hasActiveRental as apiHasActiveRental,
-} from '../api/rentals-client';
-
-const mockGetRentals = getRentals as jest.MockedFunction<typeof getRentals>;
-const mockGetRentalStatus = getRentalStatus as jest.MockedFunction<typeof getRentalStatus>;
-const mockApiCreateRental = apiCreateRental as jest.MockedFunction<typeof apiCreateRental>;
-const mockApiHasActiveRental = apiHasActiveRental as jest.MockedFunction<typeof apiHasActiveRental>;
+// Get the mocked functions with proper types
+const mockGetRentals = rentalsClient.getRentals as jest.Mock;
+const mockGetRentalStatus = rentalsClient.getRentalStatus as jest.Mock;
+const mockApiCreateRental = rentalsClient.createRental as jest.Mock;
+const mockApiHasActiveRental = rentalsClient.hasActiveRental as jest.Mock;
 
 describe('Rental Service', () => {
   beforeEach(() => {

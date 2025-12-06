@@ -7,11 +7,13 @@ import authRoutes from '../routes/auth.js';
 import userDataRoutes from '../routes/user-data.js';
 import rentalRoutes from '../routes/rentals.js';
 import watchProgressRoutes from '../routes/watch-progress.js';
+import peopleRoutes from '../routes/people.js';
 
 interface BuildOptions {
   includeAuth?: boolean;
   includeRentals?: boolean;
   includeWatchProgress?: boolean;
+  includePeople?: boolean;
 }
 
 /**
@@ -42,6 +44,10 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   
   if (options.includeWatchProgress) {
     await app.register(watchProgressRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includePeople) {
+    await app.register(peopleRoutes, { prefix: '/api' });
   }
 
   return app;
