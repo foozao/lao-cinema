@@ -182,7 +182,8 @@
     "paymentSuccess": "Payment successful!",
     "demoNotice": "Demo mode: No actual payment required",
     "rentalActive": "Rental active",
-    "expiresIn": "Expires in {time}"
+    "expiresIn": "Expires in {time}",
+    "recentlyExpired": "Your rental has expired. Rent again to continue watching."
   },
   "admin": {
     "dashboard": "Dashboard",

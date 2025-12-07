@@ -19,6 +19,7 @@ import {
 
 export const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000; // 2 hours
+export const RECENTLY_EXPIRED_WINDOW_MS = 12 * 60 * 60 * 1000; // 12 hours - show "expired" notice for this long
 
 // =============================================================================
 // HELPERS
@@ -197,4 +198,30 @@ export async function getActiveRentals(): Promise<Rental[]> {
  */
 export async function hasActiveRental(movieId: string): Promise<boolean> {
   return await apiHasActiveRental(movieId);
+}
+
+/**
+ * Check if user has a recently expired rental (within RECENTLY_EXPIRED_WINDOW_MS)
+ * Returns the expiry time if recently expired, null otherwise
+ */
+export async function getRecentlyExpiredRental(movieId: string): Promise<{ expiredAt: Date } | null> {
+  try {
+    const { expired, expiredAt } = await getRentalStatus(movieId);
+    
+    // API returns rental: null when expired, but sets expired: true and expiredAt
+    if (!expired || !expiredAt) return null;
+    
+    const now = Date.now();
+    const expiryTime = new Date(expiredAt).getTime();
+    const recentlyExpiredEnd = expiryTime + RECENTLY_EXPIRED_WINDOW_MS;
+    
+    if (now < recentlyExpiredEnd) {
+      return { expiredAt: new Date(expiredAt) };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Failed to check recently expired rental:', error);
+    return null;
+  }
 }

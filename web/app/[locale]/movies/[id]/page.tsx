@@ -13,11 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Calendar, Clock, Star, Users, Play, Ban, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Star, Users, Play, Ban, Sparkles, AlertCircle } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
-import { isRentalValid, purchaseRental, getFormattedRemainingTime } from '@/lib/rental-service';
+import { isRentalValid, purchaseRental, getFormattedRemainingTime, getRecentlyExpiredRental } from '@/lib/rental-service';
 import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
@@ -39,6 +39,7 @@ export default function MoviePage() {
   const [paymentReason, setPaymentReason] = useState<PaymentReason>('default');
   const [hasValidRental, setHasValidRental] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
+  const [recentlyExpired, setRecentlyExpired] = useState<{ expiredAt: Date } | null>(null);
 
   // Check for rental query param (redirect from watch page)
   useEffect(() => {
@@ -79,6 +80,11 @@ export default function MoviePage() {
       if (valid) {
         const time = await getFormattedRemainingTime(movie.id);
         setRemainingTime(time);
+        setRecentlyExpired(null);
+      } else {
+        // Check if rental recently expired
+        const expired = await getRecentlyExpiredRental(movie.id);
+        setRecentlyExpired(expired);
       }
     };
 
@@ -287,6 +293,12 @@ export default function MoviePage() {
                             <p className="text-sm text-green-400">
                               {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
                             </p>
+                          )}
+                          {!hasValidRental && recentlyExpired && (
+                            <div className="flex items-center gap-2 text-sm text-amber-400">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>{t('payment.recentlyExpired')}</span>
+                            </div>
                           )}
                         </>
                       ) : hasExternalPlatforms ? (

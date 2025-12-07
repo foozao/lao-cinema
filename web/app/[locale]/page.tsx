@@ -50,7 +50,23 @@ export default function Home() {
     try {
       // Fetch active and recently expired rentals
       const { rentals: userRentals } = await getRentals(true);
-      setRentals(userRentals);
+      
+      // Sort: active rentals first, then expired (by expiry date descending)
+      const now = new Date();
+      const sortedRentals = userRentals.sort((a, b) => {
+        const aExpired = new Date(a.expiresAt) <= now;
+        const bExpired = new Date(b.expiresAt) <= now;
+        
+        // Active rentals come first
+        if (aExpired !== bExpired) {
+          return aExpired ? 1 : -1;
+        }
+        
+        // Within same status, sort by expiry date (soonest first for active, most recent for expired)
+        return new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime();
+      });
+      
+      setRentals(sortedRentals);
     } catch (err) {
       console.error('Failed to load rentals:', err);
       // Silently fail for rentals - not critical for homepage

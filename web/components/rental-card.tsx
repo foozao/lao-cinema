@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Clock, Play, Info } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
+import { getMoviePath, getMovieWatchUrl } from '@/lib/movie-url';
 import { Card } from './ui/card';
 import type { Language } from '@/lib/types';
 import type { Rental } from '@/lib/api/rentals-client';
@@ -50,7 +51,7 @@ export function RentalCard({ rental }: RentalCardProps) {
     : 0;
   
   return (
-    <Link href={isExpired ? `/movies/${movie.id}` : `/movies/${movie.id}/watch`}>
+    <Link href={isExpired ? `/movies/${getMoviePath(movie)}` : getMovieWatchUrl(movie)}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700">
         <div className="flex h-full">
           {/* Poster - Full Height */}
@@ -138,7 +139,7 @@ export function RentalCard({ rental }: RentalCardProps) {
             {/* Movie Details link - for active rentals */}
             {!isExpired && (
               <Link
-                href={`/movies/${movie.id}`}
+                href={`/movies/${getMoviePath(movie)}`}
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-2"
               >
