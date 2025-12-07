@@ -6,6 +6,7 @@ import { Link } from '@/i18n/routing';
 import { MovieCard } from '@/components/movie-card';
 import { RentalCard } from '@/components/rental-card';
 import { Header } from '@/components/header';
+import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
 import { Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
@@ -90,6 +91,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
       {/* Header */}
       <Header variant="light" />
+      <SubHeader variant="light" />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 flex-grow">
@@ -108,19 +110,10 @@ export default function Home() {
         )}
 
         {/* Featured Films Section */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {t('home.featured')}
-            </h2>
-            <Link
-              href="/movies"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('home.browseAll')}
-              <span aria-hidden="true">→</span>
-            </Link>
-          </div>
+        <section className="mb-6">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {t('home.featured')}
+          </h2>
         </section>
 
         {/* Movie Grid */}
