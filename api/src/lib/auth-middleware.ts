@@ -7,7 +7,7 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { findSessionByToken } from './auth-service.js';
-import type { User } from '../../../db/src/schema.js';
+import type { User } from '../db/schema.js';
 
 // =============================================================================
 // TYPE EXTENSIONS

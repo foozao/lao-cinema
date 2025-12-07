@@ -8,10 +8,10 @@
 import { FastifyInstance } from 'fastify';
 import { eq, and, or, gt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { rentals, movies, watchProgress } from '../../../db/src/schema.js';
+import { rentals, movies, watchProgress } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
-import * as schema from '../../../db/src/schema.js';
+import * as schema from '../db/schema.js';
 
 // Rental duration: 24 hours
 const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000;

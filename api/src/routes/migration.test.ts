@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { build } from '../test/app.js';
 import { db } from '../db/index.js';
-import { users, userSessions, rentals, watchProgress, movies } from '../../../db/src/schema.js';
+import { users, userSessions, rentals, watchProgress, movies } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 

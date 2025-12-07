@@ -8,7 +8,7 @@
 import { FastifyInstance } from 'fastify';
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { watchProgress, movies } from '../../../db/src/schema.js';
+import { watchProgress, movies } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 
 export default async function watchProgressRoutes(fastify: FastifyInstance) {

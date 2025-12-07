@@ -8,7 +8,7 @@
 import { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { rentals, watchProgress } from '../../../db/src/schema.js';
+import { rentals, watchProgress } from '../db/schema.js';
 import { requireAuth } from '../lib/auth-middleware.js';
 
 export default async function userDataRoutes(fastify: FastifyInstance) {

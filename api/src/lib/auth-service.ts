@@ -7,8 +7,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, userSessions, oauthAccounts } from '../../../db/src/schema.js';
-import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount } from '../../../db/src/schema.js';
+import { users, userSessions, oauthAccounts } from '../db/schema.js';
+import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount } from '../db/schema.js';
 import { hashPassword, verifyPassword, generateSessionToken, getSessionExpiration } from './auth-utils.js';
 
 // =============================================================================
