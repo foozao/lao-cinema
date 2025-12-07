@@ -91,14 +91,66 @@ export function VideoPlayer({
   }, [videoRef, isMuted]);
 
   const toggleFullscreen = useCallback(() => {
+    const video = videoRef.current;
     const container = containerRef.current;
-    if (!container) return;
-    if (!document.fullscreenElement) {
-      container.requestFullscreen();
+    
+    if (!video || !container) return;
+
+    // Check if already in fullscreen
+    const isCurrentlyFullscreen = !!(
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      (document as any).mozFullScreenElement ||
+      (document as any).msFullscreenElement
+    );
+
+    if (!isCurrentlyFullscreen) {
+      // Mobile devices: use video element fullscreen
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // iOS Safari uses webkitEnterFullscreen
+        if ((video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        } 
+        // Android Chrome and other mobile browsers
+        else if (video.requestFullscreen) {
+          video.requestFullscreen();
+        } else if ((video as any).webkitRequestFullscreen) {
+          (video as any).webkitRequestFullscreen();
+        } else if ((video as any).mozRequestFullScreen) {
+          (video as any).mozRequestFullScreen();
+        } else if ((video as any).msRequestFullscreen) {
+          (video as any).msRequestFullscreen();
+        }
+      } 
+      // Desktop: use container fullscreen for better controls
+      else {
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          (container as any).webkitRequestFullscreen();
+        } else if ((container as any).mozRequestFullScreen) {
+          (container as any).mozRequestFullScreen();
+        } else if ((container as any).msRequestFullscreen) {
+          (container as any).msRequestFullscreen();
+        }
+      }
     } else {
-      document.exitFullscreen();
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+      // iOS Safari doesn't have exitFullscreen, user must exit manually
+      else if ((video as any).webkitExitFullscreen) {
+        (video as any).webkitExitFullscreen();
+      }
     }
-  }, []);
+  }, [videoRef]);
 
   // Keyboard shortcuts
   useVideoKeyboard({
@@ -166,13 +218,39 @@ export function VideoPlayer({
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isInFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isInFullscreen);
     };
+    
+    // Listen to all fullscreen change events for cross-browser support
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // iOS Safari specific - listen on video element
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener('webkitbeginfullscreen', handleFullscreenChange);
+      video.addEventListener('webkitendfullscreen', handleFullscreenChange);
+    }
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      if (video) {
+        video.removeEventListener('webkitbeginfullscreen', handleFullscreenChange);
+        video.removeEventListener('webkitendfullscreen', handleFullscreenChange);
+      }
     };
-  }, []);
+  }, [videoRef]);
 
   // Container classes
   const containerClasses = "w-full";
@@ -194,6 +272,9 @@ export function VideoPlayer({
           poster={!hasStarted ? poster : undefined}
           playsInline
           onClick={togglePlay}
+          webkit-playsinline="true"
+          x-webkit-airplay="allow"
+          controlsList="nodownload"
         >
           Your browser does not support the video tag.
         </video>

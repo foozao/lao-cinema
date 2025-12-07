@@ -230,6 +230,13 @@ When implementing changes, verify:
 
 ## Known Issues / Workarounds
 
+### Mobile Fullscreen
+**Fixed**: Mobile browsers (especially Chrome on Android) require `requestFullscreen()` to be called on the `<video>` element itself, not the container. iOS Safari uses proprietary `webkitEnterFullscreen()`.
+
+**Solution**: The video player now detects mobile devices and calls fullscreen on the video element. Desktop browsers continue to use container fullscreen for custom controls. See `MOBILE_FULLSCREEN_FIX.md` for details.
+
+**Files involved**: `web/components/video-player.tsx`
+
 ### Video Letterboxing
 Some video files have letterboxing (black bars) baked into the video encoding itself, causing excessive padding on the watch page even when aspect ratio metadata is set correctly.
 
