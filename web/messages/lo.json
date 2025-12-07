@@ -415,6 +415,8 @@
       "remaining": "ເຫຼືອ",
       "watchNow": "ເບິ່ງດຽວນີ້",
       "rentAgain": "ເຊົ່າອີກຄັ້ງ",
+      "viewDetails": "ເບິ່ງລາຍລະອຽດຮູບເງົາ",
+      "percentWatched": "ເບິ່ງແລ້ວ {percent}%",
       "expiredRecently": "ການເຊົ່າໝົດອາຍຸແລ້ວ",
       "expiresInHours": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ",
       "expiresInMinutes": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ {minutes} ນາທີ",

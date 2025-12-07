@@ -415,6 +415,8 @@
       "remaining": "remaining",
       "watchNow": "Watch Now",
       "rentAgain": "Rent Again",
+      "viewDetails": "View movie details",
+      "percentWatched": "{percent}% watched",
       "expiredRecently": "Rental expired",
       "expiresInHours": "Rental expires in {hours}h",
       "expiresInMinutes": "Rental expires in {hours}h {minutes}m",

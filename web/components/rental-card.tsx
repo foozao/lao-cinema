@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
-import { Clock, Play } from 'lucide-react';
+import { Clock, Play, Info } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { Card } from './ui/card';
@@ -80,6 +80,7 @@ export function RentalCard({ rental }: RentalCardProps) {
             }`}>
               {isExpired ? t('expired') : t('active')}
             </div>
+            
           </div>
 
           {/* Content */}
@@ -105,7 +106,7 @@ export function RentalCard({ rental }: RentalCardProps) {
             {!isExpired && (
               <div className="mb-3">
                 <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  <span>{progressPercent}% watched</span>
+                  <span>{t('percentWatched', { percent: progressPercent })}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                   <div 
@@ -133,6 +134,18 @@ export function RentalCard({ rental }: RentalCardProps) {
                 </span>
               )}
             </div>
+            
+            {/* Movie Details link - for active rentals */}
+            {!isExpired && (
+              <Link
+                href={`/movies/${movie.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-2"
+              >
+                <Info className="w-4 h-4" />
+                <span>{t('viewDetails')}</span>
+              </Link>
+            )}
             
             {/* Rent Again CTA - only for expired */}
             {isExpired && (
