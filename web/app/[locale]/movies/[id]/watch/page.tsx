@@ -167,10 +167,23 @@ export default function WatchPage() {
         />
       </div>
 
-      {/* Movie Info Sidebar - Slides in from right */}
+      {/* Backdrop overlay for mobile */}
       {showInfo && (
-        <div className="fixed top-0 right-0 bottom-0 w-full md:w-96 bg-gray-900 z-40 overflow-y-auto animate-in slide-in-from-right">
-          <div className="p-6 pt-20">
+        <div 
+          className="fixed inset-0 bg-black/40 z-30 md:hidden animate-in fade-in duration-300"
+          onClick={() => setShowInfo(false)}
+        />
+      )}
+
+      {/* Movie Info Panel - Bottom sheet on mobile, side panel on desktop */}
+      {showInfo && (
+        <div className="fixed bottom-0 left-0 right-0 md:top-0 md:right-0 md:bottom-0 md:left-auto w-full md:w-96 max-h-[35vh] md:max-h-none bg-gray-900/60 backdrop-blur-sm rounded-t-2xl md:rounded-none z-40 overflow-y-auto animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
+          {/* Mobile drag handle */}
+          <div className="md:hidden flex justify-center pt-3 pb-2">
+            <div className="w-12 h-1 bg-gray-500 rounded-full" />
+          </div>
+          
+          <div className="p-6 pt-3 md:pt-20">
             {/* Movie Title with Close button */}
             <div className="flex items-start justify-between gap-4 mb-4">
               <h2 className="text-2xl font-bold text-white">{title}</h2>
