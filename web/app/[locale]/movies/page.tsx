@@ -11,6 +11,7 @@ import { Search, User, Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
+import { getMovieUrl } from '@/lib/movie-url';
 
 function MoviesPageContent() {
   const t = useTranslations();
@@ -383,11 +384,10 @@ function MoviesPageContent() {
                               <div className="space-y-1">
                                 {personMatch.movies.slice(0, 3).map((movieRole, idx) => {
                                   const movieTitle = movieRole.movie.title?.[locale as 'en' | 'lo'] || movieRole.movie.title?.en || '';
-                                  const moviePath = movieRole.movie.slug || movieRole.movie.id;
                                   return (
                                     <p key={idx} className="text-sm text-gray-600 dark:text-gray-400">
                                       <Link 
-                                        href={`/movies/${moviePath}`}
+                                        href={getMovieUrl(movieRole.movie)}
                                         className="font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                                       >
                                         {movieTitle}

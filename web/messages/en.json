@@ -113,6 +113,12 @@
     "setDecoration": "Set Decoration",
     "costumeDesign": "Costume Design"
   },
+  "people": {
+    "movies": "Movies",
+    "acting": "Acting",
+    "crew": "Crew",
+    "asRole": "as {role}"
+  },
   "departments": {
     "directing": "Directing",
     "writing": "Writing",

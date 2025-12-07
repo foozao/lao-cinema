@@ -240,6 +240,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         cast.push({
           movie: {
             id: movie.id,
+            slug: movie.slug,
             title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
             poster_path: movie.posterPath,
             release_date: movie.releaseDate,
@@ -278,6 +279,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         crew.push({
           movie: {
             id: movie.id,
+            slug: movie.slug,
             title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
             poster_path: movie.posterPath,
             release_date: movie.releaseDate,

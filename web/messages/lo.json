@@ -113,6 +113,12 @@
     "setDecoration": "ຕົບແຕ່ງສະຖານທີ່",
     "costumeDesign": "ອອກແບບເຄື່ອງນຸ່ງ"
   },
+  "people": {
+    "movies": "ຮູບເງົາ",
+    "acting": "ນັກສະແດງ",
+    "crew": "ທີມງານ",
+    "asRole": "ໃນບົດບາດ {role}"
+  },
   "departments": {
     "directing": "ການກຳກັບ",
     "writing": "ການຂຽນ",

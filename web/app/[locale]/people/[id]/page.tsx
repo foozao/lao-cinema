@@ -6,10 +6,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
-import { Film } from 'lucide-react';
+import { Film, Circle, User, Share2 } from 'lucide-react';
+import { Footer } from '@/components/footer';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText, getBilingualName } from '@/lib/i18n';
 import { getPosterUrl, getProfileUrl } from '@/lib/images';
+import { getMovieUrl } from '@/lib/movie-url';
 import type { Movie, CastMember, CrewMember } from '@/lib/types';
 
 interface PersonCredit {
@@ -64,7 +66,9 @@ export default function PersonPage() {
     );
   }
 
-  const personName = getBilingualName(person.name, locale);
+  const personNameEn = getLocalizedText(person.name, 'en');
+  const personNameLo = getLocalizedText(person.name, 'lo');
+  const hasLaoName = personNameLo && personNameLo !== personNameEn;
   const personPhoto = person.profile_path;
 
   return (
@@ -72,43 +76,83 @@ export default function PersonPage() {
       {/* Header */}
       <Header variant="dark" />
 
-      {/* Main Content */}
+      {/* Main Content - Two Column Layout */}
       <main className="container mx-auto px-4 py-8">
-        {/* Person Info */}
-        <div className="flex items-start gap-8 mb-12">
-          {personPhoto && (
-            <img
-              src={getProfileUrl(personPhoto, 'large') || ''}
-              alt={personName}
-              className="w-48 h-48 rounded-full object-cover"
-            />
-          )}
-          <div>
-            <h1 className="text-5xl font-bold mb-4">{personName}</h1>
-            {person.biography && (
-              <p className="text-gray-300 max-w-3xl">
-                {getLocalizedText(person.biography, locale)}
-              </p>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Left Sidebar - Photo & Personal Info */}
+          <aside className="md:w-64 flex-shrink-0">
+            {personPhoto ? (
+              <img
+                src={getProfileUrl(personPhoto, 'large') || ''}
+                alt={personNameEn}
+                className="w-full max-w-[250px] mx-auto md:mx-0 rounded-lg object-cover shadow-lg"
+              />
+            ) : (
+              <div className="w-full max-w-[250px] mx-auto md:mx-0 aspect-[2/3] bg-gray-800 rounded-lg flex items-center justify-center">
+                <User className="w-24 h-24 text-gray-600" />
+              </div>
             )}
-            {person.birthday && (
-              <p className="text-gray-400 mt-4">
-                Born: {new Date(person.birthday).toLocaleDateString()}
-              </p>
-            )}
-            {person.place_of_birth && (
-              <p className="text-gray-400">
-                Place of Birth: {person.place_of_birth}
-              </p>
-            )}
-          </div>
-        </div>
+            
+            {/* Personal Info */}
+            <div className="mt-6 space-y-4">
+              {person.birthday && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Born</h3>
+                  <p className="text-white">{new Date(person.birthday).toLocaleDateString()}</p>
+                </div>
+              )}
+              {person.place_of_birth && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Place of Birth</h3>
+                  <p className="text-white">{person.place_of_birth}</p>
+                </div>
+              )}
+            </div>
+          </aside>
 
-        {/* Combined Credits - Group by Movie */}
-        {((person.cast && person.cast.length > 0) || (person.crew && person.crew.length > 0)) && (() => {
+          {/* Right Content - Name, Bio, Filmography */}
+          <div className="flex-1 min-w-0">
+            {/* Name */}
+            <h1 className="text-4xl md:text-5xl font-bold mb-1">{personNameEn}</h1>
+            {hasLaoName && (
+              <p className="text-xl md:text-2xl text-gray-300 mb-4">{personNameLo}</p>
+            )}
+            
+            {/* Share Button */}
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: personNameEn,
+                    url: window.location.href,
+                  });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors mb-8"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
+            </button>
+            
+            {/* Biography */}
+            {person.biography && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-3">Biography</h2>
+                <p className="text-gray-300 leading-relaxed">
+                  {getLocalizedText(person.biography, locale)}
+                </p>
+              </div>
+            )}
+
+            {/* Credits Section */}
+            {((person.cast && person.cast.length > 0) || (person.crew && person.crew.length > 0)) && (() => {
           // Combine all credits and group by movie
           const movieCredits = new Map<string, {
             movie: any;
-            roles: string[];
+            castRoles: string[];
+            crewRoles: string[];
           }>();
 
           // Add cast credits
@@ -118,11 +162,12 @@ export default function PersonPage() {
               if (!movieCredits.has(movieId)) {
                 movieCredits.set(movieId, {
                   movie: credit.movie,
-                  roles: []
+                  castRoles: [],
+                  crewRoles: []
                 });
               }
               const characterName = getLocalizedText(credit.character, locale);
-              movieCredits.get(movieId)!.roles.push(characterName);
+              movieCredits.get(movieId)!.castRoles.push(characterName);
             });
           }
 
@@ -133,11 +178,12 @@ export default function PersonPage() {
               if (!movieCredits.has(movieId)) {
                 movieCredits.set(movieId, {
                   movie: credit.movie,
-                  roles: []
+                  castRoles: [],
+                  crewRoles: []
                 });
               }
               const jobName = getLocalizedText(credit.job, locale);
-              movieCredits.get(movieId)!.roles.push(jobName);
+              movieCredits.get(movieId)!.crewRoles.push(jobName);
             });
           }
 
@@ -148,56 +194,119 @@ export default function PersonPage() {
             return dateB - dateA;
           });
 
+          // Separate acting credits from crew credits for the filmography list
+          const actingCredits = sortedCredits.filter(c => c.castRoles.length > 0);
+          const crewCredits = sortedCredits.filter(c => c.crewRoles.length > 0);
+
           return (
-            <section>
-              <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-                <Film className="w-8 h-8" />
-                Known For
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {sortedCredits.map((credit) => {
-                  const posterUrl = getPosterUrl(credit.movie.poster_path, 'small');
-                  const moviePath = credit.movie.slug || credit.movie.id;
-                  return (
-                    <Link
-                      key={credit.movie.id}
-                      href={`/movies/${moviePath}`}
-                      className="group"
-                    >
-                      <div className="bg-gray-800/50 rounded-lg overflow-hidden hover:bg-gray-700/50 transition-colors">
-                        {posterUrl ? (
-                          <img
-                            src={posterUrl}
-                            alt={getLocalizedText(credit.movie.title, locale)}
-                            className="w-full aspect-[2/3] object-cover"
-                          />
-                        ) : (
-                          <div className="w-full aspect-[2/3] bg-gray-700 flex items-center justify-center">
-                            <Film className="w-12 h-12 text-gray-500" />
-                          </div>
-                        )}
-                        <div className="p-3">
-                          <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-blue-400 transition-colors">
-                            {getLocalizedText(credit.movie.title, locale)}
-                          </h3>
-                          <p className="text-xs text-gray-400 mb-2">
-                            {credit.movie.release_date && new Date(credit.movie.release_date).getFullYear()}
-                          </p>
-                          <div className="text-xs text-gray-300 space-y-0.5">
-                            {credit.roles.map((role, idx) => (
-                              <p key={idx} className="line-clamp-1">{role}</p>
-                            ))}
+            <>
+              {/* Known For - Poster Strip */}
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold mb-4">{t('people.movies')}</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                  {sortedCredits.slice(0, 8).map((credit) => {
+                    const posterUrl = getPosterUrl(credit.movie.poster_path, 'small');
+                    return (
+                      <Link
+                        key={credit.movie.id}
+                        href={getMovieUrl(credit.movie)}
+                        className="group flex-shrink-0 w-[130px]"
+                      >
+                        <div className="rounded-lg overflow-hidden shadow-lg">
+                          {posterUrl ? (
+                            <img
+                              src={posterUrl}
+                              alt={getLocalizedText(credit.movie.title, locale)}
+                              className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-full aspect-[2/3] bg-gray-700 flex items-center justify-center">
+                              <Film className="w-10 h-10 text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="mt-2 text-sm text-center line-clamp-2 group-hover:text-blue-400 transition-colors">
+                          {getLocalizedText(credit.movie.title, locale)}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Acting Filmography */}
+              {actingCredits.length > 0 && (
+                <section className="mb-10">
+                  <h2 className="text-2xl font-bold mb-4">{t('people.acting')}</h2>
+                  <div className="bg-gray-800/30 rounded-lg divide-y divide-gray-700/50">
+                    {actingCredits.map((credit) => {
+                      const year = credit.movie.release_date 
+                        ? new Date(credit.movie.release_date).getFullYear() 
+                        : '—';
+                      return (
+                        <div key={credit.movie.id} className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700/30 transition-colors">
+                          <span className="text-gray-400 w-12 text-sm">{year}</span>
+                          <Circle className="w-2 h-2 text-gray-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <Link 
+                              href={getMovieUrl(credit.movie)}
+                              className="font-medium hover:text-blue-400 transition-colors"
+                            >
+                              {getLocalizedText(credit.movie.title, locale)}
+                            </Link>
+                            {credit.castRoles.length > 0 && (
+                              <span className="text-gray-400 ml-2">
+                                {t('people.asRole', { role: credit.castRoles.join(', ') })}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Crew Filmography */}
+              {crewCredits.length > 0 && (
+                <section className="mb-10">
+                  <h2 className="text-2xl font-bold mb-4">{t('people.crew')}</h2>
+                  <div className="bg-gray-800/30 rounded-lg divide-y divide-gray-700/50">
+                    {crewCredits.map((credit) => {
+                      const year = credit.movie.release_date 
+                        ? new Date(credit.movie.release_date).getFullYear() 
+                        : '—';
+                      return (
+                        <div key={credit.movie.id} className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700/30 transition-colors">
+                          <span className="text-gray-400 w-12 text-sm">{year}</span>
+                          <Circle className="w-2 h-2 text-gray-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <Link 
+                              href={getMovieUrl(credit.movie)}
+                              className="font-medium hover:text-blue-400 transition-colors"
+                            >
+                              {getLocalizedText(credit.movie.title, locale)}
+                            </Link>
+                            {credit.crewRoles.length > 0 && (
+                              <span className="text-gray-400 ml-2">
+                                ... {credit.crewRoles.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </>
           );
         })()}
+          </div>
+        </div>
       </main>
+      
+      <Footer />
     </div>
   );
 }
