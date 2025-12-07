@@ -6,3 +6,4 @@ export {
   VideoErrorState, 
   ContinueWatchingDialog 
 } from './video-overlays';
+export { CastErrorNotification } from './cast-error-notification';

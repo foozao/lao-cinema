@@ -55,6 +55,19 @@ jest.mock('@/lib/video', () => ({
   })),
 }));
 
+// Mock the Google Cast hook
+jest.mock('@/lib/video/use-google-cast', () => ({
+  useGoogleCast: jest.fn(() => ({
+    isCastAvailable: false,
+    isCasting: false,
+    deviceName: null,
+    startCasting: jest.fn(),
+    stopCasting: jest.fn(),
+    toggleCasting: jest.fn(),
+    castError: null,
+  })),
+}));
+
 // Mock video sub-components
 jest.mock('../video', () => ({
   VideoControls: ({ 
@@ -104,6 +117,14 @@ jest.mock('../video', () => ({
       <button onClick={onContinue}>Continue</button>
       <button onClick={onStartFromBeginning}>Start Over</button>
     </div>
+  ),
+  CastErrorNotification: ({ error, onDismiss }: any) => (
+    error ? (
+      <div data-testid="cast-error-notification">
+        <span>{error}</span>
+        <button onClick={onDismiss}>Dismiss</button>
+      </div>
+    ) : null
   ),
 }));
 

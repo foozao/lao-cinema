@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useVideoAnalytics } from '@/lib/analytics';
-import { useHlsPlayer, useContinueWatching, useVideoKeyboard, useCasting } from '@/lib/video';
+import { useHlsPlayer, useContinueWatching, useVideoKeyboard } from '@/lib/video';
+import { useGoogleCast } from '@/lib/video/use-google-cast';
 import { 
   VideoControls, 
   BigPlayButton, 
   VideoLoadingSpinner, 
   VideoErrorState, 
-  ContinueWatchingDialog 
+  ContinueWatchingDialog,
+  CastErrorNotification
 } from './video';
 
 interface VideoPlayerProps {
@@ -161,12 +163,28 @@ export function VideoPlayer({
     onMuteChange: setIsMuted,
   });
 
-  // Casting to TV
+  // Casting to TV (Google Cast for HLS support)
   const {
     isCastAvailable,
     isCasting,
     toggleCasting,
-  } = useCasting({ videoRef, src });
+    castError,
+  } = useGoogleCast({ 
+    videoRef, 
+    src,
+    title: movieTitle || title,
+    poster,
+  });
+
+  // Local state for cast error (to allow dismissal)
+  const [displayCastError, setDisplayCastError] = useState<string | null>(null);
+
+  // Update displayed error when castError changes
+  useEffect(() => {
+    if (castError) {
+      setDisplayCastError(castError);
+    }
+  }, [castError]);
 
   // Video event listeners
   useEffect(() => {
@@ -302,6 +320,12 @@ export function VideoPlayer({
             onStartFromBeginning={handleStartFromBeginning}
           />
         )}
+
+        {/* Cast Error Notification */}
+        <CastErrorNotification
+          error={displayCastError}
+          onDismiss={() => setDisplayCastError(null)}
+        />
 
         {/* Controls */}
         <VideoControls

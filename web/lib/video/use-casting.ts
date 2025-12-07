@@ -60,13 +60,22 @@ export function useCasting({ videoRef, src }: UseCastingOptions): UseCastingResu
     // Check if Remote Playback API is supported
     const remote = getRemotePlayback(video);
     if (remote) {
-      // Watch for device availability changes
-      remote.watchAvailability((available) => {
-        setIsCastAvailable(available);
-      }).catch(() => {
-        // watchAvailability not supported, check once
-        setIsCastAvailable(true); // Assume available, prompt will fail if not
-      });
+      // For HLS streams (via hls.js/MSE), watchAvailability often returns false
+      // even when casting is supported. Always enable cast button for HLS.
+      const isHlsStream = src.includes('.m3u8') || src.startsWith('blob:');
+      
+      if (isHlsStream) {
+        // HLS/MSE: Always show cast button, let prompt() handle availability
+        setIsCastAvailable(true);
+      } else {
+        // Native formats: Use proper availability detection
+        remote.watchAvailability((available) => {
+          setIsCastAvailable(available);
+        }).catch(() => {
+          // watchAvailability not supported, check once
+          setIsCastAvailable(true); // Assume available, prompt will fail if not
+        });
+      }
 
       // Handle connection state changes
       const handleConnecting = () => {
@@ -104,25 +113,36 @@ export function useCasting({ videoRef, src }: UseCastingOptions): UseCastingResu
   }, [videoRef, src]);
 
   const startCasting = useCallback(async () => {
+    console.log('🎬 startCasting called');
     const video = videoRef.current;
     const remote = video ? getRemotePlayback(video) : null;
+    
+    console.log('🎬 Video element:', video);
+    console.log('🎬 Remote API:', remote);
+    
     if (!remote) {
+      console.error('❌ No remote API available');
       setCastError('Casting not supported');
       return;
     }
 
     try {
+      console.log('🎬 Calling remote.prompt()...');
       setCastError(null);
       await remote.prompt();
+      console.log('✅ Cast prompt completed');
       // Device name is not exposed by the API, but connection state is
     } catch (error) {
+      console.error('❌ Cast error:', error);
       if (error instanceof DOMException) {
+        console.log('Error name:', error.name, 'Message:', error.message);
         if (error.name === 'NotFoundError') {
           setCastError('No cast devices found');
         } else if (error.name === 'InvalidStateError') {
           setCastError('Cannot cast in current state');
         } else if (error.name === 'NotAllowedError') {
           // User cancelled - not an error
+          console.log('ℹ️ User cancelled cast dialog');
           setCastError(null);
         } else {
           setCastError('Failed to start casting');
