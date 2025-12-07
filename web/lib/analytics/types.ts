@@ -44,6 +44,17 @@ export interface AnalyticsEvent {
   };
 }
 
+export interface UserMovieActivity {
+  viewerId: string;            // Viewer's persistent ID
+  movieId: string;
+  movieTitle: string;
+  totalWatchTime: number;      // Total seconds watched across all sessions
+  sessionCount: number;        // Number of sessions for this user-movie combo
+  lastWatched: number;         // Most recent activity timestamp
+  maxProgress: number;         // Highest progress reached (0-100%)
+  completed: boolean;          // Has the user completed this movie (>90%)
+}
+
 export interface AnalyticsSummary {
   totalWatchTime: number;      // Total seconds across all movies
   totalSessions: number;       // Total watch sessions
@@ -54,9 +65,9 @@ export interface AnalyticsSummary {
   topMovies: {
     byWatchTime: MovieAnalytics[];
     byCompletionRate: MovieAnalytics[];
-    byViews: MovieAnalytics[];
+    byViewers: MovieAnalytics[];
   };
-  recentActivity: WatchSession[];
+  recentActivity: UserMovieActivity[];
 }
 
 // Progress tracking interval (30 seconds)
