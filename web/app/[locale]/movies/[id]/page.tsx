@@ -541,7 +541,7 @@ export default function MoviePage() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer variant="dark" />
 
       {/* Payment Modal */}
       <PaymentModal

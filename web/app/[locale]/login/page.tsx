@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import { LoginForm } from '@/components/auth/login-form';
+import { Footer } from '@/components/footer';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('auth');
@@ -15,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-lg shadow-md p-8">
           {/* Header */}
@@ -66,6 +68,9 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      </div>
+      
+      <Footer />
     </div>
   );
 }

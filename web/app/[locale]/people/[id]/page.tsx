@@ -306,7 +306,7 @@ export default function PersonPage() {
         </div>
       </main>
       
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getProfileUrl } from '@/lib/images';
 import { getDepartmentKey } from '@/lib/crew';
 import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 import { Users } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
@@ -189,6 +190,8 @@ export default function CastCrewPage() {
           </section>
         )}
       </main>
+      
+      <Footer variant="dark" />
     </div>
   );
 }
