@@ -88,6 +88,10 @@ export default function EditMoviePage() {
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   
+  // Sync result modal state
+  const [showSyncResultModal, setShowSyncResultModal] = useState(false);
+  const [syncChanges, setSyncChanges] = useState<string[]>([]);
+  
   // State for adding new cast/crew
   const [showAddCast, setShowAddCast] = useState(false);
   const [showAddCrew, setShowAddCrew] = useState(false);
@@ -323,10 +327,31 @@ export default function EditMoviePage() {
         setCrewTranslations(crewTrans);
       }
 
-      // Mark form as changed so user can save
-      setHasChanges(true);
+      // Detect what changed (only check editable fields)
+      const changes: string[] = [];
+      // Editable text fields
+      if (currentMovie.title.en !== syncedData.title.en) changes.push('Title');
+      if (currentMovie.overview.en !== syncedData.overview.en) changes.push('Overview');
+      if (currentMovie.tagline?.en !== syncedData.tagline?.en) changes.push('Tagline');
+      if (currentMovie.runtime !== syncedData.runtime) changes.push('Runtime');
+      // Image paths (editable via poster manager)
+      if (currentMovie.poster_path !== syncedData.poster_path) changes.push('Poster');
+      if (currentMovie.backdrop_path !== syncedData.backdrop_path) changes.push('Backdrop');
+      // Cast/Crew (editable via add/remove buttons)
+      if (currentMovie.cast?.length !== syncedData.cast?.length) changes.push('Cast');
+      if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
+      // Images (editable via poster manager)
+      if (currentMovie.images?.length !== syncedData.images?.length) changes.push('Images');
       
-      alert('Successfully synced from TMDB! English content, metadata, and images updated.\n\nRemember to click "Update Movie" to save these changes.');
+      setSyncChanges(changes);
+      
+      // Mark form as changed only if there are actual changes
+      if (changes.length > 0) {
+        setHasChanges(true);
+      }
+      
+      // Show sync result modal
+      setShowSyncResultModal(true);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
     } finally {
@@ -768,16 +793,6 @@ export default function EditMoviePage() {
               <p className="text-sm font-medium text-red-800">Sync Error</p>
               <p className="text-sm text-red-600">{syncError}</p>
             </div>
-          </div>
-        )}
-
-        {currentMovie?.tmdb_id && currentMovie.tmdb_last_synced && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>TMDB ID:</strong> {currentMovie.tmdb_id} • 
-              <strong className="ml-2">Last synced:</strong>{' '}
-              {new Date(currentMovie.tmdb_last_synced).toLocaleDateString()}
-            </p>
           </div>
         )}
 
@@ -1606,6 +1621,53 @@ export default function EditMoviePage() {
             </Button>
             <Button onClick={handleBackToMovies} className="w-full">
               Back to Movies
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync Result Modal */}
+      <Dialog open={showSyncResultModal} onOpenChange={setShowSyncResultModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                syncChanges.length > 0 ? 'bg-blue-100' : 'bg-gray-100'
+              }`}>
+                {syncChanges.length > 0 ? (
+                  <RefreshCw className="h-6 w-6 text-blue-600" />
+                ) : (
+                  <CheckCircle className="h-6 w-6 text-gray-600" />
+                )}
+              </div>
+              <DialogTitle className="text-xl">
+                {syncChanges.length > 0 ? 'TMDB Sync Complete' : 'No Updates Available'}
+              </DialogTitle>
+            </div>
+            <DialogDescription>
+              {syncChanges.length > 0 ? (
+                <div className="space-y-3">
+                  <p>The following fields were updated from TMDB:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {syncChanges.map((change) => (
+                      <li key={change}>{change}</li>
+                    ))}
+                  </ul>
+                  <p className="text-sm font-medium text-blue-600 mt-4">
+                    Remember to click "Update Movie" to save these changes.
+                  </p>
+                </div>
+              ) : (
+                <p>This movie is already up to date with the latest TMDB data. No changes were detected.</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <Button 
+              onClick={() => setShowSyncResultModal(false)} 
+              className="w-full"
+            >
+              OK
             </Button>
           </div>
         </DialogContent>

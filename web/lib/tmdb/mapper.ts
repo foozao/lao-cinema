@@ -5,6 +5,46 @@ import { createLocalizedText } from '../i18n';
 import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails, TMDBImages } from './client';
 
 /**
+ * Lao translations for common crew job titles
+ * Sourced from messages/lo.json crew translations
+ */
+const crewJobLaoTranslations: Record<string, string> = {
+  'Director': 'ຜູ້ກຳກັບ',
+  'Writer': 'ນັກຂຽນ',
+  'Screenplay': 'ບົດຮູບເງົາ',
+  'Story': 'ນັກຂຽນ',
+  'Producer': 'ຜູ້ຜະລິດ',
+  'Executive Producer': 'ຜູ້ຜະລິດບໍລິຫານ',
+  'Co-Producer': 'ຜູ້ຜະລິດ',
+  'Associate Producer': 'ຜູ້ຜະລິດ',
+  'Director of Photography': 'ຖ່າຍພາບ',
+  'Cinematography': 'ຖ່າຍພາບ',
+  'Original Music Composer': 'ດົນຕີ',
+  'Music': 'ດົນຕີ',
+  'Editor': 'ຕັດຕໍ່',
+  'Film Editor': 'ຕັດຕໍ່',
+  'Production Design': 'ອອກແບບການຜະລິດ',
+  'Production Designer': 'ອອກແບບການຜະລິດ',
+  'Art Direction': 'ອອກແບບສິລະປະ',
+  'Costume Design': 'ອອກແບບເຄື່ອງນຸ່ງ',
+  'Costume Designer': 'ອອກແບບເຄື່ອງນຸ່ງ',
+};
+
+/**
+ * Get Lao translation for a crew job title
+ * Returns existing translation if available, otherwise looks up in predefined translations
+ */
+function getCrewJobLaoTranslation(jobEnglish: string, existingLao?: string): string | undefined {
+  // If there's already a Lao translation, preserve it
+  if (existingLao) {
+    return existingLao;
+  }
+  
+  // Otherwise, use our predefined translation if available
+  return crewJobLaoTranslations[jobEnglish];
+}
+
+/**
  * Map TMDB movie details to our Movie schema
  * 
  * Safe Sync Strategy:
@@ -12,11 +52,12 @@ import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails, TMDBImages } from './
  * - Lao translations ALWAYS preserved from existingMovie
  * - Metadata synced from TMDB (ratings, budget, revenue, etc.)
  * - Never overwrites custom Lao translations
+ * - Auto-populates Lao crew job titles from predefined translations when available
  * 
  * Preserved Lao translations:
  * - Movie title, overview, tagline
  * - Actor/cast names and character names
- * - Crew names and job titles
+ * - Crew names and job titles (preserved if exist, auto-filled if available)
  * - Genre names
  * - Collection names
  */
@@ -105,7 +146,7 @@ export function mapTMDBToMovie(
           known_for_department: c.department,
           gender: c.gender,
         },
-        job: createLocalizedText(c.job, existingCrewMember?.job?.lo),
+        job: createLocalizedText(c.job, getCrewJobLaoTranslation(c.job, existingCrewMember?.job?.lo)),
         department: c.department,
       };
     }) || [];

@@ -69,6 +69,8 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         includeCrew: true,
         includeGenres: true,
         includeImages: true, // Include images for detail view
+        castLimit: undefined, // No limit for single movie view (edit page needs all cast)
+        crewLimit: undefined, // No limit for crew either
       });
 
       return movieData;

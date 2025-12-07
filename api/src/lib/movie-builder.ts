@@ -26,9 +26,13 @@ export async function buildMovieWithRelations(
     includeCrew = true,
     includeGenres = true,
     includeImages = false,
-    castLimit = 3,
-    crewLimit = undefined,
+    castLimit,
+    crewLimit,
   } = options;
+  
+  // Apply defaults only if not explicitly provided (including undefined)
+  const finalCastLimit = 'castLimit' in options ? castLimit : 3;
+  const finalCrewLimit = crewLimit;
 
   // Fetch translations
   const translations = await db.select()
@@ -104,8 +108,8 @@ export async function buildMovieWithRelations(
       .where(eq(schema.movieCast.movieId, movie.id))
       .orderBy(schema.movieCast.order);
 
-    if (castLimit) {
-      castQuery = castQuery.limit(castLimit) as any;
+    if (finalCastLimit) {
+      castQuery = castQuery.limit(finalCastLimit) as any;
     }
 
     const castData = await castQuery;
@@ -180,8 +184,8 @@ export async function buildMovieWithRelations(
       .from(schema.movieCrew)
       .where(eq(schema.movieCrew.movieId, movie.id));
 
-    if (crewLimit) {
-      crewQuery = crewQuery.limit(crewLimit) as any;
+    if (finalCrewLimit) {
+      crewQuery = crewQuery.limit(finalCrewLimit) as any;
     }
 
     const crewData = await crewQuery;
