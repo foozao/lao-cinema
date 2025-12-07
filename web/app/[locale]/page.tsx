@@ -4,16 +4,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { MovieCard } from '@/components/movie-card';
+import { RentalCard } from '@/components/rental-card';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
+import { getRentals, type Rental } from '@/lib/api/rentals-client';
 
 export default function Home() {
   const t = useTranslations();
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rentalsLoading, setRentalsLoading] = useState(true);
   const [error, setError] = useState<'network' | 'server' | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -42,9 +46,23 @@ export default function Home() {
     }
   }, []);
 
+  const loadRentals = useCallback(async () => {
+    try {
+      // Fetch active and recently expired rentals
+      const { rentals: userRentals } = await getRentals(true);
+      setRentals(userRentals);
+    } catch (err) {
+      console.error('Failed to load rentals:', err);
+      // Silently fail for rentals - not critical for homepage
+    } finally {
+      setRentalsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadMovies();
-  }, [loadMovies]);
+    loadRentals();
+  }, [loadMovies, loadRentals]);
 
   const handleRetry = () => {
     setIsRetrying(true);
@@ -59,7 +77,21 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 flex-grow">
-        {/* Hero Section */}
+        {/* My Rentals Section */}
+        {!rentalsLoading && rentals.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+              {t('home.myRentals')}
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {rentals.map((rental) => (
+                <RentalCard key={rental.id} rental={rental} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Featured Films Section */}
         <section className="mb-12">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">

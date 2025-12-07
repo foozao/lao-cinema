@@ -201,7 +201,10 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     // Increment play count and update activity timestamp
     sessionRef.current.playCount = (sessionRef.current.playCount || 0) + 1;
     sessionRef.current.lastActiveAt = Date.now();
-    saveSessionDual(sessionRef.current, durationRef.current);
+    
+    // Only save to localStorage here (not database) - database will be updated on time updates
+    // This prevents overwriting existing progress with 0 when user quickly navigates away
+    saveSession(sessionRef.current);
     
     // Log event
     const dur = durationRef.current;

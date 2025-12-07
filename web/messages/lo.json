@@ -28,7 +28,9 @@
     "featured": "ຮູບເງົາແນະນຳ",
     "browseAll": "ເບິ່ງຮູບເງົາ ແລະ ບຸກຄົນທັງໝົດ",
     "noFilms": "ຍັງບໍ່ມີຮູບເງົາ",
-    "noFilmsDescription": "ກະລຸນາກັບມາໃໝ່ໃນໄວໆນີ້"
+    "noFilmsDescription": "ກະລຸນາກັບມາໃໝ່ໃນໄວໆນີ້",
+    "myRentals": "ການເຊົ່າຂອງຂ້ອຍ",
+    "viewAll": "ເບິ່ງທັງໝົດ"
   },
   "movies": {
     "all": "ທັງໝົດ",
@@ -397,8 +399,8 @@
       "title": "ການເຊົ່າຂອງຂ້ອຍ",
       "subtitle": "ເບິ່ງແລະຈັດການຮູບເງົາທີ່ເຊົ່າ",
       "backToProfile": "ກັບໄປໂປຣໄຟລ໌",
-      "active": "ການເຊົ່າທີ່ໃຊ້ງານຢູ່",
-      "expired": "ປະຫວັດການເຊົ່າ",
+      "active": "ໃຊ້ງານຢູ່",
+      "expired": "ໝົດອາຍຸແລ້ວ",
       "noActive": "ບໍ່ມີການເຊົ່າທີ່ໃຊ້ງານຢູ່",
       "noActiveDesc": "ທ່ານບໍ່ມີການເຊົ່າທີ່ໃຊ້ງານຢູ່ໃນຕອນນີ້.",
       "noExpired": "ບໍ່ມີປະຫວັດການເຊົ່າ",
@@ -412,7 +414,13 @@
       "expires": "ໝົດອາຍຸ",
       "remaining": "ເຫຼືອ",
       "watchNow": "ເບິ່ງດຽວນີ້",
-      "rentAgain": "ເຊົ່າອີກຄັ້ງ"
+      "rentAgain": "ເຊົ່າອີກຄັ້ງ",
+      "expiredRecently": "ການເຊົ່າໝົດອາຍຸແລ້ວ",
+      "expiresInHours": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ",
+      "expiresInMinutes": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ {minutes} ນາທີ",
+      "rentalExpiresInHours": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ",
+      "rentalExpiresInMinutes": "ການເຊົ່າໝົດອາຍຸໃນ {hours} ຊົ່ວໂມງ {minutes} ນາທີ",
+      "continueWatching": "ເບິ່ງຕໍ່"
     },
     "continueWatching": {
       "title": "ເບິ່ງຕໍ່",

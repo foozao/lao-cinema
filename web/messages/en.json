@@ -28,7 +28,9 @@
     "featured": "Featured Films",
     "browseAll": "Browse All Movies & People",
     "noFilms": "No films available yet",
-    "noFilmsDescription": "Check back soon for new content"
+    "noFilmsDescription": "Check back soon for new content",
+    "myRentals": "My Rentals",
+    "viewAll": "View All"
   },
   "movies": {
     "all": "All",
@@ -397,8 +399,8 @@
       "title": "My Rentals",
       "subtitle": "View and manage your rented movies",
       "backToProfile": "Back to Profile",
-      "active": "Active Rentals",
-      "expired": "Rental History",
+      "active": "Active",
+      "expired": "Expired",
       "noActive": "No active rentals",
       "noActiveDesc": "You don't have any active rentals at the moment.",
       "noExpired": "No rental history",
@@ -412,7 +414,13 @@
       "expires": "Expires",
       "remaining": "remaining",
       "watchNow": "Watch Now",
-      "rentAgain": "Rent Again"
+      "rentAgain": "Rent Again",
+      "expiredRecently": "Rental expired",
+      "expiresInHours": "Rental expires in {hours}h",
+      "expiresInMinutes": "Rental expires in {hours}h {minutes}m",
+      "rentalExpiresInHours": "Rental expires in {hours}h",
+      "rentalExpiresInMinutes": "Rental expires in {hours}h {minutes}m",
+      "continueWatching": "Continue Watching"
     },
     "continueWatching": {
       "title": "Continue Watching",

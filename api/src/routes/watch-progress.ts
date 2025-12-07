@@ -184,17 +184,27 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       let progress;
       
       if (existingProgress) {
-        // Update existing progress
-        [progress] = await db.update(watchProgress)
-          .set({
-            progressSeconds,
-            durationSeconds,
-            completed: isCompleted,
-            lastWatchedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(watchProgress.id, existingProgress.id))
-          .returning();
+        // Only update if new progress is greater than existing (prevents race conditions)
+        // Exception: always update if marking as completed
+        const shouldUpdate = 
+          progressSeconds > existingProgress.progressSeconds || 
+          (isCompleted && !existingProgress.completed);
+        
+        if (shouldUpdate) {
+          [progress] = await db.update(watchProgress)
+            .set({
+              progressSeconds: Math.max(progressSeconds, existingProgress.progressSeconds),
+              durationSeconds,
+              completed: isCompleted || existingProgress.completed,
+              lastWatchedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(watchProgress.id, existingProgress.id))
+            .returning();
+        } else {
+          // Return existing progress without updating
+          progress = existingProgress;
+        }
       } else {
         // Create new progress
         [progress] = await db.insert(watchProgress).values({
