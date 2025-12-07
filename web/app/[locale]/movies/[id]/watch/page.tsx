@@ -13,6 +13,7 @@ import { Header } from '@/components/header';
 import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
+import { useAuth } from '@/lib/auth';
 import type { Movie } from '@/lib/types';
 
 // Helper to format grace time
@@ -30,6 +31,7 @@ export default function WatchPage() {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
   const id = params.id as string;
+  const { isLoading: authLoading } = useAuth();
   
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,10 +40,29 @@ export default function WatchPage() {
   const [inGracePeriod, setInGracePeriod] = useState(false);
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
 
-  // Check rental validity on mount
+  // First, load the movie to get its UUID
   useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const data = await movieAPI.getById(id);
+        setMovie(data);
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+        setLoading(false);
+      }
+    };
+
+    loadMovie();
+  }, [id]);
+
+  // Then check rental validity using the UUID
+  useEffect(() => {
+    // Wait for auth and movie to load
+    if (authLoading || !movie) return;
+    
     const checkAccess = async () => {
-      const canAccess = await canWatch(id);
+      // Use movie.id (UUID) instead of params.id (slug)
+      const canAccess = await canWatch(movie.id);
       
       if (!canAccess) {
         // No valid rental and not in grace period - redirect
@@ -50,19 +71,20 @@ export default function WatchPage() {
       }
       
       // Check if in grace period
-      const gracePeriod = await isInGracePeriod(id);
+      const gracePeriod = await isInGracePeriod(movie.id);
       setInGracePeriod(gracePeriod);
       
       if (gracePeriod) {
-        const graceMs = await getRemainingGraceTime(id);
+        const graceMs = await getRemainingGraceTime(movie.id);
         setGraceTimeRemaining(formatDurationMs(graceMs));
       }
       
       setRentalChecked(true);
+      setLoading(false);
     };
     
     checkAccess();
-  }, [id, router]);
+  }, [movie, authLoading, id, router]);
 
   // Esc key to close info panel
   useEffect(() => {
@@ -76,24 +98,6 @@ export default function WatchPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showInfo]);
-
-  useEffect(() => {
-    // Only load movie if rental is valid
-    if (!rentalChecked) return;
-    
-    const loadMovie = async () => {
-      try {
-        const data = await movieAPI.getById(id);
-        setMovie(data);
-      } catch (error) {
-        console.error('Failed to load movie:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMovie();
-  }, [id, rentalChecked]);
 
   if (loading) {
     return (

@@ -20,6 +20,7 @@ import { StreamingPlatformList } from '@/components/streaming-platform-badge';
 import { isRentalValid, purchaseRental, getFormattedRemainingTime } from '@/lib/rental-service';
 import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
+import { useAuth } from '@/lib/auth';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -30,6 +31,7 @@ export default function MoviePage() {
   const t = useTranslations();
   const tGenres = useTranslations('genres');
   const id = params.id as string;
+  const { isLoading: authLoading } = useAuth();
   
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,11 +69,15 @@ export default function MoviePage() {
 
   // Check rental validity on mount and periodically
   useEffect(() => {
+    // Wait for auth and movie to initialize before checking rental
+    if (authLoading || !movie) return;
+    
     const checkRental = async () => {
-      const valid = await isRentalValid(id);
+      // Use the actual movie UUID, not the URL slug
+      const valid = await isRentalValid(movie.id);
       setHasValidRental(valid);
       if (valid) {
-        const time = await getFormattedRemainingTime(id);
+        const time = await getFormattedRemainingTime(movie.id);
         setRemainingTime(time);
       }
     };
@@ -80,10 +86,12 @@ export default function MoviePage() {
     // Check every minute to update remaining time
     const interval = setInterval(checkRental, 60000);
     return () => clearInterval(interval);
-  }, [id]);
+  }, [movie, authLoading]);
 
   const handleWatchNowClick = async () => {
-    const valid = await isRentalValid(id);
+    if (!movie) return;
+    
+    const valid = await isRentalValid(movie.id);
     if (valid) {
       // Rental is valid, go directly to watch page
       router.push(`/movies/${id}/watch`);
@@ -95,17 +103,19 @@ export default function MoviePage() {
   };
 
   const handlePaymentComplete = async () => {
+    if (!movie) return;
+    
     try {
-      // Create the rental via API
+      // Create the rental via API (use UUID, not slug)
       await purchaseRental(
-        id,
+        movie.id,
         `demo_txn_${Date.now()}`,
         500,
         'demo'
       );
       
       setHasValidRental(true);
-      const time = await getFormattedRemainingTime(id);
+      const time = await getFormattedRemainingTime(movie.id);
       setRemainingTime(time);
       setShowPaymentModal(false);
       
