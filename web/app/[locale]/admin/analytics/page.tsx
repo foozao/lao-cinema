@@ -6,7 +6,6 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Play, 
   Clock, 
   CheckCircle, 
   Users, 
@@ -16,6 +15,7 @@ import {
   RefreshCw,
   Film,
   ExternalLink,
+  Ticket,
 } from 'lucide-react';
 import { 
   getAnalyticsSummary, 
@@ -25,6 +25,7 @@ import {
   type MovieAnalytics,
   type UserMovieActivity,
 } from '@/lib/analytics';
+import { getRentals, type Rental } from '@/lib/api/rentals-client';
 
 // Format seconds to human-readable duration
 function formatDuration(seconds: number): string {
@@ -51,14 +52,26 @@ export default function AnalyticsPage() {
   const t = useTranslations('analytics');
   const tAdmin = useTranslations('admin');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [rentals, setRentals] = useState<{ total: number; active: number }>({ total: 0, active: 0 });
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
-    // Small delay to ensure localStorage is ready
-    setTimeout(() => {
+    // Load analytics from localStorage
+    setTimeout(async () => {
       const data = getAnalyticsSummary();
       setSummary(data);
+      
+      // Load rental data from API
+      try {
+        const { rentals: allRentals } = await getRentals(true); // Include expired
+        const now = new Date();
+        const activeCount = allRentals.filter(r => new Date(r.expiresAt) > now).length;
+        setRentals({ total: allRentals.length, active: activeCount });
+      } catch (error) {
+        console.error('Failed to load rentals:', error);
+      }
+      
       setLoading(false);
     }, 100);
   };
@@ -151,15 +164,15 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <Play className="w-5 h-5 text-indigo-600" />
+                  <Ticket className="w-5 h-5 text-indigo-600" />
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    {t('totalSessions')}
+                    {t('rentals')}
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{summary.totalSessions}</div>
-                <p className="text-sm text-gray-500">{t('watchSessions')}</p>
+                <div className="text-3xl font-bold">{rentals.total}</div>
+                <p className="text-sm text-gray-500">{rentals.active} {t('activeRentals')}</p>
               </CardContent>
             </Card>
 

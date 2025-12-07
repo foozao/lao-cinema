@@ -303,7 +303,12 @@
     "allViewingSessions": "ການເບິ່ງທັງໝົດສຳລັບຮູບເງົານີ້",
     "watched": "ເບິ່ງແລ້ວ",
     "completed": "ເບິ່ງຈົບ",
-    "viewDetails": "ເບິ່ງລາຍລະອຽດ"
+    "viewDetails": "ເບິ່ງລາຍລະອຽດ",
+    "viewerActivity": "ກິດຈະກຳຜູ້ຊົມ",
+    "perUserWatchTime": "ເວລາເບິ່ງທັງໝົດຕໍ່ຜູ້ໃຊ້",
+    "watchTimePerViewer": "ເວລາເບິ່ງຕໍ່ຜູ້ຊົມ",
+    "rentals": "ການເຊົ່າ",
+    "activeRentals": "ໃຊ້ງານຢູ່"
   },
   "auth": {
     "login": {

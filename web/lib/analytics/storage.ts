@@ -195,6 +195,11 @@ export function getUserMovieActivity(): UserMovieActivity[] {
   return Array.from(activityMap.values());
 }
 
+// Get user activity for a specific movie (aggregated by viewer)
+export function getMovieUserActivity(movieId: string): UserMovieActivity[] {
+  return getUserMovieActivity().filter(a => a.movieId === movieId);
+}
+
 export function getAnalyticsSummary(): AnalyticsSummary {
   const sessions = getSessions();
   const movieStats = getAllMovieAnalytics();

@@ -303,7 +303,12 @@
     "allViewingSessions": "All viewing sessions for this movie",
     "watched": "watched",
     "completed": "Completed",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "viewerActivity": "Viewer Activity",
+    "perUserWatchTime": "Total watch time per user",
+    "watchTimePerViewer": "Watch Time per Viewer",
+    "rentals": "Rentals",
+    "activeRentals": "active"
   },
   "auth": {
     "login": {
