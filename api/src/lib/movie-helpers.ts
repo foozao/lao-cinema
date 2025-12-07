@@ -343,5 +343,10 @@ export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<strin
   if (updates.backdrop_path !== undefined) data.backdropPath = updates.backdrop_path;
   if (updates.availability_status !== undefined) data.availabilityStatus = updates.availability_status;
   
+  // Always update the timestamp when any field is updated
+  if (Object.keys(data).length > 0) {
+    data.updatedAt = new Date();
+  }
+  
   return data;
 }

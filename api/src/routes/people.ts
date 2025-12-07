@@ -371,6 +371,8 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
             if (bioValue !== undefined) transUpdates.biography = bioValue || null;
 
             if (Object.keys(transUpdates).length > 0) {
+              // Always update timestamp when updating translations
+              transUpdates.updatedAt = new Date();
               await db.update(schema.peopleTranslations)
                 .set(transUpdates)
                 .where(

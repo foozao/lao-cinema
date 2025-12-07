@@ -412,7 +412,7 @@ describe('Anonymous Data Migration', () => {
         },
         {
           userId,
-          movieId: movieId1,
+          movieId: movieId2, // Use different movie to avoid unique constraint violation
           progressSeconds: 5000,
           durationSeconds: 5400,
           completed: true,

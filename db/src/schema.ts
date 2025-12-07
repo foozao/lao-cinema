@@ -47,6 +47,8 @@ export const movieTranslations = pgTable('movie_translations', {
   title: text('title').notNull(),
   overview: text('overview').notNull(),
   tagline: text('tagline'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.language] }),
 }));
@@ -77,6 +79,8 @@ export const genreTranslations = pgTable('genre_translations', {
   genreId: integer('genre_id').references(() => genres.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.genreId, table.language] }),
 }));
@@ -111,6 +115,8 @@ export const peopleTranslations = pgTable('people_translations', {
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
   biography: text('biography'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.personId, table.language] }),
 }));
@@ -120,6 +126,7 @@ export const movieCast = pgTable('movie_cast', {
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
   personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
   order: integer('order').notNull(), // Billing order
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.personId] }),
 }));
@@ -130,6 +137,8 @@ export const movieCastTranslations = pgTable('movie_cast_translations', {
   personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   character: text('character').notNull(), // Character name
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.personId, table.language] }),
 }));
@@ -139,6 +148,7 @@ export const movieCrew = pgTable('movie_crew', {
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
   personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
   department: text('department').notNull(), // Production, Directing, Writing, etc.
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.personId, table.department] }),
 }));
@@ -150,6 +160,8 @@ export const movieCrewTranslations = pgTable('movie_crew_translations', {
   department: text('department').notNull(),
   language: languageEnum('language').notNull(),
   job: text('job').notNull(), // Director, Producer, Writer, etc.
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.movieId, table.personId, table.department, table.language] }),
 }));

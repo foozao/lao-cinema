@@ -113,12 +113,14 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           .where(sql`${schema.movieTranslations.movieId} = ${movieId} AND ${schema.movieTranslations.language} = ${lang}`)
           .limit(1);
 
-        const transData: Record<string, string> = {};
+        const transData: Record<string, any> = {};
         if (title?.[lang]) transData.title = title[lang]!;
         if (overview?.[lang]) transData.overview = overview[lang]!;
         if (tagline?.[lang]) transData.tagline = tagline[lang]!;
 
         if (existingTrans.length > 0) {
+          // Always update timestamp when updating translations
+          transData.updatedAt = new Date();
           await db.update(schema.movieTranslations)
             .set(transData)
             .where(sql`${schema.movieTranslations.movieId} = ${movieId} AND ${schema.movieTranslations.language} = ${lang}`);
