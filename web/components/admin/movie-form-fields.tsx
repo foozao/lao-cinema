@@ -40,7 +40,7 @@ export function EnglishContentFields({ formData, onChange }: MovieFormFieldsProp
         <CardTitle>English Content (Required)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
+        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
           <Label htmlFor="title_en">Title (English) *</Label>
           <Input
             id="title_en"
@@ -65,7 +65,7 @@ export function EnglishContentFields({ formData, onChange }: MovieFormFieldsProp
           />
         </div>
 
-        <div>
+        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
           <Label htmlFor="tagline_en">Tagline (English)</Label>
           <Input
             id="tagline_en"
@@ -88,7 +88,7 @@ export function LaoContentFields({ formData, onChange }: MovieFormFieldsProps) {
         <CardTitle>Lao Content (Optional)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
+        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
           <Label htmlFor="title_lo">Title (Lao)</Label>
           <Input
             id="title_lo"
@@ -111,7 +111,7 @@ export function LaoContentFields({ formData, onChange }: MovieFormFieldsProps) {
           />
         </div>
 
-        <div>
+        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
           <Label htmlFor="tagline_lo">Tagline (Lao)</Label>
           <Input
             id="tagline_lo"

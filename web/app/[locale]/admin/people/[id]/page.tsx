@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Save, CheckCircle } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
 
@@ -22,6 +23,8 @@ export default function EditPersonPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Form state
   const [nameEn, setNameEn] = useState('');
@@ -34,6 +37,19 @@ export default function EditPersonPage() {
   const [knownForDepartment, setKnownForDepartment] = useState('');
   const [homepage, setHomepage] = useState('');
 
+  // Original values for change detection
+  const [originalValues, setOriginalValues] = useState({
+    nameEn: '',
+    nameLo: '',
+    biographyEn: '',
+    biographyLo: '',
+    birthday: '',
+    deathday: '',
+    placeOfBirth: '',
+    knownForDepartment: '',
+    homepage: '',
+  });
+
   useEffect(() => {
     const loadPerson = async () => {
       try {
@@ -41,15 +57,31 @@ export default function EditPersonPage() {
         setPerson(personData);
 
         // Populate form fields
-        setNameEn(personData.name?.en || '');
-        setNameLo(personData.name?.lo || '');
-        setBiographyEn(personData.biography?.en || '');
-        setBiographyLo(personData.biography?.lo || '');
-        setBirthday(personData.birthday || '');
-        setDeathday(personData.deathday || '');
-        setPlaceOfBirth(personData.place_of_birth || '');
-        setKnownForDepartment(personData.known_for_department || '');
-        setHomepage(personData.homepage || '');
+        const initialValues = {
+          nameEn: personData.name?.en || '',
+          nameLo: personData.name?.lo || '',
+          biographyEn: personData.biography?.en || '',
+          biographyLo: personData.biography?.lo || '',
+          birthday: personData.birthday || '',
+          deathday: personData.deathday || '',
+          placeOfBirth: personData.place_of_birth || '',
+          knownForDepartment: personData.known_for_department || '',
+          homepage: personData.homepage || '',
+        };
+        
+        setNameEn(initialValues.nameEn);
+        setNameLo(initialValues.nameLo);
+        setBiographyEn(initialValues.biographyEn);
+        setBiographyLo(initialValues.biographyLo);
+        setBirthday(initialValues.birthday);
+        setDeathday(initialValues.deathday);
+        setPlaceOfBirth(initialValues.placeOfBirth);
+        setKnownForDepartment(initialValues.knownForDepartment);
+        setHomepage(initialValues.homepage);
+        
+        // Store original values
+        setOriginalValues(initialValues);
+        setHasChanges(false);
       } catch (error) {
         console.error('Failed to load person:', error);
         setError(true);
@@ -60,6 +92,27 @@ export default function EditPersonPage() {
 
     loadPerson();
   }, [personId]);
+
+  // Detect changes by comparing current values to originals
+  useEffect(() => {
+    const currentValues = {
+      nameEn,
+      nameLo,
+      biographyEn,
+      biographyLo,
+      birthday,
+      deathday,
+      placeOfBirth,
+      knownForDepartment,
+      homepage,
+    };
+
+    const changed = Object.keys(currentValues).some(
+      (key) => currentValues[key as keyof typeof currentValues] !== originalValues[key as keyof typeof originalValues]
+    );
+
+    setHasChanges(changed);
+  }, [nameEn, nameLo, biographyEn, biographyLo, birthday, deathday, placeOfBirth, knownForDepartment, homepage, originalValues]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -82,7 +135,10 @@ export default function EditPersonPage() {
 
       const updatedPerson = await peopleAPI.update(personId, updatedData);
       setPerson(updatedPerson);
-      alert('Person updated successfully!');
+      
+      // Reset hasChanges after successful save
+      setHasChanges(false);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to save person:', error);
       alert('Failed to save changes. Please try again.');
@@ -103,9 +159,8 @@ export default function EditPersonPage() {
     return (
       <div>
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4" />
-            Back
+          <Button variant="outline" onClick={() => router.push('/admin/people')}>
+            Cancel
           </Button>
         </div>
         <div className="text-center py-16">
@@ -117,19 +172,43 @@ export default function EditPersonPage() {
 
   const profileUrl = getProfileUrl(person.profile_path, 'large');
 
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleBackToList = () => {
+    router.push('/admin/people');
+  };
+
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Edit Person</h2>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+      {/* Sticky Header */}
+      <div className="sticky top-16 z-[5] bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-4 border-b border-gray-200 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Editing: <span className="text-gray-700">{nameEn || 'Person'}</span>
+          </h2>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/admin/people')}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <span title={!hasChanges ? 'No changes to save' : ''}>
+              <Button 
+                onClick={handleSave} 
+                disabled={saving || !hasChanges}
+                className={`gap-2 ${!hasChanges && !saving ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -281,6 +360,31 @@ export default function EditPersonPage() {
           </Card>
         )}
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <DialogTitle className="text-xl">Person Updated Successfully!</DialogTitle>
+            </div>
+            <DialogDescription>
+              Your changes have been saved. The person data has been refreshed with the latest updates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button onClick={handleCloseSuccessModal} variant="outline" className="w-full">
+              Keep Editing
+            </Button>
+            <Button onClick={handleBackToList} className="w-full">
+              Back to People
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
