@@ -228,8 +228,11 @@ export async function buildMovieWithRelations(
           for (const trans of personTransMap.get(crewMember.personId) || []) {
             personName[trans.language] = trans.name;
           }
+          // Filter by department since a person can have multiple roles (Director, Writer, etc.)
           for (const trans of jobTransMap.get(crewMember.personId) || []) {
-            job[trans.language] = trans.job;
+            if (trans.department === crewMember.department) {
+              job[trans.language] = trans.job;
+            }
           }
 
           return {

@@ -232,7 +232,36 @@ export default function EditMoviePage() {
         images: syncedData.images,
       } : null);
 
-      alert('Successfully synced from TMDB! English content, metadata, and images updated.');
+      // Update cast translations state with synced character names
+      if (syncedData.cast) {
+        const castTrans: Record<string, { character_en: string; character_lo: string }> = {};
+        syncedData.cast.forEach((member) => {
+          const key = `${member.person.id}`;
+          castTrans[key] = {
+            character_en: member.character.en || '',
+            character_lo: member.character.lo || '',
+          };
+        });
+        setCastTranslations(castTrans);
+      }
+
+      // Update crew translations state with synced job titles
+      if (syncedData.crew) {
+        const crewTrans: Record<string, { job_en: string; job_lo: string }> = {};
+        syncedData.crew.forEach((member) => {
+          const key = `${member.person.id}-${member.department}`;
+          crewTrans[key] = {
+            job_en: member.job.en || '',
+            job_lo: member.job.lo || '',
+          };
+        });
+        setCrewTranslations(crewTrans);
+      }
+
+      // Mark form as changed so user can save
+      setHasChanges(true);
+      
+      alert('Successfully synced from TMDB! English content, metadata, and images updated.\n\nRemember to click "Update Movie" to save these changes.');
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
     } finally {

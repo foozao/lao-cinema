@@ -16,6 +16,7 @@ type SortOption = 'title-asc' | 'title-desc' | 'date-asc' | 'date-desc';
 
 export default function MoviesAdminPage() {
   const t = useTranslations('admin');
+  const tCrew = useTranslations('crew');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +74,8 @@ export default function MoviesAdminPage() {
   const getDirectors = (movie: Movie): string => {
     const directors = movie.crew?.filter((c) => getLocalizedText(c.job, 'en') === 'Director') || [];
     if (directors.length === 0) return '';
-    return directors.map((d) => getLocalizedText(d.person.name, 'en')).join(', ');
+    const names = directors.map((d) => getLocalizedText(d.person.name, 'en')).join(', ');
+    return `${tCrew('director')}: ${names}`;
   };
 
   return (
