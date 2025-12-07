@@ -48,6 +48,11 @@ jest.mock('@/lib/video', () => ({
     setHasStarted: mockSetHasStarted,
   })),
   useVideoKeyboard: jest.fn(),
+  useCasting: jest.fn(() => ({
+    isCastAvailable: false,
+    isCasting: false,
+    toggleCasting: jest.fn(),
+  })),
 }));
 
 // Mock video sub-components

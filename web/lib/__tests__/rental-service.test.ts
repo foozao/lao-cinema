@@ -6,11 +6,19 @@
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
-// Mock the API client module
-jest.mock('../api/rentals-client');
+// Mock the API client module - must use jest.fn() inside factory since jest.mock is hoisted
+jest.mock('../api/rentals-client', () => ({
+  __esModule: true,
+  getRentals: jest.fn(),
+  getRentalStatus: jest.fn(),
+  createRental: jest.fn(),
+  hasActiveRental: jest.fn(),
+}));
 
-// Import the mocked module
+// Import the mocked module to get references to the mock functions
 import * as rentalsClient from '../api/rentals-client';
+
+// Import the module under test
 import {
   RENTAL_DURATION_MS,
   GRACE_PERIOD_MS,
@@ -26,7 +34,7 @@ import {
   hasActiveRental,
 } from '../rental-service';
 
-// Get the mocked functions with proper types
+// Get typed references to the mocked functions
 const mockGetRentals = rentalsClient.getRentals as jest.Mock;
 const mockGetRentalStatus = rentalsClient.getRentalStatus as jest.Mock;
 const mockApiCreateRental = rentalsClient.createRental as jest.Mock;
