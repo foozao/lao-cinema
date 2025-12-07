@@ -255,7 +255,7 @@ export function VideoPlayer({
   // Container classes
   const containerClasses = "w-full";
   const videoContainerClasses = constrainToViewport
-    ? "relative bg-black rounded-lg overflow-hidden group w-full h-[calc(100vh-64px)] flex items-center justify-center"
+    ? "relative bg-black rounded-lg overflow-hidden group w-full md:h-[calc(100vh-64px)] flex items-center justify-center"
     : "relative bg-black rounded-lg overflow-hidden group w-full";
 
   return (

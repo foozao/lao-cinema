@@ -151,7 +151,7 @@ export default function WatchPage() {
       )}
 
       {/* Video Player - Constrained to viewport height */}
-      <div className="flex-1 w-full flex items-center justify-center">
+      <div className="w-full md:flex-1 flex items-center justify-center">
         <VideoPlayer
           src={videoSource.url}
           poster={backdropUrl || posterUrl || undefined}

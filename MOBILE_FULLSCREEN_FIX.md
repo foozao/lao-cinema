@@ -57,8 +57,16 @@ Added mobile-specific attributes:
 />
 ```
 
+### 5. Mobile Height Optimization
+Fixed excessive black space on mobile by adjusting container heights:
+- **Video player container**: Only apply `h-[calc(100vh-64px)]` on desktop (`md:h-[calc(100vh-64px)]`)
+- **Watch page wrapper**: Only use `flex-1` on desktop (`md:flex-1`)
+- **Mobile behavior**: Video height determined by aspect ratio, not viewport height
+- **Desktop behavior**: Video constrained to viewport height with flex layout
+
 ## Files Modified
-- `web/components/video-player.tsx` - Full implementation
+- `web/components/video-player.tsx` - Fullscreen implementation and mobile height fix
+- `web/app/[locale]/movies/[id]/watch/page.tsx` - Mobile layout adjustments
 
 ## Testing Checklist
 
@@ -68,6 +76,8 @@ Added mobile-specific attributes:
 - [ ] Device back button exits fullscreen
 - [ ] Orientation changes work correctly
 - [ ] Play/pause controls visible in fullscreen
+- [ ] No excessive black space above/below video on page load
+- [ ] Video height is appropriate for screen size
 
 ### iOS Safari
 - [ ] Fullscreen button enters native fullscreen
