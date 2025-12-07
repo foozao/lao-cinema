@@ -1,7 +1,9 @@
-# Mobile Fullscreen Fix
+# Mobile Video Player Fixes
 
-## Problem
-The fullscreen button wasn't working on mobile Chrome (Android). Clicking the fullscreen icon did nothing.
+## Problems
+1. **Fullscreen button**: Wasn't working on mobile Chrome (Android). Clicking the fullscreen icon did nothing.
+2. **Excessive height**: Video container took up too much vertical space with black bars above/below.
+3. **Time scrubber**: Progress bar wasn't functional on mobile - tapping/dragging didn't seek the video.
 
 ## Root Cause
 Mobile browsers handle fullscreen differently than desktop:
@@ -64,9 +66,18 @@ Fixed excessive black space on mobile by adjusting container heights:
 - **Mobile behavior**: Video height determined by aspect ratio, not viewport height
 - **Desktop behavior**: Video constrained to viewport height with flex layout
 
+### 6. Touch-Enabled Progress Bar
+Fixed progress bar scrubbing on mobile devices:
+- **Added touch handlers**: `onTouchStart` and `onTouchMove` for tap and drag gestures
+- **Unified seek logic**: Extracted `seekToPosition()` function that works with both mouse and touch
+- **Better touch target**: Progress bar height increased to 8px (h-2) on mobile vs 4px (h-1) on desktop
+- **Prevent scroll interference**: Added `touch-none` class to prevent page scrolling during scrubbing
+- **Bounds checking**: Progress clamped between 0-100% with `Math.max(0, Math.min(1, ...))`
+
 ## Files Modified
 - `web/components/video-player.tsx` - Fullscreen implementation and mobile height fix
 - `web/app/[locale]/movies/[id]/watch/page.tsx` - Mobile layout adjustments
+- `web/components/video/video-controls.tsx` - Touch-enabled progress bar
 
 ## Testing Checklist
 
@@ -78,12 +89,18 @@ Fixed excessive black space on mobile by adjusting container heights:
 - [ ] Play/pause controls visible in fullscreen
 - [ ] No excessive black space above/below video on page load
 - [ ] Video height is appropriate for screen size
+- [ ] Progress bar responds to tap
+- [ ] Progress bar responds to drag/scrub gestures
+- [ ] Seeking works accurately across the timeline
 
 ### iOS Safari
 - [ ] Fullscreen button enters native fullscreen
 - [ ] Video uses iOS native fullscreen player
 - [ ] Done button exits fullscreen
 - [ ] AirPlay icon visible (when AirPlay devices available)
+- [ ] Progress bar responds to tap
+- [ ] Progress bar responds to drag/scrub gestures
+- [ ] No excessive black space on page load
 
 ### Desktop Chrome/Firefox/Safari
 - [ ] Fullscreen button enters fullscreen
@@ -110,6 +127,13 @@ Simple but effective. Could be enhanced with feature detection if needed:
 ```typescript
 const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 ```
+
+### Touch Events vs Mouse Events
+Mobile browsers support both touch and mouse events, but touch provides better UX:
+- **Mouse events**: `onClick` uses `e.clientX` - works but only for taps
+- **Touch events**: `onTouchStart/Move` uses `e.touches[0].clientX` - enables scrubbing
+- **Why both?**: Desktop can use mouse, mobile gets touch-optimized experience
+- **touch-none class**: Prevents page scrolling while dragging the progress bar
 
 ## Known Limitations
 

@@ -38,11 +38,21 @@ export function VideoControls({
   isCasting,
   onToggleCast,
 }: VideoControlsProps) {
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
+  const seekToPosition = (clientX: number, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     if (videoRef.current && duration) {
       videoRef.current.currentTime = percent * duration;
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    seekToPosition(e.clientX, e.currentTarget);
+  };
+
+  const handleProgressTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length > 0) {
+      seekToPosition(e.touches[0].clientX, e.currentTarget);
     }
   };
 
@@ -54,8 +64,10 @@ export function VideoControls({
     >
       {/* Progress Bar */}
       <div 
-        className="w-full h-1 mb-4 bg-white/30 rounded cursor-pointer" 
+        className="w-full h-2 md:h-1 mb-4 bg-white/30 rounded cursor-pointer touch-none" 
         onClick={handleProgressClick}
+        onTouchStart={handleProgressTouch}
+        onTouchMove={handleProgressTouch}
       >
         <div 
           className="h-full bg-white rounded"

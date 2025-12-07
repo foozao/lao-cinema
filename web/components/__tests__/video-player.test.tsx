@@ -526,7 +526,7 @@ describe('VideoPlayer', () => {
       );
 
       const videoContainer = container.querySelector('.group');
-      expect(videoContainer).toHaveClass('h-[calc(100vh-64px)]');
+      expect(videoContainer).toHaveClass('md:h-[calc(100vh-64px)]');
     });
 
     it('does not apply viewport constraints by default', () => {
@@ -538,6 +538,7 @@ describe('VideoPlayer', () => {
 
       const videoContainer = container.querySelector('.group');
       expect(videoContainer).not.toHaveClass('h-[calc(100vh-64px)]');
+      expect(videoContainer).not.toHaveClass('md:h-[calc(100vh-64px)]');
     });
   });
 
