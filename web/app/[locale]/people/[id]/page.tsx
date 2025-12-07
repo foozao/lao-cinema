@@ -6,13 +6,18 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
-import { Film, Circle, User, Share2 } from 'lucide-react';
+import { Film, User, Share2 } from 'lucide-react';
 import { Footer } from '@/components/footer';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText, getBilingualName } from '@/lib/i18n';
 import { getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getMovieUrl } from '@/lib/movie-url';
 import type { Movie, CastMember, CrewMember } from '@/lib/types';
+
+// Maximum characters to show before truncating biography
+const BIOGRAPHY_TRUNCATE_LENGTH = 400;
+// Grace threshold - don't truncate if remaining text is less than this
+const BIOGRAPHY_GRACE_THRESHOLD = 100;
 
 interface PersonCredit {
   movie: Movie;
@@ -30,6 +35,7 @@ export default function PersonPage() {
   const [person, setPerson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showFullBio, setShowFullBio] = useState(false);
 
   useEffect(() => {
     const loadPerson = async () => {
@@ -115,9 +121,10 @@ export default function PersonPage() {
             {/* Name */}
             <h1 className="text-4xl md:text-5xl font-bold mb-1">{personNameEn}</h1>
             {hasLaoName && (
-              <p className="text-xl md:text-2xl text-gray-300 mb-4">{personNameLo}</p>
+              <p className="text-xl md:text-2xl text-gray-300">{personNameLo}</p>
             )}
             
+            <div className="mt-6">
             {/* Share Button */}
             <button
               onClick={() => {
@@ -135,16 +142,35 @@ export default function PersonPage() {
               <Share2 className="w-4 h-4" />
               <span>Share</span>
             </button>
+            </div>
             
             {/* Biography */}
-            {person.biography && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-3">Biography</h2>
-                <p className="text-gray-300 leading-relaxed">
-                  {getLocalizedText(person.biography, locale)}
-                </p>
-              </div>
-            )}
+            {person.biography && (() => {
+              const bioText = getLocalizedText(person.biography, locale);
+              // Only truncate if we'd be hiding more than the grace threshold
+              const exceedsGrace = bioText.length > BIOGRAPHY_TRUNCATE_LENGTH + BIOGRAPHY_GRACE_THRESHOLD;
+              const shouldTruncate = exceedsGrace && !showFullBio;
+              const displayText = shouldTruncate 
+                ? bioText.slice(0, BIOGRAPHY_TRUNCATE_LENGTH).trim() + '...'
+                : bioText;
+              
+              return (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold mb-3">Biography</h2>
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-line">
+                    {displayText}
+                  </p>
+                  {exceedsGrace && (
+                    <button
+                      onClick={() => setShowFullBio(!showFullBio)}
+                      className="mt-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+                    >
+                      {showFullBio ? 'Show Less' : 'Show More'}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Credits Section */}
             {((person.cast && person.cast.length > 0) || (person.crew && person.crew.length > 0)) && (() => {
@@ -246,7 +272,7 @@ export default function PersonPage() {
                       return (
                         <div key={credit.movie.id} className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700/30 transition-colors">
                           <span className="text-gray-400 w-12 text-sm">{year}</span>
-                          <Circle className="w-2 h-2 text-gray-500 flex-shrink-0" />
+                          <span className="text-gray-600">-</span>
                           <div className="flex-1 min-w-0">
                             <Link 
                               href={getMovieUrl(credit.movie)}
@@ -279,7 +305,7 @@ export default function PersonPage() {
                       return (
                         <div key={credit.movie.id} className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700/30 transition-colors">
                           <span className="text-gray-400 w-12 text-sm">{year}</span>
-                          <Circle className="w-2 h-2 text-gray-500 flex-shrink-0" />
+                          <span className="text-gray-600">-</span>
                           <div className="flex-1 min-w-0">
                             <Link 
                               href={getMovieUrl(credit.movie)}
