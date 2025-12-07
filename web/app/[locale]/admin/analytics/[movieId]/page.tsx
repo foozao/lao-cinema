@@ -7,7 +7,6 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Play, 
   Clock, 
   CheckCircle, 
   Users, 
@@ -15,14 +14,13 @@ import {
   ArrowLeft,
   RefreshCw,
   Film,
-  Calendar,
   Percent,
 } from 'lucide-react';
 import { 
   getMovieAnalytics,
-  getMovieSessions,
+  getMovieUserActivity,
   type MovieAnalytics,
-  type WatchSession,
+  type UserMovieActivity,
 } from '@/lib/analytics';
 
 // Format seconds to human-readable duration
@@ -52,16 +50,16 @@ export default function MovieAnalyticsPage() {
   const t = useTranslations('analytics');
   
   const [analytics, setAnalytics] = useState<MovieAnalytics | null>(null);
-  const [sessions, setSessions] = useState<WatchSession[]>([]);
+  const [userActivity, setUserActivity] = useState<UserMovieActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     setLoading(true);
     setTimeout(() => {
       const movieAnalytics = getMovieAnalytics(movieId);
-      const movieSessions = getMovieSessions(movieId);
+      const activity = getMovieUserActivity(movieId);
       setAnalytics(movieAnalytics);
-      setSessions(movieSessions.sort((a, b) => b.startedAt - a.startedAt));
+      setUserActivity(activity.sort((a, b) => b.lastWatched - a.lastWatched));
       setLoading(false);
     }, 100);
   };
@@ -195,16 +193,12 @@ export default function MovieAnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Play className="w-5 h-5" />
+              <Clock className="w-5 h-5" />
               {t('viewingStats')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">{t('totalSessions')}</span>
-                <span className="font-semibold">{analytics.totalViews}</span>
-              </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">{t('uniqueViewers')}</span>
                 <span className="font-semibold">{analytics.uniqueViewers}</span>
@@ -214,8 +208,8 @@ export default function MovieAnalyticsPage() {
                 <span className="font-semibold">{formatHours(analytics.totalWatchTime)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">{t('avgSessionLength')}</span>
-                <span className="font-semibold">{formatDuration(analytics.averageWatchTime)}</span>
+                <span className="text-gray-600">{t('watchTimePerViewer')}</span>
+                <span className="font-semibold">{analytics.uniqueViewers > 0 ? formatDuration(analytics.totalWatchTime / analytics.uniqueViewers) : '-'}</span>
               </div>
             </div>
           </CardContent>
@@ -253,52 +247,52 @@ export default function MovieAnalyticsPage() {
         </Card>
       </div>
 
-      {/* Session History */}
+      {/* User Activity */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            {t('sessionHistory')}
+            <Users className="w-5 h-5" />
+            {t('viewerActivity')}
           </CardTitle>
-          <CardDescription>{t('allViewingSessions')}</CardDescription>
+          <CardDescription>{t('perUserWatchTime')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {sessions.length === 0 ? (
+          {userActivity.length === 0 ? (
             <p className="text-gray-500 text-center py-8">{t('noSessions')}</p>
           ) : (
             <div className="space-y-3">
-              {sessions.map((session) => (
+              {userActivity.map((activity) => (
                 <div 
-                  key={session.id} 
+                  key={activity.viewerId} 
                   className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    session.completed ? 'bg-green-100' : 'bg-blue-100'
+                    activity.completed ? 'bg-green-100' : 'bg-blue-100'
                   }`}>
-                    {session.completed ? (
+                    {activity.completed ? (
                       <CheckCircle className="w-5 h-5 text-green-600" />
                     ) : (
-                      <Play className="w-5 h-5 text-blue-600" />
+                      <Clock className="w-5 h-5 text-blue-600" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">
-                        {formatDuration(session.totalWatchTime)} {t('watched')}
+                        {formatDuration(activity.totalWatchTime)} {t('totalWatched')}
                       </p>
-                      {session.completed && (
+                      {activity.completed && (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
                           {t('completed')}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-500">
-                      {formatDate(session.startedAt)} • {session.maxProgress.toFixed(0)}% {t('progress')}
-                      {session.playCount > 1 && ` • ${session.playCount} plays`}
+                      {formatDate(activity.lastWatched)} • {activity.sessionCount} {activity.sessionCount === 1 ? t('session') : t('sessions')} • {activity.maxProgress.toFixed(0)}% {t('progress')}
                     </p>
                   </div>
-                  <div className="text-xs px-2 py-1 rounded bg-gray-200">
-                    {session.deviceType}
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-700">{activity.maxProgress.toFixed(0)}%</div>
+                    <div className="text-xs text-gray-500">{t('progress')}</div>
                   </div>
                 </div>
               ))}

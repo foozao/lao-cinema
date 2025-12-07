@@ -26,9 +26,11 @@
     "subtitle": "Lao Films",
     "tagline": "Discover amazing Lao cinema",
     "featured": "Featured Films",
-    "browseAll": "Browse All Movies",
+    "browseAll": "Browse All Movies & People",
     "noFilms": "No films available yet",
-    "noFilmsDescription": "Check back soon for new content"
+    "noFilmsDescription": "Check back soon for new content",
+    "myRentals": "My Rentals",
+    "viewAll": "View All"
   },
   "movies": {
     "all": "All",
@@ -115,6 +117,12 @@
     "setDecoration": "Set Decoration",
     "costumeDesign": "Costume Design"
   },
+  "people": {
+    "movies": "Movies",
+    "acting": "Acting",
+    "crew": "Crew",
+    "asRole": "as {role}"
+  },
   "departments": {
     "directing": "Directing",
     "writing": "Writing",
@@ -184,7 +192,8 @@
     "paymentSuccess": "Payment successful!",
     "demoNotice": "Demo mode: No actual payment required",
     "rentalActive": "Rental active",
-    "expiresIn": "Expires in {time}"
+    "expiresIn": "Expires in {time}",
+    "recentlyExpired": "Your rental has expired. Rent again to continue watching."
   },
   "admin": {
     "dashboard": "Dashboard",
@@ -276,18 +285,22 @@
     "mostWatchedMovies": "Most watched movies by total time",
     "topByCompletion": "Top by Completion",
     "mostEngagingMovies": "Highest completion rates",
-    "topByViews": "Top by Views",
-    "mostViewedMovies": "Most viewed movies",
+    "topByViewers": "Top by Users",
+    "mostPopularMovies": "Most popular movies by unique viewers",
     "noMoviesYet": "No movies tracked yet",
     "allMoviesStats": "All Movies Statistics",
     "detailedStats": "Detailed analytics for each movie",
     "movie": "Movie",
-    "views": "Views",
+    "users": "Users",
     "watchTime": "Watch Time",
     "avgSession": "Avg. Session",
     "avgProgress": "Avg. Progress",
     "recentActivity": "Recent Activity",
-    "recentWatchSessions": "Latest viewing sessions",
+    "userMovieActivity": "Per-user viewing activity",
+    "totalWatched": "total watched",
+    "session": "session",
+    "sessions": "sessions",
+    "progress": "progress",
     "backToAnalytics": "Back to Analytics",
     "noDataForMovie": "No Analytics Data",
     "noDataForMovieDescription": "No one has watched this movie yet.",
@@ -301,8 +314,12 @@
     "allViewingSessions": "All viewing sessions for this movie",
     "watched": "watched",
     "completed": "Completed",
-    "progress": "progress",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "viewerActivity": "Viewer Activity",
+    "perUserWatchTime": "Total watch time per user",
+    "watchTimePerViewer": "Watch Time per Viewer",
+    "rentals": "Rentals",
+    "activeRentals": "active"
   },
   "auth": {
     "login": {
@@ -398,8 +415,8 @@
       "title": "My Rentals",
       "subtitle": "View and manage your rented movies",
       "backToProfile": "Back to Profile",
-      "active": "Active Rentals",
-      "expired": "Rental History",
+      "active": "Active",
+      "expired": "Expired",
       "noActive": "No active rentals",
       "noActiveDesc": "You don't have any active rentals at the moment.",
       "noExpired": "No rental history",
@@ -413,7 +430,15 @@
       "expires": "Expires",
       "remaining": "remaining",
       "watchNow": "Watch Now",
-      "rentAgain": "Rent Again"
+      "rentAgain": "Rent Again",
+      "viewDetails": "View movie details",
+      "percentWatched": "{percent}% watched",
+      "expiredRecently": "Rental expired",
+      "expiresInHours": "Rental expires in {hours}h",
+      "expiresInMinutes": "Rental expires in {hours}h {minutes}m",
+      "rentalExpiresInHours": "Rental expires in {hours}h",
+      "rentalExpiresInMinutes": "Rental expires in {hours}h {minutes}m",
+      "continueWatching": "Continue Watching"
     },
     "continueWatching": {
       "title": "Continue Watching",

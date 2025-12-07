@@ -63,7 +63,7 @@ npm run dev
 If a movie has a TMDB ID, you can sync updates:
 
 1. Go to `/admin/edit/[movie-id]`
-2. Click "Sync from TMDB" button (top right)
+2. Click "TMDB Sync" button (top right)
 3. English content and metadata will update
 4. **Lao translations are preserved** (never overwritten)
 
@@ -103,7 +103,7 @@ If a movie has a TMDB ID, you can sync updates:
    ```
 
 4. **Future Syncs:**
-   - Click "Sync from TMDB" to update ratings/revenue
+   - Click "TMDB Sync" to update ratings/revenue
    - Lao translations remain intact
 
 ## Troubleshooting

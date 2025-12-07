@@ -4,6 +4,23 @@
 import { z } from 'zod';
 
 // =============================================================================
+// CUSTOM VALIDATORS
+// =============================================================================
+
+/**
+ * Validates slug format:
+ * - Lowercase letters (a-z)
+ * - Numbers (0-9)
+ * - Hyphens (-)
+ * - Cannot start or end with a hyphen
+ * - Maximum 100 characters
+ */
+const slugValidator = z.string().max(100).regex(
+  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  'Slug must contain only lowercase letters, numbers, and hyphens (cannot start/end with hyphen)'
+);
+
+// =============================================================================
 // BASE SCHEMAS
 // =============================================================================
 
@@ -117,6 +134,9 @@ export const CreateMovieSchema = z.object({
   imdb_id: z.string().optional(),
   tmdb_last_synced: z.string().optional(),
   tmdb_sync_enabled: z.boolean().optional(),
+  
+  // Vanity URL
+  slug: slugValidator.optional(),
   
   // Basic info
   original_title: z.string().optional(),

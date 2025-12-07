@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth';
@@ -14,6 +14,23 @@ export function UserMenu() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const locale = useLocale();
+  const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen]);
   
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -44,7 +61,7 @@ export function UserMenu() {
   }
   
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 transition-colors"
@@ -56,22 +73,14 @@ export function UserMenu() {
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-            <User className="h-5 w-5 text-white" />
+          <div className="h-8 w-8 rounded-full border-2 border-gray-400 flex items-center justify-center">
+            <User className="h-5 w-5 text-gray-500" />
           </div>
         )}
       </button>
       
       {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
             {/* User Info */}
             <div className="px-4 py-3 border-b border-gray-200">
               <p className="text-sm font-medium text-gray-900">
@@ -122,7 +131,6 @@ export function UserMenu() {
               </button>
             </div>
           </div>
-        </>
       )}
     </div>
   );

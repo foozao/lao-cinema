@@ -13,6 +13,7 @@ import { Header } from '@/components/header';
 import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
+import { useAuth } from '@/lib/auth';
 import type { Movie } from '@/lib/types';
 
 // Helper to format grace time
@@ -30,6 +31,7 @@ export default function WatchPage() {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations();
   const id = params.id as string;
+  const { isLoading: authLoading } = useAuth();
   
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,10 +40,29 @@ export default function WatchPage() {
   const [inGracePeriod, setInGracePeriod] = useState(false);
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
 
-  // Check rental validity on mount
+  // First, load the movie to get its UUID
   useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const data = await movieAPI.getById(id);
+        setMovie(data);
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+        setLoading(false);
+      }
+    };
+
+    loadMovie();
+  }, [id]);
+
+  // Then check rental validity using the UUID
+  useEffect(() => {
+    // Wait for auth and movie to load
+    if (authLoading || !movie) return;
+    
     const checkAccess = async () => {
-      const canAccess = await canWatch(id);
+      // Use movie.id (UUID) instead of params.id (slug)
+      const canAccess = await canWatch(movie.id);
       
       if (!canAccess) {
         // No valid rental and not in grace period - redirect
@@ -50,19 +71,20 @@ export default function WatchPage() {
       }
       
       // Check if in grace period
-      const gracePeriod = await isInGracePeriod(id);
+      const gracePeriod = await isInGracePeriod(movie.id);
       setInGracePeriod(gracePeriod);
       
       if (gracePeriod) {
-        const graceMs = await getRemainingGraceTime(id);
+        const graceMs = await getRemainingGraceTime(movie.id);
         setGraceTimeRemaining(formatDurationMs(graceMs));
       }
       
       setRentalChecked(true);
+      setLoading(false);
     };
     
     checkAccess();
-  }, [id, router]);
+  }, [movie, authLoading, id, router]);
 
   // Esc key to close info panel
   useEffect(() => {
@@ -76,24 +98,6 @@ export default function WatchPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showInfo]);
-
-  useEffect(() => {
-    // Only load movie if rental is valid
-    if (!rentalChecked) return;
-    
-    const loadMovie = async () => {
-      try {
-        const data = await movieAPI.getById(id);
-        setMovie(data);
-      } catch (error) {
-        console.error('Failed to load movie:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMovie();
-  }, [id, rentalChecked]);
 
   if (loading) {
     return (
@@ -163,10 +167,23 @@ export default function WatchPage() {
         />
       </div>
 
-      {/* Movie Info Sidebar - Slides in from right */}
+      {/* Backdrop overlay for mobile */}
       {showInfo && (
-        <div className="fixed top-0 right-0 bottom-0 w-full md:w-96 bg-gray-900 z-40 overflow-y-auto animate-in slide-in-from-right">
-          <div className="p-6 pt-20">
+        <div 
+          className="fixed inset-0 bg-black/40 z-30 md:hidden animate-in fade-in duration-300"
+          onClick={() => setShowInfo(false)}
+        />
+      )}
+
+      {/* Movie Info Panel - Bottom sheet on mobile, side panel on desktop */}
+      {showInfo && (
+        <div className="fixed bottom-0 left-0 right-0 md:top-0 md:right-0 md:bottom-0 md:left-auto w-full md:w-96 max-h-[35vh] md:max-h-none bg-gray-900/60 backdrop-blur-sm rounded-t-2xl md:rounded-none z-40 overflow-y-auto animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
+          {/* Mobile drag handle */}
+          <div className="md:hidden flex justify-center pt-3 pb-2">
+            <div className="w-12 h-1 bg-gray-500 rounded-full" />
+          </div>
+          
+          <div className="p-6 pt-3 md:pt-20">
             {/* Movie Title with Close button */}
             <div className="flex items-start justify-between gap-4 mb-4">
               <h2 className="text-2xl font-bold text-white">{title}</h2>

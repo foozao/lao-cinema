@@ -14,6 +14,8 @@ export {
   getMovieSessions,
   getMovieAnalytics,
   getAllMovieAnalytics,
+  getUserMovieActivity,
+  getMovieUserActivity,
   getAnalyticsSummary,
   clearAnalytics,
   exportAnalyticsData,

@@ -240,6 +240,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         cast.push({
           movie: {
             id: movie.id,
+            slug: movie.slug,
             title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
             poster_path: movie.posterPath,
             release_date: movie.releaseDate,
@@ -278,6 +279,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         crew.push({
           movie: {
             id: movie.id,
+            slug: movie.slug,
             title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
             poster_path: movie.posterPath,
             release_date: movie.releaseDate,
@@ -371,6 +373,8 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
             if (bioValue !== undefined) transUpdates.biography = bioValue || null;
 
             if (Object.keys(transUpdates).length > 0) {
+              // Always update timestamp when updating translations
+              transUpdates.updatedAt = new Date();
               await db.update(schema.peopleTranslations)
                 .set(transUpdates)
                 .where(

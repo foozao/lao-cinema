@@ -9,6 +9,7 @@ import { Link } from '@/i18n/routing';
 import { Film, Calendar, Clock, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPosterUrl } from '@/lib/images';
+import { getMovieWatchUrl } from '@/lib/movie-url';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 
@@ -166,7 +167,7 @@ export default function RentalsPage() {
                           </span>
                         </div>
                         {!expired && (
-                          <Link href={`/watch/${rental.movieId}`}>
+                          <Link href={rental.movie ? getMovieWatchUrl(rental.movie) : `/movies/${rental.movieId}/watch`}>
                             <Button size="sm">
                               {t('watchNow')}
                             </Button>

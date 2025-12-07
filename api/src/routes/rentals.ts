@@ -8,8 +8,10 @@
 import { FastifyInstance } from 'fastify';
 import { eq, and, or, gt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { rentals, movies } from '../../../db/src/schema.js';
+import { rentals, movies, watchProgress } from '../../../db/src/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
+import { buildMovieWithRelations } from '../lib/movie-builder.js';
+import * as schema from '../../../db/src/schema.js';
 
 // Rental duration: 24 hours
 const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -23,9 +25,12 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/rentals
    * Get all active rentals for current user/anonymous
+   * Query params:
+   * - includeRecent: boolean (default: false) - include recently expired rentals (within 24 hours)
    */
   fastify.get('/rentals', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
     const { userId, anonymousId } = getUserContext(request);
+    const { includeRecent } = request.query as { includeRecent?: string };
     
     try {
       // Build where clause for dual-mode
@@ -42,24 +47,76 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         amount: rentals.amount,
         currency: rentals.currency,
         paymentMethod: rentals.paymentMethod,
-        // Include movie info
-        movieTitle: movies.originalTitle,
-        moviePosterPath: movies.posterPath,
+        // Include full movie data
+        movie: movies,
+        // Include watch progress
+        watchProgress: watchProgress,
       })
       .from(rentals)
       .leftJoin(movies, eq(rentals.movieId, movies.id))
+      .leftJoin(watchProgress, and(
+        eq(watchProgress.movieId, rentals.movieId),
+        userId 
+          ? eq(watchProgress.userId, userId)
+          : eq(watchProgress.anonymousId, anonymousId!)
+      ))
       .where(whereClause)
       .orderBy(rentals.purchasedAt);
       
-      // Filter active rentals (not expired)
+      // Filter rentals based on includeRecent parameter
       const now = new Date();
-      const activeRentals = userRentals.filter(rental => 
-        new Date(rental.expiresAt) > now
+      const recentCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+      
+      const filteredRentals = userRentals.filter(rental => {
+        const expiresAt = new Date(rental.expiresAt);
+        
+        if (expiresAt > now) {
+          // Active rental
+          return true;
+        }
+        
+        if (includeRecent === 'true' && expiresAt > recentCutoff) {
+          // Recently expired (within 24 hours)
+          return true;
+        }
+        
+        return false;
+      });
+      
+      // Build complete movie objects with translations
+      const rentalsWithMovies = await Promise.all(
+        filteredRentals.map(async (rental) => {
+          let completeMovie = null;
+          try {
+            if (rental.movie) {
+              completeMovie = await buildMovieWithRelations(rental.movie, db, schema, {
+                includeCast: false,
+                includeCrew: false,
+                includeGenres: false,
+              });
+            }
+          } catch (err) {
+            request.log.error({ err, movieId: rental.movieId }, 'Failed to build movie relations');
+          }
+          
+          return {
+            id: rental.id,
+            movieId: rental.movieId,
+            purchasedAt: rental.purchasedAt,
+            expiresAt: rental.expiresAt,
+            transactionId: rental.transactionId,
+            amount: rental.amount,
+            currency: rental.currency,
+            paymentMethod: rental.paymentMethod,
+            movie: completeMovie,
+            watchProgress: rental.watchProgress,
+          };
+        })
       );
       
       return reply.send({
-        rentals: activeRentals,
-        total: activeRentals.length,
+        rentals: rentalsWithMovies,
+        total: rentalsWithMovies.length,
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch rentals');

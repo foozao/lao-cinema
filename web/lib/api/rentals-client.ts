@@ -24,6 +24,12 @@ export interface Rental {
   paymentMethod: string;
   movieTitle?: string;
   moviePosterPath?: string;
+  movie?: any; // Full movie object from API
+  watchProgress?: {
+    progressSeconds: number;
+    durationSeconds: number;
+    completed: boolean;
+  } | null;
 }
 
 export interface RentalsResponse {
@@ -72,9 +78,15 @@ function getAuthHeaders(): Record<string, string> {
 
 /**
  * Get all rentals for current user/anonymous
+ * @param includeRecent - Include recently expired rentals (within 24 hours)
  */
-export async function getRentals(): Promise<RentalsResponse> {
-  const response = await fetch(`${API_URL}/rentals`, {
+export async function getRentals(includeRecent = false): Promise<RentalsResponse> {
+  const url = new URL(`${API_URL}/rentals`);
+  if (includeRecent) {
+    url.searchParams.set('includeRecent', 'true');
+  }
+  
+  const response = await fetch(url.toString(), {
     headers: getAuthHeaders(),
   });
   

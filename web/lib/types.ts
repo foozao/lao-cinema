@@ -20,6 +20,7 @@ export type AvailabilityStatus = 'available' | 'external' | 'unavailable' | 'com
 
 export interface Movie {
   id: string;
+  slug?: string; // Vanity URL slug (e.g., 'the-signal')
   
   // TMDB-compatible fields
   tmdb_id?: number;

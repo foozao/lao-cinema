@@ -11,6 +11,7 @@ import { Search, User, Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
+import { getMovieUrl } from '@/lib/movie-url';
 
 function MoviesPageContent() {
   const t = useTranslations();
@@ -386,7 +387,7 @@ function MoviesPageContent() {
                                   return (
                                     <p key={idx} className="text-sm text-gray-600 dark:text-gray-400">
                                       <Link 
-                                        href={`/movies/${movieRole.movie.id}`}
+                                        href={getMovieUrl(movieRole.movie)}
                                         className="font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                                       >
                                         {movieTitle}

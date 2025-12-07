@@ -1,6 +1,6 @@
 // Analytics localStorage persistence layer
 
-import type { WatchSession, AnalyticsEvent, MovieAnalytics, AnalyticsSummary } from './types';
+import type { WatchSession, AnalyticsEvent, MovieAnalytics, AnalyticsSummary, UserMovieActivity } from './types';
 import { COMPLETION_THRESHOLD } from './types';
 
 const STORAGE_KEYS = {
@@ -161,6 +161,45 @@ export function getAllMovieAnalytics(): MovieAnalytics[] {
     .filter((a): a is MovieAnalytics => a !== null);
 }
 
+// Get user-movie activity (aggregated by viewer and movie)
+export function getUserMovieActivity(): UserMovieActivity[] {
+  const sessions = getSessions();
+  
+  // Group sessions by viewerId + movieId
+  const activityMap = new Map<string, UserMovieActivity>();
+  
+  for (const session of sessions) {
+    const key = `${session.viewerId}:${session.movieId}`;
+    const existing = activityMap.get(key);
+    
+    if (existing) {
+      existing.totalWatchTime += session.totalWatchTime;
+      existing.sessionCount += 1;
+      existing.lastWatched = Math.max(existing.lastWatched, session.lastActiveAt || session.startedAt);
+      existing.maxProgress = Math.max(existing.maxProgress, session.maxProgress);
+      existing.completed = existing.completed || session.completed;
+    } else {
+      activityMap.set(key, {
+        viewerId: session.viewerId,
+        movieId: session.movieId,
+        movieTitle: session.movieTitle,
+        totalWatchTime: session.totalWatchTime,
+        sessionCount: 1,
+        lastWatched: session.lastActiveAt || session.startedAt,
+        maxProgress: session.maxProgress,
+        completed: session.completed,
+      });
+    }
+  }
+  
+  return Array.from(activityMap.values());
+}
+
+// Get user activity for a specific movie (aggregated by viewer)
+export function getMovieUserActivity(movieId: string): UserMovieActivity[] {
+  return getUserMovieActivity().filter(a => a.movieId === movieId);
+}
+
 export function getAnalyticsSummary(): AnalyticsSummary {
   const sessions = getSessions();
   const movieStats = getAllMovieAnalytics();
@@ -175,11 +214,11 @@ export function getAnalyticsSummary(): AnalyticsSummary {
     .filter(m => m.totalViews >= 1) // Require at least 1 view
     .sort((a, b) => b.completionRate - a.completionRate)
     .slice(0, 5);
-  const byViews = [...movieStats].sort((a, b) => b.totalViews - a.totalViews).slice(0, 5);
+  const byViewers = [...movieStats].sort((a, b) => b.uniqueViewers - a.uniqueViewers).slice(0, 5);
   
-  // Recent activity (last 10 sessions)
-  const recentActivity = [...sessions]
-    .sort((a, b) => b.startedAt - a.startedAt)
+  // Recent activity (last 10 user-movie combinations)
+  const recentActivity = getUserMovieActivity()
+    .sort((a, b) => b.lastWatched - a.lastWatched)
     .slice(0, 10);
   
   return {
@@ -192,7 +231,7 @@ export function getAnalyticsSummary(): AnalyticsSummary {
     topMovies: {
       byWatchTime,
       byCompletionRate,
-      byViews,
+      byViewers,
     },
     recentActivity,
   };

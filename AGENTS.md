@@ -182,12 +182,15 @@ The backend is fully implemented:
 
 | File | Purpose |
 |------|---------|
-| `STACK.md` | Complete technology stack and architecture |
-| `LANGUAGE_SYSTEM.md` | Multi-language system documentation |
+| `docs/architecture/STACK.md` | Complete technology stack and architecture |
+| `docs/architecture/API_REFERENCE.md` | All API endpoints with request/response shapes |
+| `docs/architecture/DATA_FLOW.md` | How data flows through the system |
+| `docs/architecture/SCHEMA_OVERVIEW.md` | Database tables and relationships |
+| `docs/architecture/LANGUAGE_SYSTEM.md` | Multi-language system documentation |
+| `web/COMPONENTS.md` | Component inventory with props and usage |
 | `docs/STATUS.md` | Development roadmap and project status |
 | `/web/lib/types.ts` | All TypeScript type definitions |
-| `/web/lib/data/movies.ts` | Sample movie data |
-| `/web/components/video-player.tsx` | HLS video player component |
+| `/db/src/schema.ts` | Database schema (Drizzle ORM) |
 
 ## Development Workflow
 
@@ -224,6 +227,39 @@ When implementing changes, verify:
 - [ ] No console errors or warnings
 - [ ] Follows existing code style
 - [ ] Uses proper types (no `any`)
+
+## Known Issues / Workarounds
+
+### Video Letterboxing
+Some video files have letterboxing (black bars) baked into the video encoding itself, causing excessive padding on the watch page even when aspect ratio metadata is set correctly.
+
+**Problem**: Films encoded as 16:9 containers with cinemascope (2.35:1 or 2.39:1) content have black bars as part of the video pixels. CSS aspect ratio adjustments cannot remove these baked-in bars.
+
+**Workaround**: Either re-encode videos to crop to actual content aspect ratio, or accept as-is (some films intentionally use letterboxing for cinematic presentation).
+
+**Files involved**: `web/components/video-player.tsx`, `db/src/schema.ts` (video_sources table)
+
+### Next.js 16 Quirks
+- **Turbopack**: Still experimental; use `npm run dev` (not `--turbo`) for stability
+- **Server Actions**: Must be in separate files or marked with `'use server'`
+- **Parallel Routes**: Not currently used, but avoid `@folder` naming in `/app`
+
+### Drizzle ORM Gotchas
+- **Migration order matters**: When truncating tables in tests, order by foreign key dependencies (`users`, `movies` first, then dependent tables)
+- **CASCADE in schema**: All `onDelete: 'cascade'` - deleting a movie removes all translations, cast, crew, etc.
+- **Composite PKs**: Translation tables use composite primary keys `(entityId, language)` - can't use auto-increment
+
+### Testing Patterns
+- **Always use TEST_DATABASE_URL**: Tests verify the URL contains `_test` to prevent running against production
+- **Clean up in beforeEach**: Truncate tables at start of each test, not afterEach (ensures clean state even if test crashes)
+- **Use app builder options**: `build({ includeAuth: true })` to include only needed routes
+
+### API Conventions
+- **Dual-mode auth**: Rentals/watch-progress support both `userId` and `anonymousId` - exactly one should be set
+- **Negative person IDs**: Manually-created people use negative IDs to distinguish from TMDB imports
+- **LocalizedText everywhere**: Never access `movie.title` directly - always `getLocalizedText(movie.title, locale)`
+
+---
 
 ## Common Pitfalls
 

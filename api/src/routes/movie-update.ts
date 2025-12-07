@@ -14,6 +14,9 @@ import {
   insertMovieImages,
   mapMovieToUpdateData,
   findPrimaryImage,
+  ensurePersonExists,
+  insertCharacterTranslations,
+  insertJobTranslations,
 } from '../lib/movie-helpers.js';
 
 type Language = 'en' | 'lo';
@@ -110,12 +113,14 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           .where(sql`${schema.movieTranslations.movieId} = ${movieId} AND ${schema.movieTranslations.language} = ${lang}`)
           .limit(1);
 
-        const transData: Record<string, string> = {};
+        const transData: Record<string, any> = {};
         if (title?.[lang]) transData.title = title[lang]!;
         if (overview?.[lang]) transData.overview = overview[lang]!;
         if (tagline?.[lang]) transData.tagline = tagline[lang]!;
 
         if (existingTrans.length > 0) {
+          // Always update timestamp when updating translations
+          transData.updatedAt = new Date();
           await db.update(schema.movieTranslations)
             .set(transData)
             .where(sql`${schema.movieTranslations.movieId} = ${movieId} AND ${schema.movieTranslations.language} = ${lang}`);
@@ -133,91 +138,71 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
   }
 
   async function updateCastTranslations(movieId: string, cast: CastMember[]) {
+    // First, delete all existing cast for this movie
+    await db.delete(schema.movieCast)
+      .where(eq(schema.movieCast.movieId, movieId));
+    await db.delete(schema.movieCastTranslations)
+      .where(eq(schema.movieCastTranslations.movieId, movieId));
+    
+    // Then insert all cast members fresh (like create does)
     for (const member of cast) {
-      const personId = member.person.id;
+      // Handle both nested (TMDB) and flat (test) formats
+      const personData = 'person' in member ? member.person : member;
+      const personId = personData.id;
       const characterName = member.character;
       
-      if (characterName) {
-        await upsertTranslation(
-          movieId,
-          personId,
-          characterName,
-          schema.movieCastTranslations,
-          'character'
-        );
-      }
+      // Ensure person exists
+      await ensurePersonExists(db, schema, {
+        id: personId,
+        name: personData.name,
+        known_for_department: personData.known_for_department,
+        profile_path: personData.profile_path,
+      }, 'Acting');
+
+      // Insert movie-cast relationship
+      await db.insert(schema.movieCast).values({
+        movieId,
+        personId,
+        order: member.order,
+      });
+
+      // Insert character translations
+      await insertCharacterTranslations(db, schema, movieId, personId, characterName);
     }
   }
 
   async function updateCrewTranslations(movieId: string, crew: CrewMember[]) {
+    // First, delete all existing crew for this movie
+    await db.delete(schema.movieCrew)
+      .where(eq(schema.movieCrew.movieId, movieId));
+    await db.delete(schema.movieCrewTranslations)
+      .where(eq(schema.movieCrewTranslations.movieId, movieId));
+    
+    // Then insert all crew members fresh (like create does)
     for (const member of crew) {
-      const personId = member.person.id;
+      // Handle both nested (TMDB) and flat (test) formats
+      const personData = 'person' in member ? member.person : member;
+      const personId = personData.id;
       const jobTitle = member.job;
       const department = member.department;
       
-      if (jobTitle && department) {
-        await upsertCrewTranslation(movieId, personId, department, jobTitle);
-      }
-    }
-  }
+      // Ensure person exists
+      await ensurePersonExists(db, schema, {
+        id: personId,
+        name: personData.name,
+        known_for_department: personData.known_for_department || department,
+        profile_path: personData.profile_path,
+      }, department);
 
-  async function upsertTranslation(
-    movieId: string,
-    personId: number,
-    localizedText: { en?: string; lo?: string },
-    table: any,
-    fieldName: 'character'
-  ) {
-    for (const lang of ['en', 'lo'] as const) {
-      if (localizedText[lang]) {
-        const existing = await db.select()
-          .from(table)
-          .where(sql`${table.movieId} = ${movieId} AND ${table.personId} = ${personId} AND ${table.language} = ${lang}`)
-          .limit(1);
+      // Insert movie-crew relationship
+      await db.insert(schema.movieCrew).values({
+        movieId,
+        personId,
+        department,
+      });
 
-        if (existing.length > 0) {
-          await db.update(table)
-            .set({ [fieldName]: localizedText[lang] })
-            .where(sql`${table.movieId} = ${movieId} AND ${table.personId} = ${personId} AND ${table.language} = ${lang}`);
-        } else {
-          await db.insert(table).values({
-            movieId,
-            personId,
-            language: lang,
-            [fieldName]: localizedText[lang],
-          });
-        }
-      }
-    }
-  }
-
-  async function upsertCrewTranslation(
-    movieId: string,
-    personId: number,
-    department: string,
-    jobTitle: { en?: string; lo?: string }
-  ) {
-    for (const lang of ['en', 'lo'] as const) {
-      if (jobTitle[lang]) {
-        const existing = await db.select()
-          .from(schema.movieCrewTranslations)
-          .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.department} = ${department} AND ${schema.movieCrewTranslations.language} = ${lang}`)
-          .limit(1);
-
-        if (existing.length > 0) {
-          await db.update(schema.movieCrewTranslations)
-            .set({ job: jobTitle[lang] })
-            .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.department} = ${department} AND ${schema.movieCrewTranslations.language} = ${lang}`);
-        } else {
-          await db.insert(schema.movieCrewTranslations).values({
-            movieId,
-            personId,
-            department,
-            language: lang,
-            job: jobTitle[lang]!,
-          });
-        }
-      }
+      // Insert job translations
+      await insertJobTranslations(db, schema, movieId, personId, department, jobTitle);
     }
   }
 

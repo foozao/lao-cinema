@@ -8,6 +8,7 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getPosterUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
+import { getMovieUrl } from '@/lib/movie-url';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Clock, ExternalLink, Calendar, Ban } from 'lucide-react';
@@ -92,7 +93,7 @@ export function MovieCard({ movie }: MovieCardProps) {
   const availabilityBadge = getAvailabilityBadge();
   
   return (
-    <Link href={`/movies/${movie.id}`}>
+    <Link href={getMovieUrl(movie)}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group h-full p-0 border-2 border-gray-200 dark:border-gray-700">
         <div className="flex h-full">
           {/* Poster - Full Height */}

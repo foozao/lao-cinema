@@ -6,7 +6,6 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Play, 
   Clock, 
   CheckCircle, 
   Users, 
@@ -16,6 +15,7 @@ import {
   RefreshCw,
   Film,
   ExternalLink,
+  Ticket,
 } from 'lucide-react';
 import { 
   getAnalyticsSummary, 
@@ -23,8 +23,9 @@ import {
   clearAnalytics,
   type AnalyticsSummary,
   type MovieAnalytics,
-  type WatchSession,
+  type UserMovieActivity,
 } from '@/lib/analytics';
+import { getRentals, type Rental } from '@/lib/api/rentals-client';
 
 // Format seconds to human-readable duration
 function formatDuration(seconds: number): string {
@@ -51,14 +52,26 @@ export default function AnalyticsPage() {
   const t = useTranslations('analytics');
   const tAdmin = useTranslations('admin');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [rentals, setRentals] = useState<{ total: number; active: number }>({ total: 0, active: 0 });
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
-    // Small delay to ensure localStorage is ready
-    setTimeout(() => {
+    // Load analytics from localStorage
+    setTimeout(async () => {
       const data = getAnalyticsSummary();
       setSummary(data);
+      
+      // Load rental data from API
+      try {
+        const { rentals: allRentals } = await getRentals(true); // Include expired
+        const now = new Date();
+        const activeCount = allRentals.filter(r => new Date(r.expiresAt) > now).length;
+        setRentals({ total: allRentals.length, active: activeCount });
+      } catch (error) {
+        console.error('Failed to load rentals:', error);
+      }
+      
       setLoading(false);
     }, 100);
   };
@@ -151,15 +164,15 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <Play className="w-5 h-5 text-indigo-600" />
+                  <Ticket className="w-5 h-5 text-indigo-600" />
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    {t('totalSessions')}
+                    {t('rentals')}
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{summary.totalSessions}</div>
-                <p className="text-sm text-gray-500">{t('watchSessions')}</p>
+                <div className="text-3xl font-bold">{rentals.total}</div>
+                <p className="text-sm text-gray-500">{rentals.active} {t('activeRentals')}</p>
               </CardContent>
             </Card>
 
@@ -275,26 +288,26 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            {/* Top by Views */}
+            {/* Top by Viewers */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  {t('topByViews')}
+                  {t('topByViewers')}
                 </CardTitle>
-                <CardDescription>{t('mostViewedMovies')}</CardDescription>
+                <CardDescription>{t('mostPopularMovies')}</CardDescription>
               </CardHeader>
               <CardContent>
-                {summary.topMovies.byViews.length > 0 ? (
+                {summary.topMovies.byViewers.length > 0 ? (
                   <div className="space-y-3">
-                    {summary.topMovies.byViews.map((movie, index) => (
+                    {summary.topMovies.byViewers.map((movie, index) => (
                       <div key={movie.movieId} className="flex items-center gap-3">
                         <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium">
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{movie.movieTitle}</p>
-                          <p className="text-sm text-gray-500">{movie.totalViews} views</p>
+                          <p className="text-sm text-gray-500">{movie.uniqueViewers} {t('users')}</p>
                         </div>
                       </div>
                     ))}
@@ -319,7 +332,7 @@ export default function AnalyticsPage() {
                     <thead>
                       <tr className="border-b text-left">
                         <th className="pb-3 font-medium">{t('movie')}</th>
-                        <th className="pb-3 font-medium text-right">{t('views')}</th>
+                        <th className="pb-3 font-medium text-right">{t('users')}</th>
                         <th className="pb-3 font-medium text-right">{t('watchTime')}</th>
                         <th className="pb-3 font-medium text-right">{t('avgSession')}</th>
                         <th className="pb-3 font-medium text-right">{t('completions')}</th>
@@ -332,7 +345,7 @@ export default function AnalyticsPage() {
                       {summary.movieStats.map((movie) => (
                         <tr key={movie.movieId} className="border-b last:border-0 hover:bg-gray-50">
                           <td className="py-3 font-medium">{movie.movieTitle}</td>
-                          <td className="py-3 text-right">{movie.totalViews}</td>
+                          <td className="py-3 text-right">{movie.uniqueViewers}</td>
                           <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
                           <td className="py-3 text-right">{formatDuration(movie.averageWatchTime)}</td>
                           <td className="py-3 text-right">{movie.completions}</td>
@@ -360,29 +373,30 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>{t('recentActivity')}</CardTitle>
-                <CardDescription>{t('recentWatchSessions')}</CardDescription>
+                <CardDescription>{t('userMovieActivity')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {summary.recentActivity.map((session) => (
-                    <div key={session.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                  {summary.recentActivity.map((activity) => (
+                    <div key={`${activity.viewerId}-${activity.movieId}`} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        session.completed ? 'bg-green-100' : 'bg-blue-100'
+                        activity.completed ? 'bg-green-100' : 'bg-blue-100'
                       }`}>
-                        {session.completed ? (
+                        {activity.completed ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
                         ) : (
-                          <Play className="w-5 h-5 text-blue-600" />
+                          <Clock className="w-5 h-5 text-blue-600" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{session.movieTitle}</p>
+                        <p className="font-medium truncate">{activity.movieTitle}</p>
                         <p className="text-sm text-gray-500">
-                          {formatDate(session.startedAt)} • {formatDuration(session.totalWatchTime)} watched • {session.maxProgress.toFixed(0)}% progress
+                          {formatDate(activity.lastWatched)} • {formatDuration(activity.totalWatchTime)} {t('totalWatched')} • {activity.sessionCount} {activity.sessionCount === 1 ? t('session') : t('sessions')}
                         </p>
                       </div>
-                      <div className="text-xs px-2 py-1 rounded bg-gray-200">
-                        {session.deviceType}
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-700">{activity.maxProgress.toFixed(0)}%</div>
+                        <div className="text-xs text-gray-500">{t('progress')}</div>
                       </div>
                     </div>
                   ))}

@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
@@ -19,6 +20,7 @@ import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
+import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -42,6 +44,7 @@ export default function EditMoviePage() {
     tagline_lo: '',
     
     // Common fields
+    slug: '',
     original_title: '',
     original_language: 'lo',
     release_date: '',
@@ -75,6 +78,20 @@ export default function EditMoviePage() {
   // Track if form has been modified
   const [hasChanges, setHasChanges] = useState(false);
   
+  // Original values for change detection
+  const [originalFormData, setOriginalFormData] = useState(formData);
+  const [originalCastTranslations, setOriginalCastTranslations] = useState(castTranslations);
+  const [originalCrewTranslations, setOriginalCrewTranslations] = useState(crewTranslations);
+  const [originalExternalPlatforms, setOriginalExternalPlatforms] = useState(externalPlatforms);
+  const [originalAvailabilityStatus, setOriginalAvailabilityStatus] = useState(availabilityStatus);
+  
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // Sync result modal state
+  const [showSyncResultModal, setShowSyncResultModal] = useState(false);
+  const [syncChanges, setSyncChanges] = useState<string[]>([]);
+  
   // State for adding new cast/crew
   const [showAddCast, setShowAddCast] = useState(false);
   const [showAddCrew, setShowAddCrew] = useState(false);
@@ -85,6 +102,7 @@ export default function EditMoviePage() {
   const [newCrewJobLo, setNewCrewJobLo] = useState('');
   const [addingCast, setAddingCast] = useState(false);
   const [addingCrew, setAddingCrew] = useState(false);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   // Load movie data on mount
   useEffect(() => {
@@ -100,6 +118,7 @@ export default function EditMoviePage() {
           overview_lo: movie.overview.lo || '',
           tagline_en: movie.tagline?.en || '',
           tagline_lo: movie.tagline?.lo || '',
+          slug: movie.slug || '',
           original_title: movie.original_title || '',
           original_language: movie.original_language || 'lo',
           release_date: movie.release_date,
@@ -141,10 +160,44 @@ export default function EditMoviePage() {
         setCrewTranslations(crewTrans);
 
         // Initialize external platforms
-        setExternalPlatforms(movie.external_platforms || []);
+        const initialPlatforms = movie.external_platforms || [];
+        setExternalPlatforms(initialPlatforms);
 
         // Load availability status
-        setAvailabilityStatus(movie.availability_status || '');
+        const initialStatus = movie.availability_status || '';
+        setAvailabilityStatus(initialStatus);
+        
+        // Store original values for change detection (must use local variables, not state)
+        const initialFormData = {
+          title_en: movie.title.en,
+          title_lo: movie.title.lo || '',
+          overview_en: movie.overview.en,
+          overview_lo: movie.overview.lo || '',
+          tagline_en: movie.tagline?.en || '',
+          tagline_lo: movie.tagline?.lo || '',
+          slug: movie.slug || '',
+          original_title: movie.original_title || '',
+          original_language: movie.original_language || 'lo',
+          release_date: movie.release_date,
+          runtime: movie.runtime?.toString() || '',
+          vote_average: movie.vote_average?.toString() || '',
+          status: movie.status || 'Released',
+          budget: movie.budget?.toString() || '',
+          revenue: movie.revenue?.toString() || '',
+          homepage: movie.homepage || '',
+          imdb_id: movie.imdb_id || '',
+          poster_path: movie.poster_path || '',
+          backdrop_path: movie.backdrop_path || '',
+          video_url: movie.video_sources[0]?.url || '',
+          video_quality: movie.video_sources[0]?.quality || 'original',
+          video_format: movie.video_sources[0]?.format || 'mp4',
+          video_aspect_ratio: movie.video_sources[0]?.aspect_ratio || '',
+        };
+        setOriginalFormData(initialFormData);
+        setOriginalCastTranslations({...castTrans});
+        setOriginalCrewTranslations({...crewTrans});
+        setOriginalExternalPlatforms([...initialPlatforms]);
+        setOriginalAvailabilityStatus(initialStatus);
       } catch (error) {
         console.error('Failed to load movie:', error);
         setSyncError('Failed to load movie from database');
@@ -154,12 +207,45 @@ export default function EditMoviePage() {
     loadMovie();
   }, [movieId]);
 
+  // Detect changes by comparing current values to originals
+  useEffect(() => {
+    // Compare formData
+    const formDataChanged = Object.keys(formData).some(
+      (key) => formData[key as keyof typeof formData] !== originalFormData[key as keyof typeof originalFormData]
+    );
+
+    // Compare cast translations
+    const castChanged = JSON.stringify(castTranslations) !== JSON.stringify(originalCastTranslations);
+
+    // Compare crew translations
+    const crewChanged = JSON.stringify(crewTranslations) !== JSON.stringify(originalCrewTranslations);
+
+    // Compare external platforms
+    const platformsChanged = JSON.stringify(externalPlatforms) !== JSON.stringify(originalExternalPlatforms);
+
+    // Compare availability status
+    const statusChanged = availabilityStatus !== originalAvailabilityStatus;
+
+    setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged);
+  }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, originalAvailabilityStatus]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setHasChanges(true);
+  };
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Auto-sanitize as user types
+    const sanitized = sanitizeSlug(value);
+    setFormData((prev) => ({ ...prev, slug: sanitized }));
+    
+    // Validate
+    const error = getSlugValidationError(sanitized);
+    setSlugError(error);
   };
 
   const handleSync = async () => {
@@ -215,7 +301,57 @@ export default function EditMoviePage() {
         images: syncedData.images,
       } : null);
 
-      alert('Successfully synced from TMDB! English content, metadata, and images updated.');
+      // Update cast translations state with synced character names
+      if (syncedData.cast) {
+        const castTrans: Record<string, { character_en: string; character_lo: string }> = {};
+        syncedData.cast.forEach((member) => {
+          const key = `${member.person.id}`;
+          castTrans[key] = {
+            character_en: member.character.en || '',
+            character_lo: member.character.lo || '',
+          };
+        });
+        setCastTranslations(castTrans);
+      }
+
+      // Update crew translations state with synced job titles
+      if (syncedData.crew) {
+        const crewTrans: Record<string, { job_en: string; job_lo: string }> = {};
+        syncedData.crew.forEach((member) => {
+          const key = `${member.person.id}-${member.department}`;
+          crewTrans[key] = {
+            job_en: member.job.en || '',
+            job_lo: member.job.lo || '',
+          };
+        });
+        setCrewTranslations(crewTrans);
+      }
+
+      // Detect what changed (only check editable fields)
+      const changes: string[] = [];
+      // Editable text fields
+      if (currentMovie.title.en !== syncedData.title.en) changes.push('Title');
+      if (currentMovie.overview.en !== syncedData.overview.en) changes.push('Overview');
+      if (currentMovie.tagline?.en !== syncedData.tagline?.en) changes.push('Tagline');
+      if (currentMovie.runtime !== syncedData.runtime) changes.push('Runtime');
+      // Image paths (editable via poster manager)
+      if (currentMovie.poster_path !== syncedData.poster_path) changes.push('Poster');
+      if (currentMovie.backdrop_path !== syncedData.backdrop_path) changes.push('Backdrop');
+      // Cast/Crew (editable via add/remove buttons)
+      if (currentMovie.cast?.length !== syncedData.cast?.length) changes.push('Cast');
+      if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
+      // Images (editable via poster manager)
+      if (currentMovie.images?.length !== syncedData.images?.length) changes.push('Images');
+      
+      setSyncChanges(changes);
+      
+      // Mark form as changed only if there are actual changes
+      if (changes.length > 0) {
+        setHasChanges(true);
+      }
+      
+      // Show sync result modal
+      setShowSyncResultModal(true);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
     } finally {
@@ -506,6 +642,12 @@ export default function EditMoviePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate slug before submitting
+    if (formData.slug && slugError) {
+      alert('Please fix the slug error before saving.');
+      return;
+    }
+    
     try {
       // Normalize Lao text to prevent encoding issues
       const normalizeLao = (text: string) => text.normalize('NFC');
@@ -552,6 +694,7 @@ export default function EditMoviePage() {
           en: formData.tagline_en || '',
           lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
         } : undefined,
+        slug: formData.slug || undefined,
         release_date: formData.release_date,
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
         poster_path: formData.poster_path || undefined,
@@ -572,65 +715,95 @@ export default function EditMoviePage() {
 
       await movieAPI.update(movieId, updateData);
       
-      alert('Movie updated successfully!');
-      router.push('/admin');
+      // Reload movie data to show updated values
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+      
+      // Update original values to match current (saved) values
+      setOriginalFormData({...formData});
+      setOriginalCastTranslations({...castTranslations});
+      setOriginalCrewTranslations({...crewTranslations});
+      setOriginalExternalPlatforms([...externalPlatforms]);
+      setOriginalAvailabilityStatus(availabilityStatus);
+      
+      // Show success modal
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to update movie:', error);
       alert('Failed to update movie. Please try again.');
     }
   };
 
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleBackToMovies = () => {
+    router.push('/admin');
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Edit Movie</h2>
-          {currentMovie && (
-            <p className="text-lg text-gray-600 mt-1">
-              {getLocalizedText(currentMovie.title, 'en')}
-            </p>
-          )}
-        </div>
-        {currentMovie?.tmdb_id && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync from TMDB'}
-          </Button>
-        )}
-      </div>
-
-      {syncError && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-red-800">Sync Error</p>
-            <p className="text-sm text-red-600">{syncError}</p>
+      <Tabs defaultValue="content" className="space-y-6">
+        {/* Sticky Header */}
+        <div className="sticky top-16 z-[5] bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-4 border-b border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Editing: <span className="text-gray-700">{currentMovie ? getLocalizedText(currentMovie.title, 'en') : 'Loading...'}</span>
+            </h2>
+            <div className="flex gap-2 flex-shrink-0">
+              {currentMovie?.tmdb_id && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="bg-blue-50 hover:bg-blue-100 border-blue-200 cursor-pointer"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Syncing...' : 'TMDB Sync'}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/admin')}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <span title={!hasChanges ? 'No changes to save' : ''}>
+                <Button 
+                  type="submit" 
+                  form="edit-movie-form" 
+                  disabled={!hasChanges}
+                  className={!hasChanges ? 'cursor-not-allowed' : 'cursor-pointer'}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Update
+                </Button>
+              </span>
+            </div>
           </div>
-        </div>
-      )}
 
-      {currentMovie?.tmdb_id && currentMovie.tmdb_last_synced && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
-            <strong>TMDB ID:</strong> {currentMovie.tmdb_id} • 
-            <strong className="ml-2">Last synced:</strong>{' '}
-            {new Date(currentMovie.tmdb_last_synced).toLocaleDateString()}
-          </p>
-        </div>
-      )}
+        {syncError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Sync Error</p>
+              <p className="text-sm text-red-600">{syncError}</p>
+            </div>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="content" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="media">Video & Images</TabsTrigger>
-            <TabsTrigger value="cast">Cast & Crew</TabsTrigger>
+            <TabsTrigger value="content" className="cursor-pointer">Content</TabsTrigger>
+            <TabsTrigger value="media" className="cursor-pointer">Video & Images</TabsTrigger>
+            <TabsTrigger value="cast" className="cursor-pointer">Cast & Crew</TabsTrigger>
           </TabsList>
+        </div>
+
+        <form id="edit-movie-form" onSubmit={handleSubmit}>
 
           <TabsContent value="content" className="space-y-6">
           {/* English Content */}
@@ -725,6 +898,44 @@ export default function EditMoviePage() {
               <CardTitle>Movie Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="slug">Vanity URL Slug</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const generated = sanitizeSlug(formData.title_en);
+                      setFormData((prev) => ({ ...prev, slug: generated }));
+                      const error = getSlugValidationError(generated);
+                      setSlugError(error);
+                    }}
+                    className="text-xs"
+                  >
+                    Generate from title
+                  </Button>
+                </div>
+                <Input
+                  id="slug"
+                  name="slug"
+                  value={formData.slug}
+                  onChange={handleSlugChange}
+                  placeholder="the-signal"
+                  className={slugError ? 'border-red-500' : ''}
+                />
+                {slugError ? (
+                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {slugError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Custom URL path for this movie (e.g., &quot;the-signal&quot; → /movies/the-signal). Leave empty to use ID.
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="original_title">Original Title</Label>
@@ -886,10 +1097,7 @@ export default function EditMoviePage() {
                 <select
                   id="availability_status"
                   value={availabilityStatus}
-                  onChange={(e) => {
-                    setAvailabilityStatus(e.target.value as any);
-                    setHasChanges(true);
-                  }}
+                  onChange={(e) => setAvailabilityStatus(e.target.value as any)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Auto (based on video sources and external platforms)</option>
@@ -933,7 +1141,6 @@ export default function EditMoviePage() {
                           const updated = [...externalPlatforms];
                           updated[index] = { ...updated[index], url: e.target.value };
                           setExternalPlatforms(updated);
-                          setHasChanges(true);
                         }}
                         placeholder="URL (optional)"
                         className="flex-1"
@@ -944,7 +1151,6 @@ export default function EditMoviePage() {
                         size="sm"
                         onClick={() => {
                           setExternalPlatforms(externalPlatforms.filter((_, i) => i !== index));
-                          setHasChanges(true);
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -967,7 +1173,6 @@ export default function EditMoviePage() {
                       // Don't add if already exists
                       if (!externalPlatforms.some(p => p.platform === platform)) {
                         setExternalPlatforms([...externalPlatforms, { platform }]);
-                        setHasChanges(true);
                       }
                       e.target.value = '';
                     }
@@ -1393,23 +1598,80 @@ export default function EditMoviePage() {
             </Card>
           )}
           </TabsContent>
+        </form>
+      </Tabs>
 
-          {/* Submit Button - Outside tabs so it's always visible */}
-          <div className="flex justify-end gap-4 pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/admin')}
-            >
-              Cancel
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <DialogTitle className="text-xl">Movie Updated Successfully!</DialogTitle>
+            </div>
+            <DialogDescription>
+              Your changes have been saved. The movie data has been refreshed with the latest updates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button onClick={handleCloseSuccessModal} variant="outline" className="w-full">
+              Keep Editing
             </Button>
-            <Button type="submit" disabled={!hasChanges}>
-              <Save className="w-4 h-4 mr-2" />
-              Update Movie
+            <Button onClick={handleBackToMovies} className="w-full">
+              Back to Movies
             </Button>
           </div>
-        </Tabs>
-      </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync Result Modal */}
+      <Dialog open={showSyncResultModal} onOpenChange={setShowSyncResultModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                syncChanges.length > 0 ? 'bg-blue-100' : 'bg-gray-100'
+              }`}>
+                {syncChanges.length > 0 ? (
+                  <RefreshCw className="h-6 w-6 text-blue-600" />
+                ) : (
+                  <CheckCircle className="h-6 w-6 text-gray-600" />
+                )}
+              </div>
+              <DialogTitle className="text-xl">
+                {syncChanges.length > 0 ? 'TMDB Sync Complete' : 'No Updates Available'}
+              </DialogTitle>
+            </div>
+            <DialogDescription>
+              {syncChanges.length > 0 ? (
+                <div className="space-y-3">
+                  <p>The following fields were updated from TMDB:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {syncChanges.map((change) => (
+                      <li key={change}>{change}</li>
+                    ))}
+                  </ul>
+                  <p className="text-sm font-medium text-blue-600 mt-4">
+                    Remember to click "Update Movie" to save these changes.
+                  </p>
+                </div>
+              ) : (
+                <p>This movie is already up to date with the latest TMDB data. No changes were detected.</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <Button 
+              onClick={() => setShowSyncResultModal(false)} 
+              className="w-full"
+            >
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
