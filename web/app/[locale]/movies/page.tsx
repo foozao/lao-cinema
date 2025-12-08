@@ -25,16 +25,21 @@ function MoviesPageContent() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short' | 'people'>('all');
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc'>('date-desc');
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize state from URL params
   useEffect(() => {
     const query = searchParams.get('q') || '';
     const filter = searchParams.get('filter') as 'all' | 'feature' | 'short' | 'people' | null;
+    const sort = searchParams.get('sort') as 'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc' | null;
     
     setSearchQuery(query);
     if (filter && ['all', 'feature', 'short', 'people'].includes(filter)) {
       setFilterType(filter);
+    }
+    if (sort && ['date-desc', 'date-asc', 'alpha-asc', 'alpha-desc'].includes(sort)) {
+      setSortBy(sort);
     }
     setIsInitialized(true);
   }, [searchParams]);
@@ -72,7 +77,7 @@ function MoviesPageContent() {
     loadMovies();
   };
 
-  // Update URL when search query or filter changes (after initialization)
+  // Update URL when search query, filter, or sort changes (after initialization)
   useEffect(() => {
     if (!isInitialized) return;
     
@@ -86,12 +91,16 @@ function MoviesPageContent() {
       params.set('filter', filterType);
     }
     
+    if (sortBy !== 'date-desc') {
+      params.set('sort', sortBy);
+    }
+    
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '';
     
     // Use replace to avoid adding to history stack
     router.replace(`/${locale}/movies${newUrl}`, { scroll: false });
-  }, [searchQuery, filterType, router, locale, isInitialized]);
+  }, [searchQuery, filterType, sortBy, router, locale, isInitialized]);
 
   // Helper function to get match type for a movie
   const getMatchType = (movie: Movie, query: string): 'title' | 'cast' | 'crew' | null => {
@@ -192,7 +201,41 @@ function MoviesPageContent() {
     return Array.from(peopleMap.values());
   };
 
-  const filteredMovies = movies.filter((movie) => {
+  // Sort movies helper
+  const sortMovies = (moviesToSort: Movie[]) => {
+    const sorted = [...moviesToSort];
+    
+    switch (sortBy) {
+      case 'date-desc':
+        return sorted.sort((a, b) => {
+          const dateA = a.release_date || '';
+          const dateB = b.release_date || '';
+          return dateB.localeCompare(dateA);
+        });
+      case 'date-asc':
+        return sorted.sort((a, b) => {
+          const dateA = a.release_date || '';
+          const dateB = b.release_date || '';
+          return dateA.localeCompare(dateB);
+        });
+      case 'alpha-asc':
+        return sorted.sort((a, b) => {
+          const titleA = a.title?.[locale as 'en' | 'lo'] || a.original_title || '';
+          const titleB = b.title?.[locale as 'en' | 'lo'] || b.original_title || '';
+          return titleA.localeCompare(titleB, locale);
+        });
+      case 'alpha-desc':
+        return sorted.sort((a, b) => {
+          const titleA = a.title?.[locale as 'en' | 'lo'] || a.original_title || '';
+          const titleB = b.title?.[locale as 'en' | 'lo'] || b.original_title || '';
+          return titleB.localeCompare(titleA, locale);
+        });
+      default:
+        return sorted;
+    }
+  };
+
+  const filteredMovies = sortMovies(movies.filter((movie) => {
     // Filter by search query
     if (searchQuery) {
       const matchType = getMatchType(movie, searchQuery);
@@ -209,7 +252,7 @@ function MoviesPageContent() {
     }
     
     return true;
-  });
+  }));
 
   // Separate movies by match type when searching
   const moviesByTitle = searchQuery ? filteredMovies.filter(m => getMatchType(m, searchQuery) === 'title') : filteredMovies;
@@ -233,20 +276,21 @@ function MoviesPageContent() {
           </h2>
 
           {/* Search Bar and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder={t('movies.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            {/* Film Type Toggle */}
-            <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t('movies.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              {/* Film Type Toggle */}
+              <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
               <button
                 onClick={() => setFilterType('all')}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -287,7 +331,20 @@ function MoviesPageContent() {
               >
                 {t('movies.short')}
               </button>
+              </div>
             </div>
+            
+            {/* Sort Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="date-desc">{t('movies.sortNewest')}</option>
+              <option value="date-asc">{t('movies.sortOldest')}</option>
+              <option value="alpha-asc">{t('movies.sortAlphaAsc')}</option>
+              <option value="alpha-desc">{t('movies.sortAlphaDesc')}</option>
+            </select>
           </div>
         </div>
 

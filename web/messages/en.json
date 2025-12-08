@@ -38,6 +38,10 @@
     "feature": "Feature Films",
     "short": "Short Films",
     "searchPlaceholder": "Search by title, cast, or crew...",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "sortAlphaAsc": "A → Z",
+    "sortAlphaDesc": "Z → A",
     "matchType": {
       "cast": "Found in Cast",
       "crew": "Found in Crew"

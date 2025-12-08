@@ -38,6 +38,10 @@
     "feature": "ຮູບເງົາຍາວ",
     "short": "ຮູບເງົາສັ້ນ",
     "searchPlaceholder": "ຄົ້ນຫາຕາມຊື່, ນັກສະແດງ, ຫຼື ທີມງານ...",
+    "sortNewest": "ໃໝ່ສຸດກ່ອນ",
+    "sortOldest": "ເກົ່າສຸດກ່ອນ",
+    "sortAlphaAsc": "ກ → ຮ",
+    "sortAlphaDesc": "ຮ → ກ",
     "matchType": {
       "cast": "ພົບໃນນັກສະແດງ",
       "crew": "ພົບໃນທີມງານ"
