@@ -27,7 +27,7 @@ function MoviesPageContent() {
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short' | 'people'>('all');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize state from URL params on mount
+  // Initialize state from URL params
   useEffect(() => {
     const query = searchParams.get('q') || '';
     const filter = searchParams.get('filter') as 'all' | 'feature' | 'short' | 'people' | null;
@@ -294,9 +294,8 @@ function MoviesPageContent() {
         {/* Movie Grid */}
         <section>
           {loading ? (
-            <div className="text-center py-20">
-              <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
-            </div>
+            // Show blank space during loading
+            <div className="py-20" />
           ) : error ? (
             <APIError 
               type={error} 
@@ -445,12 +444,8 @@ function MoviesPageContent() {
   );
 }
 
+// No need for Suspense wrapper - progress bar handles navigation,
+// delayed spinner handles data fetching
 export default function MoviesPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-    </div>}>
-      <MoviesPageContent />
-    </Suspense>
-  );
+  return <MoviesPageContent />;
 }

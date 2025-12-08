@@ -85,11 +85,7 @@ export default function PeopleAdminPage() {
   }, [searchQuery, people, departmentFilter, sortOrder]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
   return (

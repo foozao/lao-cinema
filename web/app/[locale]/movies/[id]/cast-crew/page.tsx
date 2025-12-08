@@ -38,18 +38,18 @@ export default function CastCrewPage() {
     loadMovie();
   }, [movieId]);
 
+  // Show blank page during loading
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <p>{t('common.loading')}</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black" />;
   }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <p>{t('common.error')}</p>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+        <Header variant="dark" />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+          <p>{t('common.error')}</p>
+        </div>
       </div>
     );
   }

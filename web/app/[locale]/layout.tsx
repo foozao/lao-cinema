@@ -5,6 +5,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { AuthProvider } from '@/lib/auth';
+import { ProgressBarProvider } from '@/components/progress-bar';
 import "../globals.css";
 
 const geistSans = Geist({
@@ -56,7 +57,9 @@ export default async function LocaleLayout({
       >
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
-            {children}
+            <ProgressBarProvider>
+              {children}
+            </ProgressBarProvider>
           </AuthProvider>
         </NextIntlClientProvider>
       </body>

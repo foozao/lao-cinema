@@ -6,8 +6,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
-import { Film, User, Share2 } from 'lucide-react';
 import { Footer } from '@/components/footer';
+import { Film, User, Share2 } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText, getBilingualName } from '@/lib/i18n';
 import { getPosterUrl, getProfileUrl } from '@/lib/images';
@@ -36,7 +36,7 @@ export default function PersonPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showFullBio, setShowFullBio] = useState(false);
-
+  
   useEffect(() => {
     const loadPerson = async () => {
       try {
@@ -53,12 +53,9 @@ export default function PersonPage() {
     loadPerson();
   }, [personId]);
 
+  // Show blank page during loading
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <p>{t('common.loading')}</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black" />;
   }
 
   if (error || !person) {

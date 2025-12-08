@@ -432,6 +432,7 @@
       "watchNow": "Watch Now",
       "rentAgain": "Rent Again",
       "viewDetails": "View movie details",
+      "clickToWatch": "Click to watch",
       "percentWatched": "{percent}% watched",
       "expiredRecently": "Rental expired",
       "expiresInHours": "Rental expires in {hours}h",

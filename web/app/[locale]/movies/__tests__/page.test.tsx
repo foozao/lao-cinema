@@ -136,11 +136,6 @@ describe('MoviesPage', () => {
         expect(screen.getByTestId('movie-card-3')).toBeInTheDocument();
       });
     });
-
-    it('shows loading state initially', () => {
-      render(<MoviesPage />);
-      expect(screen.getByText('common.loading')).toBeInTheDocument();
-    });
   });
 
   describe('Search Functionality', () => {

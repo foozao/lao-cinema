@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
+  ArrowLeft, 
   Clock, 
   CheckCircle, 
   Users, 
   TrendingUp,
-  ArrowLeft,
   RefreshCw,
   Film,
   Percent,
+  Eye,
 } from 'lucide-react';
 import { 
   getMovieAnalytics,
@@ -69,11 +70,7 @@ export default function MovieAnalyticsPage() {
   }, [movieId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
   if (!analytics) {

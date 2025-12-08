@@ -21,7 +21,7 @@ export default function MoviesAdminPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('title-asc');
-
+  
   useEffect(() => {
     const loadMovies = async () => {
       try {
@@ -127,7 +127,7 @@ export default function MoviesAdminPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-600">{t('loadingMovies')}</p>
+        <div className="py-20" />
       ) : filteredMovies.length === 0 ? (
         <Card>
           <CardContent className="pt-6">

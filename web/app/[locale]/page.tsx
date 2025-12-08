@@ -119,9 +119,8 @@ export default function Home() {
         {/* Movie Grid */}
         <section>
           {loading ? (
-            <div className="text-center py-20">
-              <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
-            </div>
+            // Show blank space during loading
+            <div className="py-20" />
           ) : error ? (
             <APIError 
               type={error} 

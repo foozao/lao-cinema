@@ -160,3 +160,60 @@ input[type="range"].slider::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
+
+/* Route Progress Bar */
+.route-progress-bar-active {
+  animation: route-progress 1s ease-out forwards;
+}
+
+@keyframes route-progress {
+  0% {
+    width: 0%;
+    opacity: 1;
+  }
+  30% {
+    width: 40%;
+    opacity: 1;
+  }
+  60% {
+    width: 80%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+/* Shimmer Loading Effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(24 24 27) 0%,
+    rgb(39 39 42) 20%,
+    rgb(24 24 27) 40%,
+    rgb(24 24 27) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    filter: brightness(0.8);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+}

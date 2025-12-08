@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ export default function EditPersonPage() {
   const params = useParams();
   const router = useRouter();
   const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations('admin');
   const personId = parseInt(params.id as string);
 
   const [person, setPerson] = useState<any>(null);
@@ -148,11 +149,7 @@ export default function EditPersonPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
   if (error || !person) {

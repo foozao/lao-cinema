@@ -136,16 +136,12 @@ export function RentalCard({ rental }: RentalCardProps) {
               )}
             </div>
             
-            {/* Movie Details link - for active rentals */}
+            {/* Movie Details hint - for active rentals */}
             {!isExpired && (
-              <Link
-                href={`/movies/${getMoviePath(movie)}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-2"
-              >
-                <Info className="w-4 h-4" />
-                <span>{t('viewDetails')}</span>
-              </Link>
+              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mt-2">
+                <Play className="w-4 h-4" />
+                <span>{t('clickToWatch')}</span>
+              </div>
             )}
             
             {/* Rent Again CTA - only for expired */}

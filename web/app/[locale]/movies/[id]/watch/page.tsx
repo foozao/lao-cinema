@@ -8,8 +8,8 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
-import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
+import { Button } from '@/components/ui/button';
 import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
@@ -39,7 +39,7 @@ export default function WatchPage() {
   const [rentalChecked, setRentalChecked] = useState(false);
   const [inGracePeriod, setInGracePeriod] = useState(false);
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
-
+  
   // First, load the movie to get its UUID
   useEffect(() => {
     const loadMovie = async () => {
@@ -99,18 +99,18 @@ export default function WatchPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showInfo]);
 
+  // Show blank page during loading
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p>{t('common.loading')}</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-black" />;
   }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p>{t('common.error')}</p>
+      <div className="min-h-screen bg-black text-white">
+        <Header variant="dark" />
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+          <p>{t('common.error')}</p>
+        </div>
       </div>
     );
   }
