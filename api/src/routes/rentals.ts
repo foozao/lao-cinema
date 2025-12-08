@@ -6,7 +6,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { eq, and, or, gt } from 'drizzle-orm';
+import { eq, and, or, gt, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, movies, watchProgress } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
@@ -61,7 +61,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
           : eq(watchProgress.anonymousId, anonymousId!)
       ))
       .where(whereClause)
-      .orderBy(rentals.purchasedAt);
+      .orderBy(desc(rentals.purchasedAt));
       
       // Filter rentals based on includeRecent parameter
       const now = new Date();
@@ -153,7 +153,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
             userClause
           )
         )
-        .orderBy(rentals.purchasedAt)
+        .orderBy(desc(rentals.purchasedAt))
         .limit(1);
       
       if (!rental) {
