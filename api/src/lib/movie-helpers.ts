@@ -298,7 +298,7 @@ export function mapMovieToInsertData(
   const data: any = {
     originalTitle: movie.original_title || 'Untitled',
     adult: movie.adult || false,
-    availabilityStatus: movie.availability_status || 'available',
+    availabilityStatus: movie.availability_status || null,
   };
   
   // Only include defined values to avoid PostgreSQL undefined errors
