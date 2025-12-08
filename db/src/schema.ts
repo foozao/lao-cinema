@@ -6,7 +6,7 @@ export const videoFormatEnum = pgEnum('video_format', ['mp4', 'hls', 'dash']);
 export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '720p', '480p', '360p']);
 export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
 export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']);
-export const availabilityStatusEnum = pgEnum('availability_status', ['available', 'external', 'unavailable', 'coming_soon']);
+export const availabilityStatusEnum = pgEnum('availability_status', ['auto', 'available', 'external', 'unavailable', 'coming_soon']);
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 
@@ -32,8 +32,8 @@ export const movies = pgTable('movies', {
   popularity: real('popularity').default(0),
   adult: boolean('adult').default(false),
   
-  // Availability (NULL = Auto, uses smart defaults based on video_sources and external_platforms)
-  availabilityStatus: availabilityStatusEnum('availability_status'),
+  // Availability ('auto' = uses smart defaults based on video_sources and external_platforms)
+  availabilityStatus: availabilityStatusEnum('availability_status').default('auto'),
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),

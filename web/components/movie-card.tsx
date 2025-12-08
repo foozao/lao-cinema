@@ -50,8 +50,8 @@ export function MovieCard({ movie }: MovieCardProps) {
     // Determine status with smart defaults
     let status = movie.availability_status;
     
-    // If no explicit status is set, use smart defaults
-    if (!status) {
+    // If status is 'auto', use smart defaults
+    if (!status || status === 'auto') {
       if (movie.video_sources && movie.video_sources.length > 0) {
         status = 'available'; // Has video sources on our platform
       } else if (movie.external_platforms && movie.external_platforms.length > 0) {

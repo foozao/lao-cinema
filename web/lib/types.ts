@@ -16,7 +16,7 @@ export interface ExternalPlatform {
 }
 
 // Availability status for movies
-export type AvailabilityStatus = 'available' | 'external' | 'unavailable' | 'coming_soon';
+export type AvailabilityStatus = 'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon';
 
 export interface Movie {
   id: string;

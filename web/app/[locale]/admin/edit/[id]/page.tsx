@@ -73,7 +73,7 @@ export default function EditMoviePage() {
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
   
   // State for availability status
-  const [availabilityStatus, setAvailabilityStatus] = useState<'available' | 'external' | 'unavailable' | 'coming_soon' | ''>('');
+  const [availabilityStatus, setAvailabilityStatus] = useState<'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon'>('auto');
   
   // Track if form has been modified
   const [hasChanges, setHasChanges] = useState(false);
@@ -710,7 +710,7 @@ export default function EditMoviePage() {
         crew: updatedCrew,
         images: currentMovie?.images, // Include images array
         external_platforms: externalPlatforms,
-        availability_status: availabilityStatus || undefined,
+        availability_status: availabilityStatus,
       };
 
       await movieAPI.update(movieId, updateData);
@@ -1100,7 +1100,7 @@ export default function EditMoviePage() {
                   onChange={(e) => setAvailabilityStatus(e.target.value as any)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Auto (based on video sources and external platforms)</option>
+                  <option value="auto">Auto (based on video sources and external platforms)</option>
                   <option value="available">Available - Movie is on our platform</option>
                   <option value="external">External - Available on external platforms only</option>
                   <option value="unavailable">Unavailable - Not available anywhere</option>

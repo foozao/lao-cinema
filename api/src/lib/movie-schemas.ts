@@ -163,7 +163,7 @@ export const CreateMovieSchema = z.object({
   tagline: LocalizedTextSchema.optional(),
   
   // Availability
-  availability_status: z.enum(['available', 'external', 'unavailable', 'coming_soon']),
+  availability_status: z.enum(['auto', 'available', 'external', 'unavailable', 'coming_soon']),
   
   // Relationships
   genres: z.array(GenreSchema),

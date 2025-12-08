@@ -93,7 +93,7 @@ const createTestMovie = (overrides: Partial<Movie> = {}): Movie => ({
     { person: { id: 11, name: { en: 'Jane Writer', lo: 'ນັກຂຽນ' }, profile_path: undefined }, job: { en: 'Writer' }, department: 'Writing' },
   ],
   video_sources: [{ id: '1', url: '/video.m3u8', quality: '1080p', format: 'hls' }],
-  availability_status: 'available',
+  availability_status: 'auto',
   ...overrides,
 });
 
