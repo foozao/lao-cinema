@@ -118,12 +118,12 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [ ] Social features
 
 ### Phase 5: Mobile & Deployment
-- [ ] React Native mobile app (Expo)
-- [ ] Production deployment (Vercel + GCP)
+- [ ] React Native mobile app (Expo) - **See [MOBILE_APP_PLAN.md](MOBILE_APP_PLAN.md)**
+- [x] Production deployment (GCP Cloud Run)
 - [ ] Monitoring and analytics
 - [ ] CDN configuration
 - [ ] Automated backups
-- [ ] Offline viewing support
+- [ ] Offline viewing support (mobile-specific)
 
 ## 🔧 Technology Stack
 

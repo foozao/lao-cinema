@@ -73,6 +73,10 @@ docker-compose up -d
 - **[docs/features/BACKEND_IMAGE_API.md](docs/features/BACKEND_IMAGE_API.md)** - Image API endpoints
 - **[docs/features/SAFE_SYNC_STRATEGY.md](docs/features/SAFE_SYNC_STRATEGY.md)** - Data synchronization strategy
 
+### Future Planning
+- **[docs/FUTURE.md](docs/FUTURE.md)** - Future feature ideas and optimizations
+- **[docs/MOBILE_APP_PLAN.md](docs/MOBILE_APP_PLAN.md)** - Complete React Native mobile app migration plan
+
 ### History
 - **[docs/changelog/CHANGELOG.md](docs/changelog/CHANGELOG.md)** - Project changelog
 
