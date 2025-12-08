@@ -9,7 +9,11 @@ import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
 import { Button } from '@/components/ui/button';
+<<<<<<< Updated upstream
 import { Header } from '@/components/header';
+=======
+import { CastDebugPanel } from '@/components/cast-debug-panel';
+>>>>>>> Stashed changes
 import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
@@ -137,6 +141,9 @@ export default function WatchPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
+      {/* Debug panel for mobile testing (add ?debug=true to URL) */}
+      <CastDebugPanel />
+      
       {/* Header */}
       <Header variant="dark" fullWidth />
 
