@@ -32,6 +32,9 @@
     "myRentals": "ການເຊົ່າຂອງຂ້ອຍ",
     "viewAll": "ເບິ່ງທັງໝົດ"
   },
+  "subheader": {
+    "searchPlaceholder": "ຄົ້ນຫາຮູບເງົາ ຫຼື ບຸກຄົນ..."
+  },
   "movies": {
     "all": "ທັງໝົດ",
     "people": "ບຸກຄົນ",

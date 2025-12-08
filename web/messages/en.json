@@ -32,6 +32,9 @@
     "myRentals": "My Rentals",
     "viewAll": "View All"
   },
+  "subheader": {
+    "searchPlaceholder": "Search movies or people..."
+  },
   "movies": {
     "all": "All",
     "people": "People",
