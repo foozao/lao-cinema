@@ -1,6 +1,8 @@
 
 Possible Future Changes:
 
+* it seems like when I'm on a new device, even if i'm logged in, it doesn't start playing the movie from where i left off. it's always at the beginning.
+
 * fix Vercel version
 
 * building custom cast receiver

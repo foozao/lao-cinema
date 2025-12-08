@@ -57,7 +57,7 @@ export function VideoPlayer({
     savePosition,
     hasStarted,
     setHasStarted,
-  } = useContinueWatching({ videoId });
+  } = useContinueWatching({ videoId, movieDuration });
 
   // HLS player hook
   const { videoRef, isLoading, error, retryLoad } = useHlsPlayer({
