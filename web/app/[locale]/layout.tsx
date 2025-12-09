@@ -21,6 +21,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lao Cinema - Discover Amazing Lao Films",
   description: "Stream and discover the best of Lao cinema. Watch Lao movies with English and Lao subtitles.",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+  },
 };
 
 export function generateStaticParams() {
