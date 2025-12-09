@@ -157,7 +157,9 @@ export default function MoviePage() {
 
   // Determine availability status with smart defaults
   let availabilityStatus = movie.availability_status;
-  if (!availabilityStatus) {
+  
+  // Handle 'auto' mode - determine availability based on what's available
+  if (!availabilityStatus || availabilityStatus === 'auto') {
     if (movie.video_sources && movie.video_sources.length > 0) {
       availabilityStatus = 'available';
     } else if (movie.external_platforms && movie.external_platforms.length > 0) {
