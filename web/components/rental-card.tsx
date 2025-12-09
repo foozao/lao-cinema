@@ -51,41 +51,45 @@ export function RentalCard({ rental }: RentalCardProps) {
     : 0;
   
   return (
-    <Link href={isExpired ? `/movies/${getMoviePath(movie)}` : getMovieWatchUrl(movie)}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700">
-        <div className="flex h-full">
-          {/* Poster - Full Height */}
-          <div className="relative w-40 h-full flex-shrink-0 bg-gray-200 dark:bg-gray-800">
-            <Image
-              src={posterUrl}
-              alt={title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              sizes="192px"
-            />
-            
-            {/* Play button overlay for active rentals */}
-            {!isExpired && (
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="bg-white dark:bg-gray-800 rounded-full p-3">
-                  <Play className="w-6 h-6 text-blue-600" fill="currentColor" />
-                </div>
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700">
+      <div className="flex h-full">
+        {/* Poster - Clickable to watch/rent */}
+        <Link 
+          href={isExpired ? `/movies/${getMoviePath(movie)}` : getMovieWatchUrl(movie)}
+          className="relative w-40 h-full flex-shrink-0 bg-gray-200 dark:bg-gray-800 group/poster"
+        >
+          <Image
+            src={posterUrl}
+            alt={title}
+            fill
+            className="object-cover group-hover/poster:scale-105 transition-transform duration-300"
+            sizes="192px"
+          />
+          
+          {/* Play button overlay for active rentals */}
+          {!isExpired && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+              <div className="bg-white dark:bg-gray-800 rounded-full p-3">
+                <Play className="w-6 h-6 text-blue-600" fill="currentColor" />
               </div>
-            )}
-            
-            {/* Status badge */}
-            <div className={`absolute bottom-2 left-2 text-xs px-2 py-1 rounded flex items-center gap-1 ${
-              isExpired 
-                ? 'bg-red-500/90 text-white' 
-                : 'bg-green-500/90 text-white'
-            }`}>
-              {isExpired ? t('expired') : t('active')}
             </div>
-            
+          )}
+          
+          {/* Status badge */}
+          <div className={`absolute bottom-2 left-2 text-xs px-2 py-1 rounded flex items-center gap-1 ${
+            isExpired 
+              ? 'bg-red-500/90 text-white' 
+              : 'bg-green-500/90 text-white'
+          }`}>
+            {isExpired ? t('expired') : t('active')}
           </div>
+        </Link>
 
-          {/* Content */}
-          <div className="flex-1 p-4 flex flex-col">
+        {/* Content - Clickable to movie details */}
+        <Link 
+          href={`/movies/${getMoviePath(movie)}`}
+          className="flex-1 p-4 flex flex-col group/info hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        >
             {/* Title */}
             <h3 className="font-bold text-lg mb-1 line-clamp-2 text-gray-900 dark:text-white">
               {title}
@@ -136,25 +140,13 @@ export function RentalCard({ rental }: RentalCardProps) {
               )}
             </div>
             
-            {/* Movie Details hint - for active rentals */}
-            {!isExpired && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mt-2">
-                <Play className="w-4 h-4" />
-                <span>{t('clickToWatch')}</span>
-              </div>
-            )}
-            
-            {/* Rent Again CTA - only for expired */}
-            {isExpired && (
-              <div className="mt-2">
-                <div className="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:underline">
-                  {t('rentAgain')} →
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    </Link>
+            {/* View Details hint */}
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <Info className="w-4 h-4" />
+              <span>{t('viewDetails')}</span>
+            </div>
+        </Link>
+      </div>
+    </Card>
   );
 }
