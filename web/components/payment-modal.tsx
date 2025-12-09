@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
+import { useAuth } from '@/lib/auth';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, QrCode, CheckCircle } from 'lucide-react';
+import { Loader2, QrCode, CheckCircle, UserPlus, Check } from 'lucide-react';
 
 export type PaymentReason = 'default' | 'rental_required' | 'rental_expired';
 
@@ -41,8 +43,11 @@ export function PaymentModal({
   reason = 'default',
 }: PaymentModalProps) {
   const t = useTranslations('payment');
+  const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  
+  const isAnonymous = !user;
 
   // QR code destination URL
   // TODO: Replace with actual payment gateway URL in production
@@ -97,6 +102,54 @@ export function PaymentModal({
         </DialogHeader>
 
         <div className="flex flex-col items-center py-6 space-y-6">
+          {/* Account Creation Prompt for Anonymous Users */}
+          {isAnonymous && (
+            <div className="w-full bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-blue-700/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 text-blue-300">
+                <UserPlus className="w-5 h-5" />
+                <h3 className="font-semibold">Create an Account</h3>
+              </div>
+              
+              <p className="text-sm text-gray-300">
+                Sign up to unlock these benefits:
+              </p>
+              
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span>Watch on multiple devices</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span>Sync watch progress across devices</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span>View rental history and manage subscriptions</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span>Get personalized recommendations</span>
+                </li>
+              </ul>
+              
+              <Link href="/profile">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-blue-500 text-blue-300 hover:bg-blue-900/50"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Create Free Account
+                </Button>
+              </Link>
+              
+              <p className="text-xs text-gray-400 text-center">
+                Or continue as guest below
+              </p>
+            </div>
+          )}
+
           {/* QR Code */}
           <div className="bg-white p-4 rounded-lg">
             <QRCodeSVG
