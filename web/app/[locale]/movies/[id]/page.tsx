@@ -381,11 +381,6 @@ export default function MoviePage() {
                   title={movie.trailers[0].name}
                   className="w-full aspect-video"
                 />
-                {movie.trailers.length > 1 && (
-                  <p className="text-sm text-gray-400 mt-2">
-                    + {movie.trailers.length - 1} more {movie.trailers.length === 2 ? 'trailer' : 'trailers'} available
-                  </p>
-                )}
               </div>
             )}
 

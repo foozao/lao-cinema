@@ -1112,6 +1112,58 @@ export default function EditMoviePage() {
               <CardTitle>Trailers ({trailers.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Manual Trailer Entry */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="text-sm font-medium mb-3">Add Trailer Manually</h4>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="manual_trailer_key" className="text-xs">YouTube Video ID</Label>
+                    <Input
+                      id="manual_trailer_key"
+                      placeholder="e.g., dQw4w9WgXcQ"
+                      className="text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const input = e.currentTarget;
+                          const key = input.value.trim();
+                          if (key) {
+                            // Extract video ID from various YouTube URL formats
+                            let videoId = key;
+                            if (key.includes('youtube.com') || key.includes('youtu.be')) {
+                              const urlMatch = key.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+                              if (urlMatch) videoId = urlMatch[1];
+                            }
+                            
+                            // Check if trailer already exists
+                            if (trailers.some(t => t.key === videoId)) {
+                              alert('This trailer is already in the list.');
+                              return;
+                            }
+                            
+                            // Add new trailer
+                            const newTrailer = {
+                              key: videoId,
+                              name: 'Manual Trailer',
+                              type: 'Trailer',
+                              site: 'YouTube',
+                              official: false,
+                            };
+                            setTrailers([...trailers, newTrailer]);
+                            setHasChanges(true);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Paste YouTube video ID or full URL, then press Enter
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing Trailers */}
               {trailers.length > 0 ? (
                 <div className="space-y-3">
                   {trailers.map((trailer, index) => (
@@ -1161,6 +1213,17 @@ export default function EditMoviePage() {
                                 Set as Primary
                               </button>
                             )}
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove trailer "${trailer.name}"?`)) {
+                                  setTrailers(trailers.filter((_, i) => i !== index));
+                                  setHasChanges(true);
+                                }
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 underline"
+                            >
+                              Remove
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1171,7 +1234,7 @@ export default function EditMoviePage() {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No trailers available. Sync from TMDB to fetch trailers.</p>
+                <p className="text-sm text-gray-500">No trailers available. Add one manually or sync from TMDB.</p>
               )}
             </CardContent>
           </Card>
