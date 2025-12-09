@@ -21,6 +21,7 @@ import { isRentalValid, purchaseRental, getFormattedRemainingTime, getRecentlyEx
 import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
+import { TrailerPlayer } from '@/components/trailer-player';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -370,6 +371,23 @@ export default function MoviePage() {
                 {overview}
               </p>
             </div>
+
+            {/* Trailer */}
+            {movie.trailers && movie.trailers.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-3">{t('movie.trailer')}</h3>
+                <TrailerPlayer
+                  youtubeKey={movie.trailers[0].key}
+                  title={movie.trailers[0].name}
+                  className="w-full aspect-video"
+                />
+                {movie.trailers.length > 1 && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    + {movie.trailers.length - 1} more {movie.trailers.length === 2 ? 'trailer' : 'trailers'} available
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Cast */}
             {movie.cast.length > 0 && (

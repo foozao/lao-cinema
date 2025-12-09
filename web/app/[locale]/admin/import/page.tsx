@@ -52,9 +52,10 @@ export default function ImportFromTMDBPage() {
       const tmdbData = result.data;
       const credits = result.credits;
       const images = result.images;
+      const videos = result.videos;
       
-      // Map to our schema (including cast/crew and images)
-      const mappedMovie = mapTMDBToMovie(tmdbData, credits, images);
+      // Map to our schema (including cast/crew, images, and trailers)
+      const mappedMovie = mapTMDBToMovie(tmdbData, credits, images, videos);
       
       // Check for missing translations
       const missingTranslations = getMissingTranslations(mappedMovie);

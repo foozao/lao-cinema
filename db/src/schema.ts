@@ -35,6 +35,10 @@ export const movies = pgTable('movies', {
   // Availability ('auto' = uses smart defaults based on video_sources and external_platforms)
   availabilityStatus: availabilityStatusEnum('availability_status').default('auto'),
   
+  // Trailers (YouTube videos from TMDB) - stored as JSON array
+  // Format: [{ key: 'abc123', name: 'Official Trailer', type: 'Trailer', official: true, published_at: '2024-01-01' }, ...]
+  trailers: text('trailers'), // JSON array of trailer objects
+  
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

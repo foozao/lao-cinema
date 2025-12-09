@@ -165,6 +165,16 @@ export const CreateMovieSchema = z.object({
   // Availability
   availability_status: z.enum(['auto', 'available', 'external', 'unavailable', 'coming_soon']),
   
+  // Trailers
+  trailers: z.array(z.object({
+    key: z.string(),
+    name: z.string(),
+    type: z.string(),
+    site: z.string(),
+    official: z.boolean(),
+    published_at: z.string().optional(),
+  })).optional(),
+  
   // Relationships
   genres: z.array(GenreSchema),
   production_companies: z.array(ProductionCompanySchema).optional(),

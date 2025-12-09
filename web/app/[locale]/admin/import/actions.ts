@@ -4,21 +4,23 @@
 // This keeps the API key secure on the server
 
 import { tmdbClient } from '@/lib/tmdb';
-import type { TMDBMovieDetails, TMDBCredits, TMDBImages } from '@/lib/tmdb';
+import type { TMDBMovieDetails, TMDBCredits, TMDBImages, TMDBVideos } from '@/lib/tmdb';
 
 export async function fetchMovieFromTMDB(tmdbId: number): Promise<{
   success: boolean;
   data?: TMDBMovieDetails;
   credits?: TMDBCredits;
   images?: TMDBImages;
+  videos?: TMDBVideos;
   error?: string;
 }> {
   try {
-    // Fetch movie details, credits, and images in parallel
-    const [movieData, creditsData, imagesData] = await Promise.all([
+    // Fetch movie details, credits, images, and videos in parallel
+    const [movieData, creditsData, imagesData, videosData] = await Promise.all([
       tmdbClient.getMovieDetails(tmdbId),
       tmdbClient.getMovieCredits(tmdbId),
       tmdbClient.getMovieImages(tmdbId),
+      tmdbClient.getMovieVideos(tmdbId),
     ]);
     
     return { 
@@ -26,6 +28,7 @@ export async function fetchMovieFromTMDB(tmdbId: number): Promise<{
       data: movieData,
       credits: creditsData,
       images: imagesData,
+      videos: videosData,
     };
   } catch (error) {
     return {

@@ -61,6 +61,7 @@
     "cast": "Cast",
     "crew": "Crew",
     "overview": "Overview",
+    "trailer": "Trailer",
     "releaseDate": "Release Date",
     "runtime": "Runtime",
     "minutes": "{count} minutes",

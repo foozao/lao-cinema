@@ -286,6 +286,14 @@ interface MovieInput {
   popularity?: number;
   adult?: boolean;
   availability_status?: string;
+  trailers?: Array<{
+    key: string;
+    name: string;
+    type: string;
+    site: string;
+    official: boolean;
+    published_at?: string;
+  }>;
 }
 
 /**
@@ -342,6 +350,7 @@ export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<strin
   if (updates.poster_path !== undefined) data.posterPath = updates.poster_path;
   if (updates.backdrop_path !== undefined) data.backdropPath = updates.backdrop_path;
   if (updates.availability_status !== undefined) data.availabilityStatus = updates.availability_status;
+  if (updates.trailers !== undefined) data.trailers = JSON.stringify(updates.trailers);
   
   // Always update the timestamp when any field is updated
   if (Object.keys(data).length > 0) {

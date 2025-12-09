@@ -72,6 +72,16 @@ export default function EditMoviePage() {
   // State for external platforms
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
   
+  // State for trailers
+  const [trailers, setTrailers] = useState<Array<{
+    key: string;
+    name: string;
+    type: string;
+    site: string;
+    official: boolean;
+    published_at?: string;
+  }>>([]);
+  
   // State for availability status
   const [availabilityStatus, setAvailabilityStatus] = useState<'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon'>('auto');
   
@@ -166,6 +176,9 @@ export default function EditMoviePage() {
         // Load availability status
         const initialStatus = movie.availability_status || '';
         setAvailabilityStatus(initialStatus);
+        
+        // Load trailers
+        setTrailers(movie.trailers || []);
         
         // Store original values for change detection (must use local variables, not state)
         const initialFormData = {
@@ -268,10 +281,11 @@ export default function EditMoviePage() {
       const tmdbData = result.data;
       const credits = result.credits;
       const images = result.images;
+      const videos = result.videos;
       
       // Map to our schema, preserving Lao translations
-      // Note: mapper signature is (tmdbData, credits?, images?, existingMovie?)
-      const syncedData = mapTMDBToMovie(tmdbData, credits, images, currentMovie);
+      // Note: mapper signature is (tmdbData, credits?, images?, videos?, existingMovie?)
+      const syncedData = mapTMDBToMovie(tmdbData, credits, images, videos, currentMovie);
 
       // Update form with synced data (preserving Lao fields)
       setFormData((prev) => ({
@@ -293,6 +307,9 @@ export default function EditMoviePage() {
         poster_path: syncedData.poster_path || '',
         backdrop_path: syncedData.backdrop_path || '',
       }));
+      
+      // Update trailers
+      setTrailers(syncedData.trailers || []);
 
       // Update currentMovie with synced data including images
       setCurrentMovie((prev) => prev ? {
@@ -337,6 +354,8 @@ export default function EditMoviePage() {
       // Image paths (editable via poster manager)
       if (currentMovie.poster_path !== syncedData.poster_path) changes.push('Poster');
       if (currentMovie.backdrop_path !== syncedData.backdrop_path) changes.push('Backdrop');
+      // Trailers
+      if (JSON.stringify(currentMovie.trailers) !== JSON.stringify(syncedData.trailers)) changes.push('Trailers');
       // Cast/Crew (editable via add/remove buttons)
       if (currentMovie.cast?.length !== syncedData.cast?.length) changes.push('Cast');
       if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
@@ -699,6 +718,7 @@ export default function EditMoviePage() {
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
         poster_path: formData.poster_path || undefined,
         backdrop_path: formData.backdrop_path || undefined,
+        trailers: trailers.length > 0 ? trailers : undefined,
         video_sources: formData.video_url ? [{
           id: '1',
           url: formData.video_url,
@@ -710,7 +730,7 @@ export default function EditMoviePage() {
         crew: updatedCrew,
         images: currentMovie?.images, // Include images array
         external_platforms: externalPlatforms,
-        availability_status: availabilityStatus,
+        availability_status: availabilityStatus || 'auto', // Default to 'auto' if empty
       };
 
       await movieAPI.update(movieId, updateData);
@@ -1083,6 +1103,76 @@ export default function EditMoviePage() {
                   Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Trailers */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Trailers ({trailers.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {trailers.length > 0 ? (
+                <div className="space-y-3">
+                  {trailers.map((trailer, index) => (
+                    <div key={trailer.key} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <img
+                          src={`https://img.youtube.com/vi/${trailer.key}/hqdefault.jpg`}
+                          alt={trailer.name}
+                          className="w-32 h-18 rounded object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="font-medium text-sm">{trailer.name}</p>
+                            {index === 0 && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium flex-shrink-0">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                            <span className="px-2 py-0.5 bg-gray-200 rounded">{trailer.type}</span>
+                            {trailer.official && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Official</span>
+                            )}
+                            <span>{trailer.site}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`https://www.youtube.com/watch?v=${trailer.key}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-800 underline"
+                            >
+                              Open in YouTube →
+                            </a>
+                            {index > 0 && (
+                              <button
+                                onClick={() => {
+                                  const newTrailers = [...trailers];
+                                  const [movedTrailer] = newTrailers.splice(index, 1);
+                                  newTrailers.unshift(movedTrailer);
+                                  setTrailers(newTrailers);
+                                  setHasChanges(true);
+                                }}
+                                className="text-xs text-gray-600 hover:text-gray-800 underline"
+                              >
+                                Set as Primary
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 mt-2">
+                    The primary trailer (first in list) will be displayed on the movie detail page.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No trailers available. Sync from TMDB to fetch trailers.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -1644,7 +1734,7 @@ export default function EditMoviePage() {
                 {syncChanges.length > 0 ? 'TMDB Sync Complete' : 'No Updates Available'}
               </DialogTitle>
             </div>
-            <DialogDescription>
+            <div className="text-sm text-muted-foreground">
               {syncChanges.length > 0 ? (
                 <div className="space-y-3">
                   <p>The following fields were updated from TMDB:</p>
@@ -1660,7 +1750,7 @@ export default function EditMoviePage() {
               ) : (
                 <p>This movie is already up to date with the latest TMDB data. No changes were detected.</p>
               )}
-            </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="mt-4">
             <Button 

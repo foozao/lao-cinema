@@ -112,6 +112,24 @@ export interface TMDBImages {
   logos: TMDBImage[];
 }
 
+export interface TMDBVideo {
+  iso_639_1: string; // Language code
+  iso_3166_1: string; // Country code
+  name: string; // Video title
+  key: string; // YouTube video ID or other platform key
+  site: string; // Platform (YouTube, Vimeo, etc.)
+  size: number; // Video resolution (360, 480, 720, 1080)
+  type: string; // Trailer, Teaser, Clip, Featurette, Behind the Scenes, etc.
+  official: boolean; // Official content from studio
+  published_at: string; // ISO timestamp
+  id: string; // TMDB video ID
+}
+
+export interface TMDBVideos {
+  id: number;
+  results: TMDBVideo[];
+}
+
 export interface TMDBPersonDetails {
   id: number;
   name: string;
@@ -191,6 +209,13 @@ class TMDBClient {
   }
 
   /**
+   * Get videos (trailers, teasers, clips) for a movie
+   */
+  async getMovieVideos(tmdbId: number): Promise<TMDBVideos> {
+    return this.fetch<TMDBVideos>(`/movie/${tmdbId}/videos`);
+  }
+
+  /**
    * Get detailed information about a person (actor, director, etc.)
    */
   async getPersonDetails(personId: number): Promise<TMDBPersonDetails> {
@@ -227,6 +252,10 @@ export const tmdbClient = {
   getMovieImages: (tmdbId: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();
     return _tmdbClient.getMovieImages(tmdbId);
+  },
+  getMovieVideos: (tmdbId: number) => {
+    if (!_tmdbClient) _tmdbClient = new TMDBClient();
+    return _tmdbClient.getMovieVideos(tmdbId);
   },
   getPersonDetails: (personId: number) => {
     if (!_tmdbClient) _tmdbClient = new TMDBClient();

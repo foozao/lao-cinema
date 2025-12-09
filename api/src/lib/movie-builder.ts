@@ -78,6 +78,7 @@ export async function buildMovieWithRelations(
     popularity: movie.popularity,
     adult: movie.adult,
     availability_status: movie.availabilityStatus,
+    trailers: movie.trailers ? JSON.parse(movie.trailers) : undefined,
     title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
     overview: Object.keys(overview).length > 0 ? overview : { en: '' },
     tagline: Object.keys(tagline).length > 0 ? tagline : undefined,

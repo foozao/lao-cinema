@@ -2,7 +2,7 @@
 
 import { Movie, Genre, ProductionCompany, ProductionCountry, SpokenLanguage, Collection, CastMember, CrewMember, Person, MovieImage } from '../types';
 import { createLocalizedText } from '../i18n';
-import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails, TMDBImages } from './client';
+import { TMDBMovieDetails, TMDBCredits, TMDBPersonDetails, TMDBImages, TMDBVideos } from './client';
 
 /**
  * Lao translations for common crew job titles
@@ -65,6 +65,7 @@ export function mapTMDBToMovie(
   tmdbData: TMDBMovieDetails,
   credits?: TMDBCredits,
   images?: TMDBImages,
+  videos?: TMDBVideos,
   existingMovie?: Partial<Movie>
 ): Omit<Movie, 'id' | 'created_at' | 'updated_at' | 'video_sources'> {
   // Map genres - preserve existing Lao translations
@@ -204,6 +205,25 @@ export function mapTMDBToMovie(
     });
   }
 
+  // Extract all YouTube trailers from videos
+  const trailers = videos?.results
+    ?.filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
+    .map(v => ({
+      key: v.key,
+      name: v.name,
+      type: v.type,
+      site: v.site,
+      official: v.official,
+      published_at: v.published_at,
+    }))
+    // Sort: official trailers first, then by type (Trailer > Teaser), then by publish date
+    .sort((a, b) => {
+      if (a.official !== b.official) return a.official ? -1 : 1;
+      if (a.type !== b.type) return a.type === 'Trailer' ? -1 : 1;
+      if (a.published_at && b.published_at) return b.published_at.localeCompare(a.published_at);
+      return 0;
+    }) || [];
+
   // Preserve existing Lao translations if available
   const existingLaoTitle = existingMovie?.title?.lo;
   const existingLaoOverview = existingMovie?.overview?.lo;
@@ -255,6 +275,9 @@ export function mapTMDBToMovie(
     
     // Images
     images: mappedImages.length > 0 ? mappedImages : undefined,
+    
+    // Trailers
+    trailers: trailers.length > 0 ? trailers : undefined,
   };
 }
 

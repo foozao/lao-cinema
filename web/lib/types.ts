@@ -18,6 +18,16 @@ export interface ExternalPlatform {
 // Availability status for movies
 export type AvailabilityStatus = 'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon';
 
+// Trailer from TMDB (YouTube videos)
+export interface Trailer {
+  key: string; // YouTube video ID
+  name: string; // Trailer title
+  type: string; // 'Trailer', 'Teaser', 'Clip', 'Featurette', 'Behind the Scenes', etc.
+  site: string; // 'YouTube', 'Vimeo', etc.
+  official: boolean; // Official content from studio
+  published_at?: string; // ISO timestamp
+}
+
 export interface Movie {
   id: string;
   slug?: string; // Vanity URL slug (e.g., 'the-signal')
@@ -62,6 +72,9 @@ export interface Movie {
   
   // External availability (for films not available on our platform)
   external_platforms?: ExternalPlatform[];
+  
+  // Trailers (YouTube videos from TMDB)
+  trailers?: Trailer[]; // Array of trailer objects
   
   // Relationships
   genres: Genre[];

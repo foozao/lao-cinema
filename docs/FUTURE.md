@@ -1,7 +1,19 @@
 
 Possible Future Changes:
 
-* it seems like when I'm on a new device, even if i'm logged in, it doesn't start playing the movie from where i left off. it's always at the beginning.
+* some info on Lao cinema history
+  - maybe a chronology
+  - kind of like a wiki?
+
+* maybe articles/reviews linked to the movie/person
+
+* award listings for movie/person
+
+* tracking time on featured, and views/rentals at that time
+
+* maybe a film festival later
+
+* adding news/articles about lao cinema
 
 * fix Vercel version
 
