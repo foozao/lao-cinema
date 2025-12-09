@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Calendar, Clock, Star, Users, Play, Ban, Sparkles, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Star, Play, Ban, Sparkles, AlertCircle } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
@@ -438,8 +438,7 @@ export default function MoviePage() {
             {movie.cast.length > 0 && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Users className="w-5 h-5" />
+                  <h3 className="text-xl font-semibold">
                     {t('movie.cast')}
                   </h3>
                   <Link href={`/movies/${id}/cast-crew`}>

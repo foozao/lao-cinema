@@ -6,11 +6,10 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
-import { getProfileUrl } from '@/lib/images';
+import { getProfileUrl, getBackdropUrl } from '@/lib/images';
 import { getDepartmentKey } from '@/lib/crew';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Users } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import type { Movie } from '@/lib/types';
 
@@ -56,6 +55,7 @@ export default function CastCrewPage() {
 
   const title = getLocalizedText(movie.title, locale);
   const sortedCast = [...movie.cast].sort((a, b) => a.order - b.order);
+  const backdropUrl = getBackdropUrl(movie.backdrop_path, 'large');
 
   // Group crew by department
   const crewByDepartment = movie.crew.reduce((acc, member) => {
@@ -83,16 +83,38 @@ export default function CastCrewPage() {
       {/* Header */}
       <Header variant="dark" />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-2">{title}</h1>
-        <p className="text-xl text-gray-400 mb-8">{t('movie.cast')} & {t('movie.crew')}</p>
+      {/* Backdrop Banner Hero */}
+      <section className="relative w-full h-48 md:h-64 overflow-hidden">
+        {/* Backdrop Image */}
+        <div className="absolute inset-0">
+          {backdropUrl ? (
+            <img
+              src={backdropUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
+          )}
+        </div>
+
+        {/* Gradient Overlay - fades from transparent to background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/80 to-gray-900" />
+
+        {/* Content */}
+        <div className="relative container mx-auto px-4 h-full flex flex-col justify-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">{title}</h1>
+          <p className="text-xl text-gray-200 drop-shadow-md">{t('movie.cast')} & {t('movie.crew')}</p>
+        </div>
+      </section>
+
+      {/* Main Content - overlaps with hero */}
+      <main className="container mx-auto px-4 pb-8 -mt-8 md:-mt-12 relative" style={{ zIndex: 10 }}>
 
         {/* Cast Section */}
         {sortedCast.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-              <Users className="w-8 h-8" />
+            <h2 className="text-3xl font-bold mb-6">
               {t('movie.cast')} ({sortedCast.length})
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
