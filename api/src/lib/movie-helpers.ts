@@ -331,6 +331,7 @@ export function mapMovieToInsertData(
   if (movie.vote_average !== undefined) data.voteAverage = movie.vote_average;
   if (movie.vote_count !== undefined) data.voteCount = movie.vote_count;
   if (movie.popularity !== undefined) data.popularity = movie.popularity;
+  if (movie.trailers !== undefined) data.trailers = JSON.stringify(movie.trailers);
   
   return data;
 }

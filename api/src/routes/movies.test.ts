@@ -572,4 +572,277 @@ describe('Movie Routes', () => {
       });
     });
   });
+
+  describe('Movie Trailers', () => {
+    describe('POST /api/movies with trailers', () => {
+      it('should create a movie with trailers array', async () => {
+        const movieData = createMinimalMovie({
+          trailers: [
+            {
+              key: 'dQw4w9WgXcQ',
+              name: 'Official Trailer',
+              type: 'Trailer',
+              site: 'YouTube',
+              official: true,
+              published_at: '2024-01-01T00:00:00Z',
+            },
+            {
+              key: 'abc123xyz',
+              name: 'Teaser',
+              type: 'Teaser',
+              site: 'YouTube',
+              official: false,
+            },
+          ],
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: movieData,
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toBeDefined();
+        expect(body.trailers).toHaveLength(2);
+        expect(body.trailers[0].key).toBe('dQw4w9WgXcQ');
+        expect(body.trailers[0].name).toBe('Official Trailer');
+        expect(body.trailers[0].official).toBe(true);
+        expect(body.trailers[1].key).toBe('abc123xyz');
+        expect(body.trailers[1].type).toBe('Teaser');
+      });
+
+      it('should create a movie with single trailer', async () => {
+        const movieData = createMinimalMovie({
+          trailers: [
+            {
+              key: 'single123',
+              name: 'Main Trailer',
+              type: 'Trailer',
+              site: 'YouTube',
+              official: true,
+            },
+          ],
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: movieData,
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toHaveLength(1);
+        expect(body.trailers[0].key).toBe('single123');
+      });
+
+      it('should create a movie without trailers', async () => {
+        const movieData = createMinimalMovie();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: movieData,
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toBeUndefined();
+      });
+    });
+
+    describe('GET /api/movies/:id with trailers', () => {
+      it('should return movie with trailers array', async () => {
+        const createResponse = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: createMinimalMovie({
+            trailers: [
+              { key: 'trailer1', name: 'Trailer 1', type: 'Trailer', site: 'YouTube', official: true },
+              { key: 'trailer2', name: 'Trailer 2', type: 'Teaser', site: 'YouTube', official: false },
+            ],
+          }),
+        });
+        const created = JSON.parse(createResponse.body);
+
+        const response = await app.inject({
+          method: 'GET',
+          url: `/api/movies/${created.id}`,
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toBeDefined();
+        expect(body.trailers).toHaveLength(2);
+        expect(body.trailers[0].key).toBe('trailer1');
+        expect(body.trailers[1].key).toBe('trailer2');
+      });
+
+      it('should return undefined trailers when movie has none', async () => {
+        const createResponse = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: createMinimalMovie(),
+        });
+        const created = JSON.parse(createResponse.body);
+
+        const response = await app.inject({
+          method: 'GET',
+          url: `/api/movies/${created.id}`,
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toBeUndefined();
+      });
+    });
+
+    describe('PUT /api/movies/:id with trailers', () => {
+      it('should update movie trailers', async () => {
+        // Create movie with initial trailers
+        const createResponse = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: createMinimalMovie({
+            trailers: [{ key: 'old1', name: 'Old Trailer', type: 'Trailer', site: 'YouTube', official: true }],
+          }),
+        });
+        const created = JSON.parse(createResponse.body);
+
+        // Update with new trailers
+        const updates = {
+          trailers: [
+            { key: 'new1', name: 'New Trailer 1', type: 'Trailer', site: 'YouTube', official: true },
+            { key: 'new2', name: 'New Trailer 2', type: 'Teaser', site: 'YouTube', official: false },
+          ],
+        };
+
+        const response = await app.inject({
+          method: 'PUT',
+          url: `/api/movies/${created.id}`,
+          payload: updates,
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toHaveLength(2);
+        expect(body.trailers[0].key).toBe('new1');
+        expect(body.trailers[1].key).toBe('new2');
+      });
+
+      it('should remove all trailers when updating with empty array', async () => {
+        const createResponse = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: createMinimalMovie({
+            trailers: [{ key: 'trailer1', name: 'Trailer', type: 'Trailer', site: 'YouTube', official: true }],
+          }),
+        });
+        const created = JSON.parse(createResponse.body);
+
+        const response = await app.inject({
+          method: 'PUT',
+          url: `/api/movies/${created.id}`,
+          payload: { trailers: [] },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.body);
+        // Empty array is stored as "[]" and parsed back as []
+        expect(body.trailers).toEqual([]);
+      });
+
+      it('should preserve trailer order when updating', async () => {
+        const createResponse = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: createMinimalMovie(),
+        });
+        const created = JSON.parse(createResponse.body);
+
+        // Add trailers in specific order (primary first)
+        const updates = {
+          trailers: [
+            { key: 'primary', name: 'Primary Trailer', type: 'Trailer', site: 'YouTube', official: true },
+            { key: 'secondary', name: 'Secondary Trailer', type: 'Teaser', site: 'YouTube', official: false },
+            { key: 'third', name: 'Third Trailer', type: 'Trailer', site: 'YouTube', official: false },
+          ],
+        };
+
+        const response = await app.inject({
+          method: 'PUT',
+          url: `/api/movies/${created.id}`,
+          payload: updates,
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.body);
+        expect(body.trailers).toHaveLength(3);
+        // Verify order is preserved
+        expect(body.trailers[0].key).toBe('primary');
+        expect(body.trailers[1].key).toBe('secondary');
+        expect(body.trailers[2].key).toBe('third');
+      });
+    });
+
+    describe('Trailer validation', () => {
+      it('should accept trailer without published_at', async () => {
+        const movieData = createMinimalMovie({
+          trailers: [
+            {
+              key: 'test123',
+              name: 'Test Trailer',
+              type: 'Trailer',
+              site: 'YouTube',
+              official: false,
+              // No published_at
+            },
+          ],
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: movieData,
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = JSON.parse(response.body);
+        expect(body.trailers[0].published_at).toBeUndefined();
+      });
+
+      it('should store all trailer metadata correctly', async () => {
+        const movieData = createMinimalMovie({
+          trailers: [
+            {
+              key: 'metadata123',
+              name: 'Metadata Test Trailer',
+              type: 'Trailer',
+              site: 'YouTube',
+              official: true,
+              published_at: '2024-06-15T10:30:00Z',
+            },
+          ],
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/movies',
+          payload: movieData,
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = JSON.parse(response.body);
+        const trailer = body.trailers[0];
+        expect(trailer.key).toBe('metadata123');
+        expect(trailer.name).toBe('Metadata Test Trailer');
+        expect(trailer.type).toBe('Trailer');
+        expect(trailer.site).toBe('YouTube');
+        expect(trailer.official).toBe(true);
+        expect(trailer.published_at).toBe('2024-06-15T10:30:00Z');
+      });
+    });
+  });
 });
