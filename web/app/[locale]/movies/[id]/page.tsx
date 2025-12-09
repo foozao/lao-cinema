@@ -208,10 +208,66 @@ export default function MoviePage() {
 
               {/* Content */}
               <div className="relative container mx-auto px-4 py-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                  {/* Poster - Left Side */}
-                  <div className="flex-shrink-0">
-                    <div className="relative w-full md:w-[300px] aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 shadow-2xl">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+                  {/* Mobile: Horizontal layout with smaller poster */}
+                  <div className="flex md:hidden gap-4 mb-4">
+                    {/* Poster - Smaller on mobile */}
+                    <div className="flex-shrink-0">
+                      <div className="relative w-[120px] aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 shadow-xl">
+                        {posterUrl ? (
+                          <img
+                            src={posterUrl}
+                            alt={title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+                            <span className="text-white text-3xl font-bold opacity-50">
+                              {title.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Title and meta info next to poster on mobile */}
+                    <div className="flex-1 flex flex-col justify-center min-w-0">
+                      <h1 className="text-2xl font-bold mb-2 line-clamp-2">{title}</h1>
+                      
+                      {/* Meta Info */}
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        {movie.release_date && (
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{new Date(movie.release_date).getFullYear()}</span>
+                          </div>
+                        )}
+                        {movie.runtime && (
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{movie.runtime}m</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Genres on mobile */}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {movie.genres.slice(0, 2).map((genre) => {
+                          const genreName = getLocalizedText(genre.name, 'en');
+                          const genreKey = getGenreKey(genreName);
+                          return (
+                            <Badge key={genre.id} variant="secondary" className="text-xs px-2 py-0.5">
+                              {tGenres(genreKey)}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop: Poster on left */}
+                  <div className="hidden md:block flex-shrink-0">
+                    <div className="relative w-[300px] aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 shadow-2xl">
                       {posterUrl ? (
                         <img
                           src={posterUrl}
@@ -228,12 +284,12 @@ export default function MoviePage() {
                     </div>
                   </div>
 
-                  {/* Movie Info - Right Side */}
+                  {/* Movie Info - Right Side (Desktop) / Full Width (Mobile) */}
                   <div className="flex-1 flex flex-col justify-center min-w-0">
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{title}</h1>
+                    <h1 className="hidden md:block text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{title}</h1>
 
-                    {/* Meta Info */}
-                    <div className="flex flex-wrap items-center gap-4 mb-6 text-sm md:text-base">
+                    {/* Meta Info - Desktop only */}
+                    <div className="hidden md:flex flex-wrap items-center gap-4 mb-6 text-sm md:text-base">
                       {movie.release_date && (
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
@@ -248,8 +304,8 @@ export default function MoviePage() {
                       )}
                     </div>
 
-                    {/* Genres */}
-                    <div className="flex flex-wrap gap-2 mb-6">
+                    {/* Genres - Desktop only */}
+                    <div className="hidden md:flex flex-wrap gap-2 mb-6">
                       {movie.genres.map((genre) => {
                         const genreName = getLocalizedText(genre.name, 'en');
                         const genreKey = getGenreKey(genreName);
@@ -363,14 +419,6 @@ export default function MoviePage() {
         <section className="grid md:grid-cols-3 gap-8">
           {/* Main Info */}
           <div className="md:col-span-2">
-
-            {/* Overview */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-3">{t('movie.overview')}</h3>
-              <p className="text-gray-300 leading-relaxed">
-                {overview}
-              </p>
-            </div>
 
             {/* Trailer */}
             {movie.trailers && movie.trailers.length > 0 && (
