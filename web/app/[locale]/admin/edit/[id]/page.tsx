@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
@@ -1584,13 +1584,15 @@ export default function EditMoviePage() {
                                 )}
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
-                                <Link href={`/admin/people/${member.person.id}`}>
+                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
                                   >
-                                    View Person
+                                    <ExternalLink className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">View Person</span>
+                                    <span className="md:hidden">Person</span>
                                   </Button>
                                 </Link>
                                 <Button
@@ -1604,7 +1606,12 @@ export default function EditMoviePage() {
                                     setEditingCast(isEditing ? null : key);
                                   }}
                                 >
-                                  {isEditing ? 'Done' : 'Edit Role'}
+                                  {isEditing ? 'Done' : (
+                                    <>
+                                      <span className="hidden md:inline">Edit Role</span>
+                                      <span className="md:hidden">Role</span>
+                                    </>
+                                  )}
                                 </Button>
                                 <Button
                                   type="button"
@@ -1708,13 +1715,15 @@ export default function EditMoviePage() {
                                 )}
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
-                                <Link href={`/admin/people/${member.person.id}`}>
+                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
                                   >
-                                    View Person
+                                    <ExternalLink className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">View Person</span>
+                                    <span className="md:hidden">Person</span>
                                   </Button>
                                 </Link>
                                 <Button
@@ -1728,7 +1737,12 @@ export default function EditMoviePage() {
                                     setEditingCrew(isEditing ? null : key);
                                   }}
                                 >
-                                  {isEditing ? 'Done' : 'Edit Role'}
+                                  {isEditing ? 'Done' : (
+                                    <>
+                                      <span className="hidden md:inline">Edit Role</span>
+                                      <span className="md:hidden">Role</span>
+                                    </>
+                                  )}
                                 </Button>
                                 <Button
                                   type="button"
