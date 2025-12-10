@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink, X } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
@@ -99,6 +99,8 @@ export default function EditMoviePage() {
   // State for adding new cast/crew
   const [showAddCast, setShowAddCast] = useState(false);
   const [showAddCrew, setShowAddCrew] = useState(false);
+  const [selectedCastPerson, setSelectedCastPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
+  const [selectedCrewPerson, setSelectedCrewPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
   const [newCastCharacterEn, setNewCastCharacterEn] = useState('');
   const [newCastCharacterLo, setNewCastCharacterLo] = useState('');
   const [newCrewDepartment, setNewCrewDepartment] = useState('Directing');
@@ -542,14 +544,19 @@ export default function EditMoviePage() {
     }
   };
 
-  // Handler for adding a new cast member
-  const handleAddCast = async (person: { id: number; name: { en?: string; lo?: string } }) => {
-    if (!currentMovie) return;
+  // Handler for selecting a person for cast
+  const handleSelectCastPerson = (person: { id: number; name: { en?: string; lo?: string } }) => {
+    setSelectedCastPerson(person);
+  };
+
+  // Handler for submitting a new cast member
+  const handleSubmitCast = async () => {
+    if (!currentMovie || !selectedCastPerson) return;
     
     try {
       setAddingCast(true);
       await castCrewAPI.addCast(movieId, {
-        person_id: person.id,
+        person_id: selectedCastPerson.id,
         character: {
           en: newCastCharacterEn || '',
           lo: newCastCharacterLo || undefined,
@@ -561,6 +568,7 @@ export default function EditMoviePage() {
       setCurrentMovie(updatedMovie);
       
       // Reset form
+      setSelectedCastPerson(null);
       setNewCastCharacterEn('');
       setNewCastCharacterLo('');
     } catch (error) {
@@ -571,14 +579,19 @@ export default function EditMoviePage() {
     }
   };
 
-  // Handler for adding a new crew member
-  const handleAddCrew = async (person: { id: number; name: { en?: string; lo?: string } }) => {
-    if (!currentMovie) return;
+  // Handler for selecting a person for crew
+  const handleSelectCrewPerson = (person: { id: number; name: { en?: string; lo?: string } }) => {
+    setSelectedCrewPerson(person);
+  };
+
+  // Handler for submitting a new crew member
+  const handleSubmitCrew = async () => {
+    if (!currentMovie || !selectedCrewPerson) return;
     
     try {
       setAddingCrew(true);
       await castCrewAPI.addCrew(movieId, {
-        person_id: person.id,
+        person_id: selectedCrewPerson.id,
         department: newCrewDepartment,
         job: {
           en: newCrewJobEn || newCrewDepartment,
@@ -591,6 +604,7 @@ export default function EditMoviePage() {
       setCurrentMovie(updatedMovie);
       
       // Reset form
+      setSelectedCrewPerson(null);
       setNewCrewJobEn('');
       setNewCrewJobLo('');
     } catch (error) {
@@ -601,28 +615,28 @@ export default function EditMoviePage() {
     }
   };
 
-  // Handler for creating a new person and adding as cast
+  // Handler for creating a new person and selecting as cast
   const handleCreatePersonForCast = async (name: string) => {
     try {
       const newPerson = await peopleAPI.create({
         name: { en: name },
         known_for_department: 'Acting',
       });
-      await handleAddCast(newPerson);
+      setSelectedCastPerson(newPerson);
     } catch (error) {
       console.error('Failed to create person:', error);
       alert('Failed to create person');
     }
   };
 
-  // Handler for creating a new person and adding as crew
+  // Handler for creating a new person and selecting as crew
   const handleCreatePersonForCrew = async (name: string) => {
     try {
       const newPerson = await peopleAPI.create({
         name: { en: name },
         known_for_department: newCrewDepartment,
       });
-      await handleAddCrew(newPerson);
+      setSelectedCrewPerson(newPerson);
     } catch (error) {
       console.error('Failed to create person:', error);
       alert('Failed to create person');
@@ -1409,11 +1423,25 @@ export default function EditMoviePage() {
                 <div>
                   <Label>Search for Person</Label>
                   <PersonSearch
-                    onSelect={handleAddCast}
+                    onSelect={handleSelectCastPerson}
                     onCreateNew={handleCreatePersonForCast}
                     placeholder="Search for an actor..."
                   />
                 </div>
+                {selectedCastPerson && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <span className="flex-1 font-medium text-blue-900">
+                      Selected: {selectedCastPerson.name.en || selectedCastPerson.name.lo || 'Unknown'}
+                    </span>
+                    <button
+                      onClick={() => setSelectedCastPerson(null)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Character Name (English)</Label>
@@ -1432,9 +1460,13 @@ export default function EditMoviePage() {
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500">
-                  Search for a person above, then click to add them. The character name will be assigned automatically.
-                </p>
+                <Button
+                  onClick={handleSubmitCast}
+                  disabled={!selectedCastPerson || addingCast}
+                  size="sm"
+                >
+                  {addingCast ? 'Adding...' : 'Add Cast Member'}
+                </Button>
               </CardContent>
             )}
           </Card>
@@ -1455,11 +1487,25 @@ export default function EditMoviePage() {
                 <div>
                   <Label>Search for Person</Label>
                   <PersonSearch
-                    onSelect={handleAddCrew}
+                    onSelect={handleSelectCrewPerson}
                     onCreateNew={handleCreatePersonForCrew}
                     placeholder="Search for a crew member..."
                   />
                 </div>
+                {selectedCrewPerson && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <span className="flex-1 font-medium text-blue-900">
+                      Selected: {selectedCrewPerson.name.en || selectedCrewPerson.name.lo || 'Unknown'}
+                    </span>
+                    <button
+                      onClick={() => setSelectedCrewPerson(null)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Department</Label>
@@ -1497,9 +1543,13 @@ export default function EditMoviePage() {
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500">
-                  Search for a person above, then click to add them with the selected department and job title.
-                </p>
+                <Button
+                  onClick={handleSubmitCrew}
+                  disabled={!selectedCrewPerson || addingCrew}
+                  size="sm"
+                >
+                  {addingCrew ? 'Adding...' : 'Add Crew Member'}
+                </Button>
               </CardContent>
             )}
           </Card>
