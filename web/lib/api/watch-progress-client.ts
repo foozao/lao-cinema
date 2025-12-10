@@ -4,8 +4,7 @@
  * Handles watch progress tracking for both authenticated and anonymous users.
  */
 
-import { getAnonymousId } from '../anonymous-id';
-import { getRawSessionToken } from '../auth/api-client';
+import { getAuthHeaders } from './auth-headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -40,29 +39,6 @@ export interface UpdateProgressRequest {
   progressSeconds: number;
   durationSeconds: number;
   completed?: boolean;
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  const token = getRawSessionToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  } else {
-    // Anonymous user - send anonymous ID
-    const anonymousId = getAnonymousId();
-    if (anonymousId) {
-      headers['X-Anonymous-Id'] = anonymousId;
-    }
-  }
-  
-  return headers;
 }
 
 // =============================================================================
