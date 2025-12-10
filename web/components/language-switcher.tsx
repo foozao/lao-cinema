@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { Button } from './ui/button';
-import { Languages } from 'lucide-react';
 
 export function LanguageSwitcher() {
   const t = useTranslations('language');
@@ -21,12 +20,15 @@ export function LanguageSwitcher() {
       variant="ghost"
       size="sm"
       onClick={toggleLanguage}
-      className="gap-2"
+      className="gap-1.5"
       aria-label={t('switchLanguage')}
     >
-      <Languages className="w-4 h-4" />
-      <span className="font-medium">
-        {locale === 'en' ? t('en') : t('lo')}
+      <span className={`font-medium transition-colors ${locale === 'lo' ? 'text-gray-900' : 'text-gray-400'}`}>
+        ລາວ
+      </span>
+      <span className="text-gray-400">/</span>
+      <span className={`font-medium transition-colors ${locale === 'en' ? 'text-gray-900' : 'text-gray-400'}`}>
+        English
       </span>
     </Button>
   );
