@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Film } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { AdminBreadcrumbWrapper } from '@/components/admin/admin-breadcrumb-wrapper';
 
 export default function AdminLayout({
   children,
@@ -26,6 +27,9 @@ export default function AdminLayout({
           </div>
         </div>
       </header>
+
+      {/* Breadcrumb Navigation - Hidden on main dashboard */}
+      <AdminBreadcrumbWrapper />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Main Content */}

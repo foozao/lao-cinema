@@ -266,7 +266,8 @@
     "sortDateNewest": "Newest First",
     "sortDateOldest": "Oldest First",
     "analytics": "Analytics",
-    "viewAnalytics": "View playback analytics"
+    "viewAnalytics": "View playback analytics",
+    "homepageSettings": "Homepage Settings"
   },
   "analytics": {
     "title": "Video Analytics",

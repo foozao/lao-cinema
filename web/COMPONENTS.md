@@ -281,6 +281,37 @@ interface PosterManagerProps {
 
 ---
 
+### `AdminBreadcrumbs`
+**Location**: `components/admin/admin-breadcrumbs.tsx`  
+**Type**: Client Component  
+
+Breadcrumb navigation for admin dashboard showing current location and allowing quick navigation back to previous pages.
+
+**Features**:
+- Automatically generates breadcrumbs based on current route
+- Fetches movie/person names dynamically for detail pages
+- Home icon links to admin dashboard
+- Supports all admin routes (movies, people, edit, add, import, analytics, homepage)
+
+**Usage**:
+```tsx
+// Used in admin layout - no props needed
+<AdminBreadcrumbs />
+```
+
+**Routes Supported**:
+- `/admin` → Dashboard
+- `/admin/movies` → Dashboard > All Movies
+- `/admin/edit/[id]` → Dashboard > All Movies > [Movie Title]
+- `/admin/people` → Dashboard > All People
+- `/admin/people/[id]` → Dashboard > All People > [Person Name]
+- `/admin/add` → Dashboard > Add New Movie
+- `/admin/import` → Dashboard > Import from TMDB
+- `/admin/analytics` → Dashboard > Analytics
+- `/admin/homepage` → Dashboard > Homepage Settings
+
+---
+
 ## UI Components (shadcn/ui)
 
 **Location**: `components/ui/`

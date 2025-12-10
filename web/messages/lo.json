@@ -266,7 +266,8 @@
     "sortDateNewest": "ໃໝ່ກ່ອນ",
     "sortDateOldest": "ເກົ່າກ່ອນ",
     "analytics": "ການວິເຄາະ",
-    "viewAnalytics": "ເບິ່ງການວິເຄາະການຫຼິ້ນວິດີໂອ"
+    "viewAnalytics": "ເບິ່ງການວິເຄາະການຫຼິ້ນວິດີໂອ",
+    "homepageSettings": "ການຕັ້ງຄ່າໜ້າຫຼັກ"
   },
   "analytics": {
     "title": "ການວິເຄາະວິດີໂອ",
