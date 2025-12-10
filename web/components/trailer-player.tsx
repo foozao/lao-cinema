@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Play, X } from 'lucide-react';
-import { Button } from './ui/button';
 
 interface TrailerPlayerProps {
   youtubeKey: string;
@@ -13,21 +12,12 @@ interface TrailerPlayerProps {
 export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const handlePlay = () => {
-    setIsPlaying(true);
-  };
-
-  const handleClose = () => {
-    setIsPlaying(false);
-  };
-
-  return (
-    <>
-      {/* Trailer Thumbnail/Button */}
-      {!isPlaying && (
+  if (!isPlaying) {
+    return (
+      <div className={`relative overflow-hidden rounded-lg bg-gray-900 ${className}`}>
         <button
-          onClick={handlePlay}
-          className={`relative group overflow-hidden rounded-lg bg-gray-900 ${className}`}
+          onClick={() => setIsPlaying(true)}
+          className="relative group overflow-hidden w-full h-full"
         >
           {/* YouTube Thumbnail */}
           <img
@@ -35,7 +25,6 @@ export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlay
             alt={`${title} - Trailer`}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
             onError={(e) => {
-              // Fallback to standard quality if maxres not available
               e.currentTarget.src = `https://img.youtube.com/vi/${youtubeKey}/hqdefault.jpg`;
             }}
           />
@@ -57,32 +46,34 @@ export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlay
             </p>
           </div>
         </button>
-      )}
+      </div>
+    );
+  }
 
-      {/* Fullscreen Video Player */}
-      {isPlaying && (
-        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-          {/* Close button */}
-          <button
-            onClick={handleClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
-            aria-label="Close trailer"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
+  return (
+    <div className="w-full">
+      {/* Close button */}
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => setIsPlaying(false)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-800 hover:bg-gray-700 transition-colors text-sm text-white"
+          aria-label="Close trailer"
+        >
+          <X className="w-4 h-4" />
+          <span>Close</span>
+        </button>
+      </div>
 
-          {/* YouTube iframe */}
-          <div className="w-full h-full max-w-7xl max-h-[90vh] aspect-video">
-            <iframe
-              src={`https://www.youtube.com/embed/${youtubeKey}?autoplay=1&rel=0`}
-              title={title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        </div>
-      )}
-    </>
+      {/* YouTube iframe - responsive 16:9 embed */}
+      <div className="relative w-full h-0 pb-[56.25%] bg-black rounded-lg overflow-hidden">
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeKey}?autoplay=1&mute=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&disablekb=1`}
+          title={title}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          className="absolute top-0 left-0 w-full h-full border-0"
+        />
+      </div>
+    </div>
   );
 }
