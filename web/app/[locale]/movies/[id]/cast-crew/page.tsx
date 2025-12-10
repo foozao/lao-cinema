@@ -131,11 +131,11 @@ export default function CastCrewPage() {
                       <img
                         src={profileUrl}
                         alt={memberName}
-                        className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                        className="w-12 h-12 sm:w-20 sm:h-20 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                        <span className="text-2xl font-bold text-gray-400">
+                      <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <span className="text-base sm:text-2xl font-bold text-gray-400">
                           {memberName.charAt(0)}
                         </span>
                       </div>
@@ -184,11 +184,11 @@ export default function CastCrewPage() {
                             <img
                               src={profileUrl}
                               alt={memberName}
-                              className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                              className="w-10 h-10 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                              <span className="text-xl font-bold text-gray-400">
+                            <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm sm:text-xl font-bold text-gray-400">
                                 {memberName.charAt(0)}
                               </span>
                             </div>

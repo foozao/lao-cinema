@@ -84,16 +84,12 @@ export default function PersonPage() {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Sidebar - Photo & Personal Info */}
           <aside className="md:w-64 flex-shrink-0">
-            {personPhoto ? (
+            {personPhoto && (
               <img
                 src={getProfileUrl(personPhoto, 'large') || ''}
                 alt={personNameEn}
                 className="w-full max-w-[250px] mx-auto md:mx-0 rounded-lg object-cover shadow-lg"
               />
-            ) : (
-              <div className="w-full max-w-[250px] mx-auto md:mx-0 aspect-[2/3] bg-gray-800 rounded-lg flex items-center justify-center">
-                <User className="w-24 h-24 text-gray-600" />
-              </div>
             )}
             
             {/* Personal Info */}
