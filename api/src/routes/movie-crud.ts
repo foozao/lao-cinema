@@ -15,10 +15,9 @@ import {
 import {
   insertMovieTranslations,
   insertGenreTranslations,
-  insertCharacterTranslations,
-  insertJobTranslations,
   insertMovieImages,
-  ensurePersonExists,
+  insertCastMembers,
+  insertCrewMembers,
   mapMovieToInsertData,
 } from '../lib/movie-helpers.js';
 
@@ -105,12 +104,12 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
 
         // Insert cast members
         if (cast && cast.length > 0) {
-          await insertCastMembers(cast, newMovie.id);
+          await insertCastMembers(db, schema, cast, newMovie.id);
         }
 
         // Insert crew members
         if (crew && crew.length > 0) {
-          await insertCrewMembers(crew, newMovie.id);
+          await insertCrewMembers(db, schema, crew, newMovie.id);
         }
 
         // Insert images
@@ -202,60 +201,6 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         movieId,
         genreId: genre.id,
       });
-    }
-  }
-
-  async function insertCastMembers(cast: CastMember[], movieId: string) {
-    for (const member of cast) {
-      // Handle both nested (TMDB) and flat (test) formats
-      const personData = 'person' in member ? member.person : member;
-      const personId = personData.id;
-      const characterName = member.character;
-      
-      // Ensure person exists (resolves aliases if person was merged)
-      const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
-        id: personId,
-        name: personData.name,
-        known_for_department: personData.known_for_department,
-        profile_path: personData.profile_path,
-      }, 'Acting');
-
-      // Insert movie-cast relationship (using canonical ID)
-      await db.insert(schema.movieCast).values({
-        movieId,
-        personId: canonicalPersonId,
-        order: member.order,
-      });
-
-      // Insert character translations
-      await insertCharacterTranslations(db, schema, movieId, canonicalPersonId, characterName);
-    }
-  }
-
-  async function insertCrewMembers(crew: CrewMember[], movieId: string) {
-    for (const member of crew) {
-      // Handle both nested (TMDB) and flat (test) formats
-      const personData = 'person' in member ? member.person : member;
-      const personId = personData.id;
-      const jobName = member.job;
-      
-      // Ensure person exists (resolves aliases if person was merged)
-      const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
-        id: personId,
-        name: personData.name,
-        known_for_department: personData.known_for_department || member.department,
-        profile_path: personData.profile_path,
-      }, member.department);
-
-      // Insert movie-crew relationship (using canonical ID)
-      await db.insert(schema.movieCrew).values({
-        movieId,
-        personId: canonicalPersonId,
-        department: member.department,
-      });
-
-      // Insert job translations
-      await insertJobTranslations(db, schema, movieId, canonicalPersonId, member.department, jobName);
     }
   }
 }

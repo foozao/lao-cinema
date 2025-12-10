@@ -388,3 +388,114 @@ export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<strin
   
   return data;
 }
+
+// =============================================================================
+// CAST & CREW INSERTION HELPERS
+// =============================================================================
+
+interface CastMemberInput {
+  person?: {
+    id: number;
+    name: { en: string; lo?: string };
+    known_for_department?: string;
+    profile_path?: string;
+  };
+  id?: number;
+  name?: { en: string; lo?: string };
+  known_for_department?: string;
+  profile_path?: string;
+  character: { en: string; lo?: string };
+  order: number;
+}
+
+interface CrewMemberInput {
+  person?: {
+    id: number;
+    name: { en: string; lo?: string };
+    known_for_department?: string;
+    profile_path?: string;
+  };
+  id?: number;
+  name?: { en: string; lo?: string };
+  known_for_department?: string;
+  profile_path?: string;
+  job: { en: string; lo?: string };
+  department: string;
+}
+
+/**
+ * Insert cast members for a movie
+ * Handles both nested (TMDB) and flat (test) formats
+ * Resolves person aliases if person was merged
+ */
+export async function insertCastMembers(
+  db: NodePgDatabase<any>,
+  schema: any,
+  cast: CastMemberInput[],
+  movieId: string
+) {
+  for (const member of cast) {
+    // Handle both nested (TMDB) and flat (test) formats
+    const personData = 'person' in member && member.person ? member.person : member;
+    const personId = personData.id!;
+    const personName = personData.name!;
+    const characterName = member.character;
+    
+    // Ensure person exists (resolves aliases if person was merged)
+    const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
+      id: personId,
+      name: personName,
+      known_for_department: personData.known_for_department,
+      profile_path: personData.profile_path,
+    }, 'Acting');
+
+    // Insert movie-cast relationship (using canonical ID)
+    await db.insert(schema.movieCast).values({
+      movieId,
+      personId: canonicalPersonId,
+      order: member.order,
+    });
+
+    // Insert character translations
+    await insertCharacterTranslations(db, schema, movieId, canonicalPersonId, characterName);
+  }
+}
+
+/**
+ * Insert crew members for a movie
+ * Handles both nested (TMDB) and flat (test) formats
+ * Resolves person aliases if person was merged
+ */
+export async function insertCrewMembers(
+  db: NodePgDatabase<any>,
+  schema: any,
+  crew: CrewMemberInput[],
+  movieId: string
+) {
+  for (const member of crew) {
+    // Handle both nested (TMDB) and flat (test) formats
+    const personData = 'person' in member && member.person ? member.person : member;
+    const personId = personData.id!;
+    const personName = personData.name!;
+    const jobName = member.job;
+    const department = member.department;
+    
+    // Ensure person exists (resolves aliases if person was merged)
+    const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
+      id: personId,
+      name: personName,
+      known_for_department: personData.known_for_department || department,
+      profile_path: personData.profile_path,
+    }, department);
+
+    // Insert movie-crew relationship (using canonical ID)
+    await db.insert(schema.movieCrew).values({
+      movieId,
+      personId: canonicalPersonId,
+      department,
+    });
+
+    // Insert job translations
+    await insertJobTranslations(db, schema, movieId, canonicalPersonId, department, jobName);
+  }
+}
