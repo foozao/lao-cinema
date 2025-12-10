@@ -86,9 +86,9 @@ Simple migration: UPDATE rentals SET userId = X WHERE anonymousId = Y
 ### Modified Files
 - `web/lib/auth/auth-context.tsx` - Simplified migration (database-only)
 
-### Deprecated Files (No Longer Needed)
-- `web/lib/auth/localStorage-migration.ts` - Complex localStorage migration (can be deleted)
-- `web/lib/rental.ts` - Old localStorage-based rental (keep for reference, update later)
+### Removed Files
+- `web/lib/auth/localStorage-migration.ts` - Complex localStorage migration (deleted)
+- `web/lib/rental.ts` - Old localStorage-based rental (deleted)
 
 ## Implementation Plan
 
@@ -104,8 +104,8 @@ Simple migration: UPDATE rentals SET userId = X WHERE anonymousId = Y
 ⏳ Remove `web/lib/analytics/storage.ts` (localStorage)
 
 ### Phase 3: Cleanup
-⏳ Remove old `web/lib/rental.ts` (localStorage version)
-⏳ Remove `web/lib/auth/localStorage-migration.ts`
+✅ Removed old `web/lib/rental.ts` (localStorage version)
+✅ Removed `web/lib/auth/localStorage-migration.ts`
 ⏳ Update tests
 
 ## Migration Flow (Simplified)

@@ -14,7 +14,7 @@ Visual guide to how data flows through the Lao Cinema platform.
 │  Pages              │  Components           │  Services                      │
 │  ───────            │  ───────────          │  ────────                      │
 │  /[locale]/         │  VideoPlayer          │  lib/api.ts (API client)       │
-│  /movies/[id]       │  MovieCard            │  lib/rental.ts                 │
+│  /movies/[id]       │  MovieCard            │  lib/rental-service.ts         │
 │  /movies/[id]/watch │  PaymentModal         │  lib/analytics/                │
 │  /admin/*           │  Header/Footer        │  lib/video/ (hooks)            │
 └──────────────────────────────────────────────────────────────────────────────┘

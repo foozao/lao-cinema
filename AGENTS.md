@@ -230,12 +230,16 @@ When implementing changes, verify:
 
 ## Known Issues / Workarounds
 
-### Mobile Fullscreen
-**Fixed**: Mobile browsers (especially Chrome on Android) require `requestFullscreen()` to be called on the `<video>` element itself, not the container. iOS Safari uses proprietary `webkitEnterFullscreen()`.
+### Rental System & Watch Progress
+**Current**: Database-first approach. Rentals and watch progress are saved to the backend API immediately (with anonymous ID for non-logged-in users). On login, anonymous data is migrated via simple UPDATE query.
 
-**Solution**: The video player now detects mobile devices and calls fullscreen on the video element. Desktop browsers continue to use container fullscreen for custom controls. See `MOBILE_FULLSCREEN_FIX.md` for details.
+**Old approach**: localStorage-based (removed in December 2025).
 
-**Files involved**: `web/components/video-player.tsx`
+**Files involved**: 
+- `web/lib/rental-service.ts` (current implementation)
+- `web/lib/api/rentals-client.ts` (API client)
+- `web/lib/api/watch-progress-client.ts` (API client)
+- See `docs/setup/STORAGE_STRATEGY.md` for details
 
 ### Video Letterboxing
 Some video files have letterboxing (black bars) baked into the video encoding itself, causing excessive padding on the watch page even when aspect ratio metadata is set correctly.
@@ -324,18 +328,26 @@ export default function StaticContent() { }
 
 **Completed:**
 - [x] Backend API integration (Fastify + PostgreSQL)
-- [x] Authentication system (HTTP Basic Auth with roles)
+- [x] User accounts system (email/password auth, sessions, OAuth-ready)
+- [x] Dual-mode APIs (authenticated OR anonymous users)
+- [x] HTTP Basic Auth for deployment-level protection
 - [x] Admin panel (TMDB import, movie editing, people management, analytics)
 - [x] Database schema (Drizzle ORM with migrations)
 - [x] Deployment configuration (GCP Cloud Run)
 - [x] Video streaming (HLS with GCS)
-- [x] Rental system
+- [x] Rental system (database-backed with cross-device sync)
+- [x] Watch progress (cross-device sync)
 - [x] Analytics framework
+- [x] Mobile video player (touch controls, fullscreen)
+
+**In Progress:**
+- [ ] Frontend auth UI (login/register forms)
+- [ ] User profile pages
 
 **Planned:**
+- [ ] OAuth integration (Google/Apple sign-in)
 - [ ] Mobile app (React Native/Expo)
 - [ ] Video transcoding pipeline automation
-- [ ] User accounts and profiles
 
 ## Questions?
 

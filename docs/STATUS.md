@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 6, 2025
+**Last Updated**: December 10, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -57,17 +57,22 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Environment-aware video URLs (local dev vs GCS)
 
 ### User Features
-- [x] Rental system with localStorage persistence
-- [x] Continue watching / resume playback
+- [x] Rental system with database persistence (dual-mode: userId OR anonymousId)
+- [x] Continue watching / resume playback with cross-device sync
 - [x] Video analytics tracking (watch time, completion)
 - [x] Person detail pages (`/people/[id]`)
 - [x] Cast & crew pages (`/movies/[id]/cast-crew`)
+- [x] Anonymous user support (full functionality without account)
+- [x] Data migration on login (anonymous → authenticated)
 
 ### Authentication & Security
-- [x] HTTP Basic Auth with role-based access
-- [x] Admin role (full access)
-- [x] Viewer role (no admin access)
-- [x] Password protection for GCP deployment
+- [x] User accounts with email/password registration
+- [x] Session-based authentication (30-day expiration)
+- [x] Password hashing with scrypt
+- [x] Dual-mode APIs (authenticated OR anonymous)
+- [x] HTTP Basic Auth for deployment-level protection
+- [x] Role-based access (admin/user)
+- [x] OAuth-ready architecture (Google/Apple interfaces defined)
 
 ### Admin Panel
 - [x] TMDB import interface (`/admin/import`)
@@ -79,7 +84,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 🚧 In Progress
 
-- [ ] User accounts and profiles
+- [ ] Frontend auth UI (login/register forms)
+- [ ] User profile pages
 - [ ] Search and filtering (frontend)
 - [ ] Bulk import operations
 
@@ -100,12 +106,14 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [ ] Batch Lao translation workflow
 - [ ] Video processing queue management
 
-### Phase 3: User Features (Partial)
-- [x] Resume playback points (continue watching)
+### Phase 3: User Features (Mostly Complete)
+- [x] Resume playback points (continue watching with cross-device sync)
 - [x] Watch analytics tracking
-- [x] Rental system
-- [ ] User authentication (accounts)
-- [ ] User profiles
+- [x] Rental system (database-backed with dual-mode)
+- [x] User authentication backend (accounts, sessions, OAuth-ready)
+- [x] Anonymous user support with migration
+- [ ] Frontend auth UI (login/register forms)
+- [ ] User profile pages
 - [ ] Watchlist functionality
 - [ ] User ratings/reviews
 
@@ -340,21 +348,23 @@ None currently. See GitHub Issues (when created) for bug tracking.
 
 See [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) for full history.
 
-**Latest Updates**:
-- Implemented people-centric architecture
-- Added TMDB import and edit interfaces
-- Set up testing framework with 70+ tests
-- Completed backend API and database
-- Added admin bilingual support (English/Lao)
-- Reorganized documentation structure
+**Latest Updates (December 2025)**:
+- Fixed critical cast/crew data loss bug
+- Implemented cross-device watch progress sync
+- Fixed mobile video player (fullscreen, touch controls, height)
+- Migrated rental system to database-first approach
+- Completed user accounts backend (auth, sessions, dual-mode APIs)
+- Added anonymous user support with seamless migration
+- Cleaned up documentation structure
 
 ## 🎯 Current Priority
 
-1. **User accounts** - Move from HTTP Basic Auth to proper user system
+1. **Frontend auth UI** - Login/register forms and profile pages
 2. **Search & filtering** - Frontend movie search and filter UI
-3. **Mobile app** - React Native/Expo companion app
-4. **Transcoding automation** - Automated video processing pipeline
-5. **Recommendations** - Basic recommendation engine
+3. **OAuth integration** - Google/Apple sign-in implementation
+4. **Mobile app** - React Native/Expo companion app
+5. **Transcoding automation** - Automated video processing pipeline
+6. **Recommendations** - Basic recommendation engine
 
 ## 📚 External Resources
 

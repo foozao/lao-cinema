@@ -133,7 +133,7 @@ movie_translations (movie_id, language, title, overview, tagline)
 - **Demo mode**: No real payment integration needed
 - **Progressive enhancement**: Backend added later without changing UX
 
-**Current state**: **Fully migrated to database.** Rentals now use the backend API with anonymous IDs (`X-Anonymous-Id` header). The old `lib/rental.ts` (localStorage) is dead code and can be deleted.
+**Current state**: **Fully migrated to database.** Rentals now use the backend API with anonymous IDs (`X-Anonymous-Id` header). The old `lib/rental.ts` (localStorage) was removed in December 2025.
 
 **Active implementation**: `lib/rental-service.ts` → `lib/api/rentals-client.ts` → Backend API
 

@@ -1,5 +1,133 @@
 # Changelog
 
+## 2025-12-10 - Documentation Cleanup
+
+### Changed
+- Consolidated root-level fix files into changelog
+- Moved `DEPLOYMENT_WORKFLOWS.md` to `docs/setup/`
+- Created `docs/archive/` for detailed fix documentation
+- Created `docs/planning/` for planned but unimplemented features
+- Moved `LOADING_INDICATORS.md` to `docs/planning/`
+- Updated all references to deleted files (`rental.ts`, `localStorage-migration.ts`)
+- Cleaned up documentation structure
+
+---
+
+## 2025-12-08 - Critical Bug Fixes & System Improvements
+
+### Fixed
+
+**Cast & Crew Data Loss Bug** (CRITICAL):
+- Fixed default cast limit bug that caused data loss during movie edits
+- Issue: API returned only 3 cast members due to default `castLimit: 3` in `movie-builder.ts`
+- Issue: Update logic only touched translations, didn't manage relationships
+- Solution: Fixed JavaScript destructuring defaults to handle `undefined` properly
+- Solution: Added explicit `castLimit: undefined` for single movie GET endpoint
+- Solution: Rewrote cast/crew update logic to use delete-and-insert pattern
+- Files: `api/src/lib/movie-builder.ts`, `api/src/routes/movie-crud.ts`, `api/src/routes/movie-update.ts`
+- All 20 cast members for "The Signal" restored via TMDB sync
+
+**Cross-Device Watch Progress Sync**:
+- Watch progress now syncs across devices for logged-in users
+- Issue: Video player only checked localStorage (device-specific)
+- Solution: Modified `useContinueWatching` hook to fetch from backend API first
+- Implements smart merge logic when both backend and localStorage have data
+- Files: `web/lib/video/use-continue-watching.ts`, `web/components/video-player.tsx`
+- Benefits: Seamless resume on any device when logged in
+
+**Mobile Video Player Fixes**:
+- Fixed fullscreen button not working on mobile Chrome/Safari
+- Fixed excessive video container height with black bars
+- Fixed progress bar not responding to touch on mobile devices
+- Issue: Mobile browsers require fullscreen on `<video>` element, not container
+- Issue: Desktop height constraints applied to mobile
+- Solution: Device detection with different fullscreen targets (video vs container)
+- Solution: Mobile-specific height optimization (aspect ratio vs viewport)
+- Solution: Added touch event handlers (`onTouchStart`, `onTouchMove`) for progress bar
+- Files: `web/components/video-player.tsx`, `web/components/video/video-controls.tsx`, `web/app/[locale]/movies/[id]/watch/page.tsx`
+
+**Watch Progress Migration**:
+- Continue watching now migrates properly when user logs in
+- Issue: Watch progress was only saved to localStorage, not database
+- Solution: Dual-write approach - save to both localStorage (analytics) and database (sync)
+- Updated `useVideoAnalytics` to call both storage methods
+- Files: `web/lib/analytics/tracker.ts`
+- Benefits: Cross-device sync for anonymous users, smooth migration on login
+
+### Changed
+
+**Rental System Migration to Database-First**:
+- Migrated from localStorage-based to database-first rental system
+- Old: Complex 3-step migration (localStorage → API → Database)
+- New: Direct database storage with simple anonymousId → userId migration
+- Created `web/lib/rental-service.ts` (database-backed)
+- Updated movie detail page and watch page to use new service
+- Simplified auth migration logic (database-only, no localStorage)
+- Files: `web/lib/rental-service.ts`, `web/lib/auth/auth-context.tsx`, `web/app/[locale]/movies/[id]/page.tsx`, `web/app/[locale]/movies/[id]/watch/page.tsx`
+
+**Admin UX Improvements**:
+- TMDB sync now shows modal with changes detected
+- Form only marked as changed if sync found updates
+- Added auto-translation for crew job titles (Director, Writer, etc.)
+- Files: `web/app/[locale]/admin/edit/[id]/page.tsx`, `web/lib/tmdb/mapper.ts`
+
+### Removed
+- `web/lib/rental.ts` - Old localStorage-based rental system
+- `web/lib/auth/localStorage-migration.ts` - Complex migration logic no longer needed
+
+### Documentation
+- Created `docs/setup/STORAGE_STRATEGY.md` - What goes where (database vs localStorage)
+- See archived fix files for detailed technical documentation
+
+---
+
+## 2025-12-06 - User Accounts & Authentication
+
+### Added
+
+**User Accounts Backend** (Migration 0011):
+- Database schema: `users`, `user_sessions`, `oauth_accounts` tables
+- Dual-mode support: `rentals` and `watch_progress` support userId OR anonymousId
+- Enhanced `video_analytics_events` with user tracking
+- Password hashing with scrypt
+- Session-based authentication (30-day expiration)
+- OAuth-ready architecture (Google/Apple provider interfaces)
+
+**Authentication Infrastructure**:
+- `api/src/lib/auth-utils.ts` - Password hashing, token generation, validation
+- `api/src/lib/auth-service.ts` - User CRUD, authentication, session management
+- `api/src/lib/auth-middleware.ts` - `optionalAuth`, `requireAuth`, `requireAdmin`, `requireAuthOrAnonymous`
+- `api/src/routes/auth.ts` - Registration, login, logout, profile management
+
+**Authentication Endpoints**:
+- `POST /api/auth/register` - Create account
+- `POST /api/auth/login` - Login with email/password
+- `POST /api/auth/logout` - Logout current session
+- `POST /api/auth/logout-all` - Logout all devices
+- `GET /api/auth/me` - Get current user
+- `PATCH /api/auth/me` - Update profile
+- `PATCH /api/auth/me/password` - Change password
+- `DELETE /api/auth/me` - Delete account
+
+**Dual-Mode APIs**:
+- `POST /api/rentals/:movieId` - Purchase rental (auth or anonymous)
+- `GET /api/rentals` - Get all rentals
+- `PUT /api/watch-progress/:movieId` - Update watch progress
+- `GET /api/watch-progress` - Get all watch progress
+- `POST /api/users/migrate` - Migrate anonymous data on login
+
+**Frontend Auth Foundation**:
+- `web/lib/anonymous-id.ts` - Anonymous ID generation and management
+- `web/lib/auth/types.ts` - TypeScript type definitions
+- `web/lib/auth/api-client.ts` - Auth API client with session management
+- `web/lib/auth/auth-context.tsx` - React context with auto-migration
+
+### Documentation
+- `docs/features/USER_ACCOUNTS.md` - Complete user accounts documentation
+- `docs/setup/USER_ACCOUNTS_SETUP.md` - Setup and testing guide
+
+---
+
 ## 2025-12 - Video Delivery, Analytics, Rentals & Auth
 
 ### Added
@@ -17,9 +145,9 @@
 - Per-movie analytics view
 - Export and data management
 
-**Rental System** (`/web/lib/rental.ts`):
+**Rental System**:
 - Movie rental with expiration
-- localStorage-based persistence (demo mode)
+- Database-backed persistence
 - Watch page rental validation with redirect
 - Payment modal integration
 

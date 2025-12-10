@@ -62,16 +62,22 @@ docker-compose up -d
 - **[docs/setup/BACKEND_SETUP.md](docs/setup/BACKEND_SETUP.md)** - API server setup
 - **[docs/setup/TMDB_SETUP.md](docs/setup/TMDB_SETUP.md)** - TMDB integration
 - **[docs/setup/DEPLOYMENT.md](docs/setup/DEPLOYMENT.md)** - Deployment guide
+- **[docs/setup/DEPLOYMENT_WORKFLOWS.md](docs/setup/DEPLOYMENT_WORKFLOWS.md)** - Deployment workflows and strategies
 - **[docs/setup/DATABASE_SYNC.md](docs/setup/DATABASE_SYNC.md)** - Database synchronization
 - **[docs/setup/PASSWORD_PROTECTION.md](docs/setup/PASSWORD_PROTECTION.md)** - Authentication setup
 - **[docs/setup/VIDEO_ENV_COMPLETE.md](docs/setup/VIDEO_ENV_COMPLETE.md)** - Video URL environment setup
+- **[docs/setup/STORAGE_STRATEGY.md](docs/setup/STORAGE_STRATEGY.md)** - Data storage strategy (database vs localStorage)
 
 ### Features & Implementation
+- **[docs/features/USER_ACCOUNTS.md](docs/features/USER_ACCOUNTS.md)** - User authentication and accounts
 - **[docs/features/ADMIN_I18N.md](docs/features/ADMIN_I18N.md)** - Admin panel internationalization
 - **[docs/features/MULTI_POSTER_IMPLEMENTATION.md](docs/features/MULTI_POSTER_IMPLEMENTATION.md)** - Multiple poster support
 - **[docs/features/POSTER_UI_GUIDE.md](docs/features/POSTER_UI_GUIDE.md)** - Poster UI implementation
 - **[docs/features/BACKEND_IMAGE_API.md](docs/features/BACKEND_IMAGE_API.md)** - Image API endpoints
 - **[docs/features/SAFE_SYNC_STRATEGY.md](docs/features/SAFE_SYNC_STRATEGY.md)** - Data synchronization strategy
+
+### Planning
+- **[docs/planning/](docs/planning/)** - Planned but not yet implemented features
 
 ### Future Planning
 - **[docs/FUTURE.md](docs/FUTURE.md)** - Future feature ideas and optimizations
