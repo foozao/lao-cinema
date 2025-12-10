@@ -3,6 +3,7 @@
 import { FastifyInstance } from 'fastify';
 import { db, schema } from '../db/index.js';
 import { eq, sql, ilike, or } from 'drizzle-orm';
+import { buildPersonCredits } from '../lib/movie-builder.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -211,83 +212,8 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Get cast credits (movies where this person acted)
-      const castCredits = await db.select()
-        .from(schema.movieCast)
-        .where(eq(schema.movieCast.personId, personId));
-      
-      const cast = [];
-      for (const credit of castCredits) {
-        // Get movie
-        const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, credit.movieId)).limit(1);
-        if (!movie) continue;
-        
-        // Get movie translations
-        const movieTranslations = await db.select().from(schema.movieTranslations).where(eq(schema.movieTranslations.movieId, credit.movieId));
-        const movieTitle: any = {};
-        for (const trans of movieTranslations) {
-          movieTitle[trans.language] = trans.title;
-        }
-        
-        // Get character translations
-        const characterTranslations = await db.select().from(schema.movieCastTranslations)
-          .where(sql`${schema.movieCastTranslations.movieId} = ${credit.movieId} AND ${schema.movieCastTranslations.personId} = ${personId}`);
-        const character: any = {};
-        for (const trans of characterTranslations) {
-          character[trans.language] = trans.character;
-        }
-        
-        cast.push({
-          movie: {
-            id: movie.id,
-            slug: movie.slug,
-            title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
-            poster_path: movie.posterPath,
-            release_date: movie.releaseDate,
-          },
-          character: Object.keys(character).length > 0 ? character : { en: '' },
-          order: credit.order,
-        });
-      }
-
-      // Get crew credits (movies where this person was crew)
-      const crewCredits = await db.select()
-        .from(schema.movieCrew)
-        .where(eq(schema.movieCrew.personId, personId));
-      
-      const crew = [];
-      for (const credit of crewCredits) {
-        // Get movie
-        const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, credit.movieId)).limit(1);
-        if (!movie) continue;
-        
-        // Get movie translations
-        const movieTranslations = await db.select().from(schema.movieTranslations).where(eq(schema.movieTranslations.movieId, credit.movieId));
-        const movieTitle: any = {};
-        for (const trans of movieTranslations) {
-          movieTitle[trans.language] = trans.title;
-        }
-        
-        // Get job translations
-        const jobTranslations = await db.select().from(schema.movieCrewTranslations)
-          .where(sql`${schema.movieCrewTranslations.movieId} = ${credit.movieId} AND ${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.department} = ${credit.department}`);
-        const job: any = {};
-        for (const trans of jobTranslations) {
-          job[trans.language] = trans.job;
-        }
-        
-        crew.push({
-          movie: {
-            id: movie.id,
-            slug: movie.slug,
-            title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
-            poster_path: movie.posterPath,
-            release_date: movie.releaseDate,
-          },
-          job: Object.keys(job).length > 0 ? job : { en: '' },
-          department: credit.department,
-        });
-      }
+      // Get cast and crew credits using optimized batch queries
+      const { cast, crew } = await buildPersonCredits(personId, db, schema);
 
       // Return in expected format with fallbacks
       return {

@@ -342,3 +342,157 @@ export async function buildMovieWithRelations(
 
   return movieData;
 }
+
+/**
+ * Builds cast and crew credits for a person with optimized batch queries
+ * Avoids N+1 query problem by fetching all data in batches
+ * 
+ * @param personId - ID of the person to fetch credits for
+ * @param db - Database instance
+ * @param schema - Database schema
+ * @returns Object with cast and crew arrays
+ */
+export async function buildPersonCredits(
+  personId: number,
+  db: NodePgDatabase<any>,
+  schema: any
+) {
+  // Fetch all cast and crew credits for this person
+  const [castCredits, crewCredits] = await Promise.all([
+    db.select()
+      .from(schema.movieCast)
+      .where(eq(schema.movieCast.personId, personId)),
+    db.select()
+      .from(schema.movieCrew)
+      .where(eq(schema.movieCrew.personId, personId)),
+  ]);
+
+  // Extract unique movie IDs
+  const castMovieIds = castCredits.map((c: any) => c.movieId);
+  const crewMovieIds = crewCredits.map((c: any) => c.movieId);
+  const allMovieIds = [...new Set([...castMovieIds, ...crewMovieIds])];
+
+  // If no credits, return empty arrays
+  if (allMovieIds.length === 0) {
+    return { cast: [], crew: [] };
+  }
+
+  // Batch fetch all movies and translations in 2 queries instead of 2N queries
+  const [movies, movieTranslations] = await Promise.all([
+    db.select()
+      .from(schema.movies)
+      .where(sql`${schema.movies.id} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`),
+    db.select()
+      .from(schema.movieTranslations)
+      .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`),
+  ]);
+
+  // Batch fetch character and job translations
+  const [characterTranslations, jobTranslations] = await Promise.all([
+    castMovieIds.length > 0
+      ? db.select()
+          .from(schema.movieCastTranslations)
+          .where(sql`${schema.movieCastTranslations.personId} = ${personId} AND ${schema.movieCastTranslations.movieId} IN (${sql.join(castMovieIds.map((id: any) => sql`${id}`), sql`, `)})`)
+      : Promise.resolve([]),
+    crewMovieIds.length > 0
+      ? db.select()
+          .from(schema.movieCrewTranslations)
+          .where(sql`${schema.movieCrewTranslations.personId} = ${personId} AND ${schema.movieCrewTranslations.movieId} IN (${sql.join(crewMovieIds.map((id: any) => sql`${id}`), sql`, `)})`)
+      : Promise.resolve([]),
+  ]);
+
+  // Create lookup maps for O(1) access
+  const moviesMap = new Map(movies.map((m: any) => [m.id, m]));
+  
+  const movieTransMap = new Map<string, any[]>();
+  for (const trans of movieTranslations) {
+    if (!movieTransMap.has(trans.movieId)) {
+      movieTransMap.set(trans.movieId, []);
+    }
+    movieTransMap.get(trans.movieId)!.push(trans);
+  }
+
+  const charTransMap = new Map<string, any[]>();
+  for (const trans of characterTranslations) {
+    if (!charTransMap.has(trans.movieId)) {
+      charTransMap.set(trans.movieId, []);
+    }
+    charTransMap.get(trans.movieId)!.push(trans);
+  }
+
+  const jobTransMap = new Map<string, any>();
+  for (const trans of jobTranslations) {
+    const key = `${trans.movieId}-${trans.department}`;
+    if (!jobTransMap.has(key)) {
+      jobTransMap.set(key, []);
+    }
+    jobTransMap.get(key)!.push(trans);
+  }
+
+  // Build cast array using maps
+  const cast = castCredits
+    .map((credit: any) => {
+      const movie = moviesMap.get(credit.movieId);
+      if (!movie) return null;
+
+      // Build movie title from translations
+      const movieTitle: any = {};
+      for (const trans of movieTransMap.get(credit.movieId) || []) {
+        movieTitle[trans.language] = trans.title;
+      }
+
+      // Build character from translations
+      const character: any = {};
+      for (const trans of charTransMap.get(credit.movieId) || []) {
+        character[trans.language] = trans.character;
+      }
+
+      return {
+        movie: {
+          id: movie.id,
+          slug: movie.slug,
+          title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
+          poster_path: movie.posterPath,
+          release_date: movie.releaseDate,
+        },
+        character: Object.keys(character).length > 0 ? character : { en: '' },
+        order: credit.order,
+      };
+    })
+    .filter((c: any) => c !== null);
+
+  // Build crew array using maps
+  const crew = crewCredits
+    .map((credit: any) => {
+      const movie = moviesMap.get(credit.movieId);
+      if (!movie) return null;
+
+      // Build movie title from translations
+      const movieTitle: any = {};
+      for (const trans of movieTransMap.get(credit.movieId) || []) {
+        movieTitle[trans.language] = trans.title;
+      }
+
+      // Build job from translations (filtered by department)
+      const job: any = {};
+      const key = `${credit.movieId}-${credit.department}`;
+      for (const trans of jobTransMap.get(key) || []) {
+        job[trans.language] = trans.job;
+      }
+
+      return {
+        movie: {
+          id: movie.id,
+          slug: movie.slug,
+          title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie.originalTitle || 'Untitled' },
+          poster_path: movie.posterPath,
+          release_date: movie.releaseDate,
+        },
+        job: Object.keys(job).length > 0 ? job : { en: '' },
+        department: credit.department,
+      };
+    })
+    .filter((c: any) => c !== null);
+
+  return { cast, crew };
+}
