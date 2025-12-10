@@ -604,4 +604,39 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       reply.status(500).send({ error: 'Failed to update person' });
     }
   });
+
+  // Delete person by ID
+  fastify.delete<{ Params: { id: string } }>('/people/:id', async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const personId = parseInt(id);
+      
+      if (isNaN(personId)) {
+        return reply.status(400).send({ error: 'Invalid person ID' });
+      }
+
+      // Check if person exists
+      const [person] = await db.select()
+        .from(schema.people)
+        .where(eq(schema.people.id, personId))
+        .limit(1);
+
+      if (!person) {
+        return reply.status(404).send({ error: 'Person not found' });
+      }
+
+      // Delete person (CASCADE will handle translations, cast, crew, etc.)
+      await db.delete(schema.people)
+        .where(eq(schema.people.id, personId));
+
+      return {
+        success: true,
+        message: `Successfully deleted person ${personId}`,
+        id: personId,
+      };
+    } catch (error) {
+      fastify.log.error(error);
+      reply.status(500).send({ error: 'Failed to delete person' });
+    }
+  });
 }

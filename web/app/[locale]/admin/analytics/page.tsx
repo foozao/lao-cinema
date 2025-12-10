@@ -14,7 +14,6 @@ import {
   Trash2,
   RefreshCw,
   Film,
-  ExternalLink,
   Ticket,
 } from 'lucide-react';
 import { 
@@ -334,27 +333,20 @@ export default function AnalyticsPage() {
                         <th className="pb-3 font-medium text-right">{t('completions')}</th>
                         <th className="pb-3 font-medium text-right">{t('completionRate')}</th>
                         <th className="pb-3 font-medium text-right">{t('avgProgress')}</th>
-                        <th className="pb-3 font-medium text-right"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {summary.movieStats.map((movie) => (
-                        <tr key={movie.movieId} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-3 font-medium">{movie.movieTitle}</td>
-                          <td className="py-3 text-right">{movie.uniqueViewers}</td>
-                          <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
-                          <td className="py-3 text-right">{formatDuration(movie.averageWatchTime)}</td>
-                          <td className="py-3 text-right">{movie.completions}</td>
-                          <td className="py-3 text-right">{movie.completionRate.toFixed(0)}%</td>
-                          <td className="py-3 text-right">{movie.averageProgress.toFixed(0)}%</td>
-                          <td className="py-3 text-right">
-                            <Link href={`/admin/analytics/${movie.movieId}`}>
-                              <Button variant="ghost" size="sm">
-                                {t('viewDetails')}
-                                <ExternalLink className="w-3 h-3 ml-1" />
-                              </Button>
-                            </Link>
-                          </td>
+                        <tr key={movie.movieId} className="border-b last:border-0 hover:bg-gray-50 cursor-pointer transition-colors">
+                          <Link href={`/admin/analytics/${movie.movieId}`} className="contents">
+                            <td className="py-3 font-medium">{movie.movieTitle}</td>
+                            <td className="py-3 text-right">{movie.uniqueViewers}</td>
+                            <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
+                            <td className="py-3 text-right">{formatDuration(movie.averageWatchTime)}</td>
+                            <td className="py-3 text-right">{movie.completions}</td>
+                            <td className="py-3 text-right">{movie.completionRate.toFixed(0)}%</td>
+                            <td className="py-3 text-right">{movie.averageProgress.toFixed(0)}%</td>
+                          </Link>
                         </tr>
                       ))}
                     </tbody>
@@ -364,15 +356,12 @@ export default function AnalyticsPage() {
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-3">
                   {summary.movieStats.map((movie) => (
-                    <div key={movie.movieId} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-base flex-1">{movie.movieTitle}</h3>
-                        <Link href={`/admin/analytics/${movie.movieId}`}>
-                          <Button variant="ghost" size="sm">
-                            <ExternalLink className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                      </div>
+                    <Link 
+                      key={movie.movieId} 
+                      href={`/admin/analytics/${movie.movieId}`}
+                      className="block border rounded-lg p-4 space-y-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <h3 className="font-semibold text-base">{movie.movieTitle}</h3>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <div className="text-gray-600">{t('users')}</div>
@@ -390,8 +379,16 @@ export default function AnalyticsPage() {
                           <div className="text-gray-600">{t('completions')}</div>
                           <div className="font-medium">{movie.completions}</div>
                         </div>
+                        <div>
+                          <div className="text-gray-600">{t('completionRate')}</div>
+                          <div className="font-medium">{movie.completionRate.toFixed(0)}%</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600">{t('avgProgress')}</div>
+                          <div className="font-medium">{movie.averageProgress.toFixed(0)}%</div>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </CardContent>

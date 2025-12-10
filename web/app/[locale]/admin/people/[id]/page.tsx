@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, CheckCircle, Merge } from 'lucide-react';
+import { Save, CheckCircle, Merge, Trash2 } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
+import { getLocalizedText } from '@/lib/i18n';
 import { MergePeopleDialog } from '@/components/admin/merge-people-dialog';
 
 export default function EditPersonPage() {
@@ -28,6 +29,8 @@ export default function EditPersonPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [nameEn, setNameEn] = useState('');
@@ -184,6 +187,20 @@ export default function EditPersonPage() {
     router.push('/admin/people');
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await peopleAPI.delete(personId);
+      // Redirect to people list after successful deletion
+      router.push('/admin/people');
+    } catch (error) {
+      console.error('Failed to delete person:', error);
+      alert('Failed to delete person. Please try again.');
+      setDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <div>
       {/* Sticky Header */}
@@ -193,6 +210,16 @@ export default function EditPersonPage() {
             Editing: <span className="text-gray-700">{nameEn || 'Person'}</span>
           </h2>
           <div className="flex gap-2 flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteDialog(true)}
+              className="cursor-pointer gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              title="Delete this person"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -351,23 +378,87 @@ export default function EditPersonPage() {
           </CardContent>
         </Card>
 
-        {/* Filmography Summary */}
+        {/* Filmography */}
         {(person.cast?.length > 0 || person.crew?.length > 0) && (
           <Card>
             <CardHeader>
               <CardTitle>Filmography</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-gray-600">
+              <div className="space-y-6">
+                {/* Acting Credits */}
                 {person.cast?.length > 0 && (
-                  <p>
-                    <span className="font-semibold text-gray-900">{person.cast.length}</span> acting credit{person.cast.length !== 1 ? 's' : ''}
-                  </p>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">
+                      Acting ({person.cast.length} credit{person.cast.length !== 1 ? 's' : ''})
+                    </h3>
+                    <div className="space-y-2">
+                      {person.cast
+                        .sort((a: any, b: any) => {
+                          // Sort by release date (newest first)
+                          const dateA = a.movie.release_date || '';
+                          const dateB = b.movie.release_date || '';
+                          return dateB.localeCompare(dateA);
+                        })
+                        .map((credit: any) => {
+                          const movieTitle = getLocalizedText(credit.movie.title, locale);
+                          const character = getLocalizedText(credit.character, locale);
+                          const year = credit.movie.release_date ? new Date(credit.movie.release_date).getFullYear() : '';
+                          
+                          return (
+                            <div key={credit.movie.id} className="flex items-start gap-3 text-sm">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">
+                                  {movieTitle}
+                                  {year && <span className="text-gray-500 ml-2">({year})</span>}
+                                </div>
+                                {character && (
+                                  <div className="text-gray-600">as {character}</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
                 )}
+
+                {/* Crew Credits */}
                 {person.crew?.length > 0 && (
-                  <p>
-                    <span className="font-semibold text-gray-900">{person.crew.length}</span> crew credit{person.crew.length !== 1 ? 's' : ''}
-                  </p>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">
+                      Crew ({person.crew.length} credit{person.crew.length !== 1 ? 's' : ''})
+                    </h3>
+                    <div className="space-y-2">
+                      {person.crew
+                        .sort((a: any, b: any) => {
+                          // Sort by release date (newest first)
+                          const dateA = a.movie.release_date || '';
+                          const dateB = b.movie.release_date || '';
+                          return dateB.localeCompare(dateA);
+                        })
+                        .map((credit: any, index: number) => {
+                          const movieTitle = getLocalizedText(credit.movie.title, locale);
+                          const job = getLocalizedText(credit.job, locale);
+                          const year = credit.movie.release_date ? new Date(credit.movie.release_date).getFullYear() : '';
+                          
+                          return (
+                            <div key={`${credit.movie.id}-${credit.department}-${index}`} className="flex items-start gap-3 text-sm">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">
+                                  {movieTitle}
+                                  {year && <span className="text-gray-500 ml-2">({year})</span>}
+                                </div>
+                                <div className="text-gray-600">
+                                  {job}
+                                  {credit.department && <span className="text-gray-400 ml-2">• {credit.department}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -395,6 +486,46 @@ export default function EditPersonPage() {
             </Button>
             <Button onClick={handleBackToList} className="w-full">
               Back to People
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Delete Person?</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete <strong>{nameEn}</strong>?
+              <br /><br />
+              This will permanently remove:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Person profile and biography</li>
+                <li>All cast credits ({person?.cast?.length || 0} movies)</li>
+                <li>All crew credits ({person?.crew?.length || 0} movies)</li>
+              </ul>
+              <br />
+              <strong className="text-red-600">This action cannot be undone.</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              onClick={() => setShowDeleteDialog(false)} 
+              variant="outline" 
+              className="w-full"
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDelete} 
+              variant="destructive" 
+              className="w-full gap-2"
+              disabled={deleting}
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? 'Deleting...' : 'Delete Person'}
             </Button>
           </div>
         </DialogContent>

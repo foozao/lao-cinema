@@ -204,24 +204,34 @@ export function mapTMDBToMovie(
   }
 
   // Extract all YouTube trailers from videos
+  console.log('Processing videos in mapper:', videos);
+  console.log('Videos results array:', videos?.results);
+  
   const trailers = videos?.results
-    ?.filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
-    .map((v, index) => ({
-      id: `tmdb-${v.key}`, // Temporary ID for UI
-      type: 'youtube' as const, // Our database enum value
-      key: v.key,
-      name: v.name,
-      official: v.official,
-      language: v.iso_639_1 || undefined,
-      published_at: v.published_at || undefined,
-      order: index,
-    }))
-    // Sort: official trailers first, then by publish date (newest first)
-    .sort((a, b) => {
-      if (a.official !== b.official) return a.official ? -1 : 1;
-      if (a.published_at && b.published_at) return b.published_at.localeCompare(a.published_at);
-      return 0;
-    }) || [];
+    ? videos.results
+        .filter((v: any) => {
+          console.log('Checking video:', v.name, 'site:', v.site, 'type:', v.type);
+          return v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip');
+        })
+        .map((v: any, index: number) => ({
+          id: `tmdb-${v.key}`, // Temporary ID for UI
+          type: 'youtube' as const, // Our database enum value
+          key: v.key,
+          name: v.name,
+          official: v.official,
+          language: v.iso_639_1 || undefined,
+          published_at: v.published_at || undefined,
+          order: index,
+        }))
+        // Sort: official trailers first, then by publish date (newest first)
+        .sort((a, b) => {
+          if (a.official !== b.official) return a.official ? -1 : 1;
+          if (a.published_at && b.published_at) return b.published_at.localeCompare(a.published_at);
+          return 0;
+        })
+    : [];
+  
+  console.log('Mapped trailers:', trailers);
 
   // Preserve existing Lao translations if available
   const existingLaoTitle = existingMovie?.title?.lo;
@@ -275,8 +285,8 @@ export function mapTMDBToMovie(
     // Images
     images: mappedImages.length > 0 ? mappedImages : undefined,
     
-    // Trailers
-    trailers: trailers.length > 0 ? trailers : undefined,
+    // Trailers (always return array, even if empty, for consistent comparison)
+    trailers: trailers,
   };
 }
 

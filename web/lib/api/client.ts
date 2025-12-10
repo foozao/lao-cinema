@@ -120,6 +120,15 @@ export const peopleAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sourceId, targetId }),
   }),
+
+  // Delete person
+  delete: (id: string | number) => fetchAPI<{
+    success: boolean;
+    message: string;
+    id: number;
+  }>(`/people/${id}`, {
+    method: 'DELETE',
+  }),
 };
 
 // Cast/Crew API methods

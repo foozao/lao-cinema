@@ -239,6 +239,12 @@ export default function EditMoviePage() {
 
     // Compare trailers
     const trailersChanged = JSON.stringify(trailers) !== JSON.stringify(originalTrailers);
+    
+    if (trailersChanged) {
+      console.log('Trailers changed detected!');
+      console.log('Current trailers:', trailers);
+      console.log('Original trailers:', originalTrailers);
+    }
 
     setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged || trailersChanged);
   }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, trailers, originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, originalAvailabilityStatus, originalTrailers]);
@@ -284,6 +290,9 @@ export default function EditMoviePage() {
       const images = result.images;
       const videos = result.videos;
       
+      console.log('TMDB videos response:', videos);
+      console.log('Videos results:', videos?.results);
+      
       // Map to our schema, preserving Lao translations
       // Note: mapper signature is (tmdbData, credits?, images?, videos?, existingMovie?)
       const syncedData = mapTMDBToMovie(tmdbData, credits, images, videos, currentMovie);
@@ -310,6 +319,7 @@ export default function EditMoviePage() {
       }));
       
       // Update trailers
+      console.log('Synced trailers from TMDB:', syncedData.trailers);
       setTrailers(syncedData.trailers || []);
 
       // Update currentMovie with synced data including images
@@ -353,10 +363,22 @@ export default function EditMoviePage() {
       if (currentMovie.tagline?.en !== syncedData.tagline?.en) changes.push('Tagline');
       if (currentMovie.runtime !== syncedData.runtime) changes.push('Runtime');
       // Image paths (editable via poster manager)
-      if (currentMovie.poster_path !== syncedData.poster_path) changes.push('Poster');
-      if (currentMovie.backdrop_path !== syncedData.backdrop_path) changes.push('Backdrop');
-      // Trailers
-      if (JSON.stringify(currentMovie.trailers) !== JSON.stringify(syncedData.trailers)) changes.push('Trailers');
+      // Normalize null/undefined/empty string to null for comparison
+      const normalizePath = (path: string | null | undefined) => path || null;
+      if (normalizePath(currentMovie.poster_path) !== normalizePath(syncedData.poster_path)) changes.push('Poster');
+      if (normalizePath(currentMovie.backdrop_path) !== normalizePath(syncedData.backdrop_path)) changes.push('Backdrop');
+      // Trailers - compare by YouTube keys to avoid false positives from property differences
+      const currentTrailerKeys = (currentMovie.trailers || [])
+        .filter(t => t.type === 'youtube')
+        .map(t => t.key)
+        .sort()
+        .join(',');
+      const syncedTrailerKeys = (syncedData.trailers || [])
+        .filter(t => t.type === 'youtube')
+        .map(t => t.key)
+        .sort()
+        .join(',');
+      if (currentTrailerKeys !== syncedTrailerKeys) changes.push('Trailers');
       // Cast/Crew (editable via add/remove buttons)
       if (currentMovie.cast?.length !== syncedData.cast?.length) changes.push('Cast');
       if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
@@ -746,11 +768,14 @@ export default function EditMoviePage() {
         availability_status: availabilityStatus || 'auto', // Default to 'auto' if empty
       };
 
+      console.log('Saving trailers to API:', updateData.trailers);
       await movieAPI.update(movieId, updateData);
       
       // Reload movie data to show updated values
       const updatedMovie = await movieAPI.getById(movieId);
+      console.log('Trailers after reload:', updatedMovie.trailers);
       setCurrentMovie(updatedMovie);
+      setTrailers(updatedMovie.trailers || []);
       
       // Update original values to match current (saved) values
       setOriginalFormData({...formData});
