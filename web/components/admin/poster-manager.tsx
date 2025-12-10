@@ -37,7 +37,7 @@ export function PosterManager({ images, movieId, onPrimaryChange, onRefresh, ref
 
     try {
       let imageId: string | null = null;
-      let type: 'poster' | 'backdrop' | 'logo' = activeTab;
+      const type = activeTab as 'poster' | 'backdrop' | 'logo';
 
       if (activeTab === 'poster' && selectedPoster) {
         imageId = selectedPoster;

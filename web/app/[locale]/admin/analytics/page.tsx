@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,12 +50,11 @@ function formatHours(seconds: number): string {
 
 export default function AnalyticsPage() {
   const t = useTranslations('analytics');
-  const tAdmin = useTranslations('admin');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [rentals, setRentals] = useState<{ total: number; active: number }>({ total: 0, active: 0 });
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     // Load analytics from localStorage
     setTimeout(async () => {
@@ -74,11 +73,11 @@ export default function AnalyticsPage() {
       
       setLoading(false);
     }, 100);
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleExport = () => {
     const data = exportAnalyticsData();

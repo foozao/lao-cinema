@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
@@ -54,7 +54,7 @@ export default function MovieAnalyticsPage() {
   const [userActivity, setUserActivity] = useState<UserMovieActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
       const movieAnalytics = getMovieAnalytics(movieId);
@@ -63,11 +63,11 @@ export default function MovieAnalyticsPage() {
       setUserActivity(activity.sort((a, b) => b.lastWatched - a.lastWatched));
       setLoading(false);
     }, 100);
-  };
+  }, [movieId]);
 
   useEffect(() => {
     loadData();
-  }, [movieId]);
+  }, [loadData]);
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50" />;

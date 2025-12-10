@@ -182,6 +182,7 @@ export function VideoPlayer({
   // Update displayed error when castError changes
   useEffect(() => {
     if (castError) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayCastError(castError);
     }
   }, [castError]);

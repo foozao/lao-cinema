@@ -8,7 +8,7 @@
  * Deep comparison for objects using JSON serialization
  * Works well for plain objects with primitive values
  */
-export function hasObjectChanged(original: any, current: any): boolean {
+export function hasObjectChanged(original: unknown, current: unknown): boolean {
   return JSON.stringify(original) !== JSON.stringify(current);
 }
 
@@ -16,7 +16,7 @@ export function hasObjectChanged(original: any, current: any): boolean {
  * Shallow comparison for simple key-value objects
  * More performant than deep comparison for flat objects
  */
-export function hasFormDataChanged<T extends Record<string, any>>(
+export function hasFormDataChanged<T extends Record<string, unknown>>(
   original: T,
   current: T
 ): boolean {

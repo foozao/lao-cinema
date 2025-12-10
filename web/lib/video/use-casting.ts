@@ -66,6 +66,7 @@ export function useCasting({ videoRef, src }: UseCastingOptions): UseCastingResu
       
       if (isHlsStream) {
         // HLS/MSE: Always show cast button, let prompt() handle availability
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCastAvailable(true);
       } else {
         // Native formats: Use proper availability detection

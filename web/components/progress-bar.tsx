@@ -35,6 +35,7 @@ export function ProgressBarProvider({ children }: { children: React.ReactNode })
 
   // Auto-trigger on route change (for browser back/forward)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     start();
   }, [pathname, searchParams, start]);
 

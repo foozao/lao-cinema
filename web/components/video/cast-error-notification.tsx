@@ -13,6 +13,7 @@ export function CastErrorNotification({ error, onDismiss }: CastErrorNotificatio
 
   useEffect(() => {
     if (error) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       
       // Auto-dismiss after 5 seconds

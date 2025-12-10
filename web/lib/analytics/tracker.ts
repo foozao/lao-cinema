@@ -361,8 +361,11 @@ export function useVideoAnalytics({ movieId, movieTitle, duration, source = 'dir
     });
   }, []); // No dependencies - uses refs
 
+  // Return getter function to avoid accessing ref during render
+  const getSessionId = useCallback(() => stateRef.current.sessionId, []);
+
   return {
-    sessionId: stateRef.current.sessionId,
+    getSessionId,
     trackPlay,
     trackPause,
     trackTimeUpdate,

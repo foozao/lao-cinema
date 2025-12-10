@@ -179,6 +179,7 @@ export function useHlsPlayer({
   }, [initializeVideo]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     return initializeVideo();
   }, [initializeVideo]);
 

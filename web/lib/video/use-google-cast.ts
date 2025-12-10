@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useCallback, RefObject } from 'react';
@@ -23,9 +24,7 @@ interface UseGoogleCastResult {
 declare global {
   interface Window {
     __onGCastApiAvailable?: (isAvailable: boolean) => void;
-    chrome?: {
-      cast?: any; // Using any to avoid complex type declarations for external SDK
-    };
+    chrome?: any;
   }
 }
 
@@ -44,6 +43,35 @@ export function useGoogleCast({
   const [castError, setCastError] = useState<string | null>(null);
   const [castSession, setCastSession] = useState<any>(null);
   const [videoPosition, setVideoPosition] = useState(0);
+
+  // Handle session ended - defined first to avoid forward reference
+  const handleSessionEnded = useCallback(() => {
+    setCastSession(null);
+    setIsCasting(false);
+    setDeviceName(null);
+    
+    // Resume local playback at cast position
+    const video = videoRef.current;
+    if (video && videoPosition > 0) {
+      video.currentTime = videoPosition;
+    }
+  }, [videoRef, videoPosition]);
+
+  // Handle session joined - defined after handleSessionEnded since it depends on it
+  const handleSessionJoined = useCallback((session: any) => {
+    console.log('🎬 Session joined:', session.getSessionId());
+    setCastSession(session);
+    setIsCasting(true);
+    setDeviceName(session.receiver?.friendlyName || 'Unknown Device');
+
+    // Listen for session end
+    session.addUpdateListener((isAlive: boolean) => {
+      if (!isAlive) {
+        console.log('🎬 Cast session ended');
+        handleSessionEnded();
+      }
+    });
+  }, [handleSessionEnded]);
 
   // Initialize Google Cast
   useEffect(() => {
@@ -97,35 +125,7 @@ export function useGoogleCast({
     if (window.chrome?.cast?.isAvailable) {
       initCast();
     }
-  }, []);
-
-  // Handle session joined
-  const handleSessionJoined = useCallback((session: any) => {
-    console.log('🎬 Session joined:', session.getSessionId());
-    setCastSession(session);
-    setIsCasting(true);
-    setDeviceName(session.receiver?.friendlyName || 'Unknown Device');
-
-    // Listen for session end
-    session.addUpdateListener((isAlive: boolean) => {
-      if (!isAlive) {
-        console.log('🎬 Cast session ended');
-        handleSessionEnded();
-      }
-    });
-  }, []);
-
-  const handleSessionEnded = useCallback(() => {
-    setCastSession(null);
-    setIsCasting(false);
-    setDeviceName(null);
-    
-    // Resume local playback at cast position
-    const video = videoRef.current;
-    if (video && videoPosition > 0) {
-      video.currentTime = videoPosition;
-    }
-  }, [videoRef, videoPosition]);
+  }, [handleSessionJoined]);
 
   // Start casting
   const startCasting = useCallback(async () => {
@@ -146,20 +146,20 @@ export function useGoogleCast({
       }
 
       // Request cast session
-      window.chrome!.cast!.requestSession(
+      window.chrome.cast.requestSession(
         (session: any) => {
           console.log('✅ Cast session started:', session.getSessionId());
           handleSessionJoined(session);
 
           // Load media
-          const mediaInfo = new window.chrome!.cast!.media.MediaInfo(src, 'application/x-mpegURL');
-          mediaInfo.metadata = new window.chrome!.cast!.media.GenericMediaMetadata();
+          const mediaInfo = new window.chrome.cast.media.MediaInfo(src, 'application/x-mpegURL');
+          mediaInfo.metadata = new window.chrome.cast.media.GenericMediaMetadata();
           mediaInfo.metadata.title = title;
           if (poster) {
-            mediaInfo.metadata.images = [new window.chrome!.cast!.Image(poster)];
+            mediaInfo.metadata.images = [new window.chrome.cast.media.Image(poster)];
           }
 
-          const request = new window.chrome!.cast!.media.LoadRequest(mediaInfo);
+          const request = new window.chrome.cast.media.LoadRequest(mediaInfo);
           request.currentTime = videoPosition;
           request.autoplay = true;
 
