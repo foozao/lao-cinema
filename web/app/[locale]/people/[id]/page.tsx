@@ -123,24 +123,11 @@ export default function PersonPage() {
             
             {/* Nicknames */}
             {person.nicknames && (person.nicknames.en || person.nicknames.lo) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {person.nicknames.en?.map((nickname: string, index: number) => (
-                  <span
-                    key={`en-${index}`}
-                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 rounded-full border border-gray-700"
-                  >
-                    {nickname}
-                  </span>
-                ))}
-                {person.nicknames.lo?.map((nickname: string, index: number) => (
-                  <span
-                    key={`lo-${index}`}
-                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 rounded-full border border-gray-700"
-                  >
-                    {nickname}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-2 text-lg text-gray-400">
+                {[...(person.nicknames.en || []), ...(person.nicknames.lo || [])]
+                  .map(nickname => `"${nickname}"`)
+                  .join(', ')}
+              </p>
             )}
             
             <div className="mt-6">

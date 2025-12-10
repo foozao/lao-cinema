@@ -450,24 +450,11 @@ function MoviesPageContent() {
                               </Link>
                               {/* Display nicknames */}
                               {personMatch.person.nicknames && (personMatch.person.nicknames.en || personMatch.person.nicknames.lo) && (
-                                <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
-                                  {personMatch.person.nicknames.en?.map((nickname: string, index: number) => (
-                                    <span
-                                      key={`en-${index}`}
-                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded"
-                                    >
-                                      {nickname}
-                                    </span>
-                                  ))}
-                                  {personMatch.person.nicknames.lo?.map((nickname: string, index: number) => (
-                                    <span
-                                      key={`lo-${index}`}
-                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded"
-                                    >
-                                      {nickname}
-                                    </span>
-                                  ))}
-                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-2">
+                                  {[...(personMatch.person.nicknames.en || []), ...(personMatch.person.nicknames.lo || [])]
+                                    .map(nickname => `"${nickname}"`)
+                                    .join(', ')}
+                                </p>
                               )}
                               <div className="space-y-1">
                                 {personMatch.movies.slice(0, 3).map((movieRole, idx) => {
