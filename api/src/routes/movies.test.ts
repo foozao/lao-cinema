@@ -610,7 +610,7 @@ describe('Movie Routes', () => {
         expect(body.trailers[0].name).toBe('Official Trailer');
         expect(body.trailers[0].official).toBe(true);
         expect(body.trailers[1].key).toBe('abc123xyz');
-        expect(body.trailers[1].type).toBe('Teaser');
+        expect(body.trailers[1].type).toBe('youtube');
       });
 
       it('should create a movie with single trailer', async () => {
@@ -649,7 +649,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(201);
         const body = JSON.parse(response.body);
-        expect(body.trailers).toBeUndefined();
+        expect(body.trailers).toEqual([]);
       });
     });
 
@@ -695,7 +695,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(200);
         const body = JSON.parse(response.body);
-        expect(body.trailers).toBeUndefined();
+        expect(body.trailers).toEqual([]);
       });
     });
 
@@ -810,7 +810,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(201);
         const body = JSON.parse(response.body);
-        expect(body.trailers[0].published_at).toBeUndefined();
+        expect(body.trailers[0].published_at).toBeNull();
       });
 
       it('should store all trailer metadata correctly', async () => {
@@ -838,8 +838,7 @@ describe('Movie Routes', () => {
         const trailer = body.trailers[0];
         expect(trailer.key).toBe('metadata123');
         expect(trailer.name).toBe('Metadata Test Trailer');
-        expect(trailer.type).toBe('Trailer');
-        expect(trailer.site).toBe('YouTube');
+        expect(trailer.type).toBe('youtube');
         expect(trailer.official).toBe(true);
         expect(trailer.published_at).toBe('2024-06-15T10:30:00Z');
       });

@@ -15,7 +15,7 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
-import type { Movie, StreamingPlatform, ExternalPlatform } from '@/lib/types';
+import type { Movie, StreamingPlatform, ExternalPlatform, Trailer } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
@@ -73,14 +73,7 @@ export default function EditMoviePage() {
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
   
   // State for trailers
-  const [trailers, setTrailers] = useState<Array<{
-    key: string;
-    name: string;
-    type: string;
-    site: string;
-    official: boolean;
-    published_at?: string;
-  }>>([]);
+  const [trailers, setTrailers] = useState<Trailer[]>([]);
   
   // State for availability status
   const [availabilityStatus, setAvailabilityStatus] = useState<'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon'>('auto');
@@ -92,6 +85,7 @@ export default function EditMoviePage() {
   const [originalFormData, setOriginalFormData] = useState(formData);
   const [originalCastTranslations, setOriginalCastTranslations] = useState(castTranslations);
   const [originalCrewTranslations, setOriginalCrewTranslations] = useState(crewTranslations);
+  const [originalTrailers, setOriginalTrailers] = useState(trailers);
   const [originalExternalPlatforms, setOriginalExternalPlatforms] = useState(externalPlatforms);
   const [originalAvailabilityStatus, setOriginalAvailabilityStatus] = useState(availabilityStatus);
   
@@ -178,7 +172,8 @@ export default function EditMoviePage() {
         setAvailabilityStatus(initialStatus);
         
         // Load trailers
-        setTrailers(movie.trailers || []);
+        const initialTrailers = movie.trailers || [];
+        setTrailers(initialTrailers);
         
         // Store original values for change detection (must use local variables, not state)
         const initialFormData = {
@@ -211,6 +206,7 @@ export default function EditMoviePage() {
         setOriginalCrewTranslations({...crewTrans});
         setOriginalExternalPlatforms([...initialPlatforms]);
         setOriginalAvailabilityStatus(initialStatus);
+        setOriginalTrailers([...initialTrailers]);
       } catch (error) {
         console.error('Failed to load movie:', error);
         setSyncError('Failed to load movie from database');
@@ -239,8 +235,11 @@ export default function EditMoviePage() {
     // Compare availability status
     const statusChanged = availabilityStatus !== originalAvailabilityStatus;
 
-    setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged);
-  }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, originalAvailabilityStatus]);
+    // Compare trailers
+    const trailersChanged = JSON.stringify(trailers) !== JSON.stringify(originalTrailers);
+
+    setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged || trailersChanged);
+  }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, trailers, originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, originalAvailabilityStatus, originalTrailers]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -1136,18 +1135,19 @@ export default function EditMoviePage() {
                             }
                             
                             // Check if trailer already exists
-                            if (trailers.some(t => t.key === videoId)) {
+                            if (trailers.some(t => t.type === 'youtube' && t.key === videoId)) {
                               alert('This trailer is already in the list.');
                               return;
                             }
                             
-                            // Add new trailer
-                            const newTrailer = {
+                            // Add new trailer (YouTube trailer type)
+                            const newTrailer: Trailer = {
+                              id: `temp-${Date.now()}`, // Temporary ID, will be assigned by backend
+                              type: 'youtube',
                               key: videoId,
                               name: 'Manual Trailer',
-                              type: 'Trailer',
-                              site: 'YouTube',
                               official: false,
+                              order: trailers.length,
                             };
                             setTrailers([...trailers, newTrailer]);
                             setHasChanges(true);
@@ -1166,11 +1166,19 @@ export default function EditMoviePage() {
               {/* Existing Trailers */}
               {trailers.length > 0 ? (
                 <div className="space-y-3">
-                  {trailers.map((trailer, index) => (
-                    <div key={trailer.key} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
+                  {trailers.map((trailer, index) => {
+                    // Type-safe check for YouTube trailers
+                    const isYouTube = trailer.type === 'youtube';
+                    if (!isYouTube) return null;
+                    
+                    // Now TypeScript knows trailer is YouTubeTrailer
+                    const ytKey = trailer.key;
+                    
+                    return (
+                    <div key={trailer.id || ytKey} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
                       <div className="flex items-start gap-3">
                         <img
-                          src={`https://img.youtube.com/vi/${trailer.key}/hqdefault.jpg`}
+                          src={`https://img.youtube.com/vi/${ytKey}/hqdefault.jpg`}
                           alt={trailer.name}
                           className="w-32 h-18 rounded object-cover flex-shrink-0"
                         />
@@ -1184,11 +1192,10 @@ export default function EditMoviePage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-                            <span className="px-2 py-0.5 bg-gray-200 rounded">{trailer.type}</span>
+                            <span className="px-2 py-0.5 bg-gray-200 rounded">YouTube</span>
                             {trailer.official && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Official</span>
                             )}
-                            <span>{trailer.site}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <a
@@ -1228,7 +1235,8 @@ export default function EditMoviePage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   <p className="text-xs text-gray-500 mt-2">
                     The primary trailer (first in list) will be displayed on the movie detail page.
                   </p>

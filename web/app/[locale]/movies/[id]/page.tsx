@@ -427,8 +427,7 @@ export default function MoviePage() {
               <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-3">{t('movie.trailer')}</h3>
                 <TrailerPlayer
-                  youtubeKey={movie.trailers[0].key}
-                  title={movie.trailers[0].name}
+                  trailer={movie.trailers[0]}
                   className="w-full aspect-video"
                 />
               </div>

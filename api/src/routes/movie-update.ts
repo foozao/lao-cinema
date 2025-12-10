@@ -41,7 +41,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         }
 
         // Extract fields that should be updated in movies table
-        const { title, overview, tagline, cast, crew, genres, images, video_sources, external_platforms, ...movieUpdates } = updates;
+        const { title, overview, tagline, cast, crew, genres, images, video_sources, external_platforms, trailers, ...movieUpdates } = updates;
         
         // Update basic movie fields if provided
         const movieFieldsToUpdate = mapMovieToUpdateData(movieUpdates);
@@ -80,6 +80,11 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         // Update external platforms if provided
         if (external_platforms !== undefined) {
           await updateExternalPlatforms(id, external_platforms);
+        }
+
+        // Update trailers if provided
+        if (trailers !== undefined) {
+          await updateTrailers(id, trailers);
         }
 
         // Fetch and return the complete updated movie
@@ -269,6 +274,28 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
       }));
       
       await db.insert(schema.movieExternalPlatforms).values(platformValues);
+    }
+  }
+
+  async function updateTrailers(movieId: string, trailers: any[]) {
+    // Delete existing trailers for this movie
+    await db.delete(schema.trailers)
+      .where(eq(schema.trailers.movieId, movieId));
+
+    // Insert new trailers
+    if (trailers.length > 0) {
+      const trailerValues = trailers.map((trailer: any, index: number) => ({
+        movieId,
+        type: 'youtube' as const,
+        youtubeKey: trailer.key,
+        name: trailer.name || 'Trailer',
+        official: trailer.official || false,
+        language: trailer.iso_639_1 || null,
+        publishedAt: trailer.published_at || null,
+        order: index,
+      }));
+      
+      await db.insert(schema.trailers).values(trailerValues);
     }
   }
 }

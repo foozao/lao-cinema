@@ -18,15 +18,36 @@ export interface ExternalPlatform {
 // Availability status for movies
 export type AvailabilityStatus = 'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon';
 
-// Trailer from TMDB (YouTube videos)
-export interface Trailer {
-  key: string; // YouTube video ID
+// Trailer - supports both YouTube and self-hosted video files
+export type TrailerType = 'youtube' | 'video';
+
+export interface BaseTrailer {
+  id: string;
+  type: TrailerType;
   name: string; // Trailer title
-  type: string; // 'Trailer', 'Teaser', 'Clip', 'Featurette', 'Behind the Scenes', etc.
-  site: string; // 'YouTube', 'Vimeo', etc.
   official: boolean; // Official content from studio
+  language?: string; // ISO 639-1 language code
   published_at?: string; // ISO timestamp
+  order: number; // Display order
 }
+
+export interface YouTubeTrailer extends BaseTrailer {
+  type: 'youtube';
+  key: string; // YouTube video ID
+}
+
+export interface VideoTrailer extends BaseTrailer {
+  type: 'video';
+  video_url: string; // GCS or CDN URL
+  video_format: 'hls' | 'mp4';
+  video_quality: 'original' | '1080p' | '720p' | '480p' | '360p';
+  size_bytes?: number;
+  width?: number;
+  height?: number;
+  duration_seconds?: number;
+}
+
+export type Trailer = YouTubeTrailer | VideoTrailer;
 
 export interface Movie {
   id: string;

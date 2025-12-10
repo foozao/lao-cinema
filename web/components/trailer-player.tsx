@@ -1,16 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Play, X } from 'lucide-react';
+import type { Trailer } from '@/lib/types';
 
 interface TrailerPlayerProps {
-  youtubeKey: string;
-  title: string;
+  trailer: Trailer;
   className?: string;
 }
 
-export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlayerProps) {
+export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Get thumbnail based on trailer type
+  const getThumbnail = () => {
+    if (trailer.type === 'youtube') {
+      return `https://img.youtube.com/vi/${trailer.key}/maxresdefault.jpg`;
+    }
+    // For video trailers, try to extract thumbnail from video URL pattern
+    // You can implement a custom thumbnail system later
+    return null;
+  };
+
+  const thumbnail = getThumbnail();
 
   if (!isPlaying) {
     return (
@@ -19,15 +32,23 @@ export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlay
           onClick={() => setIsPlaying(true)}
           className="relative group overflow-hidden w-full h-full"
         >
-          {/* YouTube Thumbnail */}
-          <img
-            src={`https://img.youtube.com/vi/${youtubeKey}/maxresdefault.jpg`}
-            alt={`${title} - Trailer`}
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            onError={(e) => {
-              e.currentTarget.src = `https://img.youtube.com/vi/${youtubeKey}/hqdefault.jpg`;
-            }}
-          />
+          {/* Thumbnail */}
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={`${trailer.name} - Trailer`}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              onError={(e) => {
+                if (trailer.type === 'youtube') {
+                  e.currentTarget.src = `https://img.youtube.com/vi/${trailer.key}/hqdefault.jpg`;
+                }
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+              <Play className="w-20 h-20 text-white opacity-50" />
+            </div>
+          )}
           
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
@@ -42,7 +63,7 @@ export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlay
           {/* Trailer label */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
             <p className="text-white font-semibold text-sm md:text-base">
-              {title}
+              {trailer.name}
             </p>
           </div>
         </button>
@@ -64,15 +85,31 @@ export function TrailerPlayer({ youtubeKey, title, className = '' }: TrailerPlay
         </button>
       </div>
 
-      {/* YouTube iframe - responsive 16:9 embed */}
+      {/* Player based on trailer type */}
       <div className="relative w-full h-0 pb-[56.25%] bg-black rounded-lg overflow-hidden">
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeKey}?autoplay=1&mute=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&disablekb=1`}
-          title={title}
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowFullScreen
-          className="absolute top-0 left-0 w-full h-full border-0"
-        />
+        {trailer.type === 'youtube' ? (
+          // YouTube iframe
+          <iframe
+            src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&disablekb=1`}
+            title={trailer.name}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="absolute top-0 left-0 w-full h-full border-0"
+          />
+        ) : (
+          // Video file player
+          <video
+            ref={videoRef}
+            src={trailer.video_url}
+            className="absolute top-0 left-0 w-full h-full"
+            controls
+            autoPlay
+            muted
+            playsInline
+          >
+            Your browser does not support the video tag.
+          </video>
+        )}
       </div>
     </div>
   );

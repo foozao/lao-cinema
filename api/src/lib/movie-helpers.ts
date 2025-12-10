@@ -359,7 +359,7 @@ export function mapMovieToInsertData(
   if (movie.vote_average !== undefined) data.voteAverage = movie.vote_average;
   if (movie.vote_count !== undefined) data.voteCount = movie.vote_count;
   if (movie.popularity !== undefined) data.popularity = movie.popularity;
-  if (movie.trailers !== undefined) data.trailers = JSON.stringify(movie.trailers);
+  // Note: trailers are now handled separately via the trailers table
   
   return data;
 }
@@ -379,7 +379,7 @@ export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<strin
   if (updates.poster_path !== undefined) data.posterPath = updates.poster_path;
   if (updates.backdrop_path !== undefined) data.backdropPath = updates.backdrop_path;
   if (updates.availability_status !== undefined) data.availabilityStatus = updates.availability_status;
-  if (updates.trailers !== undefined) data.trailers = JSON.stringify(updates.trailers);
+  // Note: trailers are now handled separately via the trailers table
   
   // Always update the timestamp when any field is updated
   if (Object.keys(data).length > 0) {

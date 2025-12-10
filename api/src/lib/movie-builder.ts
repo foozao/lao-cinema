@@ -61,6 +61,12 @@ export async function buildMovieWithRelations(
     .from(schema.movieExternalPlatforms)
     .where(eq(schema.movieExternalPlatforms.movieId, movie.id));
 
+  // Fetch trailers (ordered by display order)
+  const movieTrailers = await db.select()
+    .from(schema.trailers)
+    .where(eq(schema.trailers.movieId, movie.id))
+    .orderBy(schema.trailers.order);
+
   // Build base movie object
   const movieData: any = {
     id: movie.id,
@@ -78,7 +84,27 @@ export async function buildMovieWithRelations(
     popularity: movie.popularity,
     adult: movie.adult,
     availability_status: movie.availabilityStatus,
-    trailers: movie.trailers ? JSON.parse(movie.trailers) : undefined,
+    trailers: movieTrailers.map(t => ({
+      id: t.id,
+      type: t.type,
+      name: t.name,
+      official: t.official,
+      language: t.language,
+      published_at: t.publishedAt,
+      order: t.order,
+      // YouTube trailer fields
+      ...(t.type === 'youtube' && { key: t.youtubeKey }),
+      // Video trailer fields
+      ...(t.type === 'video' && {
+        video_url: t.videoUrl,
+        video_format: t.videoFormat,
+        video_quality: t.videoQuality,
+        size_bytes: t.sizeBytes,
+        width: t.width,
+        height: t.height,
+        duration_seconds: t.durationSeconds,
+      }),
+    })),
     title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
     overview: Object.keys(overview).length > 0 ? overview : { en: '' },
     tagline: Object.keys(tagline).length > 0 ? tagline : undefined,

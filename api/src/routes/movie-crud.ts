@@ -129,6 +129,22 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
           await db.insert(schema.movieExternalPlatforms).values(platformValues);
         }
 
+        // Insert trailers (from TMDB import)
+        if (movieData.trailers && movieData.trailers.length > 0) {
+          const trailerValues = movieData.trailers.map((trailer: any, index: number) => ({
+            movieId: newMovie.id,
+            type: 'youtube' as const,
+            youtubeKey: trailer.key,
+            name: trailer.name || 'Trailer',
+            official: trailer.official || false,
+            language: trailer.iso_639_1 || null,
+            publishedAt: trailer.published_at || null,
+            order: index,
+          }));
+          
+          await db.insert(schema.trailers).values(trailerValues);
+        }
+
         // Fetch the complete movie with translations to return
         const response = await fastify.inject({
           method: 'GET',

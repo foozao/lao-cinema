@@ -208,18 +208,19 @@ export function mapTMDBToMovie(
   // Extract all YouTube trailers from videos
   const trailers = videos?.results
     ?.filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
-    .map(v => ({
+    .map((v, index) => ({
+      id: `tmdb-${v.key}`, // Temporary ID for UI
+      type: 'youtube' as const, // Our database enum value
       key: v.key,
       name: v.name,
-      type: v.type,
-      site: v.site,
       official: v.official,
-      published_at: v.published_at,
+      language: v.iso_639_1 || undefined,
+      published_at: v.published_at || undefined,
+      order: index,
     }))
-    // Sort: official trailers first, then by type (Trailer > Teaser), then by publish date
+    // Sort: official trailers first, then by publish date (newest first)
     .sort((a, b) => {
       if (a.official !== b.official) return a.official ? -1 : 1;
-      if (a.type !== b.type) return a.type === 'Trailer' ? -1 : 1;
       if (a.published_at && b.published_at) return b.published_at.localeCompare(a.published_at);
       return 0;
     }) || [];

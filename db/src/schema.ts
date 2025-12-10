@@ -9,6 +9,7 @@ export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'p
 export const availabilityStatusEnum = pgEnum('availability_status', ['auto', 'available', 'external', 'unavailable', 'coming_soon']);
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
+export const trailerTypeEnum = pgEnum('trailer_type', ['youtube', 'video']);
 
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
@@ -34,10 +35,6 @@ export const movies = pgTable('movies', {
   
   // Availability ('auto' = uses smart defaults based on video_sources and external_platforms)
   availabilityStatus: availabilityStatusEnum('availability_status').default('auto'),
-  
-  // Trailers (YouTube videos from TMDB) - stored as JSON array
-  // Format: [{ key: 'abc123', name: 'Official Trailer', type: 'Trailer', official: true, published_at: '2024-01-01' }, ...]
-  trailers: text('trailers'), // JSON array of trailer objects
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -191,6 +188,36 @@ export const videoSources = pgTable('video_sources', {
   height: integer('height'),
   aspectRatio: text('aspect_ratio'), // e.g., '16:9', '2.35:1', 'mixed'
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Trailers table - supports both YouTube and self-hosted video trailers
+export const trailers = pgTable('trailers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  type: trailerTypeEnum('type').notNull(),
+  
+  // YouTube trailer fields
+  youtubeKey: text('youtube_key'),
+  
+  // Video file trailer fields
+  videoUrl: text('video_url'),
+  videoFormat: videoFormatEnum('video_format'),
+  videoQuality: videoQualityEnum('video_quality'),
+  sizeBytes: integer('size_bytes'),
+  width: integer('width'),
+  height: integer('height'),
+  durationSeconds: integer('duration_seconds'),
+  
+  // Common fields
+  name: text('name').notNull(),
+  official: boolean('official').default(false),
+  language: text('language'), // ISO 639-1 language code
+  publishedAt: text('published_at'),
+  order: integer('order').default(0), // Display order
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Homepage featured films table
