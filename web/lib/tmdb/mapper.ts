@@ -130,11 +130,9 @@ export function mapTMDBToMovie(
     };
   }) || [];
 
-  // Map crew (directors, writers, producers) - preserve existing Lao translations
-  const importantJobs = ['Director', 'Writer', 'Screenplay', 'Producer', 'Executive Producer', 'Director of Photography', 'Original Music Composer'];
+  // Map all crew members - preserve existing Lao translations
   const crewSource = credits?.crew ?? [];
   const crew: CrewMember[] = crewSource
-    .filter((c) => importantJobs.includes(c.job))
     .map((c) => {
       const existingCrewMember = existingMovie?.crew?.find(
         ec => ec.person.id === c.id && ec.department === c.department
