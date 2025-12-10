@@ -6,10 +6,11 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Edit, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, Edit, ArrowUpDown, Plus, Merge } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
+import { MergePeopleDialog } from '@/components/admin/merge-people-dialog';
 
 type DepartmentFilter = 'all' | 'Acting' | 'Directing' | 'Writing' | 'Production' | 'other';
 type SortOrder = 'asc' | 'desc';
@@ -23,6 +24,8 @@ export default function PeopleAdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [personToMerge, setPersonToMerge] = useState<any | null>(null);
 
   useEffect(() => {
     const loadPeople = async () => {
@@ -45,6 +48,32 @@ export default function PeopleAdminPage() {
 
     loadPeople();
   }, []);
+
+  const handleMergeClick = (person: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPersonToMerge(person);
+    setMergeDialogOpen(true);
+  };
+
+  const handleMergeComplete = async () => {
+    // Reload people list after merge
+    setLoading(true);
+    try {
+      const response = await peopleAPI.getAll();
+      const sortedPeople = [...response.people].sort((a, b) => {
+        const nameA = (a.name?.en || '').toLowerCase();
+        const nameB = (b.name?.en || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setPeople(sortedPeople);
+      setFilteredPeople(sortedPeople);
+    } catch (error) {
+      console.error('Failed to reload people:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter and sort people based on search, department, and sort order
   useEffect(() => {
@@ -207,10 +236,10 @@ export default function PeopleAdminPage() {
             const profileUrl = getProfileUrl(person.profile_path, 'small');
             
             return (
-              <Link key={person.id} href={`/admin/people/${person.id}`} className="block mb-3">
-                <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md hover:bg-gray-50 transition-all cursor-pointer h-24">
+              <div key={person.id} className="mb-3">
+                <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all h-24">
                   {/* Profile Photo */}
-                  <div className="flex-shrink-0 flex items-center justify-center w-24">
+                  <Link href={`/admin/people/${person.id}`} className="flex-shrink-0 flex items-center justify-center w-24 hover:bg-gray-50">
                     {profileUrl ? (
                       <img
                         src={profileUrl}
@@ -222,10 +251,10 @@ export default function PeopleAdminPage() {
                         <span className="text-2xl">👤</span>
                       </div>
                     )}
-                  </div>
+                  </Link>
 
                   {/* Person Info */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center px-4">
+                  <Link href={`/admin/people/${person.id}`} className="flex-1 min-w-0 flex flex-col justify-center px-4 hover:bg-gray-50">
                     <div className="mb-1">
                       <h3 className="text-base font-semibold text-gray-900 leading-tight">
                         {hasLaoName ? nameLo : nameEn}
@@ -240,12 +269,34 @@ export default function PeopleAdminPage() {
                         <span>{departments.join(', ')}</span>
                       </div>
                     )}
+                  </Link>
+
+                  {/* Actions */}
+                  <div className="flex-shrink-0 flex items-center px-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => handleMergeClick(person, e)}
+                      title="Merge with another person"
+                    >
+                      <Merge className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
+      )}
+
+      {/* Merge Dialog */}
+      {personToMerge && (
+        <MergePeopleDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          sourcePerson={personToMerge}
+          onMergeComplete={handleMergeComplete}
+        />
       )}
     </div>
   );

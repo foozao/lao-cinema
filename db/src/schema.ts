@@ -125,6 +125,15 @@ export const peopleTranslations = pgTable('people_translations', {
   pk: primaryKey({ columns: [table.personId, table.language] }),
 }));
 
+// Person aliases table - tracks merged TMDB person IDs
+// When person A is merged into person B, we create an alias: tmdbId=A -> canonicalPersonId=B
+// This ensures TMDB syncs don't recreate deleted duplicates
+export const personAliases = pgTable('person_aliases', {
+  tmdbId: integer('tmdb_id').primaryKey(), // The TMDB ID that was merged away
+  canonicalPersonId: integer('canonical_person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(), // The person it was merged into
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Movie-Cast junction table (actors in movies)
 export const movieCast = pgTable('movie_cast', {
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),

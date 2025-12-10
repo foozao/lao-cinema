@@ -168,22 +168,50 @@ interface PersonData {
 }
 
 /**
+ * Resolve a TMDB person ID to its canonical ID
+ * If the person was merged, returns the canonical person ID
+ * Otherwise returns the original ID
+ */
+export async function resolvePersonId(
+  db: NodePgDatabase<any>,
+  schema: any,
+  tmdbId: number
+): Promise<number> {
+  const [alias] = await db.select()
+    .from(schema.personAliases)
+    .where(eq(schema.personAliases.tmdbId, tmdbId))
+    .limit(1);
+
+  return alias ? alias.canonicalPersonId : tmdbId;
+}
+
+/**
  * Ensure a person exists in the database, inserting if necessary
- * Returns true if person was inserted, false if already existed
+ * Resolves aliases to prevent recreating merged people
+ * Returns the canonical person ID (may differ from input if person was merged)
  */
 export async function ensurePersonExists(
   db: NodePgDatabase<any>,
   schema: any,
   person: PersonData,
   defaultDepartment: string = 'Acting'
-): Promise<boolean> {
+): Promise<{ personId: number; wasInserted: boolean }> {
+  // First, check if this TMDB ID was merged into another person
+  const canonicalId = await resolvePersonId(db, schema, person.id);
+  
+  // If it was merged, return the canonical ID without inserting
+  if (canonicalId !== person.id) {
+    return { personId: canonicalId, wasInserted: false };
+  }
+
+  // Check if person already exists
   const existing = await db.select()
     .from(schema.people)
     .where(eq(schema.people.id, person.id))
     .limit(1);
 
   if (existing.length > 0) {
-    return false;
+    return { personId: person.id, wasInserted: false };
   }
 
   // Insert person
@@ -201,7 +229,7 @@ export async function ensurePersonExists(
   // Insert translations
   await insertPersonTranslations(db, schema, person.id, person.name);
 
-  return true;
+  return { personId: person.id, wasInserted: true };
 }
 
 // =============================================================================

@@ -151,23 +151,23 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
       const personId = personData.id;
       const characterName = member.character;
       
-      // Ensure person exists
-      await ensurePersonExists(db, schema, {
+      // Ensure person exists (resolves aliases if person was merged)
+      const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
         id: personId,
         name: personData.name,
         known_for_department: personData.known_for_department,
         profile_path: personData.profile_path,
       }, 'Acting');
 
-      // Insert movie-cast relationship
+      // Insert movie-cast relationship (using canonical ID)
       await db.insert(schema.movieCast).values({
         movieId,
-        personId,
+        personId: canonicalPersonId,
         order: member.order,
       });
 
       // Insert character translations
-      await insertCharacterTranslations(db, schema, movieId, personId, characterName);
+      await insertCharacterTranslations(db, schema, movieId, canonicalPersonId, characterName);
     }
   }
 
@@ -186,23 +186,23 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
       const jobTitle = member.job;
       const department = member.department;
       
-      // Ensure person exists
-      await ensurePersonExists(db, schema, {
+      // Ensure person exists (resolves aliases if person was merged)
+      const { personId: canonicalPersonId } = await ensurePersonExists(db, schema, {
         id: personId,
         name: personData.name,
         known_for_department: personData.known_for_department || department,
         profile_path: personData.profile_path,
       }, department);
 
-      // Insert movie-crew relationship
+      // Insert movie-crew relationship (using canonical ID)
       await db.insert(schema.movieCrew).values({
         movieId,
-        personId,
+        personId: canonicalPersonId,
         department,
       });
 
       // Insert job translations
-      await insertJobTranslations(db, schema, movieId, personId, department, jobTitle);
+      await insertJobTranslations(db, schema, movieId, canonicalPersonId, department, jobTitle);
     }
   }
 

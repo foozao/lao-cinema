@@ -109,6 +109,17 @@ export const peopleAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
+
+  // Merge two people (combine duplicates)
+  merge: (sourceId: number, targetId: number) => fetchAPI<{
+    success: boolean;
+    message: string;
+    targetId: number;
+  }>('/people/merge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sourceId, targetId }),
+  }),
 };
 
 // Cast/Crew API methods
