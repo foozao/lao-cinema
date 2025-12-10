@@ -6,11 +6,10 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Edit, ArrowUpDown, Plus, Merge } from 'lucide-react';
+import { Search, Edit, ArrowUpDown, Plus } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
-import { MergePeopleDialog } from '@/components/admin/merge-people-dialog';
 
 type DepartmentFilter = 'all' | 'Acting' | 'Directing' | 'Writing' | 'Production' | 'other';
 type SortOrder = 'asc' | 'desc';
@@ -24,8 +23,6 @@ export default function PeopleAdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
-  const [personToMerge, setPersonToMerge] = useState<any | null>(null);
 
   useEffect(() => {
     const loadPeople = async () => {
@@ -49,31 +46,6 @@ export default function PeopleAdminPage() {
     loadPeople();
   }, []);
 
-  const handleMergeClick = (person: any, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setPersonToMerge(person);
-    setMergeDialogOpen(true);
-  };
-
-  const handleMergeComplete = async () => {
-    // Reload people list after merge
-    setLoading(true);
-    try {
-      const response = await peopleAPI.getAll();
-      const sortedPeople = [...response.people].sort((a, b) => {
-        const nameA = (a.name?.en || '').toLowerCase();
-        const nameB = (b.name?.en || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-      setPeople(sortedPeople);
-      setFilteredPeople(sortedPeople);
-    } catch (error) {
-      console.error('Failed to reload people:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Filter and sort people based on search, department, and sort order
   useEffect(() => {
@@ -271,32 +243,11 @@ export default function PeopleAdminPage() {
                     )}
                   </Link>
 
-                  {/* Actions */}
-                  <div className="flex-shrink-0 flex items-center px-3 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => handleMergeClick(person, e)}
-                      title="Merge with another person"
-                    >
-                      <Merge className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      )}
-
-      {/* Merge Dialog */}
-      {personToMerge && (
-        <MergePeopleDialog
-          open={mergeDialogOpen}
-          onOpenChange={setMergeDialogOpen}
-          sourcePerson={personToMerge}
-          onMergeComplete={handleMergeComplete}
-        />
       )}
     </div>
   );

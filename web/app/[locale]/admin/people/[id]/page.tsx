@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, CheckCircle } from 'lucide-react';
+import { Save, CheckCircle, Merge } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
+import { MergePeopleDialog } from '@/components/admin/merge-people-dialog';
 
 export default function EditPersonPage() {
   const params = useParams();
@@ -26,6 +27,7 @@ export default function EditPersonPage() {
   const [error, setError] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
 
   // Form state
   const [nameEn, setNameEn] = useState('');
@@ -177,6 +179,11 @@ export default function EditPersonPage() {
     router.push('/admin/people');
   };
 
+  const handleMergeComplete = () => {
+    // Reload or redirect after merge completes
+    router.push('/admin/people');
+  };
+
   return (
     <div>
       {/* Sticky Header */}
@@ -186,6 +193,16 @@ export default function EditPersonPage() {
             Editing: <span className="text-gray-700">{nameEn || 'Person'}</span>
           </h2>
           <div className="flex gap-2 flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowMergeDialog(true)}
+              className="cursor-pointer gap-2"
+              title="Merge this person with another"
+            >
+              <Merge className="w-4 h-4" />
+              <span className="hidden sm:inline">Merge</span>
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -382,6 +399,14 @@ export default function EditPersonPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Merge Dialog */}
+      <MergePeopleDialog
+        open={showMergeDialog}
+        onOpenChange={setShowMergeDialog}
+        sourcePerson={person}
+        onMergeComplete={handleMergeComplete}
+      />
     </div>
   );
 }

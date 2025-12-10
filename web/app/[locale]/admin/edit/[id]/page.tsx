@@ -1583,18 +1583,7 @@ export default function EditMoviePage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex gap-2 flex-shrink-0">
-                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <ExternalLink className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">View Person</span>
-                                    <span className="md:hidden">Person</span>
-                                  </Button>
-                                </Link>
+                              <div className="flex flex-col md:flex-row gap-2 flex-shrink-0">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -1613,6 +1602,17 @@ export default function EditMoviePage() {
                                     </>
                                   )}
                                 </Button>
+                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    <ExternalLink className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">View Person</span>
+                                    <span className="md:hidden">Person</span>
+                                  </Button>
+                                </Link>
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -1714,18 +1714,7 @@ export default function EditMoviePage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex gap-2 flex-shrink-0">
-                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <ExternalLink className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">View Person</span>
-                                    <span className="md:hidden">Person</span>
-                                  </Button>
-                                </Link>
+                              <div className="flex flex-col md:flex-row gap-2 flex-shrink-0">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -1744,6 +1733,17 @@ export default function EditMoviePage() {
                                     </>
                                   )}
                                 </Button>
+                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    <ExternalLink className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">View Person</span>
+                                    <span className="md:hidden">Person</span>
+                                  </Button>
+                                </Link>
                                 <Button
                                   type="button"
                                   variant="ghost"

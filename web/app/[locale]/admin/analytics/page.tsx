@@ -107,23 +107,23 @@ export default function AnalyticsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('title')}</h2>
           <p className="text-gray-600">{t('description')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Button variant="outline" onClick={loadData}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            {t('refresh')}
+            <RefreshCw className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">{t('refresh')}</span>
           </Button>
           <Button variant="outline" onClick={handleExport} disabled={!hasData}>
-            <Download className="w-4 h-4 mr-2" />
-            {t('export')}
+            <Download className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">{t('export')}</span>
           </Button>
           <Button variant="outline" onClick={handleClear} disabled={!hasData} className="text-red-600 hover:text-red-700">
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t('clear')}
+            <Trash2 className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">{t('clear')}</span>
           </Button>
         </div>
       </div>
@@ -323,7 +323,8 @@ export default function AnalyticsPage() {
                 <CardDescription>{t('detailedStats')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b text-left">
@@ -359,6 +360,40 @@ export default function AnalyticsPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {summary.movieStats.map((movie) => (
+                    <div key={movie.movieId} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-base flex-1">{movie.movieTitle}</h3>
+                        <Link href={`/admin/analytics/${movie.movieId}`}>
+                          <Button variant="ghost" size="sm">
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-gray-600">{t('users')}</div>
+                          <div className="font-medium">{movie.uniqueViewers}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600">{t('watchTime')}</div>
+                          <div className="font-medium">{formatDuration(movie.totalWatchTime)}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600">{t('avgSession')}</div>
+                          <div className="font-medium">{formatDuration(movie.averageWatchTime)}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600">{t('completions')}</div>
+                          <div className="font-medium">{movie.completions}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

@@ -37,6 +37,7 @@ export default function HomepageAdminPage() {
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -146,6 +147,42 @@ export default function HomepageAdminPage() {
     setDraggedIndex(null);
   };
 
+  // Touch event handlers for mobile drag and drop
+  const handleTouchStart = (index: number, e: React.TouchEvent) => {
+    setDraggedIndex(index);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (draggedIndex === null || touchStartY === null) return;
+    
+    e.preventDefault();
+    const touchY = e.touches[0].clientY;
+    
+    // Find which element the touch is over
+    const elements = document.elementsFromPoint(e.touches[0].clientX, touchY);
+    const featuredItem = elements.find(el => el.hasAttribute('data-featured-index'));
+    
+    if (featuredItem) {
+      const overIndex = parseInt(featuredItem.getAttribute('data-featured-index') || '0');
+      
+      if (overIndex !== draggedIndex) {
+        const newFeatured = [...featured];
+        const draggedItem = newFeatured[draggedIndex];
+        newFeatured.splice(draggedIndex, 1);
+        newFeatured.splice(overIndex, 0, draggedItem);
+        
+        setFeatured(newFeatured);
+        setDraggedIndex(overIndex);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDraggedIndex(null);
+    setTouchStartY(null);
+  };
+
   const availableMovies = allMovies.filter(
     movie => !featured.some(f => f.movieId === movie.id)
   );
@@ -187,9 +224,13 @@ export default function HomepageAdminPage() {
                   <div
                     key={item.id}
                     draggable
+                    data-featured-index={index}
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(index, e)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                     className={`flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
                       draggedIndex === index ? 'opacity-50' : ''
                     }`}
