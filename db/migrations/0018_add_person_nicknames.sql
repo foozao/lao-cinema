@@ -1,0 +1,1 @@
+ALTER TABLE "people_translations" ADD COLUMN "nicknames" text[];

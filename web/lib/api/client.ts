@@ -84,7 +84,7 @@ export const peopleAPI = {
   },
   
   // Search people (convenience method)
-  search: (query: string, limit = 10) => 
+  search: (query: string, limit = 20) => 
     fetchAPI<{ people: any[] }>(`/people?search=${encodeURIComponent(query)}&limit=${limit}`),
   
   // Get person by ID

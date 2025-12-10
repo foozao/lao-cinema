@@ -9,9 +9,10 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Search, User, Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
-import type { Movie } from '@/lib/types';
+import type { Movie, Person } from '@/lib/types';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
 import { getMovieUrl } from '@/lib/movie-url';
+import { peopleAPI } from '@/lib/api/client';
 
 function MoviesPageContent() {
   const t = useTranslations();
@@ -27,6 +28,8 @@ function MoviesPageContent() {
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short' | 'people'>('all');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc'>('date-desc');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [searchedPeople, setSearchedPeople] = useState<Person[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
 
   // Initialize state from URL params
   useEffect(() => {
@@ -70,6 +73,31 @@ function MoviesPageContent() {
   useEffect(() => {
     loadMovies();
   }, [loadMovies]);
+
+  // Search people via API
+  useEffect(() => {
+    const searchPeople = async () => {
+      if (!searchQuery || filterType === 'feature' || filterType === 'short') {
+        setSearchedPeople([]);
+        return;
+      }
+
+      setPeopleLoading(true);
+      try {
+        const response = await peopleAPI.search(searchQuery);
+        setSearchedPeople(response.people || []);
+      } catch (error) {
+        console.error('Failed to search people:', error);
+        setSearchedPeople([]);
+      } finally {
+        setPeopleLoading(false);
+      }
+    };
+
+    // Debounce the search
+    const timeoutId = setTimeout(searchPeople, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, filterType]);
 
   const handleRetry = () => {
     setIsRetrying(true);
@@ -138,67 +166,50 @@ function MoviesPageContent() {
     return null;
   };
 
-  // Get people who match the search query
+  // Get people with their movie credits
   interface PersonMatch {
-    person: {
-      id: number;
-      name: { en: string; lo?: string };
-      profile_path?: string;
-    };
+    person: Person;
     movies: { movie: Movie; role: string; type: 'cast' | 'crew' }[];
   }
 
   const getMatchingPeople = (): PersonMatch[] => {
-    if (!searchQuery) return [];
+    if (!searchedPeople.length) return [];
     
-    const q = searchQuery.toLowerCase();
-    const peopleMap = new Map<number, PersonMatch>();
-    
-    movies.forEach(movie => {
-      // Check cast
-      movie.cast?.forEach(member => {
-        const name = member.person?.name?.[locale as 'en' | 'lo']?.toLowerCase() || 
-                     member.person?.name?.en?.toLowerCase() || '';
-        if (name.includes(q) && member.person) {
-          const personId = member.person.id || 0;
-          if (!peopleMap.has(personId)) {
-            peopleMap.set(personId, {
-              person: member.person,
-              movies: []
+    // For each person from API search, find their movies in the loaded movies
+    return searchedPeople.map(person => {
+      const personMovies: { movie: Movie; role: string; type: 'cast' | 'crew' }[] = [];
+      
+      movies.forEach(movie => {
+        // Check if person is in cast
+        movie.cast?.forEach(member => {
+          if (member.person?.id === person.id) {
+            const characterName = member.character?.[locale as 'en' | 'lo'] || member.character?.en || '';
+            personMovies.push({
+              movie,
+              role: characterName,
+              type: 'cast'
             });
           }
-          const characterName = member.character?.[locale as 'en' | 'lo'] || member.character?.en || '';
-          peopleMap.get(personId)!.movies.push({
-            movie,
-            role: characterName,
-            type: 'cast'
-          });
-        }
+        });
+        
+        // Check if person is in crew
+        movie.crew?.forEach(member => {
+          if (member.person?.id === person.id) {
+            const jobName = member.job?.[locale as 'en' | 'lo'] || member.job?.en || member.department || '';
+            personMovies.push({
+              movie,
+              role: jobName,
+              type: 'crew'
+            });
+          }
+        });
       });
       
-      // Check crew
-      movie.crew?.forEach(member => {
-        const name = member.person?.name?.[locale as 'en' | 'lo']?.toLowerCase() || 
-                     member.person?.name?.en?.toLowerCase() || '';
-        if (name.includes(q) && member.person) {
-          const personId = member.person.id || 0;
-          if (!peopleMap.has(personId)) {
-            peopleMap.set(personId, {
-              person: member.person,
-              movies: []
-            });
-          }
-          const jobName = member.job?.[locale as 'en' | 'lo'] || member.job?.en || member.department || '';
-          peopleMap.get(personId)!.movies.push({
-            movie,
-            role: jobName,
-            type: 'crew'
-          });
-        }
-      });
+      return {
+        person,
+        movies: personMovies
+      };
     });
-    
-    return Array.from(peopleMap.values());
   };
 
   // Sort movies helper
@@ -404,7 +415,7 @@ function MoviesPageContent() {
                     {t('movies.peopleSection')} ({matchingPeople.length})
                   </h3>
                   <div className="space-y-3">
-                    {matchingPeople.slice(0, 5).map((personMatch) => {
+                    {matchingPeople.slice(0, 20).map((personMatch) => {
                       const personName = personMatch.person.name?.[locale as 'en' | 'lo'] || personMatch.person.name?.en || '';
                       const profilePath = personMatch.person.profile_path;
                       const imageUrl = profilePath 
@@ -437,6 +448,27 @@ function MoviesPageContent() {
                               >
                                 {personName}
                               </Link>
+                              {/* Display nicknames */}
+                              {personMatch.person.nicknames && (personMatch.person.nicknames.en || personMatch.person.nicknames.lo) && (
+                                <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
+                                  {personMatch.person.nicknames.en?.map((nickname: string, index: number) => (
+                                    <span
+                                      key={`en-${index}`}
+                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded"
+                                    >
+                                      {nickname}
+                                    </span>
+                                  ))}
+                                  {personMatch.person.nicknames.lo?.map((nickname: string, index: number) => (
+                                    <span
+                                      key={`lo-${index}`}
+                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded"
+                                    >
+                                      {nickname}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               <div className="space-y-1">
                                 {personMatch.movies.slice(0, 3).map((movieRole, idx) => {
                                   const movieTitle = movieRole.movie.title?.[locale as 'en' | 'lo'] || movieRole.movie.title?.en || '';
@@ -466,9 +498,9 @@ function MoviesPageContent() {
                       );
                     })}
                   </div>
-                  {matchingPeople.length > 5 && (
+                  {matchingPeople.length > 20 && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-                      {t('movies.andMore', { count: matchingPeople.length - 5 })}
+                      {t('movies.andMore', { count: matchingPeople.length - 20 })}
                     </p>
                   )}
                 </div>

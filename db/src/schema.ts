@@ -116,6 +116,7 @@ export const peopleTranslations = pgTable('people_translations', {
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
   biography: text('biography'),
+  nicknames: text('nicknames').array(), // Array of nicknames in this language
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

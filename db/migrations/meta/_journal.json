@@ -120,6 +120,20 @@
       "when": 1765352225098,
       "tag": "0016_dizzy_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1765393790278,
+      "tag": "0017_add_person_nicknames",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1765393809219,
+      "tag": "0018_add_person_nicknames",
+      "breakpoints": true
     }
   ]
 }

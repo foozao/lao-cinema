@@ -144,6 +144,10 @@ export interface Genre {
 export interface Person {
   id: number; // TMDB person ID
   name: LocalizedText;
+  nicknames?: {
+    en?: string[]; // English nicknames
+    lo?: string[]; // Lao nicknames
+  };
   biography?: LocalizedText;
   profile_path?: string;
   birthday?: string; // ISO date string

@@ -15,12 +15,23 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       let allPeople;
       
       if (search && search.trim()) {
-        // Search in translations
+        // Search in translations (name and nicknames)
+        const searchPattern = `%${search.trim()}%`;
+        fastify.log.info(`Searching for people with pattern: ${searchPattern}`);
+        
         const searchResults = await db.select({ personId: schema.peopleTranslations.personId })
           .from(schema.peopleTranslations)
-          .where(ilike(schema.peopleTranslations.name, `%${search.trim()}%`));
+          .where(
+            sql`${schema.peopleTranslations.name} ILIKE ${searchPattern} OR 
+                (${schema.peopleTranslations.nicknames} IS NOT NULL AND 
+                 EXISTS (
+                   SELECT 1 FROM unnest(${schema.peopleTranslations.nicknames}) AS nickname 
+                   WHERE nickname ILIKE ${searchPattern}
+                 ))`
+          );
         
         const personIds = [...new Set(searchResults.map(r => r.personId))];
+        fastify.log.info(`Found ${personIds.length} people matching search`);
         
         if (personIds.length === 0) {
           return { people: [] };
@@ -64,11 +75,15 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         
         const name: any = {};
         const biography: any = {};
+        const nicknames: any = {};
         
         for (const trans of personTranslations) {
           name[trans.language] = trans.name;
           if (trans.biography) {
             biography[trans.language] = trans.biography;
+          }
+          if (trans.nicknames && trans.nicknames.length > 0) {
+            nicknames[trans.language] = trans.nicknames;
           }
         }
         
@@ -88,6 +103,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         return {
           id: person.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
+          nicknames: Object.keys(nicknames).length > 0 ? nicknames : undefined,
           biography: Object.keys(biography).length > 0 ? biography : undefined,
           profile_path: person.profilePath,
           birthday: person.birthday,
@@ -113,6 +129,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: {
       name: { en: string; lo?: string };
+      nicknames?: { en?: string[]; lo?: string[] };
       biography?: { en?: string; lo?: string };
       known_for_department?: string;
       birthday?: string;
@@ -121,7 +138,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
     };
   }>('/people', async (request, reply) => {
     try {
-      const { name, biography, known_for_department, birthday, place_of_birth, profile_path } = request.body;
+      const { name, nicknames, biography, known_for_department, birthday, place_of_birth, profile_path } = request.body;
 
       if (!name?.en) {
         return reply.status(400).send({ error: 'English name is required' });
@@ -149,6 +166,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         personId: newPerson.id,
         language: 'en',
         name: name.en,
+        nicknames: nicknames?.en || null,
         biography: biography?.en || null,
       });
 
@@ -157,6 +175,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           personId: newPerson.id,
           language: 'lo',
           name: name.lo,
+          nicknames: nicknames?.lo || null,
           biography: biography?.lo || null,
         });
       }
@@ -164,6 +183,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       return {
         id: newPerson.id,
         name,
+        nicknames: nicknames || undefined,
         biography: biography || undefined,
         known_for_department: known_for_department || undefined,
         birthday: birthday || undefined,
@@ -204,11 +224,15 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       // Build localized text objects
       const name: any = {};
       const biography: any = {};
+      const nicknames: any = {};
       
       for (const trans of translations) {
         name[trans.language] = trans.name;
         if (trans.biography) {
           biography[trans.language] = trans.biography;
+        }
+        if (trans.nicknames && trans.nicknames.length > 0) {
+          nicknames[trans.language] = trans.nicknames;
         }
       }
 
@@ -219,6 +243,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       return {
         id: person.id,
         name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
+        nicknames: Object.keys(nicknames).length > 0 ? nicknames : undefined,
         biography: Object.keys(biography).length > 0 ? biography : undefined,
         profile_path: person.profilePath,
         birthday: person.birthday,
@@ -410,6 +435,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
     Params: { id: string };
     Body: {
       name?: { en?: string; lo?: string };
+      nicknames?: { en?: string[]; lo?: string[] };
       biography?: { en?: string; lo?: string };
       birthday?: string;
       deathday?: string;
@@ -443,7 +469,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       }
 
       // Update translations
-      if (updates.name || updates.biography) {
+      if (updates.name || updates.nicknames || updates.biography) {
         // Get existing translations
         const existingTranslations = await db.select()
           .from(schema.peopleTranslations)
@@ -454,15 +480,17 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         for (const lang of languages) {
           const existingTrans = existingTranslations.find(t => t.language === lang);
           const nameValue = updates.name?.[lang];
+          const nicknamesValue = updates.nicknames?.[lang];
           const bioValue = updates.biography?.[lang];
 
           // Skip if no updates for this language
-          if (nameValue === undefined && bioValue === undefined) continue;
+          if (nameValue === undefined && nicknamesValue === undefined && bioValue === undefined) continue;
 
           if (existingTrans) {
             // Update existing translation
             const transUpdates: any = {};
             if (nameValue !== undefined) transUpdates.name = nameValue;
+            if (nicknamesValue !== undefined) transUpdates.nicknames = nicknamesValue && nicknamesValue.length > 0 ? nicknamesValue : null;
             if (bioValue !== undefined) transUpdates.biography = bioValue || null;
 
             if (Object.keys(transUpdates).length > 0) {
@@ -480,6 +508,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
               personId,
               language: lang,
               name: nameValue,
+              nicknames: nicknamesValue && nicknamesValue.length > 0 ? nicknamesValue : null,
               biography: bioValue || null,
             });
           }
@@ -502,11 +531,15 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
 
       const name: any = {};
       const biography: any = {};
+      const nicknames: any = {};
 
       for (const trans of translations) {
         name[trans.language] = trans.name;
         if (trans.biography) {
           biography[trans.language] = trans.biography;
+        }
+        if (trans.nicknames && trans.nicknames.length > 0) {
+          nicknames[trans.language] = trans.nicknames;
         }
       }
 
@@ -514,6 +547,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       return {
         id: person.id,
         name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
+        nicknames: Object.keys(nicknames).length > 0 ? nicknames : undefined,
         biography: Object.keys(biography).length > 0 ? biography : undefined,
         profile_path: person.profilePath,
         birthday: person.birthday,

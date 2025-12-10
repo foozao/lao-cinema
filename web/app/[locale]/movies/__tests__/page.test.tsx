@@ -111,9 +111,27 @@ describe('MoviesPage', () => {
     (useLocale as jest.Mock).mockReturnValue('en');
     mockSearchParams.get.mockReturnValue(null);
     
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({ movies: mockMovies }),
+    // Mock fetch to handle both movies and people API calls
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/people?search=')) {
+        // Mock people search API
+        const searchQuery = new URL(url, 'http://localhost').searchParams.get('search') || '';
+        const matchingPeople = mockMovies
+          .flatMap(m => [...(m.cast || []), ...(m.crew || [])])
+          .map(member => member.person)
+          .filter(person => person?.name?.en?.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ people: matchingPeople }),
+        });
+      }
+      
+      // Default: mock movies API
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ movies: mockMovies }),
+      });
     });
   });
 

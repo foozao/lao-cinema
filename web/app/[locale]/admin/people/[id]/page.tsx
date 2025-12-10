@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, CheckCircle, Merge, Trash2 } from 'lucide-react';
+import { Save, CheckCircle, Merge, Trash2, Plus, X } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
 import { getLocalizedText } from '@/lib/i18n';
@@ -35,6 +35,8 @@ export default function EditPersonPage() {
   // Form state
   const [nameEn, setNameEn] = useState('');
   const [nameLo, setNameLo] = useState('');
+  const [nicknamesEn, setNicknamesEn] = useState<string[]>([]);
+  const [nicknamesLo, setNicknamesLo] = useState<string[]>([]);
   const [biographyEn, setBiographyEn] = useState('');
   const [biographyLo, setBiographyLo] = useState('');
   const [birthday, setBirthday] = useState('');
@@ -47,6 +49,8 @@ export default function EditPersonPage() {
   const [originalValues, setOriginalValues] = useState({
     nameEn: '',
     nameLo: '',
+    nicknamesEn: [] as string[],
+    nicknamesLo: [] as string[],
     biographyEn: '',
     biographyLo: '',
     birthday: '',
@@ -66,6 +70,8 @@ export default function EditPersonPage() {
         const initialValues = {
           nameEn: personData.name?.en || '',
           nameLo: personData.name?.lo || '',
+          nicknamesEn: personData.nicknames?.en || [],
+          nicknamesLo: personData.nicknames?.lo || [],
           biographyEn: personData.biography?.en || '',
           biographyLo: personData.biography?.lo || '',
           birthday: personData.birthday || '',
@@ -77,6 +83,8 @@ export default function EditPersonPage() {
         
         setNameEn(initialValues.nameEn);
         setNameLo(initialValues.nameLo);
+        setNicknamesEn(initialValues.nicknamesEn);
+        setNicknamesLo(initialValues.nicknamesLo);
         setBiographyEn(initialValues.biographyEn);
         setBiographyLo(initialValues.biographyLo);
         setBirthday(initialValues.birthday);
@@ -104,6 +112,8 @@ export default function EditPersonPage() {
     const currentValues = {
       nameEn,
       nameLo,
+      nicknamesEn,
+      nicknamesLo,
       biographyEn,
       biographyLo,
       birthday,
@@ -118,7 +128,7 @@ export default function EditPersonPage() {
     );
 
     setHasChanges(changed);
-  }, [nameEn, nameLo, biographyEn, biographyLo, birthday, deathday, placeOfBirth, knownForDepartment, homepage, originalValues]);
+  }, [nameEn, nameLo, nicknamesEn, nicknamesLo, biographyEn, biographyLo, birthday, deathday, placeOfBirth, knownForDepartment, homepage, originalValues]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -127,6 +137,10 @@ export default function EditPersonPage() {
         name: {
           en: nameEn,
           lo: nameLo || undefined,
+        },
+        nicknames: {
+          en: nicknamesEn.length > 0 ? nicknamesEn : undefined,
+          lo: nicknamesLo.length > 0 ? nicknamesLo : undefined,
         },
         biography: {
           en: biographyEn || undefined,
@@ -288,6 +302,86 @@ export default function EditPersonPage() {
                 onChange={(e) => setNameLo(e.target.value)}
                 placeholder="ປ້ອນຊື່ພາສາລາວ"
               />
+            </div>
+
+            {/* English Nicknames */}
+            <div>
+              <Label>English Nicknames</Label>
+              <div className="space-y-2">
+                {nicknamesEn.map((nickname, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={nickname}
+                      onChange={(e) => {
+                        const updated = [...nicknamesEn];
+                        updated[index] = e.target.value;
+                        setNicknamesEn(updated);
+                      }}
+                      placeholder="Enter nickname"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setNicknamesEn(nicknamesEn.filter((_, i) => i !== index));
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNicknamesEn([...nicknamesEn, ''])}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add English Nickname
+                </Button>
+              </div>
+            </div>
+
+            {/* Lao Nicknames */}
+            <div>
+              <Label>Lao Nicknames (ຊື່ຫຼິ້ນ)</Label>
+              <div className="space-y-2">
+                {nicknamesLo.map((nickname, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={nickname}
+                      onChange={(e) => {
+                        const updated = [...nicknamesLo];
+                        updated[index] = e.target.value;
+                        setNicknamesLo(updated);
+                      }}
+                      placeholder="ປ້ອນຊື່ຫຼິ້ນ"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setNicknamesLo(nicknamesLo.filter((_, i) => i !== index));
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNicknamesLo([...nicknamesLo, ''])}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Lao Nickname
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
