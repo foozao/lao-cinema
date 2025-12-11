@@ -133,10 +133,10 @@ export function AdminBreadcrumbs() {
             href: '/admin/homepage',
             isLast: true,
           });
-        } else if (parts[1] === 'production-companies') {
+        } else if (parts[1] === 'production') {
           breadcrumbs.push({
             label: 'Production Companies',
-            href: '/admin/production-companies',
+            href: '/admin/production',
             isLast: true,
           });
         }

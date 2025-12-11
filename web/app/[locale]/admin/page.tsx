@@ -238,7 +238,7 @@ export default function AdminPage() {
         </Link>
 
         {/* Production Companies Card */}
-        <Link href="/admin/production-companies">
+        <Link href="/admin/production">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
             <CardHeader>
               <div className="flex items-center justify-between">
