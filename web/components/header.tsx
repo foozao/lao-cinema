@@ -35,8 +35,8 @@ export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
             </h1>
           </Link>
           <div className="flex items-center gap-4">
-            <UserMenu />
-            <LanguageSwitcher />
+            <UserMenu variant={variant} />
+            <LanguageSwitcher variant={variant} />
           </div>
         </div>
       </div>

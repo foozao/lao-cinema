@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { User, LogOut, Settings, Film } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
-export function UserMenu() {
+interface UserMenuProps {
+  variant?: 'light' | 'dark';
+}
+
+export function UserMenu({ variant = 'light' }: UserMenuProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -64,7 +68,7 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 transition-colors"
+        className={`flex items-center gap-2 rounded-full p-1 transition-colors ${variant === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
       >
         {user.profileImageUrl ? (
           <img
