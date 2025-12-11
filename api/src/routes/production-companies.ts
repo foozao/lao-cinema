@@ -50,6 +50,33 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
             .where(sql`${schema.productionCompanyTranslations.companyId} IN (${sql.join(companyIds.map(id => sql`${id}`), sql`, `)})`)
         : [];
       
+      // Get movies for each company
+      const movieAssociations = companyIds.length > 0
+        ? await db.select({
+            companyId: schema.movieProductionCompanies.companyId,
+            movieId: schema.movieProductionCompanies.movieId,
+          })
+            .from(schema.movieProductionCompanies)
+            .where(sql`${schema.movieProductionCompanies.companyId} IN (${sql.join(companyIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      // Get movie details
+      const movieIds = [...new Set(movieAssociations.map(a => a.movieId))];
+      const movies = movieIds.length > 0
+        ? await db.select({
+            id: schema.movies.id,
+            originalTitle: schema.movies.originalTitle,
+          })
+            .from(schema.movies)
+            .where(sql`${schema.movies.id} IN (${sql.join(movieIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      const movieTranslations = movieIds.length > 0
+        ? await db.select()
+            .from(schema.movieTranslations)
+            .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(movieIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
       // Build response
       const companiesWithTranslations = allCompanies.map(company => {
         const companyTranslations = translations.filter(t => t.companyId === company.id);
@@ -59,11 +86,32 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
           name[trans.language] = trans.name;
         }
         
+        // Get movies for this company
+        const companyMovieIds = movieAssociations
+          .filter(a => a.companyId === company.id)
+          .map(a => a.movieId);
+        
+        const companyMovies = movies
+          .filter(m => companyMovieIds.includes(m.id))
+          .map(movie => {
+            const movieTrans = movieTranslations.filter(t => t.movieId === movie.id);
+            const movieName: Record<string, string> = {};
+            for (const trans of movieTrans) {
+              movieName[trans.language] = trans.title;
+            }
+            
+            return {
+              id: movie.id,
+              title: Object.keys(movieName).length > 0 ? movieName : { en: movie.originalTitle },
+            };
+          });
+        
         return {
           id: company.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
           logo_path: company.logoPath,
           origin_country: company.originCountry,
+          movies: companyMovies,
         };
       });
       

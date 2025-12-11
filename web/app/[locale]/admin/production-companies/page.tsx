@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Search, Edit, Plus, Trash2, Building2, X } from 'lucide-react';
+import { Search, Edit, Plus, Trash2, Building2, X, ArrowUpDown } from 'lucide-react';
 import { productionCompaniesAPI } from '@/lib/api/client';
 
 interface ProductionCompany {
@@ -16,7 +16,13 @@ interface ProductionCompany {
   name: { en?: string; lo?: string } | string;
   logo_path?: string;
   origin_country?: string;
+  movies?: Array<{
+    id: string;
+    title: { en?: string; lo?: string };
+  }>;
 }
+
+type SortOption = 'movies-desc' | 'movies-asc' | 'name-asc' | 'name-desc';
 
 export default function ProductionCompaniesAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
@@ -24,6 +30,7 @@ export default function ProductionCompaniesAdminPage() {
   const [filteredCompanies, setFilteredCompanies] = useState<ProductionCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('movies-desc');
   
   // Edit modal state
   const [editingCompany, setEditingCompany] = useState<ProductionCompany | null>(null);
@@ -51,21 +58,51 @@ export default function ProductionCompaniesAdminPage() {
     }
   };
 
-  // Filter companies based on search
+  // Filter and sort companies
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredCompanies(companies);
-      return;
+    let result = companies;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((company) => {
+        const nameEn = typeof company.name === 'string' ? company.name : company.name?.en || '';
+        const nameLo = typeof company.name === 'string' ? '' : company.name?.lo || '';
+        return nameEn.toLowerCase().includes(query) || nameLo.toLowerCase().includes(query);
+      });
     }
     
-    const query = searchQuery.toLowerCase();
-    const filtered = companies.filter((company) => {
-      const nameEn = typeof company.name === 'string' ? company.name : company.name?.en || '';
-      const nameLo = typeof company.name === 'string' ? '' : company.name?.lo || '';
-      return nameEn.toLowerCase().includes(query) || nameLo.toLowerCase().includes(query);
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      const aMovieCount = a.movies?.length || 0;
+      const bMovieCount = b.movies?.length || 0;
+      const aName = typeof a.name === 'string' ? a.name : a.name?.en || '';
+      const bName = typeof b.name === 'string' ? b.name : b.name?.en || '';
+      
+      switch (sortBy) {
+        case 'movies-desc':
+          // Sort by movie count descending, then alphabetically
+          if (bMovieCount !== aMovieCount) {
+            return bMovieCount - aMovieCount;
+          }
+          return aName.localeCompare(bName);
+        case 'movies-asc':
+          // Sort by movie count ascending, then alphabetically
+          if (aMovieCount !== bMovieCount) {
+            return aMovieCount - bMovieCount;
+          }
+          return aName.localeCompare(bName);
+        case 'name-asc':
+          return aName.localeCompare(bName);
+        case 'name-desc':
+          return bName.localeCompare(aName);
+        default:
+          return 0;
+      }
     });
-    setFilteredCompanies(filtered);
-  }, [searchQuery, companies]);
+    
+    setFilteredCompanies(result);
+  }, [searchQuery, companies, sortBy]);
 
   const getCompanyName = (company: ProductionCompany) => {
     if (typeof company.name === 'string') return company.name;
@@ -152,23 +189,46 @@ export default function ProductionCompaniesAdminPage() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Search companies..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      {/* Search and Sort */}
+      <div className="mb-6 flex gap-4 items-start">
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Search companies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {searchQuery && (
+            <p className="text-sm text-gray-600 mt-2">
+              Showing {filteredCompanies.length} of {companies.length} companies
+            </p>
+          )}
         </div>
-        {searchQuery && (
-          <p className="text-sm text-gray-600 mt-2">
-            Showing {filteredCompanies.length} of {companies.length} companies
-          </p>
-        )}
+        
+        <div className="w-64">
+          <div className="relative">
+            <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="w-full h-10 pl-9 pr-4 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
+            >
+              <option value="movies-desc">Most Movies First</option>
+              <option value="movies-asc">Fewest Movies First</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Companies List */}
@@ -180,53 +240,78 @@ export default function ProductionCompaniesAdminPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {filteredCompanies.map((company) => (
-            <Card key={company.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    {company.logo_path ? (
-                      <img
-                        src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
-                        alt={getCompanyName(company)}
-                        className="w-12 h-12 object-contain"
-                      />
-                    ) : (
-                      <Building2 className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">
-                      {getCompanyName(company)}
-                    </h3>
-                    {typeof company.name !== 'string' && company.name?.lo && (
-                      <p className="text-sm text-gray-500 truncate">{company.name.lo}</p>
-                    )}
-                    {company.origin_country && (
-                      <p className="text-xs text-gray-400 mt-1">{company.origin_country}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(company)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDelete(company)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            <div 
+              key={company.id} 
+              className="bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  {company.logo_path ? (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
+                      alt={getCompanyName(company)}
+                      className="w-12 h-12 object-contain"
+                    />
+                  ) : (
+                    <Building2 className="w-8 h-8 text-gray-400" />
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {getCompanyName(company)}
+                        {company.origin_country && (
+                          <span className="text-gray-400 font-normal ml-2">({company.origin_country})</span>
+                        )}
+                      </h3>
+                      {typeof company.name !== 'string' && company.name?.lo && (
+                        <p className="text-sm text-gray-500 truncate">{company.name.lo}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(company)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDelete(company)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Movies List */}
+                  {company.movies && company.movies.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-medium text-gray-500">
+                          Movies ({company.movies.length})
+                        </span>
+                        {company.movies.map((movie) => (
+                          <Link
+                            key={movie.id}
+                            href={`/admin/edit/${movie.id}`}
+                            className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 hover:bg-blue-100 text-sm text-gray-700 hover:text-blue-700 transition-colors"
+                          >
+                            {typeof movie.title === 'string' ? movie.title : movie.title[locale] || movie.title.en}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
