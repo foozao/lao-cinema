@@ -64,6 +64,9 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Cast & crew pages (`/movies/[id]/cast-crew`)
 - [x] Anonymous user support (full functionality without account)
 - [x] Data migration on login (anonymous → authenticated)
+- [x] Frontend auth UI (login/register forms, user menu)
+- [x] User profile pages (dashboard, settings, rentals, continue watching)
+- [x] Search and filtering (client-side: title/cast/crew search, type filter, sorting)
 
 ### Authentication & Security
 - [x] User accounts with email/password registration
@@ -84,10 +87,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 🚧 In Progress
 
-- [ ] Frontend auth UI (login/register forms)
-- [ ] User profile pages
-- [ ] Search and filtering (frontend)
 - [ ] Bulk import operations
+- [ ] Password reset flow (requires email service)
 
 ## 🎯 Roadmap
 
@@ -106,21 +107,24 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [ ] Batch Lao translation workflow
 - [ ] Video processing queue management
 
-### Phase 3: User Features (Mostly Complete)
+### Phase 3: User Features ✅ Complete (Core)
 - [x] Resume playback points (continue watching with cross-device sync)
 - [x] Watch analytics tracking
 - [x] Rental system (database-backed with dual-mode)
 - [x] User authentication backend (accounts, sessions, OAuth-ready)
 - [x] Anonymous user support with migration
-- [ ] Frontend auth UI (login/register forms)
-- [ ] User profile pages
+- [x] Frontend auth UI (login/register forms, user menu)
+- [x] User profile pages (dashboard, settings, rentals, continue watching)
+- [ ] Password reset flow (requires email service)
 - [ ] Watchlist functionality
 - [ ] User ratings/reviews
 
 ### Phase 4: Advanced Features (Partial)
 - [x] Person detail pages (`/people/[id]`)
 - [x] Cast & crew pages
-- [ ] Search and filtering (frontend)
+- [x] Search and filtering (client-side, scales to ~500 movies)
+- [ ] Backend search API (for 1000+ movie catalogs)
+- [ ] Genre/year/rating filters
 - [ ] Recommendations engine
 - [ ] Awards and nominations
 - [ ] Social features
@@ -359,12 +363,12 @@ See [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) for full history.
 
 ## 🎯 Current Priority
 
-1. **Frontend auth UI** - Login/register forms and profile pages
-2. **Search & filtering** - Frontend movie search and filter UI
-3. **OAuth integration** - Google/Apple sign-in implementation
-4. **Mobile app** - React Native/Expo companion app
-5. **Transcoding automation** - Automated video processing pipeline
-6. **Recommendations** - Basic recommendation engine
+1. **Password reset flow** - Email-based password recovery
+2. **OAuth integration** - Google/Apple sign-in implementation
+3. **Watchlist functionality** - User watchlist feature
+4. **Backend search API** - Server-side search with pagination (for scaling)
+5. **Genre/year filters** - Additional filter options
+6. **Mobile app** - React Native/Expo companion app
 
 ## 📚 External Resources
 

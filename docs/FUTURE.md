@@ -23,6 +23,162 @@ Possible Future Changes:
   - Badges for things seen
     - Feature film, short film, film that won award X, film with .. 
 
+## Backend Search API & Advanced Filtering
+
+### Current State
+**Implemented** (as of December 2025):
+- ✅ Client-side search (title, cast, crew names)
+- ✅ Film type filter (all/feature/short)
+- ✅ Sort options (date, alphabetical)
+- ✅ URL persistence for search state
+- ✅ Bilingual search support (English/Lao)
+- ✅ Backend search for people and production companies
+
+**Limitation**: Current implementation fetches all movies and filters client-side. Works well for <500 movies but won't scale to 1000+ catalog.
+
+### Backend Search API Enhancement
+
+**Goal**: Server-side search with pagination for large catalogs (1000+ movies)
+
+**Complexity**: ⭐⭐⭐ Medium (4-6 hours)
+
+#### Implementation Plan
+
+**1. Database Schema (Optional - 30 min)**
+
+Add indexes for search performance:
+```sql
+-- Full-text search indexes
+CREATE INDEX idx_movie_translations_title_search 
+  ON movie_translations USING gin(to_tsvector('english', title));
+
+CREATE INDEX idx_movie_translations_overview_search 
+  ON movie_translations USING gin(to_tsvector('english', overview));
+
+-- Regular indexes for filters
+CREATE INDEX idx_movies_release_date ON movies(release_date);
+CREATE INDEX idx_movies_vote_average ON movies(vote_average);
+CREATE INDEX idx_movie_genres_genre_id ON movie_genres(genre_id);
+```
+
+**2. Backend API Endpoint (2 hours)**
+
+**File**: `api/src/routes/movie-crud.ts`
+
+```typescript
+// GET /api/movies/search
+fastify.get<{ 
+  Querystring: { 
+    q?: string;           // Search query
+    genre?: string;       // Genre ID(s), comma-separated
+    year?: string;        // Release year or range (2020 or 2020-2023)
+    minRating?: string;   // Minimum vote_average (0-10)
+    type?: 'all' | 'feature' | 'short';
+    sort?: 'date-desc' | 'date-asc' | 'rating-desc' | 'alpha-asc';
+    page?: string;        // Page number (default 1)
+    limit?: string;       // Results per page (default 20, max 100)
+  } 
+}>('/movies/search', async (request) => {
+  const { 
+    q, genre, year, minRating, type, 
+    sort = 'date-desc', 
+    page = '1', 
+    limit = '20' 
+  } = request.query;
+  
+  // Build query with filters
+  // Use PostgreSQL full-text search for text queries
+  // Join with movie_genres for genre filtering
+  // Apply pagination
+  
+  return {
+    movies: [...],
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / parseInt(limit)),
+    }
+  };
+});
+```
+
+**3. Frontend Integration (1.5 hours)**
+
+**File**: `web/app/[locale]/movies/page.tsx`
+
+- Add genre filter dropdown (fetch from `/api/genres`)
+- Add year range picker or dropdown
+- Add rating slider (0-10 stars)
+- Switch from client-side filtering to API calls
+- Add pagination controls (page numbers or infinite scroll)
+- Debounce search input (500ms delay)
+- Show loading skeleton during fetch
+
+**4. Performance Optimizations (1 hour)**
+
+- Cache search results in Redis (5-minute TTL)
+- Debounce search input to reduce API calls
+- Prefetch next page on scroll
+- Add loading states and skeleton UI
+- Optimize database queries with EXPLAIN ANALYZE
+
+#### Search Strategy Options
+
+**Option A: PostgreSQL Full-Text Search** (Recommended)
+- ✅ Built-in, no extra infrastructure
+- ✅ Good for <100k movies
+- ✅ Supports ranking and relevance
+- ⚠️ Limited language support (English, Lao requires custom config)
+
+**Option B: Elasticsearch**
+- ✅ Best search quality (fuzzy matching, typo tolerance)
+- ✅ Scales to millions of records
+- ✅ Advanced features (autocomplete, suggestions)
+- ❌ Extra infrastructure cost (~$50-100/month)
+- ❌ More complex setup and maintenance
+
+**Recommendation**: Start with PostgreSQL full-text search. Migrate to Elasticsearch only if catalog exceeds 50k movies or search quality becomes an issue.
+
+#### Additional Filter Options
+
+**Genre Filter**:
+- Multi-select dropdown
+- Shows movie count per genre
+- URL: `?genre=1,5,12`
+
+**Year Filter**:
+- Dropdown with decades (1990s, 2000s, 2010s, 2020s)
+- Or range picker (2015-2023)
+- URL: `?year=2020-2023`
+
+**Rating Filter**:
+- Star rating slider (0-10)
+- Show only movies above threshold
+- URL: `?minRating=7.5`
+
+**Language Filter** (future):
+- Filter by original language
+- Useful for multilingual catalogs
+- URL: `?language=lo`
+
+#### Mobile UX Considerations
+
+- Collapsible filter panel (drawer on mobile)
+- Sticky search bar
+- Touch-friendly filter controls
+- Clear all filters button
+- Show active filter count badge
+
+#### Priority
+
+**Medium** - Current client-side search works well for launch. Implement when:
+1. Catalog exceeds 300-500 movies
+2. Search performance becomes noticeably slow
+3. Users request genre/year filtering
+
+---
+
 ## Performance & UX Optimizations
 
 ### Server Components + Streaming SSR
