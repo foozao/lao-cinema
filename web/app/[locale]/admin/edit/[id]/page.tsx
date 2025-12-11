@@ -17,9 +17,10 @@ import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, StreamingPlatform, ExternalPlatform, Trailer } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
-import { movieAPI, castCrewAPI, peopleAPI } from '@/lib/api/client';
+import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
+import { ProductionCompanySearch } from '@/components/admin/production-company-search';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 
 export default function EditMoviePage() {
@@ -109,6 +110,10 @@ export default function EditMoviePage() {
   const [addingCast, setAddingCast] = useState(false);
   const [addingCrew, setAddingCrew] = useState(false);
   const [slugError, setSlugError] = useState<string | null>(null);
+  
+  // State for production companies
+  const [showAddProductionCompany, setShowAddProductionCompany] = useState(false);
+  const [addingProductionCompany, setAddingProductionCompany] = useState(false);
 
   // Load movie data on mount
   useEffect(() => {
@@ -384,6 +389,8 @@ export default function EditMoviePage() {
       if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
       // Images (editable via poster manager)
       if (currentMovie.images?.length !== syncedData.images?.length) changes.push('Images');
+      // Production Companies
+      if (currentMovie.production_companies?.length !== syncedData.production_companies?.length) changes.push('Production Companies');
       
       setSyncChanges(changes);
       
@@ -693,6 +700,59 @@ export default function EditMoviePage() {
     }
   };
 
+  // Handler for adding a production company
+  const handleAddProductionCompany = async (company: { id: number; name: { en?: string; lo?: string } }) => {
+    if (!currentMovie) return;
+    
+    try {
+      setAddingProductionCompany(true);
+      await movieProductionCompaniesAPI.add(movieId, { company_id: company.id });
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+      setShowAddProductionCompany(false);
+    } catch (error) {
+      console.error('Failed to add production company:', error);
+      alert('Failed to add production company');
+    } finally {
+      setAddingProductionCompany(false);
+    }
+  };
+
+  // Handler for creating a new production company
+  const handleCreateProductionCompany = async (name: string) => {
+    if (!currentMovie) return;
+    
+    try {
+      setAddingProductionCompany(true);
+      // Create the company first
+      const newCompany = await productionCompaniesAPI.create({ name: { en: name } });
+      // Then add it to the movie
+      await movieProductionCompaniesAPI.add(movieId, { company_id: newCompany.id });
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+      setShowAddProductionCompany(false);
+    } catch (error) {
+      console.error('Failed to create production company:', error);
+      alert('Failed to create production company');
+    } finally {
+      setAddingProductionCompany(false);
+    }
+  };
+
+  // Handler for removing a production company
+  const handleRemoveProductionCompany = async (companyId: number) => {
+    if (!currentMovie || !confirm('Remove this production company?')) return;
+    
+    try {
+      await movieProductionCompaniesAPI.remove(movieId, companyId);
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (error) {
+      console.error('Failed to remove production company:', error);
+      alert('Failed to remove production company');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -766,6 +826,7 @@ export default function EditMoviePage() {
         images: currentMovie?.images, // Include images array
         external_platforms: externalPlatforms,
         availability_status: availabilityStatus || 'auto', // Default to 'auto' if empty
+        production_companies: currentMovie?.production_companies, // Include production companies
       };
 
       console.log('Saving trailers to API:', updateData.trailers);
@@ -1847,6 +1908,81 @@ export default function EditMoviePage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Production Companies Section */}
+          <Card>
+            <CardHeader 
+              className="cursor-pointer select-none" 
+              onClick={() => setShowAddProductionCompany(!showAddProductionCompany)}
+            >
+              <CardTitle className="flex items-center gap-2">
+                {showAddProductionCompany ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                Production Companies ({currentMovie?.production_companies?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            {showAddProductionCompany && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Add Production Company</Label>
+                  <ProductionCompanySearch
+                    onSelect={handleAddProductionCompany}
+                    onCreateNew={handleCreateProductionCompany}
+                    placeholder="Search for a production company..."
+                    excludeIds={currentMovie?.production_companies?.map(c => c.id) || []}
+                  />
+                  {addingProductionCompany && (
+                    <p className="text-sm text-gray-500 mt-2">Adding...</p>
+                  )}
+                </div>
+
+                {/* Current Production Companies */}
+                {currentMovie?.production_companies && currentMovie.production_companies.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Current Production Companies</Label>
+                    <div className="space-y-2">
+                      {currentMovie.production_companies.map((company) => (
+                        <div
+                          key={company.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
+                              {company.logo_path ? (
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
+                                  alt={typeof company.name === 'string' ? company.name : (company.name?.en || 'Company')}
+                                  className="w-8 h-8 object-contain"
+                                />
+                              ) : (
+                                <span className="text-gray-400 text-xs">🏢</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {typeof company.name === 'string' ? company.name : (company.name?.en || company.name?.lo || 'Unknown')}
+                              </p>
+                              {company.origin_country && (
+                                <p className="text-xs text-gray-500">{company.origin_country}</p>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveProductionCompany(company.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
           </TabsContent>
         </form>
       </Tabs>

@@ -134,6 +134,13 @@
       "when": 1765393809219,
       "tag": "0018_add_person_nicknames",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1765440409278,
+      "tag": "0019_sticky_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

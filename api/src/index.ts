@@ -12,6 +12,7 @@ import rentalRoutes from './routes/rentals.js';
 import watchProgressRoutes from './routes/watch-progress.js';
 import userDataRoutes from './routes/user-data.js';
 import trailersRoutes from './routes/trailers.js';
+import { productionCompaniesRoutes } from './routes/production-companies.js';
 
 const fastify = Fastify({
   logger: {
@@ -39,6 +40,7 @@ await fastify.register(movieRoutes, { prefix: '/api' });
 await fastify.register(peopleRoutes, { prefix: '/api' });
 await fastify.register(homepageRoutes, { prefix: '/api' });
 await fastify.register(trailersRoutes, { prefix: '/api' });
+await fastify.register(productionCompaniesRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

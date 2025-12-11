@@ -340,6 +340,55 @@ export async function buildMovieWithRelations(
     }));
   }
 
+  // Fetch production companies
+  const movieProductionCompanies = await db.select()
+    .from(schema.movieProductionCompanies)
+    .where(eq(schema.movieProductionCompanies.movieId, movie.id))
+    .orderBy(schema.movieProductionCompanies.order);
+
+  const companyIds = movieProductionCompanies.map((mpc: any) => mpc.companyId);
+
+  if (companyIds.length > 0) {
+    const [companies, companyTranslations] = await Promise.all([
+      db.select()
+        .from(schema.productionCompanies)
+        .where(sql`${schema.productionCompanies.id} IN (${sql.join(companyIds.map((id: any) => sql`${id}`), sql`, `)})`),
+      db.select()
+        .from(schema.productionCompanyTranslations)
+        .where(sql`${schema.productionCompanyTranslations.companyId} IN (${sql.join(companyIds.map((id: any) => sql`${id}`), sql`, `)})`),
+    ]);
+
+    const companiesMap = new Map(companies.map((c: any) => [c.id, c]));
+    const transMap = new Map<number, any[]>();
+    for (const trans of companyTranslations) {
+      if (!transMap.has(trans.companyId)) {
+        transMap.set(trans.companyId, []);
+      }
+      transMap.get(trans.companyId)!.push(trans);
+    }
+
+    movieData.production_companies = movieProductionCompanies
+      .map((mpc: any) => {
+        const company = companiesMap.get(mpc.companyId);
+        if (!company) return null;
+
+        const name: any = {};
+        for (const trans of transMap.get(mpc.companyId) || []) {
+          name[trans.language] = trans.name;
+        }
+
+        return {
+          id: company.id,
+          name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
+          logo_path: company.logoPath,
+          origin_country: company.originCountry,
+        };
+      })
+      .filter((c: any) => c !== null);
+  } else {
+    movieData.production_companies = [];
+  }
+
   return movieData;
 }
 

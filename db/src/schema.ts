@@ -239,6 +239,36 @@ export const movieExternalPlatforms = pgTable('movie_external_platforms', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Production companies table
+export const productionCompanies = pgTable('production_companies', {
+  id: integer('id').primaryKey(), // Use TMDB ID or negative for manual entries
+  logoPath: text('logo_path'),
+  originCountry: text('origin_country'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Production company translations table
+export const productionCompanyTranslations = pgTable('production_company_translations', {
+  companyId: integer('company_id').references(() => productionCompanies.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.companyId, table.language] }),
+}));
+
+// Movie-Production company junction table
+export const movieProductionCompanies = pgTable('movie_production_companies', {
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  companyId: integer('company_id').references(() => productionCompanies.id, { onDelete: 'cascade' }).notNull(),
+  order: integer('order').default(0), // Display order
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.movieId, table.companyId] }),
+}));
+
 // Types for TypeScript
 export type Movie = typeof movies.$inferSelect;
 export type NewMovie = typeof movies.$inferInsert;
@@ -276,6 +306,13 @@ export type NewMovieImage = typeof movieImages.$inferInsert;
 
 export type MovieExternalPlatform = typeof movieExternalPlatforms.$inferSelect;
 export type NewMovieExternalPlatform = typeof movieExternalPlatforms.$inferInsert;
+
+export type ProductionCompany = typeof productionCompanies.$inferSelect;
+export type NewProductionCompany = typeof productionCompanies.$inferInsert;
+export type ProductionCompanyTranslation = typeof productionCompanyTranslations.$inferSelect;
+export type NewProductionCompanyTranslation = typeof productionCompanyTranslations.$inferInsert;
+export type MovieProductionCompany = typeof movieProductionCompanies.$inferSelect;
+export type NewMovieProductionCompany = typeof movieProductionCompanies.$inferInsert;
 
 // =============================================================================
 // USER ACCOUNTS & AUTHENTICATION

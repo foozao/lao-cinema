@@ -78,7 +78,7 @@ export function mapTMDBToMovie(
   });
 
   // Map production companies
-  const production_companies: ProductionCompany[] = tmdbData.production_companies.map((pc) => ({
+  const production_companies: ProductionCompany[] = (tmdbData.production_companies || []).map((pc) => ({
     id: pc.id,
     name: pc.name,
     logo_path: pc.logo_path || undefined,
@@ -86,13 +86,13 @@ export function mapTMDBToMovie(
   }));
 
   // Map production countries
-  const production_countries: ProductionCountry[] = tmdbData.production_countries.map((pc) => ({
+  const production_countries: ProductionCountry[] = (tmdbData.production_countries || []).map((pc) => ({
     iso_3166_1: pc.iso_3166_1,
     name: pc.name,
   }));
 
   // Map spoken languages
-  const spoken_languages: SpokenLanguage[] = tmdbData.spoken_languages.map((sl) => ({
+  const spoken_languages: SpokenLanguage[] = (tmdbData.spoken_languages || []).map((sl) => ({
     iso_639_1: sl.iso_639_1,
     english_name: sl.english_name,
     name: sl.name,

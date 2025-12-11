@@ -152,7 +152,8 @@ export async function insertJobTranslations(
   }));
   
   if (translations.length > 0) {
-    await db.insert(schema.movieCrewTranslations).values(translations);
+    // Use onConflictDoNothing since same person can have multiple jobs in same department
+    await db.insert(schema.movieCrewTranslations).values(translations).onConflictDoNothing();
   }
 }
 
@@ -489,11 +490,12 @@ export async function insertCrewMembers(
     }, department);
 
     // Insert movie-crew relationship (using canonical ID)
+    // Use onConflictDoNothing since same person can have multiple jobs in same department
     await db.insert(schema.movieCrew).values({
       movieId,
       personId: canonicalPersonId,
       department,
-    });
+    }).onConflictDoNothing();
 
     // Insert job translations
     await insertJobTranslations(db, schema, movieId, canonicalPersonId, department, jobName);

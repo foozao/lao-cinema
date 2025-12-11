@@ -184,9 +184,9 @@ export interface Collection {
 
 export interface ProductionCompany {
   id: number;
-  name: string;
+  name: string | { en?: string; lo?: string };
   logo_path?: string;
-  origin_country: string;
+  origin_country?: string;
 }
 
 export interface ProductionCountry {

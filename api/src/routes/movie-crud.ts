@@ -144,6 +144,11 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
           await db.insert(schema.trailers).values(trailerValues);
         }
 
+        // Insert production companies (from TMDB import)
+        if (movieData.production_companies && movieData.production_companies.length > 0) {
+          await insertProductionCompanies(movieData.production_companies, newMovie.id);
+        }
+
         // Fetch the complete movie with translations to return
         const response = await fastify.inject({
           method: 'GET',
@@ -201,6 +206,41 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         movieId,
         genreId: genre.id,
       });
+    }
+  }
+
+  async function insertProductionCompanies(companies: any[], movieId: string) {
+    for (let i = 0; i < companies.length; i++) {
+      const company = companies[i];
+      
+      // Check if production company exists
+      const existingCompany = await db.select()
+        .from(schema.productionCompanies)
+        .where(eq(schema.productionCompanies.id, company.id))
+        .limit(1);
+
+      // Insert company if doesn't exist
+      if (existingCompany.length === 0) {
+        await db.insert(schema.productionCompanies).values({
+          id: company.id,
+          logoPath: company.logo_path || null,
+          originCountry: company.origin_country || null,
+        });
+        
+        // Insert English translation
+        await db.insert(schema.productionCompanyTranslations).values({
+          companyId: company.id,
+          language: 'en',
+          name: company.name,
+        });
+      }
+
+      // Insert movie-production company relationship
+      await db.insert(schema.movieProductionCompanies).values({
+        movieId,
+        companyId: company.id,
+        order: i,
+      }).onConflictDoNothing();
     }
   }
 }

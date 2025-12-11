@@ -40,7 +40,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         }
 
         // Extract fields that should be updated in movies table
-        const { title, overview, tagline, cast, crew, genres, images, video_sources, external_platforms, trailers, ...movieUpdates } = updates;
+        const { title, overview, tagline, cast, crew, genres, images, video_sources, external_platforms, trailers, production_companies, ...movieUpdates } = updates;
         
         // Update basic movie fields if provided
         const movieFieldsToUpdate = mapMovieToUpdateData(movieUpdates);
@@ -84,6 +84,11 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         // Update trailers if provided
         if (trailers !== undefined) {
           await updateTrailers(id, trailers);
+        }
+
+        // Update production companies if provided
+        if (production_companies !== undefined) {
+          await updateProductionCompanies(id, production_companies);
         }
 
         // Fetch and return the complete updated movie
@@ -248,6 +253,49 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
       }));
       
       await db.insert(schema.trailers).values(trailerValues);
+    }
+  }
+
+  async function updateProductionCompanies(movieId: string, productionCompanies: any[]) {
+    // Delete existing production company associations for this movie
+    await db.delete(schema.movieProductionCompanies)
+      .where(eq(schema.movieProductionCompanies.movieId, movieId));
+
+    // Insert new production companies
+    if (productionCompanies && productionCompanies.length > 0) {
+      for (let i = 0; i < productionCompanies.length; i++) {
+        const company = productionCompanies[i];
+        
+        // Check if production company exists
+        const existingCompany = await db.select()
+          .from(schema.productionCompanies)
+          .where(eq(schema.productionCompanies.id, company.id))
+          .limit(1);
+
+        // Insert company if doesn't exist
+        if (existingCompany.length === 0) {
+          await db.insert(schema.productionCompanies).values({
+            id: company.id,
+            logoPath: company.logo_path || null,
+            originCountry: company.origin_country || null,
+          });
+          
+          // Insert English translation
+          const companyName = typeof company.name === 'string' ? company.name : (company.name?.en || 'Unknown');
+          await db.insert(schema.productionCompanyTranslations).values({
+            companyId: company.id,
+            language: 'en',
+            name: companyName,
+          });
+        }
+
+        // Insert movie-production company relationship
+        await db.insert(schema.movieProductionCompanies).values({
+          movieId,
+          companyId: company.id,
+          order: i,
+        }).onConflictDoNothing();
+      }
     }
   }
 }

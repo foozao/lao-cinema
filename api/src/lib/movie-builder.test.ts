@@ -24,11 +24,14 @@ describe('buildMovieWithRelations', () => {
     await db.delete(schema.movieCrew);
     await db.delete(schema.videoSources);
     await db.delete(schema.movieExternalPlatforms);
+    await db.delete(schema.movieProductionCompanies);
     await db.delete(schema.movieTranslations);
     await db.delete(schema.genreTranslations);
     await db.delete(schema.genres);
     await db.delete(schema.peopleTranslations);
     await db.delete(schema.people);
+    await db.delete(schema.productionCompanyTranslations);
+    await db.delete(schema.productionCompanies);
     
     // Create test person
     const [person] = await db.insert(schema.people).values({
@@ -359,6 +362,84 @@ describe('buildMovieWithRelations', () => {
 
       // Clean up
       await db.delete(schema.movies).where(eq(schema.movies.id, emptyMovie.id));
+    });
+  });
+
+  describe('Production Companies', () => {
+    it('should include production companies with translations', async () => {
+      // Create production companies
+      await db.insert(schema.productionCompanies).values([
+        { id: 1, logoPath: '/logo1.png', originCountry: 'LA' },
+        { id: 2, logoPath: null, originCountry: 'US' },
+      ]);
+
+      await db.insert(schema.productionCompanyTranslations).values([
+        { companyId: 1, language: 'en', name: 'Lao Art Media' },
+        { companyId: 1, language: 'lo', name: 'ລາວ ອາດ ມີເດຍ' },
+        { companyId: 2, language: 'en', name: 'Test Studios' },
+      ]);
+
+      // Associate with movie
+      await db.insert(schema.movieProductionCompanies).values([
+        { movieId: testMovieId, companyId: 1, order: 0 },
+        { movieId: testMovieId, companyId: 2, order: 1 },
+      ]);
+
+      const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, testMovieId));
+      
+      const result = await buildMovieWithRelations(movie, db, schema);
+
+      expect(result.production_companies).toHaveLength(2);
+      expect(result.production_companies[0]).toMatchObject({
+        id: 1,
+        name: { en: 'Lao Art Media', lo: 'ລາວ ອາດ ມີເດຍ' },
+        logo_path: '/logo1.png',
+        origin_country: 'LA',
+      });
+      expect(result.production_companies[1]).toMatchObject({
+        id: 2,
+        name: { en: 'Test Studios' },
+        origin_country: 'US',
+      });
+    });
+
+    it('should return empty array when no production companies', async () => {
+      const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, testMovieId));
+      
+      const result = await buildMovieWithRelations(movie, db, schema);
+
+      expect(result.production_companies).toEqual([]);
+    });
+
+    it('should order production companies by order field', async () => {
+      // Create production companies
+      await db.insert(schema.productionCompanies).values([
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
+      ]);
+
+      await db.insert(schema.productionCompanyTranslations).values([
+        { companyId: 1, language: 'en', name: 'Company A' },
+        { companyId: 2, language: 'en', name: 'Company B' },
+        { companyId: 3, language: 'en', name: 'Company C' },
+      ]);
+
+      // Associate with movie in specific order
+      await db.insert(schema.movieProductionCompanies).values([
+        { movieId: testMovieId, companyId: 3, order: 0 },
+        { movieId: testMovieId, companyId: 1, order: 1 },
+        { movieId: testMovieId, companyId: 2, order: 2 },
+      ]);
+
+      const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, testMovieId));
+      
+      const result = await buildMovieWithRelations(movie, db, schema);
+
+      expect(result.production_companies).toHaveLength(3);
+      expect(result.production_companies[0].name.en).toBe('Company C');
+      expect(result.production_companies[1].name.en).toBe('Company A');
+      expect(result.production_companies[2].name.en).toBe('Company B');
     });
   });
 });

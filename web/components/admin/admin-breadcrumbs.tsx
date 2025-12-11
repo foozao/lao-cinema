@@ -133,6 +133,12 @@ export function AdminBreadcrumbs() {
             href: '/admin/homepage',
             isLast: true,
           });
+        } else if (parts[1] === 'production-companies') {
+          breadcrumbs.push({
+            label: 'Production Companies',
+            href: '/admin/production-companies',
+            isLast: true,
+          });
         }
 
         setSegments(breadcrumbs);

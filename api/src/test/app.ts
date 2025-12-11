@@ -9,6 +9,8 @@ import rentalRoutes from '../routes/rentals.js';
 import watchProgressRoutes from '../routes/watch-progress.js';
 import peopleRoutes from '../routes/people.js';
 import homepageRoutes from '../routes/homepage.js';
+import { productionCompaniesRoutes } from '../routes/production-companies.js';
+import movieProductionCompaniesRoutes from '../routes/movie-production-companies.js';
 
 interface BuildOptions {
   includeAuth?: boolean;
@@ -16,6 +18,7 @@ interface BuildOptions {
   includeWatchProgress?: boolean;
   includePeople?: boolean;
   includeHomepage?: boolean;
+  includeProductionCompanies?: boolean;
 }
 
 /**
@@ -54,6 +57,11 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   
   if (options.includeHomepage) {
     await app.register(homepageRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeProductionCompanies) {
+    await app.register(productionCompaniesRoutes, { prefix: '/api' });
+    await app.register(movieProductionCompaniesRoutes, { prefix: '/api' });
   }
 
   return app;

@@ -319,6 +319,32 @@ export default function MoviePage() {
                       })}
                     </div>
 
+                    {/* Production Companies */}
+                    {movie.production_companies && movie.production_companies.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-sm font-medium text-gray-400 mb-2">{t('movie.productionCompanies')}</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {movie.production_companies.map((company) => {
+                            const companyName = typeof company.name === 'string' 
+                              ? company.name 
+                              : (company.name?.en || company.name?.lo || 'Unknown');
+                            return (
+                              <div key={company.id} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
+                                {company.logo_path && (
+                                  <img
+                                    src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
+                                    alt={companyName}
+                                    className="h-5 w-auto object-contain"
+                                  />
+                                )}
+                                <span className="text-sm text-gray-300">{companyName}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Overview */}
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold mb-2">{t('movie.overview')}</h3>

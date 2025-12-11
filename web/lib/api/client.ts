@@ -165,3 +165,71 @@ export const castCrewAPI = {
     return fetchAPI(`/movies/${movieId}/crew/${personId}${query}`, { method: 'DELETE' });
   },
 };
+
+// Movie-Production Company association API methods
+export const movieProductionCompaniesAPI = {
+  // Add production company to movie
+  add: (movieId: string, data: { company_id: number; order?: number }) =>
+    fetchAPI(`/movies/${movieId}/production-companies`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Remove production company from movie
+  remove: (movieId: string, companyId: number) =>
+    fetchAPI(`/movies/${movieId}/production-companies/${companyId}`, {
+      method: 'DELETE',
+    }),
+
+  // Update production company order
+  updateOrder: (movieId: string, companyId: number, order: number) =>
+    fetchAPI(`/movies/${movieId}/production-companies/${companyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ order }),
+    }),
+};
+
+// Production Companies API methods
+export const productionCompaniesAPI = {
+  // Get all production companies
+  getAll: (params?: { search?: string; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    const query = searchParams.toString();
+    return fetchAPI<{ companies: any[] }>(`/production-companies${query ? `?${query}` : ''}`);
+  },
+
+  // Search production companies
+  search: (query: string, limit = 20) =>
+    fetchAPI<{ companies: any[] }>(`/production-companies?search=${encodeURIComponent(query)}&limit=${limit}`),
+
+  // Get production company by ID
+  getById: (id: number) => fetchAPI<any>(`/production-companies/${id}`),
+
+  // Create production company
+  create: (data: {
+    id?: number;
+    name: { en: string; lo?: string };
+    logo_path?: string;
+    origin_country?: string;
+  }) => fetchAPI<any>('/production-companies', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Update production company
+  update: (id: number, data: {
+    name?: { en?: string; lo?: string };
+    logo_path?: string;
+    origin_country?: string;
+  }) => fetchAPI<any>(`/production-companies/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+
+  // Delete production company
+  delete: (id: number) => fetchAPI<{ success: boolean }>(`/production-companies/${id}`, {
+    method: 'DELETE',
+  }),
+};
