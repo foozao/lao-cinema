@@ -1,0 +1,2 @@
+# Ignore uploaded logos (local dev only, production uses GCS)
+logos/

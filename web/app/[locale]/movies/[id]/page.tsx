@@ -7,7 +7,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getLanguageName } from '@/lib/i18n/get-language-name';
-import { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/lib/images';
+import { getBackdropUrl, getPosterUrl, getProfileUrl, getProductionCompanyLogoUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -583,12 +583,14 @@ export default function MoviePage() {
                           href={`/production/${company.id}`}
                           className="flex items-center gap-2 hover:text-blue-400 transition-colors"
                         >
-                          {company.logo_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
-                              alt={companyName}
-                              className="h-4 w-auto object-contain"
-                            />
+                          {getProductionCompanyLogoUrl(company, 'w92') && (
+                            <div className="bg-white rounded px-1.5 py-0.5 flex items-center">
+                              <img
+                                src={getProductionCompanyLogoUrl(company, 'w92')!}
+                                alt={companyName}
+                                className="h-4 w-auto object-contain"
+                              />
+                            </div>
                           )}
                           <span className="text-sm font-medium">{companyName}</span>
                         </Link>

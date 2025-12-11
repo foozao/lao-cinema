@@ -242,7 +242,10 @@ export const movieExternalPlatforms = pgTable('movie_external_platforms', {
 // Production companies table
 export const productionCompanies = pgTable('production_companies', {
   id: integer('id').primaryKey(), // Use TMDB ID or negative for manual entries
-  logoPath: text('logo_path'),
+  slug: text('slug').unique(), // Vanity URL (e.g., /production/hoppin-film)
+  logoPath: text('logo_path'), // TMDB logo path
+  customLogoUrl: text('custom_logo_url'), // User-uploaded logo URL
+  websiteUrl: text('website_url'), // Company website
   originCountry: text('origin_country'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -118,3 +118,28 @@ export function getPlaceholderUrl(type: ImageType = 'poster'): string {
   return placeholders[type];
 }
 
+/**
+ * Get production company logo URL
+ * 
+ * Prioritizes custom_logo_url over TMDB logo_path
+ * 
+ * @param company - Object with logo_path and/or custom_logo_url
+ * @param size - TMDB size for logo_path (w45, w92, w154, w185, w300, w500)
+ * @returns Logo URL or null if no logo available
+ */
+export function getProductionCompanyLogoUrl(
+  company: { logo_path?: string | null; custom_logo_url?: string | null },
+  size: 'w45' | 'w92' | 'w154' | 'w185' | 'w300' | 'w500' = 'w185'
+): string | null {
+  // Prefer custom logo over TMDB logo
+  if (company.custom_logo_url) {
+    return company.custom_logo_url;
+  }
+  
+  if (company.logo_path) {
+    return `${TMDB_IMAGE_BASE}/${size}${company.logo_path}`;
+  }
+  
+  return null;
+}
+

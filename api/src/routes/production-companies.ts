@@ -110,6 +110,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
           id: company.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
           logo_path: company.logoPath,
+          custom_logo_url: company.customLogoUrl,
           origin_country: company.originCountry,
           movies: companyMovies,
         };
@@ -180,8 +181,11 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       
       return {
         id: company.id,
+        slug: company.slug,
         name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
         logo_path: company.logoPath,
+        custom_logo_url: company.customLogoUrl,
+        website_url: company.websiteUrl,
         origin_country: company.originCountry,
         movies,
       };
@@ -196,12 +200,15 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
     Body: {
       id?: number; // Optional - for TMDB imports
       name: { en: string; lo?: string };
+      slug?: string;
       logo_path?: string;
+      custom_logo_url?: string;
+      website_url?: string;
       origin_country?: string;
     }
   }>('/production-companies', async (request, reply) => {
     try {
-      const { id, name, logo_path, origin_country } = request.body;
+      const { id, name, slug, logo_path, custom_logo_url, website_url, origin_country } = request.body;
       
       // Validate English name is provided
       if (!name || !name.en) {
@@ -219,7 +226,10 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       // Insert company
       await db.insert(schema.productionCompanies).values({
         id: companyId,
+        slug: slug || null,
         logoPath: logo_path || null,
+        customLogoUrl: custom_logo_url || null,
+        websiteUrl: website_url || null,
         originCountry: origin_country || null,
       });
       
@@ -241,7 +251,10 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       return reply.status(201).send({
         id: companyId,
         name,
+        slug,
         logo_path,
+        custom_logo_url,
+        website_url,
         origin_country,
       });
     } catch (error) {
@@ -255,14 +268,17 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
     Params: { id: string };
     Body: {
       name?: { en?: string; lo?: string };
+      slug?: string;
       logo_path?: string;
+      custom_logo_url?: string;
+      website_url?: string;
       origin_country?: string;
     }
   }>('/production-companies/:id', async (request, reply) => {
     try {
       const { id } = request.params;
       const companyId = parseInt(id);
-      const { name, logo_path, origin_country } = request.body;
+      const { name, slug, logo_path, custom_logo_url, website_url, origin_country } = request.body;
       
       // Check if company exists
       const [existing] = await db.select()
@@ -275,7 +291,10 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       
       // Update company fields
       const updates: any = { updatedAt: new Date() };
+      if (slug !== undefined) updates.slug = slug || null;
       if (logo_path !== undefined) updates.logoPath = logo_path;
+      if (custom_logo_url !== undefined) updates.customLogoUrl = custom_logo_url;
+      if (website_url !== undefined) updates.websiteUrl = website_url;
       if (origin_country !== undefined) updates.originCountry = origin_country;
       
       await db.update(schema.productionCompanies)
@@ -317,8 +336,11 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       
       return {
         id: companyId,
+        slug: updatedCompany.slug,
         name: updatedName,
         logo_path: updatedCompany.logoPath,
+        custom_logo_url: updatedCompany.customLogoUrl,
+        website_url: updatedCompany.websiteUrl,
         origin_country: updatedCompany.originCountry,
       };
     } catch (error) {

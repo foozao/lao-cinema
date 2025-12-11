@@ -10,13 +10,14 @@ import { Building2, Film } from 'lucide-react';
 import { productionCompaniesAPI } from '@/lib/api/client';
 import { getLocalizedText } from '@/lib/i18n';
 import { getCountryName } from '@/lib/i18n/get-country-name';
-import { getPosterUrl } from '@/lib/images';
+import { getPosterUrl, getProductionCompanyLogoUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
 
 interface ProductionCompany {
   id: number;
   name: { en?: string; lo?: string };
   logo_path?: string;
+  custom_logo_url?: string;
   origin_country?: string;
   movies: Array<{
     id: string;
@@ -86,10 +87,10 @@ export default function ProductionCompanyPage() {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Sidebar - Logo & Info */}
           <aside className="md:w-64 flex-shrink-0">
-            {company.logo_path ? (
+            {getProductionCompanyLogoUrl(company, 'w500') ? (
               <div className="w-full max-w-[250px] mx-auto md:mx-0 bg-white rounded-lg p-6 shadow-lg">
                 <img
-                  src={`https://image.tmdb.org/t/p/w500${company.logo_path}`}
+                  src={getProductionCompanyLogoUrl(company, 'w500')!}
                   alt={companyName}
                   className="w-full h-auto object-contain"
                 />

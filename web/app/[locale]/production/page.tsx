@@ -11,11 +11,13 @@ import { Search, Building2 } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import { productionCompaniesAPI } from '@/lib/api/client';
 import { getCountryName } from '@/lib/i18n/get-country-name';
+import { getProductionCompanyLogoUrl } from '@/lib/images';
 
 interface ProductionCompany {
   id: number;
   name: { en?: string; lo?: string };
   logo_path?: string;
+  custom_logo_url?: string;
   origin_country?: string;
   movie_count?: number;
 }
@@ -153,9 +155,7 @@ export default function ProductionCompaniesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredCompanies.map((company) => {
                   const companyName = company.name?.[locale as 'en' | 'lo'] || company.name?.en || 'Unknown';
-                  const logoUrl = company.logo_path 
-                    ? `https://image.tmdb.org/t/p/w185${company.logo_path}`
-                    : null;
+                  const logoUrl = getProductionCompanyLogoUrl(company);
                   const movieCount = (company as any).movies?.length || company.movie_count || 0;
 
                   return (

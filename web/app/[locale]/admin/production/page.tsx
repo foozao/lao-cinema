@@ -8,13 +8,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Search, Edit, Plus, Trash2, Building2, X, ArrowUpDown } from 'lucide-react';
+import { Search, Edit, Plus, Trash2, Building2, X, ArrowUpDown, Upload, Loader2 } from 'lucide-react';
 import { productionCompaniesAPI } from '@/lib/api/client';
+import { getProductionCompanyLogoUrl } from '@/lib/images';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 interface ProductionCompany {
   id: number;
   name: { en?: string; lo?: string } | string;
+  slug?: string;
   logo_path?: string;
+  custom_logo_url?: string;
+  website_url?: string;
   origin_country?: string;
   movies?: Array<{
     id: string;
@@ -34,13 +40,55 @@ export default function ProductionCompaniesAdminPage() {
   
   // Edit modal state
   const [editingCompany, setEditingCompany] = useState<ProductionCompany | null>(null);
-  const [editForm, setEditForm] = useState({ nameEn: '', nameLo: '', originCountry: '' });
+  const [editForm, setEditForm] = useState({ nameEn: '', nameLo: '', originCountry: '', slug: '', customLogoUrl: '', websiteUrl: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
   
   // Add modal state
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ nameEn: '', nameLo: '', originCountry: '' });
+  const [addForm, setAddForm] = useState({ nameEn: '', nameLo: '', originCountry: '', slug: '', customLogoUrl: '', websiteUrl: '' });
   const [adding, setAdding] = useState(false);
+  const [uploadingAddLogo, setUploadingAddLogo] = useState(false);
+
+  // Handle logo upload
+  const handleLogoUpload = async (file: File, isEdit: boolean) => {
+    if (isEdit) {
+      setUploadingEditLogo(true);
+    } else {
+      setUploadingAddLogo(true);
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API_BASE_URL}/upload/image`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      
+      if (isEdit) {
+        setEditForm(prev => ({ ...prev, customLogoUrl: data.url }));
+      } else {
+        setAddForm(prev => ({ ...prev, customLogoUrl: data.url }));
+      }
+    } catch (error) {
+      console.error('Failed to upload logo:', error);
+      alert('Failed to upload logo. Please try again.');
+    } finally {
+      if (isEdit) {
+        setUploadingEditLogo(false);
+      } else {
+        setUploadingAddLogo(false);
+      }
+    }
+  };
 
   useEffect(() => {
     loadCompanies();
@@ -115,6 +163,9 @@ export default function ProductionCompaniesAdminPage() {
       nameEn: typeof company.name === 'string' ? company.name : company.name?.en || '',
       nameLo: typeof company.name === 'string' ? '' : company.name?.lo || '',
       originCountry: company.origin_country || '',
+      slug: company.slug || '',
+      customLogoUrl: company.custom_logo_url || '',
+      websiteUrl: company.website_url || '',
     });
   };
 
@@ -129,6 +180,9 @@ export default function ProductionCompaniesAdminPage() {
           lo: editForm.nameLo.trim() || undefined,
         },
         origin_country: editForm.originCountry.trim() || undefined,
+        slug: editForm.slug.trim() || undefined,
+        custom_logo_url: editForm.customLogoUrl.trim() || undefined,
+        website_url: editForm.websiteUrl.trim() || undefined,
       });
       await loadCompanies();
       setEditingCompany(null);
@@ -151,10 +205,13 @@ export default function ProductionCompaniesAdminPage() {
           lo: addForm.nameLo.trim() || undefined,
         },
         origin_country: addForm.originCountry.trim() || undefined,
+        slug: addForm.slug.trim() || undefined,
+        custom_logo_url: addForm.customLogoUrl.trim() || undefined,
+        website_url: addForm.websiteUrl.trim() || undefined,
       });
       await loadCompanies();
       setShowAddModal(false);
-      setAddForm({ nameEn: '', nameLo: '', originCountry: '' });
+      setAddForm({ nameEn: '', nameLo: '', originCountry: '', slug: '', customLogoUrl: '', websiteUrl: '' });
     } catch (error) {
       console.error('Failed to add company:', error);
       alert('Failed to add company');
@@ -248,9 +305,9 @@ export default function ProductionCompaniesAdminPage() {
             >
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  {company.logo_path ? (
+                  {getProductionCompanyLogoUrl(company, 'w92') ? (
                     <img
-                      src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
+                      src={getProductionCompanyLogoUrl(company, 'w92')!}
                       alt={getCompanyName(company)}
                       className="w-12 h-12 object-contain"
                     />
@@ -349,6 +406,80 @@ export default function ProductionCompaniesAdminPage() {
                 maxLength={2}
               />
             </div>
+            <div>
+              <Label>Vanity URL (Slug)</Label>
+              <Input
+                value={editForm.slug}
+                onChange={(e) => setEditForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
+                placeholder="e.g., hoppin-film"
+              />
+              <p className="text-xs text-gray-500 mt-1">Used in URL: /production/{editForm.slug || 'slug'}</p>
+            </div>
+            <div>
+              <Label>Logo</Label>
+              <div className="space-y-2">
+                {editForm.customLogoUrl && (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={editForm.customLogoUrl} 
+                      alt="Logo preview" 
+                      className="w-16 h-16 object-contain bg-gray-100 rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditForm(prev => ({ ...prev, customLogoUrl: '' }))}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, true);
+                      }}
+                      disabled={uploadingEditLogo}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      disabled={uploadingEditLogo}
+                      asChild
+                    >
+                      <span>
+                        {uploadingEditLogo ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</>
+                        ) : (
+                          <><Upload className="w-4 h-4 mr-2" />Upload Logo</>
+                        )}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+                <Input
+                  value={editForm.customLogoUrl}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, customLogoUrl: e.target.value }))}
+                  placeholder="Or paste URL: https://example.com/logo.png"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Website</Label>
+              <Input
+                value={editForm.websiteUrl}
+                onChange={(e) => setEditForm(prev => ({ ...prev, websiteUrl: e.target.value }))}
+                placeholder="https://company-website.com"
+              />
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => setEditingCompany(null)}>
                 Cancel
@@ -392,6 +523,80 @@ export default function ProductionCompaniesAdminPage() {
                 onChange={(e) => setAddForm(prev => ({ ...prev, originCountry: e.target.value.toUpperCase() }))}
                 placeholder="e.g., LA, US, SG"
                 maxLength={2}
+              />
+            </div>
+            <div>
+              <Label>Vanity URL (Slug)</Label>
+              <Input
+                value={addForm.slug}
+                onChange={(e) => setAddForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
+                placeholder="e.g., hoppin-film"
+              />
+              <p className="text-xs text-gray-500 mt-1">Used in URL: /production/{addForm.slug || 'slug'}</p>
+            </div>
+            <div>
+              <Label>Logo</Label>
+              <div className="space-y-2">
+                {addForm.customLogoUrl && (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={addForm.customLogoUrl} 
+                      alt="Logo preview" 
+                      className="w-16 h-16 object-contain bg-gray-100 rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAddForm(prev => ({ ...prev, customLogoUrl: '' }))}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, false);
+                      }}
+                      disabled={uploadingAddLogo}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      disabled={uploadingAddLogo}
+                      asChild
+                    >
+                      <span>
+                        {uploadingAddLogo ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</>
+                        ) : (
+                          <><Upload className="w-4 h-4 mr-2" />Upload Logo</>
+                        )}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+                <Input
+                  value={addForm.customLogoUrl}
+                  onChange={(e) => setAddForm(prev => ({ ...prev, customLogoUrl: e.target.value }))}
+                  placeholder="Or paste URL: https://example.com/logo.png"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Website</Label>
+              <Input
+                value={addForm.websiteUrl}
+                onChange={(e) => setAddForm(prev => ({ ...prev, websiteUrl: e.target.value }))}
+                placeholder="https://company-website.com"
               />
             </div>
             <div className="flex justify-end gap-2 mt-6">

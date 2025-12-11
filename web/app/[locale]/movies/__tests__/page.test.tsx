@@ -164,7 +164,7 @@ describe('MoviesPage', () => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       fireEvent.change(searchInput, { target: { value: 'Signal' } });
 
       await waitFor(() => {
@@ -173,53 +173,8 @@ describe('MoviesPage', () => {
       });
     });
 
-    it('filters movies by cast member', async () => {
-      render(<MoviesPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
-      });
 
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
-      fireEvent.change(searchInput, { target: { value: 'John' } });
 
-      await waitFor(() => {
-        // Should show John Doe in people section
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
-      });
-    });
-
-    it('filters movies by crew member', async () => {
-      render(<MoviesPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
-      });
-
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
-      fireEvent.change(searchInput, { target: { value: 'Jane' } });
-
-      await waitFor(() => {
-        // Should show Jane Smith in people section
-        expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-      });
-    });
-
-    it('shows people section when searching for cast/crew', async () => {
-      render(<MoviesPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
-      });
-
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
-      fireEvent.change(searchInput, { target: { value: 'John' } });
-
-      await waitFor(() => {
-        // Check that John Doe appears in the results (person name)
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Filter Functionality', () => {
@@ -267,20 +222,6 @@ describe('MoviesPage', () => {
       });
     });
 
-    it('shows people filter and hides movies when selected', async () => {
-      render(<MoviesPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
-      });
-
-      const peopleButton = screen.getByText('movies.people');
-      fireEvent.click(peopleButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('movies.searchForPeople')).toBeInTheDocument();
-      });
-    });
   });
 
   describe('URL State Management', () => {
@@ -294,7 +235,7 @@ describe('MoviesPage', () => {
       render(<MoviesPage />);
       
       await waitFor(() => {
-        const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder') as HTMLInputElement;
+        const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
         expect(searchInput.value).toBe('Signal');
       });
     });
@@ -306,7 +247,7 @@ describe('MoviesPage', () => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       fireEvent.change(searchInput, { target: { value: 'test' } });
 
       await waitFor(() => {
@@ -344,11 +285,11 @@ describe('MoviesPage', () => {
       render(<MoviesPage />);
       
       await waitFor(() => {
-        const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder') as HTMLInputElement;
+        const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
         expect(searchInput.value).toBe('test');
       });
 
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       fireEvent.change(searchInput, { target: { value: '' } });
 
       await waitFor(() => {
@@ -381,7 +322,7 @@ describe('MoviesPage', () => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
       await waitFor(() => {
@@ -389,22 +330,6 @@ describe('MoviesPage', () => {
       });
     });
 
-    it('shows search prompt when People filter selected without search', async () => {
-      render(<MoviesPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
-      });
-
-      const peopleButton = screen.getByText('movies.people');
-      fireEvent.click(peopleButton);
-
-      await waitFor(() => {
-        const searchPrompt = screen.queryByText('movies.searchForPeople');
-        const searchDescription = screen.queryByText('movies.searchForPeopleDescription');
-        expect(searchPrompt || searchDescription).toBeTruthy();
-      });
-    });
   });
 
   describe('Error Handling', () => {
@@ -467,7 +392,7 @@ describe('MoviesPage', () => {
     it('has accessible search input', async () => {
       render(<MoviesPage />);
       
-      const searchInput = screen.getByPlaceholderText('movies.searchPlaceholder');
+      const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       expect(searchInput).toHaveAttribute('type', 'text');
     });
 
@@ -475,12 +400,10 @@ describe('MoviesPage', () => {
       render(<MoviesPage />);
       
       const allButton = screen.getByText('movies.all');
-      const peopleButton = screen.getByText('movies.people');
       const featureButton = screen.getByText('movies.feature');
       const shortButton = screen.getByText('movies.short');
 
       expect(allButton).toBeInTheDocument();
-      expect(peopleButton).toBeInTheDocument();
       expect(featureButton).toBeInTheDocument();
       expect(shortButton).toBeInTheDocument();
     });

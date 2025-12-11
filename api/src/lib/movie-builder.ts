@@ -381,6 +381,7 @@ export async function buildMovieWithRelations(
           id: company.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
           logo_path: company.logoPath,
+          custom_logo_url: company.customLogoUrl,
           origin_country: company.originCountry,
         };
       })

@@ -211,7 +211,10 @@ export const productionCompaniesAPI = {
   create: (data: {
     id?: number;
     name: { en: string; lo?: string };
+    slug?: string;
     logo_path?: string;
+    custom_logo_url?: string;
+    website_url?: string;
     origin_country?: string;
   }) => fetchAPI<any>('/production-companies', {
     method: 'POST',
@@ -221,7 +224,10 @@ export const productionCompaniesAPI = {
   // Update production company
   update: (id: number, data: {
     name?: { en?: string; lo?: string };
+    slug?: string;
     logo_path?: string;
+    custom_logo_url?: string;
+    website_url?: string;
     origin_country?: string;
   }) => fetchAPI<any>(`/production-companies/${id}`, {
     method: 'PATCH',

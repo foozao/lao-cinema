@@ -5,6 +5,7 @@ const path = require('path');
 const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || '0.0.0.0';
 const VIDEOS_PATH = path.join(__dirname, 'videos');
+const PUBLIC_PATH = path.join(__dirname, 'public');
 
 // Register CORS - allow requests from web app
 fastify.register(require('@fastify/cors'), {
@@ -18,6 +19,7 @@ fastify.register(require('@fastify/cors'), {
 fastify.register(require('@fastify/static'), {
   root: VIDEOS_PATH,
   prefix: '/videos/',
+  decorateReply: false,
   // Set proper headers for HLS streaming
   setHeaders: (res, filepath) => {
     // Cache control
@@ -30,6 +32,13 @@ fastify.register(require('@fastify/static'), {
       res.setHeader('Content-Type', 'video/mp2t');
     }
   },
+});
+
+// Serve static files from public directory (logos, images, etc.)
+fastify.register(require('@fastify/static'), {
+  root: path.join(PUBLIC_PATH, 'logos'),
+  prefix: '/logos/',
+  decorateReply: false,
 });
 
 // Health check
