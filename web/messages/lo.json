@@ -18,6 +18,7 @@
     "home": "ໜ້າຫຼັກ",
     "movies": "ຮູບເງົາ",
     "people": "ບຸກຄົນ",
+    "production": "ບໍລິສັດຜະລິດ",
     "admin": "ຜູ້ດູແລລະບົບ",
     "back": "ກັບຄືນ"
   },
@@ -38,6 +39,7 @@
   "movies": {
     "all": "ທັງໝົດ",
     "people": "ບຸກຄົນ",
+    "production": "ບໍລິສັດຜະລິດ",
     "feature": "ຮູບເງົາຍາວ",
     "short": "ຮູບເງົາສັ້ນ",
     "searchPlaceholder": "ຄົ້ນຫາຕາມຊື່, ນັກສະແດງ, ຫຼື ທີມງານ...",
@@ -51,11 +53,14 @@
     },
     "moviesSection": "ຮູບເງົາ",
     "peopleSection": "ບຸກຄົນ",
+    "productionSection": "ບໍລິສັດຜະລິດ",
     "otherMovies": "ຮູບເງົາອື່ນໆ",
     "andMore": "+ {count} ເພີ່ມເຕີມ",
     "andMoreMovies": "+ {count} ຮູບເງົາເພີ່ມເຕີມ",
     "searchForPeople": "ຄົ້ນຫານັກສະແດງຫຼືທີມງານ",
-    "searchForPeopleDescription": "ໃສ່ຊື່ເພື່ອຊອກຫານັກສະແດງ, ຜູ້ກຳກັບ, ແລະທີມງານ"
+    "searchForPeopleDescription": "ໃສ່ຊື່ເພື່ອຊອກຫານັກສະແດງ, ຜູ້ກຳກັບ, ແລະທີມງານ",
+    "searchForProduction": "ຄົ້ນຫາບໍລິສັດຜະລິດ",
+    "searchForProductionDescription": "ໃສ່ຊື່ເພື່ອຊອກຫາບໍລິສັດຜະລິດແລະສະຕູດິໂອ"
   },
   "movie": {
     "cast": "ນັກສະແດງ",
@@ -269,7 +274,12 @@
     "sortDateOldest": "ເກົ່າກ່ອນ",
     "analytics": "ການວິເຄາະ",
     "viewAnalytics": "ເບິ່ງການວິເຄາະການຫຼິ້ນວິດີໂອ",
-    "homepageSettings": "ການຕັ້ງຄ່າໜ້າຫຼັກ"
+    "homepageSettings": "ການຕັ້ງຄ່າໜ້າຫຼັກ",
+    "productionCompanies": "ບໍລິສັດຜະລິດ",
+    "noProductionCompanies": "ບໍ່ພົບບໍລິສັດຜະລິດ.",
+    "noResultsFound": "ບໍ່ພົບຜົນການຄົ້ນຫາ.",
+    "sortByMovies": "ຮູບເງົາຫຼາຍສຸດ",
+    "sortByName": "ກ → ຮ"
   },
   "analytics": {
     "title": "ການວິເຄາະວິດີໂອ",

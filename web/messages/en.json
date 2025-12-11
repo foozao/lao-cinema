@@ -18,6 +18,7 @@
     "home": "Home",
     "movies": "Movies",
     "people": "People",
+    "production": "Production",
     "admin": "Admin",
     "back": "Back"
   },
@@ -38,6 +39,7 @@
   "movies": {
     "all": "All",
     "people": "People",
+    "production": "Production",
     "feature": "Feature Films",
     "short": "Short Films",
     "searchPlaceholder": "Search by title, cast, or crew...",
@@ -51,11 +53,14 @@
     },
     "moviesSection": "Movies",
     "peopleSection": "People",
+    "productionSection": "Production Companies",
     "otherMovies": "Other Movies",
     "andMore": "+ {count} more",
     "andMoreMovies": "+ {count} more movies",
     "searchForPeople": "Search for cast or crew",
-    "searchForPeopleDescription": "Enter a name to find actors, directors, and crew members"
+    "searchForPeopleDescription": "Enter a name to find actors, directors, and crew members",
+    "searchForProduction": "Search for production companies",
+    "searchForProductionDescription": "Enter a name to find production companies and studios"
   },
   "movie": {
     "cast": "Cast",
@@ -269,7 +274,12 @@
     "sortDateOldest": "Oldest First",
     "analytics": "Analytics",
     "viewAnalytics": "View playback analytics",
-    "homepageSettings": "Homepage Settings"
+    "homepageSettings": "Homepage Settings",
+    "productionCompanies": "Production Companies",
+    "noProductionCompanies": "No production companies found.",
+    "noResultsFound": "No results found.",
+    "sortByMovies": "Most Films",
+    "sortByName": "A → Z"
   },
   "analytics": {
     "title": "Video Analytics",

@@ -65,6 +65,38 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
             .where(sql`${schema.movieCrew.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
         : [];
       
+      // Get movie details for credits (only when searching, to show in results)
+      const allMovieIds = [...new Set([
+        ...castCredits.map(c => c.movieId),
+        ...crewCredits.map(c => c.movieId)
+      ])];
+      
+      const movies = allMovieIds.length > 0
+        ? await db.select({ id: schema.movies.id, originalTitle: schema.movies.originalTitle })
+            .from(schema.movies)
+            .where(sql`${schema.movies.id} IN (${sql.join(allMovieIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      const movieTranslations = allMovieIds.length > 0
+        ? await db.select()
+            .from(schema.movieTranslations)
+            .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(allMovieIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      // Get cast translations for character names
+      const castTranslations = peopleIds.length > 0
+        ? await db.select()
+            .from(schema.movieCastTranslations)
+            .where(sql`${schema.movieCastTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
+      // Get crew translations for job titles
+      const crewTranslations = peopleIds.length > 0
+        ? await db.select()
+            .from(schema.movieCrewTranslations)
+            .where(sql`${schema.movieCrewTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+        : [];
+      
       // Build response with translations and departments
       const peopleWithTranslations = allPeople.map(person => {
         const personTranslations = translations.filter(t => t.personId === person.id);
@@ -96,6 +128,71 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           .filter(c => c.personId === person.id)
           .forEach(c => departments.add(c.department));
         
+        // Build movie credits for this person (cast + crew, limit to 4 total for search results)
+        const personCastCredits = castCredits.filter(c => c.personId === person.id);
+        const personCrewCredits = crewCredits.filter(c => c.personId === person.id);
+        
+        // Build cast credits
+        const castMovieCredits = personCastCredits.slice(0, 3).map(credit => {
+          const movie = movies.find(m => m.id === credit.movieId);
+          const movieTrans = movieTranslations.filter(t => t.movieId === credit.movieId);
+          const castTrans = castTranslations.filter(t => t.movieId === credit.movieId && t.personId === person.id);
+          
+          const movieTitle: Record<string, string> = {};
+          for (const trans of movieTrans) {
+            movieTitle[trans.language] = trans.title;
+          }
+          
+          const character: Record<string, string> = {};
+          for (const trans of castTrans) {
+            if (trans.character) {
+              character[trans.language] = trans.character;
+            }
+          }
+          
+          return {
+            movie_id: credit.movieId,
+            movie_title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie?.originalTitle || 'Unknown' },
+            role: Object.keys(character).length > 0 ? character : undefined,
+            type: 'cast' as const,
+          };
+        });
+        
+        // Build crew credits (different movies from cast if possible)
+        const castMovieIds = new Set(castMovieCredits.map(c => c.movie_id));
+        const uniqueCrewCredits = personCrewCredits.filter(c => !castMovieIds.has(c.movieId));
+        const crewToShow = uniqueCrewCredits.length > 0 ? uniqueCrewCredits.slice(0, 2) : personCrewCredits.slice(0, 2);
+        
+        const crewMovieCredits = crewToShow.map(credit => {
+          const movie = movies.find(m => m.id === credit.movieId);
+          const movieTrans = movieTranslations.filter(t => t.movieId === credit.movieId);
+          const crewTrans = crewTranslations.filter(t => 
+            t.movieId === credit.movieId && 
+            t.personId === person.id && 
+            t.department === credit.department
+          );
+          
+          const movieTitle: Record<string, string> = {};
+          for (const trans of movieTrans) {
+            movieTitle[trans.language] = trans.title;
+          }
+          
+          const job: Record<string, string> = {};
+          for (const trans of crewTrans) {
+            job[trans.language] = trans.job;
+          }
+          
+          return {
+            movie_id: credit.movieId,
+            movie_title: Object.keys(movieTitle).length > 0 ? movieTitle : { en: movie?.originalTitle || 'Unknown' },
+            role: Object.keys(job).length > 0 ? job : { en: credit.department },
+            type: 'crew' as const,
+          };
+        });
+        
+        // Combine and limit to 4 total
+        const movieCredits = [...castMovieCredits, ...crewMovieCredits].slice(0, 4);
+        
         return {
           id: person.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
@@ -111,6 +208,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           gender: person.gender,
           imdb_id: person.imdbId,
           homepage: person.homepage,
+          movie_credits: movieCredits.length > 0 ? movieCredits : undefined,
         };
       });
       
