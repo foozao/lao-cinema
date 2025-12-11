@@ -23,11 +23,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           .from(schema.peopleTranslations)
           .where(
             sql`${schema.peopleTranslations.name} ILIKE ${searchPattern} OR 
-                (${schema.peopleTranslations.nicknames} IS NOT NULL AND 
-                 EXISTS (
-                   SELECT 1 FROM unnest(${schema.peopleTranslations.nicknames}) AS nickname 
-                   WHERE nickname ILIKE ${searchPattern}
-                 ))`
+                EXISTS (SELECT 1 FROM unnest(nicknames) AS n WHERE n ILIKE ${searchPattern})`
           );
         
         const personIds = [...new Set(searchResults.map(r => r.personId))];

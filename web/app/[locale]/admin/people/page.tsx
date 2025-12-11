@@ -64,13 +64,19 @@ export default function PeopleAdminPage() {
       });
     }
 
-    // Apply search filter
+    // Apply search filter (name and nicknames)
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((person) => {
         const nameEn = person.name?.en?.toLowerCase() || '';
         const nameLo = person.name?.lo?.toLowerCase() || '';
-        return nameEn.includes(query) || nameLo.includes(query);
+        const nicknamesEn = person.nicknames?.en || [];
+        const nicknamesLo = person.nicknames?.lo || [];
+        const allNicknames = [...nicknamesEn, ...nicknamesLo].map((n: string) => n.toLowerCase());
+        
+        return nameEn.includes(query) || 
+               nameLo.includes(query) ||
+               allNicknames.some((nickname: string) => nickname.includes(query));
       });
     }
 
@@ -234,6 +240,13 @@ export default function PeopleAdminPage() {
                       <p className="text-sm text-gray-500">
                         {hasLaoName ? nameEn : ''}
                       </p>
+                      {person.nicknames && (person.nicknames.en?.length > 0 || person.nicknames.lo?.length > 0) && (
+                        <p className="text-sm text-gray-400">
+                          {[...(person.nicknames.en || []), ...(person.nicknames.lo || [])]
+                            .map((n: string) => `"${n}"`)
+                            .join(', ')}
+                        </p>
+                      )}
                     </div>
 
                     {departments.length > 0 && (
