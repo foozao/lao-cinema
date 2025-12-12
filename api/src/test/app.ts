@@ -11,6 +11,8 @@ import peopleRoutes from '../routes/people.js';
 import homepageRoutes from '../routes/homepage.js';
 import { productionCompaniesRoutes } from '../routes/production-companies.js';
 import movieProductionCompaniesRoutes from '../routes/movie-production-companies.js';
+import { db, schema } from '../db/index.js';
+import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
 interface BuildOptions {
   includeAuth?: boolean;
@@ -65,4 +67,62 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   }
 
   return app;
+}
+
+/**
+ * Create an editor user and return auth headers for testing protected routes
+ */
+export async function createTestEditor(): Promise<{ headers: { authorization: string }, userId: string }> {
+  const email = `editor-${Date.now()}@test.com`;
+  const passwordHash = await hashPassword('testpassword123');
+  
+  const [user] = await db.insert(schema.users).values({
+    email,
+    passwordHash,
+    displayName: 'Test Editor',
+    role: 'editor',
+  }).returning();
+  
+  const token = generateSessionToken();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  await db.insert(schema.userSessions).values({
+    userId: user.id,
+    token,
+    expiresAt,
+  });
+  
+  return {
+    headers: { authorization: `Bearer ${token}` },
+    userId: user.id,
+  };
+}
+
+/**
+ * Create an admin user and return auth headers for testing admin-only routes
+ */
+export async function createTestAdmin(): Promise<{ headers: { authorization: string }, userId: string }> {
+  const email = `admin-${Date.now()}@test.com`;
+  const passwordHash = await hashPassword('testpassword123');
+  
+  const [user] = await db.insert(schema.users).values({
+    email,
+    passwordHash,
+    displayName: 'Test Admin',
+    role: 'admin',
+  }).returning();
+  
+  const token = generateSessionToken();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  await db.insert(schema.userSessions).values({
+    userId: user.id,
+    token,
+    expiresAt,
+  });
+  
+  return {
+    headers: { authorization: `Bearer ${token}` },
+    userId: user.id,
+  };
 }

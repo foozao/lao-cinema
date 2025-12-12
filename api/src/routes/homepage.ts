@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { db, schema } from '../db/index.js';
 import { eq, sql, asc } from 'drizzle-orm';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 const AddFeaturedSchema = z.object({
   movieId: z.string().uuid(),
@@ -109,6 +111,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
   // Add a film to featured
   fastify.post<{ Body: z.infer<typeof AddFeaturedSchema> }>(
     '/homepage/featured',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const { movieId, order } = request.body;
@@ -141,6 +144,15 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           })
           .returning();
 
+        // Get movie title for audit log
+        const movieTranslations = await db.select()
+          .from(schema.movieTranslations)
+          .where(eq(schema.movieTranslations.movieId, movieId));
+        const movieTitle = movieTranslations.find(t => t.language === 'en')?.title || movie.originalTitle || 'Unknown';
+
+        // Log audit event
+        await logAuditFromRequest(request, 'feature_movie', 'movie', movieId, movieTitle);
+
         return reply.status(201).send(featured);
       } catch (error) {
         fastify.log.error(error);
@@ -152,6 +164,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
   // Update order of featured films
   fastify.put<{ Body: z.infer<typeof UpdateOrderSchema> }>(
     '/homepage/featured/reorder',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const { items } = request.body;
@@ -176,6 +189,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
   // Remove a film from featured
   fastify.delete<{ Params: { id: string } }>(
     '/homepage/featured/:id',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -187,6 +201,9 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         if (!deleted) {
           return reply.status(404).send({ error: 'Featured film not found' });
         }
+
+        // Log audit event
+        await logAuditFromRequest(request, 'unfeature_movie', 'movie', deleted.movieId, `Removed from featured`);
 
         return { success: true, id: deleted.id };
       } catch (error) {

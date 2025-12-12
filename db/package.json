@@ -6,6 +6,7 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
+    "db:migrate:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL tsx src/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:push:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL drizzle-kit push",
     "db:studio": "drizzle-kit studio",

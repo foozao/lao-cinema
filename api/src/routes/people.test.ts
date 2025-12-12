@@ -5,16 +5,17 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { build } from '../test/app.js';
+import { build, createTestEditor } from '../test/app.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 
 describe('People Routes', () => {
   let app: FastifyInstance;
+  let editorAuth: { headers: { authorization: string }, userId: string };
 
   beforeEach(async () => {
-    app = await build({ includePeople: true });
+    app = await build({ includePeople: true, includeAuth: true });
     
     // Clean up test data
     await db.delete(schema.movieCastTranslations);
@@ -23,6 +24,11 @@ describe('People Routes', () => {
     await db.delete(schema.movieCrew);
     await db.delete(schema.peopleTranslations);
     await db.delete(schema.people);
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+    
+    // Create editor user for protected routes
+    editorAuth = await createTestEditor();
   });
 
   // =============================================================================
@@ -131,6 +137,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: {
           name: { en: 'New Actor' },
         },
@@ -147,6 +154,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: {
           name: { en: 'Jane Director', lo: 'ເຈນ ຜູ້ກຳກັບ' },
           biography: { en: 'A talented director', lo: 'ຜູ້ກຳກັບທີ່ມີພອນສະຫວັນ' },
@@ -169,6 +177,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: {
           name: { lo: 'ຊື່ລາວເທົ່ານັ້ນ' },
         },
@@ -183,6 +192,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: {},
       });
 
@@ -193,11 +203,13 @@ describe('People Routes', () => {
       const response1 = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: { name: { en: 'Person 1' } },
       });
       const response2 = await app.inject({
         method: 'POST',
         url: '/api/people',
+        headers: editorAuth.headers,
         payload: { name: { en: 'Person 2' } },
       });
 
@@ -348,6 +360,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: `/api/people/${person.id}`,
+        headers: editorAuth.headers,
         payload: {
           name: { en: 'Updated Name' },
         },
@@ -367,6 +380,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: `/api/people/${person.id}`,
+        headers: editorAuth.headers,
         payload: {
           biography: { en: 'New biography text' },
         },
@@ -386,6 +400,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: `/api/people/${person.id}`,
+        headers: editorAuth.headers,
         payload: {
           name: { lo: 'ຊື່ລາວ' },
         },
@@ -406,6 +421,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: `/api/people/${person.id}`,
+        headers: editorAuth.headers,
         payload: {
           birthday: '1980-05-20',
           place_of_birth: 'New York, USA',
@@ -425,6 +441,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: '/api/people/-99999',
+        headers: editorAuth.headers,
         payload: {
           birthday: '1990-01-01',
         },
@@ -437,6 +454,7 @@ describe('People Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: '/api/people/invalid',
+        headers: editorAuth.headers,
         payload: {
           name: { en: 'Test' },
         },

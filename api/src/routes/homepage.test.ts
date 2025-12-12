@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { build } from '../test/app.js';
+import { build, createTestEditor } from '../test/app.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -14,9 +14,15 @@ describe('Homepage Routes', () => {
   let app: FastifyInstance;
   let testMovieId1: string;
   let testMovieId2: string;
+  let editorAuth: { headers: { authorization: string }, userId: string };
 
   beforeEach(async () => {
-    app = await build({ includeHomepage: true });
+    app = await build({ includeHomepage: true, includeAuth: true });
+    
+    // Clean up auth data and create editor
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+    editorAuth = await createTestEditor();
     
     // Clean up test data
     await db.delete(schema.homepageFeatured);
@@ -143,6 +149,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/homepage/featured',
+        headers: editorAuth.headers,
         payload: {
           movieId: testMovieId1,
           order: 0,
@@ -159,6 +166,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/homepage/featured',
+        headers: editorAuth.headers,
         payload: {
           movieId: '00000000-0000-0000-0000-000000000000',
           order: 0,
@@ -175,6 +183,7 @@ describe('Homepage Routes', () => {
       await app.inject({
         method: 'POST',
         url: '/api/homepage/featured',
+        headers: editorAuth.headers,
         payload: {
           movieId: testMovieId1,
           order: 0,
@@ -185,6 +194,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/homepage/featured',
+        headers: editorAuth.headers,
         payload: {
           movieId: testMovieId1,
           order: 1,
@@ -217,6 +227,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: '/api/homepage/featured/reorder',
+        headers: editorAuth.headers,
         payload: {
           items: [
             { id: featured1.id, order: 1 },
@@ -255,6 +266,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/api/homepage/featured/${featured.id}`,
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(200);
@@ -274,6 +286,7 @@ describe('Homepage Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: '/api/homepage/featured/00000000-0000-0000-0000-000000000000',
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(404);

@@ -5,6 +5,8 @@ import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { insertJobTranslations } from '../lib/movie-helpers.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function movieCrewRoutes(fastify: FastifyInstance) {
   // Add crew member to movie
@@ -15,7 +17,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       department: string;
       job: { en: string; lo?: string };
     };
-  }>('/movies/:id/crew', async (request, reply) => {
+  }>('/movies/:id/crew', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id: movieId } = request.params;
       const { person_id, department, job } = request.body;
@@ -50,6 +52,9 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       // Insert job translations
       await insertJobTranslations(db, schema, movieId, person_id, department, job);
 
+      // Log audit event
+      await logAuditFromRequest(request, 'add_crew', 'movie', movieId, `Added person ${person_id} as ${job.en} (${department})`);
+
       return { success: true, message: 'Crew member added successfully' };
     } catch (error) {
       fastify.log.error(error);
@@ -61,7 +66,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
   fastify.delete<{
     Params: { id: string; personId: string };
     Querystring: { department?: string };
-  }>('/movies/:id/crew/:personId', async (request, reply) => {
+  }>('/movies/:id/crew/:personId', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id: movieId, personId } = request.params;
       const { department } = request.query;
@@ -80,6 +85,9 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
         await db.delete(schema.movieCrew)
           .where(sql`${schema.movieCrew.movieId} = ${movieId} AND ${schema.movieCrew.personId} = ${personIdNum}`);
       }
+
+      // Log audit event
+      await logAuditFromRequest(request, 'remove_crew', 'movie', movieId, `Removed person ${personIdNum}${department ? ` from ${department}` : ''}`);
 
       return { success: true, message: 'Crew member removed successfully' };
     } catch (error) {

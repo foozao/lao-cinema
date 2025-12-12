@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { build } from '../test/app.js';
+import { build, createTestEditor } from '../test/app.js';
 import { createSampleMovie } from '../test/helpers.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
@@ -8,9 +8,15 @@ import type { FastifyInstance } from 'fastify';
 describe('Movie-Production Company Association Routes', () => {
   let app: FastifyInstance;
   let movieId: string;
+  let editorAuth: { headers: { authorization: string }, userId: string };
 
   beforeEach(async () => {
-    app = await build({ includeProductionCompanies: true });
+    app = await build({ includeProductionCompanies: true, includeAuth: true });
+    
+    // Clean up auth data and create editor
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+    editorAuth = await createTestEditor();
     
     // Clean up test data
     await db.delete(schema.movieProductionCompanies);
@@ -22,6 +28,7 @@ describe('Movie-Production Company Association Routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/movies',
+      headers: editorAuth.headers,
       payload: movieData,
     });
     const movie = JSON.parse(response.body);
@@ -44,6 +51,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: {
           company_id: 1,
         },
@@ -67,6 +75,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: {
           company_id: 1,
           order: 5,
@@ -83,6 +92,7 @@ describe('Movie-Production Company Association Routes', () => {
       await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: { company_id: 1 },
       });
 
@@ -90,6 +100,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: { company_id: 2 },
       });
 
@@ -102,6 +113,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/movies/00000000-0000-0000-0000-000000000000/production-companies',
+        headers: editorAuth.headers,
         payload: { company_id: 1 },
       });
 
@@ -112,6 +124,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: { company_id: 999 },
       });
 
@@ -123,6 +136,7 @@ describe('Movie-Production Company Association Routes', () => {
       await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: { company_id: 1 },
       });
 
@@ -130,6 +144,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/movies/${movieId}/production-companies`,
+        headers: editorAuth.headers,
         payload: { company_id: 1 },
       });
 
@@ -151,6 +166,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/api/movies/${movieId}/production-companies/1`,
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(200);
@@ -168,6 +184,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/api/movies/${movieId}/production-companies/2`,
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(404);
@@ -187,6 +204,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/api/movies/${movieId}/production-companies/1`,
+        headers: editorAuth.headers,
         payload: { order: 5 },
       });
 
@@ -206,6 +224,7 @@ describe('Movie-Production Company Association Routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/api/movies/${movieId}/production-companies/2`,
+        headers: editorAuth.headers,
         payload: { order: 5 },
       });
 

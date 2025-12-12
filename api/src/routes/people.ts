@@ -4,6 +4,8 @@ import { FastifyInstance } from 'fastify';
 import { db, schema } from '../db/index.js';
 import { eq, sql, ilike, or } from 'drizzle-orm';
 import { buildPersonCredits } from '../lib/movie-builder.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -230,7 +232,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       place_of_birth?: string;
       profile_path?: string;
     };
-  }>('/people', async (request, reply) => {
+  }>('/people', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { name, nicknames, biography, known_for_department, birthday, place_of_birth, profile_path } = request.body;
 
@@ -273,6 +275,9 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
           biography: biography?.lo || null,
         });
       }
+
+      // Log audit event
+      await logAuditFromRequest(request, 'create', 'person', String(newPerson.id), name.en);
 
       return {
         id: newPerson.id,
@@ -363,7 +368,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       sourceId: number; // Person to merge from (will be deleted)
       targetId: number; // Person to merge into (will be kept)
     };
-  }>('/people/merge', async (request, reply) => {
+  }>('/people/merge', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { sourceId, targetId } = request.body;
 
@@ -513,6 +518,9 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       await db.delete(schema.people)
         .where(eq(schema.people.id, sourceId));
 
+      // Log audit event
+      await logAuditFromRequest(request, 'merge_people', 'person', String(targetId), `Merged ${sourceId} into ${targetId}`);
+
       return {
         success: true,
         message: `Successfully merged person ${sourceId} into ${targetId}`,
@@ -537,7 +545,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       known_for_department?: string;
       homepage?: string;
     };
-  }>('/people/:id', async (request, reply) => {
+  }>('/people/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       const personId = parseInt(id);
@@ -638,6 +646,10 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       }
 
       const person = updatedPerson[0];
+      
+      // Log audit event
+      await logAuditFromRequest(request, 'update_person', 'person', id, name.en || name.lo || 'Unknown');
+
       return {
         id: person.id,
         name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
@@ -679,9 +691,18 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Person not found' });
       }
 
+      // Get person name for audit log before deleting
+      const translations = await db.select()
+        .from(schema.peopleTranslations)
+        .where(eq(schema.peopleTranslations.personId, personId));
+      const personName = translations.find(t => t.language === 'en')?.name || translations[0]?.name || 'Unknown';
+
       // Delete person (CASCADE will handle translations, cast, crew, etc.)
       await db.delete(schema.people)
         .where(eq(schema.people.id, personId));
+
+      // Log audit event
+      await logAuditFromRequest(request, 'delete', 'person', id, personName);
 
       return {
         success: true,

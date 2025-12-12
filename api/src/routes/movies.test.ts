@@ -1,14 +1,20 @@
 // Tests for movie routes
 import { describe, it, expect, beforeEach } from 'vitest';
-import { build } from '../test/app.js';
+import { build, createTestEditor } from '../test/app.js';
 import { createSampleMovie, createMinimalMovie, createSampleImages } from '../test/helpers.js';
+import { db, schema } from '../db/index.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('Movie Routes', () => {
   let app: FastifyInstance;
+  let editorAuth: { headers: { authorization: string }, userId: string };
 
   beforeEach(async () => {
-    app = await build();
+    app = await build({ includeAuth: true });
+    // Clean up auth data and create editor
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+    editorAuth = await createTestEditor();
   });
 
   describe('GET /api/movies', () => {
@@ -29,6 +35,7 @@ describe('Movie Routes', () => {
       await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: movieData,
       });
 
@@ -51,6 +58,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: movieData,
       });
 
@@ -67,6 +75,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: movieData,
       });
 
@@ -89,6 +98,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: movieData,
       });
 
@@ -106,6 +116,7 @@ describe('Movie Routes', () => {
       const createResponse = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: createMinimalMovie(),
       });
       const created = JSON.parse(createResponse.body);
@@ -140,6 +151,7 @@ describe('Movie Routes', () => {
       const createResponse = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: createMinimalMovie(),
       });
       const created = JSON.parse(createResponse.body);
@@ -153,6 +165,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
         payload: updates,
       });
 
@@ -167,6 +180,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'PUT',
         url: '/api/movies/00000000-0000-0000-0000-000000000000',
+        headers: editorAuth.headers,
         payload: { title: { en: 'Test' } },
       });
 
@@ -180,6 +194,7 @@ describe('Movie Routes', () => {
       const createResponse = await app.inject({
         method: 'POST',
         url: '/api/movies',
+        headers: editorAuth.headers,
         payload: createMinimalMovie(),
       });
       const created = JSON.parse(createResponse.body);
@@ -188,6 +203,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(200);
@@ -207,6 +223,7 @@ describe('Movie Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: '/api/movies/00000000-0000-0000-0000-000000000000',
+        headers: editorAuth.headers,
       });
 
       expect(response.statusCode).toBe(404);
@@ -223,6 +240,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -250,6 +268,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -282,6 +301,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -307,6 +327,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({ images: createSampleImages() }),
         });
         const created = JSON.parse(createResponse.body);
@@ -328,6 +349,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie(),
         });
         const created = JSON.parse(createResponse.body);
@@ -349,6 +371,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({ images: createSampleImages() }),
         });
         const created = JSON.parse(createResponse.body);
@@ -366,6 +389,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
           payload: { images: newImages },
         });
 
@@ -380,6 +404,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({
             images: [
               { type: 'poster', file_path: '/old-poster.jpg', is_primary: true },
@@ -393,6 +418,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
           payload: {
             images: [
               { type: 'poster', file_path: '/new-poster.jpg', is_primary: true },
@@ -412,6 +438,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({ images: createSampleImages() }),
         });
         const created = JSON.parse(createResponse.body);
@@ -426,6 +453,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}/images/${nonPrimaryPoster.id}/primary`,
+        headers: editorAuth.headers,
           payload: { type: 'poster' },
         });
 
@@ -463,6 +491,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({ images }),
         });
         const created = JSON.parse(createResponse.body);
@@ -474,6 +503,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}/images/${secondBackdrop.id}/primary`,
+        headers: editorAuth.headers,
           payload: { type: 'backdrop' },
         });
 
@@ -492,6 +522,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: '/api/movies/00000000-0000-0000-0000-000000000000/images/00000000-0000-0000-0000-000000000001/primary',
+        headers: editorAuth.headers,
           payload: { type: 'poster' },
         });
 
@@ -504,6 +535,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie(),
         });
         const created = JSON.parse(createResponse.body);
@@ -511,6 +543,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}/images/00000000-0000-0000-0000-000000000001/primary`,
+        headers: editorAuth.headers,
           payload: { type: 'poster' },
         });
 
@@ -523,6 +556,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({
             images: [{ type: 'poster', file_path: '/poster.jpg', is_primary: true }],
           }),
@@ -534,6 +568,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}/images/${poster.id}/primary`,
+        headers: editorAuth.headers,
           payload: { type: 'backdrop' },
         });
 
@@ -549,6 +584,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({ images: createSampleImages() }),
         });
         const created = JSON.parse(createResponse.body);
@@ -558,6 +594,7 @@ describe('Movie Routes', () => {
         const deleteResponse = await app.inject({
           method: 'DELETE',
           url: `/api/movies/${created.id}`,
+          headers: editorAuth.headers,
         });
         expect(deleteResponse.statusCode).toBe(200);
 
@@ -599,6 +636,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -629,6 +667,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -644,6 +683,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -658,6 +698,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({
             trailers: [
               { key: 'trailer1', name: 'Trailer 1', type: 'Trailer', site: 'YouTube', official: true },
@@ -684,6 +725,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie(),
         });
         const created = JSON.parse(createResponse.body);
@@ -705,6 +747,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({
             trailers: [{ key: 'old1', name: 'Old Trailer', type: 'Trailer', site: 'YouTube', official: true }],
           }),
@@ -722,6 +765,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
           payload: updates,
         });
 
@@ -736,6 +780,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie({
             trailers: [{ key: 'trailer1', name: 'Trailer', type: 'Trailer', site: 'YouTube', official: true }],
           }),
@@ -745,6 +790,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
           payload: { trailers: [] },
         });
 
@@ -758,6 +804,7 @@ describe('Movie Routes', () => {
         const createResponse = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: createMinimalMovie(),
         });
         const created = JSON.parse(createResponse.body);
@@ -774,6 +821,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'PUT',
           url: `/api/movies/${created.id}`,
+        headers: editorAuth.headers,
           payload: updates,
         });
 
@@ -805,6 +853,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 
@@ -830,6 +879,7 @@ describe('Movie Routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/api/movies',
+        headers: editorAuth.headers,
           payload: movieData,
         });
 

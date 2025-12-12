@@ -5,6 +5,8 @@ import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { insertCharacterTranslations } from '../lib/movie-helpers.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function movieCastRoutes(fastify: FastifyInstance) {
   // Add cast member to movie
@@ -15,7 +17,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       character: { en: string; lo?: string };
       order?: number;
     };
-  }>('/movies/:id/cast', async (request, reply) => {
+  }>('/movies/:id/cast', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id: movieId } = request.params;
       const { person_id, character, order } = request.body;
@@ -59,6 +61,9 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       // Insert character translations
       await insertCharacterTranslations(db, schema, movieId, person_id, character);
 
+      // Log audit event
+      await logAuditFromRequest(request, 'add_cast', 'movie', movieId, `Added person ${person_id} as ${character.en}`);
+
       return { success: true, message: 'Cast member added successfully' };
     } catch (error) {
       fastify.log.error(error);
@@ -69,7 +74,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
   // Remove cast member from movie
   fastify.delete<{
     Params: { id: string; personId: string };
-  }>('/movies/:id/cast/:personId', async (request, reply) => {
+  }>('/movies/:id/cast/:personId', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id: movieId, personId } = request.params;
       const personIdNum = parseInt(personId);
@@ -81,6 +86,9 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       // Delete cast record
       await db.delete(schema.movieCast)
         .where(sql`${schema.movieCast.movieId} = ${movieId} AND ${schema.movieCast.personId} = ${personIdNum}`);
+
+      // Log audit event
+      await logAuditFromRequest(request, 'remove_cast', 'movie', movieId, `Person ${personIdNum}`);
 
       return { success: true, message: 'Cast member removed successfully' };
     } catch (error) {

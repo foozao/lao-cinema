@@ -4,6 +4,8 @@
 import { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import { 
   CreateMovieSchema, 
@@ -82,6 +84,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
   // Create movie (import from TMDB or manual)
   fastify.post<{ Body: CreateMovieInput }>(
     '/movies',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const movieData = request.body;
@@ -155,7 +158,12 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
           url: `/api/movies/${newMovie.id}`,
         });
         
-        return reply.status(201).send(JSON.parse(response.body));
+        const createdMovie = JSON.parse(response.body);
+        
+        // Log audit event
+        await logAuditFromRequest(request, 'create', 'movie', newMovie.id, createdMovie.title?.en || movieData.original_title);
+        
+        return reply.status(201).send(createdMovie);
       } catch (error) {
         fastify.log.error(error);
         reply.status(500).send({ error: 'Failed to create movie' });
@@ -164,7 +172,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
   );
 
   // Delete movie
-  fastify.delete<{ Params: { id: string } }>('/movies/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/movies/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
 
@@ -175,6 +183,9 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       if (!deletedMovie) {
         return reply.status(404).send({ error: 'Movie not found' });
       }
+
+      // Log audit event
+      await logAuditFromRequest(request, 'delete', 'movie', id, deletedMovie.originalTitle || 'Unknown');
 
       return { message: 'Movie deleted successfully', id };
     } catch (error) {

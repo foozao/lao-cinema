@@ -137,11 +137,26 @@ export async function requireEditor(request: FastifyRequest, reply: FastifyReply
 
 /**
  * Require editor or admin role
- * Alias for requireEditor for clarity
- * Must be used after requireAuth
+ * Self-contained middleware that authenticates and checks role
  */
 export async function requireEditorOrAdmin(request: FastifyRequest, reply: FastifyReply) {
-  return requireEditor(request, reply);
+  // First authenticate
+  await optionalAuth(request, reply);
+  
+  // Then check role
+  if (!request.user) {
+    return reply.status(401).send({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+  }
+  
+  if (request.user.role !== 'editor' && request.user.role !== 'admin') {
+    return reply.status(403).send({
+      error: 'Forbidden',
+      message: 'Editor access required',
+    });
+  }
 }
 
 /**

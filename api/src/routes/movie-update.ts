@@ -4,6 +4,8 @@
 import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 import { 
   type UpdateMovieInput,
   type CastMember,
@@ -24,6 +26,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
   // Update movie
   fastify.put<{ Params: { id: string }; Body: UpdateMovieInput }>(
     '/movies/:id',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -97,7 +100,12 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           url: `/api/movies/${id}`,
         });
         
-        return reply.status(200).send(JSON.parse(response.body));
+        const updatedMovie = JSON.parse(response.body);
+        
+        // Log audit event
+        await logAuditFromRequest(request, 'update', 'movie', id, updatedMovie.title?.en || existing[0].originalTitle);
+        
+        return reply.status(200).send(updatedMovie);
       } catch (error) {
         fastify.log.error(error);
         reply.status(500).send({ error: 'Failed to update movie' });

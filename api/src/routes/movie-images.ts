@@ -4,6 +4,8 @@
 import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function movieImageRoutes(fastify: FastifyInstance) {
   // Set primary image
@@ -12,6 +14,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
     Body: { type: 'poster' | 'backdrop' | 'logo' } 
   }>(
     '/movies/:id/images/:imageId/primary',
+    { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
         const { id: movieId, imageId } = request.params;
@@ -61,6 +64,9 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
             .set({ backdropPath: image.filePath })
             .where(eq(schema.movies.id, movieId));
         }
+
+        // Log audit event
+        await logAuditFromRequest(request, 'set_primary_image', 'movie', movieId, `Set primary ${type}: ${image.filePath}`);
 
         return reply.status(200).send({ 
           success: true,
