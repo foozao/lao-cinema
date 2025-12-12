@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -21,11 +21,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lao Cinema - Discover Amazing Lao Films",
   description: "Stream and discover the best of Lao cinema. Watch Lao movies with English and Lao subtitles.",
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export function generateStaticParams() {
