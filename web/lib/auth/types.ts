@@ -10,7 +10,7 @@ export interface User {
   displayName?: string;
   profileImageUrl?: string;
   timezone?: string; // IANA timezone, e.g., 'Asia/Vientiane'
-  role: 'user' | 'admin';
+  role: 'user' | 'editor' | 'admin';
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt?: string;

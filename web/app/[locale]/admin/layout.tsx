@@ -3,6 +3,7 @@ import { Link } from '@/i18n/routing';
 import { Film } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { AdminBreadcrumbWrapper } from '@/components/admin/admin-breadcrumb-wrapper';
+import { RequireEditor } from '@/components/admin/require-editor';
 
 export default function AdminLayout({
   children,
@@ -12,29 +13,31 @@ export default function AdminLayout({
   const t = useTranslations();
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Admin Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <Film className="w-6 h-6 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">
-                {t('home.title')} {t('admin.dashboard')}
-              </h1>
-            </Link>
-            <LanguageSwitcher />
+    <RequireEditor>
+      <div className="min-h-screen bg-gray-50">
+        {/* Admin Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <Film className="w-6 h-6 text-blue-600" />
+                <h1 className="text-xl font-bold text-gray-900">
+                  {t('home.title')} {t('admin.dashboard')}
+                </h1>
+              </Link>
+              <LanguageSwitcher />
+            </div>
           </div>
+        </header>
+
+        {/* Breadcrumb Navigation - Hidden on main dashboard */}
+        <AdminBreadcrumbWrapper />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Main Content */}
+          <main className="w-full">{children}</main>
         </div>
-      </header>
-
-      {/* Breadcrumb Navigation - Hidden on main dashboard */}
-      <AdminBreadcrumbWrapper />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Main Content */}
-        <main className="w-full">{children}</main>
       </div>
-    </div>
+    </RequireEditor>
   );
 }
