@@ -1,1 +1,1 @@
-ALTER TABLE "people_translations" ADD COLUMN "nicknames" text[];
+ALTER TABLE "people_translations" ADD COLUMN IF NOT EXISTS "nicknames" text[];

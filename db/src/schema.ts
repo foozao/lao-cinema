@@ -7,9 +7,24 @@ export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '7
 export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
 export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']);
 export const availabilityStatusEnum = pgEnum('availability_status', ['auto', 'available', 'external', 'unavailable', 'coming_soon']);
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 export const trailerTypeEnum = pgEnum('trailer_type', ['youtube', 'video']);
+export const auditActionEnum = pgEnum('audit_action', [
+  'create', 'update', 'delete',
+  'add_cast', 'remove_cast', 'update_cast',
+  'add_crew', 'remove_crew', 'update_crew',
+  'add_image', 'remove_image', 'set_primary_image',
+  'add_video', 'remove_video', 'update_video',
+  'add_genre', 'remove_genre',
+  'add_production_company', 'remove_production_company',
+  'add_platform', 'remove_platform', 'update_platform',
+  'feature_movie', 'unfeature_movie',
+  'merge_people', 'update_person',
+]);
+export const auditEntityTypeEnum = pgEnum('audit_entity_type', [
+  'movie', 'person', 'genre', 'production_company', 'user', 'settings'
+]);
 
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
@@ -404,6 +419,20 @@ export const videoAnalyticsEvents = pgTable('video_analytics_events', {
   timestamp: timestamp('timestamp').defaultNow().notNull(),
 });
 
+// Audit logs table - tracks all content changes by editors/admins
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }).notNull(),
+  action: auditActionEnum('action').notNull(),
+  entityType: auditEntityTypeEnum('entity_type').notNull(),
+  entityId: text('entity_id').notNull(), // UUID or ID of the entity (movie, person, etc.)
+  entityName: text('entity_name'), // Human-readable name (movie title, person name, etc.)
+  changes: text('changes'), // JSON string of what changed (before/after values)
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -422,3 +451,6 @@ export type NewWatchProgress = typeof watchProgress.$inferInsert;
 
 export type VideoAnalyticsEvent = typeof videoAnalyticsEvents.$inferSelect;
 export type NewVideoAnalyticsEvent = typeof videoAnalyticsEvents.$inferInsert;
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

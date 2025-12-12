@@ -1,5 +1,13 @@
 -- Create trailer type enum
-CREATE TYPE trailer_type AS ENUM ('youtube', 'video');
+DO $$ BEGIN
+ IF NOT EXISTS (
+  SELECT 1 FROM pg_type t
+  JOIN pg_namespace n ON n.oid = t.typnamespace
+  WHERE t.typname = 'trailer_type' AND n.nspname = 'public'
+ ) THEN
+  CREATE TYPE trailer_type AS ENUM ('youtube', 'video');
+ END IF;
+END $$;
 
 -- Create trailers table
 CREATE TABLE IF NOT EXISTS "trailers" (

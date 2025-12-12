@@ -115,6 +115,36 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
 }
 
 /**
+ * Require editor role (or higher)
+ * Must be used after requireAuth
+ * Allows both editors and admins
+ */
+export async function requireEditor(request: FastifyRequest, reply: FastifyReply) {
+  if (!request.user) {
+    return reply.status(401).send({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+  }
+  
+  if (request.user.role !== 'editor' && request.user.role !== 'admin') {
+    return reply.status(403).send({
+      error: 'Forbidden',
+      message: 'Editor access required',
+    });
+  }
+}
+
+/**
+ * Require editor or admin role
+ * Alias for requireEditor for clarity
+ * Must be used after requireAuth
+ */
+export async function requireEditorOrAdmin(request: FastifyRequest, reply: FastifyReply) {
+  return requireEditor(request, reply);
+}
+
+/**
  * Require either authenticated user OR anonymous ID
  * Used for dual-mode endpoints (rentals, watch progress)
  */
