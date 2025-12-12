@@ -25,18 +25,62 @@ export function RequireEditor({ children }: { children: React.ReactNode }) {
   }
 
   // Not authorized - show 404
+  // IMPORTANT: Keep these styles IDENTICAL to /app/not-found.tsx
   if (!user || (user.role !== 'editor' && user.role !== 'admin')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center px-4">
-          <h1 className="text-9xl font-bold text-gray-200">404</h1>
-          <h2 className="text-2xl font-semibold text-gray-900 mt-4">Page Not Found</h2>
-          <p className="text-gray-600 mt-2 max-w-md">
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f9fafb',
+      }}>
+        <div style={{ textAlign: 'center', padding: '0 1rem' }}>
+          <h1 style={{ 
+            fontSize: '8rem',
+            lineHeight: 1,
+            fontWeight: 700,
+            color: '#e5e7eb',
+            margin: 0,
+          }}>
+            404
+          </h1>
+          <h2 style={{ 
+            fontSize: '1.5rem',
+            lineHeight: '2rem',
+            fontWeight: 600,
+            color: '#111827',
+            marginTop: '1rem',
+            marginBottom: 0,
+          }}>
+            Page Not Found
+          </h2>
+          <p style={{ 
+            color: '#4b5563',
+            marginTop: '0.5rem',
+            maxWidth: '28rem',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          }}>
             The page you are looking for does not exist or you do not have permission to access it.
           </p>
           <a
             href="/"
-            className="inline-block mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            style={{
+              display: 'inline-block',
+              marginTop: '1.5rem',
+              paddingTop: '0.75rem',
+              paddingBottom: '0.75rem',
+              paddingLeft: '1.5rem',
+              paddingRight: '1.5rem',
+              backgroundColor: '#2563eb',
+              color: 'white',
+              borderRadius: '0.5rem',
+              textDecoration: 'none',
+              fontWeight: 500,
+              fontSize: '1rem',
+              lineHeight: '1.5rem',
+            }}
           >
             Go Home
           </a>

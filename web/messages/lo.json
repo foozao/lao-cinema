@@ -2,7 +2,12 @@
   "common": {
     "loading": "ກຳລັງໂຫຼດ...",
     "error": "ມີບັນຫາເກີດຂຶ້ນ",
-    "noResults": "ບໍ່ພົບຜົນການຄົ້ນຫາ"
+    "noResults": "ບໍ່ພົບຜົນການຄົ້ນຫາ",
+    "goHome": "ກັບໄປໜ້າຫຼັກ"
+  },
+  "errors": {
+    "pageNotFound": "ບໍ່ພົບໜ້ານີ້",
+    "pageNotFoundDescription": "ໜ້າທີ່ທ່ານຊອກຫາບໍ່ມີຢູ່."
   },
   "apiError": {
     "networkErrorTitle": "ບໍລິການບໍ່ພ້ອມໃຊ້ງານຊົ່ວຄາວ",

@@ -2,7 +2,12 @@
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "goHome": "Go Home"
+  },
+  "errors": {
+    "pageNotFound": "Page Not Found",
+    "pageNotFoundDescription": "The page you are looking for does not exist."
   },
   "apiError": {
     "networkErrorTitle": "Service Temporarily Unavailable",
