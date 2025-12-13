@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Bell, BellOff, Loader2, UserPlus, Mail } from 'lucide-react';
+import { Bell, BellOff, Loader2, UserPlus, Mail, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
@@ -23,6 +23,7 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
   const [isChecking, setIsChecking] = useState(true);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   // Check subscription status on mount
   useEffect(() => {
@@ -56,6 +57,12 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
 
   const handleToggleNotification = async () => {
     if (!isAuthenticated) return;
+    
+    // If user's email is not verified and they're trying to subscribe, show modal
+    if (user && !user.emailVerified && !isSubscribed) {
+      setShowVerifyModal(true);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -151,65 +158,61 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     );
   }
 
-  // Authenticated but email not verified - show verify prompt
-  if (user && !user.emailVerified) {
-    if (inline) {
-      return (
-        <div>
-          <p className="text-sm mb-2 opacity-80">{t('verifyEmailRequired')}</p>
-          {verificationSent ? (
-            <p className="text-sm text-green-400">{t('verificationSent')}</p>
-          ) : (
-            <Button
-              size="sm"
-              onClick={handleSendVerification}
-              disabled={isSendingVerification}
-              className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
-            >
-              {isSendingVerification ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-              {t('sendVerificationEmail')}
-            </Button>
-          )}
-        </div>
-      );
-    }
+  // Verification modal for unverified users
+  const VerifyEmailModal = () => {
+    if (!showVerifyModal) return null;
+    
     return (
-      <div className="bg-amber-600/10 border border-amber-500/30 rounded-lg p-4 mt-3">
-        <div className="flex items-start gap-3">
-          <Mail className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-amber-200 mb-1">
-              {t('verifyEmailRequired')}
-            </h4>
-            <p className="text-sm text-amber-300/80 mb-3">
-              {t('verifyEmailMessage')}
-            </p>
-            {verificationSent ? (
-              <p className="text-sm text-green-400">{t('verificationSent')}</p>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleSendVerification}
-                disabled={isSendingVerification}
-                className="gap-2 bg-amber-600 hover:bg-amber-700"
-              >
-                {isSendingVerification ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Mail className="w-4 h-4" />
-                )}
-                {t('sendVerificationEmail')}
-              </Button>
-            )}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/70"
+          onClick={() => setShowVerifyModal(false)}
+        />
+        
+        {/* Modal */}
+        <div className="relative bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full shadow-xl">
+          <button
+            onClick={() => setShowVerifyModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-amber-500/20 rounded-full">
+              <Mail className="w-6 h-6 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {t('verifyEmailRequired')}
+              </h3>
+              <p className="text-gray-300 text-sm mb-4">
+                {t('verifyEmailMessage')}
+              </p>
+              
+              {verificationSent ? (
+                <p className="text-green-400 text-sm">{t('verificationSent')}</p>
+              ) : (
+                <Button
+                  onClick={handleSendVerification}
+                  disabled={isSendingVerification}
+                  className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {isSendingVerification ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  {t('sendVerificationEmail')}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
     );
-  }
+  };
 
   // Loading state
   if (isChecking) {
@@ -231,21 +234,24 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
       : '';
 
   return (
-    <Button
-      variant={isSubscribed ? "secondary" : "outline"}
-      size="sm"
-      onClick={handleToggleNotification}
-      disabled={isLoading}
-      className={`gap-2 ${baseClass}`}
-    >
-      {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : isSubscribed ? (
-        <BellOff className="w-4 h-4" />
-      ) : (
-        <Bell className="w-4 h-4" />
-      )}
-      {isSubscribed ? t('notifyMeEnabled') : t('notifyMe')}
-    </Button>
+    <>
+      <VerifyEmailModal />
+      <Button
+        variant={isSubscribed ? "secondary" : "outline"}
+        size="sm"
+        onClick={handleToggleNotification}
+        disabled={isLoading}
+        className={`gap-2 ${baseClass}`}
+      >
+        {isLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : isSubscribed ? (
+          <BellOff className="w-4 h-4" />
+        ) : (
+          <Bell className="w-4 h-4" />
+        )}
+        {isSubscribed ? t('notifyMeEnabled') : t('notifyMe')}
+      </Button>
+    </>
   );
 }
