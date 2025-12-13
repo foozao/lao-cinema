@@ -25,6 +25,7 @@ cp db/.env.example db/.env
 |----------|----------|---------|-------------|
 | `TMDB_API_KEY` | Yes | - | TMDB API key for movie imports. Get from [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
 | `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:3001/api` | Backend API base URL |
+| `NEXT_PUBLIC_SITE_URL` | No | `https://laocinema.com` | Site URL for SEO, emails, OAuth callbacks |
 | `NEXT_PUBLIC_TMDB_API_KEY` | No | - | Client-side TMDB key (less secure, avoid if possible) |
 
 ### Production (Cloud Run)
@@ -186,6 +187,7 @@ DATABASE_URL=postgresql://laocinema:laocinema_dev@localhost:5432/lao_cinema
 # web/.env.local (build time)
 TMDB_API_KEY=your_tmdb_api_key
 NEXT_PUBLIC_API_URL=https://api.laocinema.com/api
+NEXT_PUBLIC_SITE_URL=https://laocinema.com
 
 # Cloud Run environment variables (runtime)
 AUTH_USERS=admin:SecurePassword123:admin
