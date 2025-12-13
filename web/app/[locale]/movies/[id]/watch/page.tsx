@@ -14,6 +14,7 @@ import { AlertCircle, X } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { canWatch, isInGracePeriod, getRemainingGraceTime } from '@/lib/rental-service';
 import { useAuth } from '@/lib/auth';
+import { getSignedVideoUrl, VideoTokenError } from '@/lib/api/video-tokens-client';
 import type { Movie } from '@/lib/types';
 
 // Helper to format grace time
@@ -39,6 +40,8 @@ export default function WatchPage() {
   const [rentalChecked, setRentalChecked] = useState(false);
   const [inGracePeriod, setInGracePeriod] = useState(false);
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
+  const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   
   // First, load the movie to get its UUID
   useEffect(() => {
@@ -55,32 +58,64 @@ export default function WatchPage() {
     loadMovie();
   }, [id]);
 
-  // Then check rental validity using the UUID
+  // Then check rental validity and fetch signed video URL
   useEffect(() => {
     // Wait for auth and movie to load
     if (authLoading || !movie) return;
     
     const checkAccess = async () => {
-      // Use movie.id (UUID) instead of params.id (slug)
-      const canAccess = await canWatch(movie.id);
-      
-      if (!canAccess) {
-        // No valid rental and not in grace period - redirect
-        router.push(`/movies/${id}?rental=expired`);
-        return;
+      try {
+        // Use movie.id (UUID) instead of params.id (slug)
+        const canAccess = await canWatch(movie.id);
+        
+        if (!canAccess) {
+          // No valid rental and not in grace period - redirect
+          router.push(`/movies/${id}?rental=expired`);
+          return;
+        }
+        
+        // Check if in grace period
+        const gracePeriod = await isInGracePeriod(movie.id);
+        setInGracePeriod(gracePeriod);
+        
+        if (gracePeriod) {
+          const graceMs = await getRemainingGraceTime(movie.id);
+          setGraceTimeRemaining(formatDurationMs(graceMs));
+        }
+        
+        // Get the primary video source (prefer HLS, fallback to MP4)
+        const videoSource =
+          movie.video_sources.find((vs) => vs.format === 'hls') ||
+          movie.video_sources[0];
+        
+        if (!videoSource) {
+          setVideoError('No video source available');
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch signed video URL from API
+        const { url } = await getSignedVideoUrl(movie.id, videoSource.id);
+        setSignedVideoUrl(url);
+        
+        setRentalChecked(true);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load video:', error);
+        
+        if (error instanceof VideoTokenError) {
+          if (error.code === 'RENTAL_REQUIRED') {
+            // Rental expired during loading
+            router.push(`/movies/${id}?rental=expired`);
+            return;
+          }
+          setVideoError(error.message);
+        } else {
+          setVideoError('Failed to load video');
+        }
+        
+        setLoading(false);
       }
-      
-      // Check if in grace period
-      const gracePeriod = await isInGracePeriod(movie.id);
-      setInGracePeriod(gracePeriod);
-      
-      if (gracePeriod) {
-        const graceMs = await getRemainingGraceTime(movie.id);
-        setGraceTimeRemaining(formatDurationMs(graceMs));
-      }
-      
-      setRentalChecked(true);
-      setLoading(false);
     };
     
     checkAccess();
@@ -104,31 +139,26 @@ export default function WatchPage() {
     return <div className="min-h-screen bg-black" />;
   }
 
-  if (!movie) {
+  if (!movie || videoError) {
     return (
       <div className="min-h-screen bg-black text-white">
         <Header variant="dark" />
         <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
-          <p>{t('common.error')}</p>
+          <p>{videoError || t('common.error')}</p>
         </div>
       </div>
     );
   }
 
-  // Get the primary video source (prefer HLS, fallback to MP4)
+  if (!signedVideoUrl) {
+    // Still loading signed URL
+    return <div className="min-h-screen bg-black" />;
+  }
+
+  // Get the primary video source for metadata
   const videoSource =
     movie.video_sources.find((vs) => vs.format === 'hls') ||
     movie.video_sources[0];
-
-  if (!videoSource) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <p>{t('common.error')}</p>
-        </div>
-      </div>
-    );
-  }
 
   const title = getLocalizedText(movie.title, locale);
   const overview = getLocalizedText(movie.overview, locale);
@@ -153,7 +183,7 @@ export default function WatchPage() {
       {/* Video Player - Constrained to viewport height */}
       <div className="w-full md:flex-1 flex items-center justify-center">
         <VideoPlayer
-          src={videoSource.url}
+          src={signedVideoUrl}
           poster={backdropUrl || posterUrl || undefined}
           title={title}
           autoPlay={true}
@@ -162,7 +192,7 @@ export default function WatchPage() {
           movieTitle={title}
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
           constrainToViewport={true}
-          aspectRatio={videoSource.aspect_ratio}
+          aspectRatio={videoSource?.aspect_ratio}
           onInfoClick={() => setShowInfo(true)}
         />
       </div>

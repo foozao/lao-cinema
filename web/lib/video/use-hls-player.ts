@@ -57,6 +57,10 @@ export function useHlsPlayer({
           manifestLoadingRetryDelay: 1000,
           levelLoadingMaxRetry: 3,
           fragLoadingMaxRetry: 3,
+          // Enable credentials (cookies) for signed URL sessions
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = true;
+          },
         });
         
         hlsRef.current = hls;

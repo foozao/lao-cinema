@@ -1,0 +1,121 @@
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { db } from '../db/index.js';
+import { rentals, movies, videoSources } from '../db/schema.js';
+import { eq, and, gte } from 'drizzle-orm';
+import { generateVideoToken } from '../lib/video-token.js';
+import { requireAuthOrAnonymous } from '../lib/auth-middleware.js';
+
+const requestSchema = z.object({
+  movieId: z.string().uuid(),
+  videoSourceId: z.string().uuid(),
+});
+
+export default async function videoTokenRoutes(fastify: FastifyInstance) {
+  /**
+   * POST /api/video-tokens
+   * Generate a signed URL for video streaming
+   * Validates rental status before issuing token
+   */
+  fastify.post(
+    '/video-tokens',
+    {
+      preHandler: requireAuthOrAnonymous,
+    },
+    async (request, reply) => {
+      const { movieId, videoSourceId } = requestSchema.parse(request.body);
+      const { userId, anonymousId } = request;
+
+      // 1. Verify the video source exists and belongs to the movie
+      const [videoSource] = await db
+        .select()
+        .from(videoSources)
+        .where(
+          and(
+            eq(videoSources.id, videoSourceId),
+            eq(videoSources.movieId, movieId)
+          )
+        )
+        .limit(1);
+
+      if (!videoSource) {
+        return reply.status(404).send({
+          error: 'Video source not found',
+        });
+      }
+
+      // 2. Check rental validity
+      const now = new Date();
+      const rentalQuery = db
+        .select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.movieId, movieId),
+            gte(rentals.expiresAt, now),
+            userId
+              ? eq(rentals.userId, userId)
+              : eq(rentals.anonymousId, anonymousId!)
+          )
+        )
+        .limit(1);
+
+      const [rental] = await rentalQuery;
+
+      if (!rental) {
+        return reply.status(403).send({
+          error: 'No valid rental found',
+          code: 'RENTAL_REQUIRED',
+        });
+      }
+
+      // 3. Construct video path
+      // videoSource.url contains just the slug (e.g., "chanthaly")
+      // We need to construct the full path: hls/{slug}/master.m3u8
+      const movieSlug = videoSource.url;
+      const videoPath = `hls/${movieSlug}/master.m3u8`;
+
+      // 4. Generate signed token
+      const token = generateVideoToken({
+        movieId,
+        userId,
+        anonymousId,
+        videoPath,
+      });
+
+      // 5. Return signed URL
+      const videoBaseUrl = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
+      const signedUrl = `${videoBaseUrl}/videos/${videoPath}?token=${token}`;
+
+      return reply.send({
+        url: signedUrl,
+        expiresIn: 900, // 15 minutes in seconds
+      });
+    }
+  );
+
+  /**
+   * GET /api/video-tokens/validate/:token
+   * Validate a video token (used by video server)
+   */
+  fastify.get('/video-tokens/validate/:token', async (request, reply) => {
+    const { token } = request.params as { token: string };
+
+    try {
+      const { verifyVideoToken } = await import('../lib/video-token.js');
+      const payload = verifyVideoToken(token);
+
+      // Token is valid, return payload for video server to use
+      return reply.send({
+        valid: true,
+        movieId: payload.movieId,
+        videoPath: payload.videoPath,
+      });
+    } catch (error) {
+      return reply.status(401).send({
+        valid: false,
+        error: error instanceof Error ? error.message : 'Invalid token',
+      });
+    }
+  });
+}
