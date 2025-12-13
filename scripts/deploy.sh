@@ -12,6 +12,10 @@ export REGION="asia-southeast1"  # Singapore - closest to Laos
 export DB_INSTANCE_NAME="lao-cinema-db"
 export CONNECTION_NAME=""  # Will be fetched automatically if empty
 
+# Custom domain configuration (leave empty to use Cloud Run URLs)
+export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
+export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -221,9 +225,11 @@ WEB_URL=$(gcloud run services describe lao-cinema-web \
 # UPDATE API CORS
 # ========================================
 log_info "Updating API CORS configuration..."
+# Use custom domain if configured, otherwise use Cloud Run URL
+CORS_ORIGIN="${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
 gcloud run services update lao-cinema-api \
     --region=$REGION \
-    --update-env-vars="CORS_ORIGIN=$WEB_URL" \
+    --update-env-vars="CORS_ORIGIN=$CORS_ORIGIN" \
     --quiet
 
 # ========================================
