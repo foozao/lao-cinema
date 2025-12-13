@@ -15,8 +15,6 @@ Possible Future Changes:
 
 * adding news/articles about lao cinema
 
-* fix Vercel version
-
 * building custom cast receiver
 
 - Gamification? 

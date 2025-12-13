@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { MovieCard } from '@/components/movie-card';
 import { RentalCard } from '@/components/rental-card';
 import { Header } from '@/components/header';
 import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
+import { CinematicLoader } from '@/components/cinematic-loader';
+import { AnimatedMovieGrid } from '@/components/animated-movie-grid';
 import { Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
@@ -21,6 +22,7 @@ export default function Home() {
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [error, setError] = useState<'network' | 'server' | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
 
   const loadMovies = useCallback(async () => {
     try {
@@ -87,68 +89,77 @@ export default function Home() {
     loadMovies();
   };
 
+  // Content is ready when not loading and loader is done
+  const contentReady = !loading && !showLoader;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
-      {/* Header */}
-      <Header variant="light" />
-      <SubHeader variant="light" />
+    <div className="min-h-screen bg-black">
+      {/* Cinematic Loader - first visit only */}
+      {showLoader && (
+        <CinematicLoader onComplete={() => setShowLoader(false)} />
+      )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 flex-grow">
-        {/* My Rentals Section */}
-        {!rentalsLoading && rentals.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-              {t('home.myRentals')}
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {rentals.map((rental) => (
-                <RentalCard key={rental.id} rental={rental} />
-              ))}
-            </div>
-          </section>
-        )}
+      <div className={`min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col transition-opacity duration-700 ${
+        showLoader ? 'opacity-0' : 'opacity-100'
+      }`}>
+        {/* Header */}
+        <Header variant="dark" />
+        <SubHeader variant="dark" />
 
-        {/* Featured Films Section */}
-        <section className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('home.featured')}
-          </h2>
-        </section>
-
-        {/* Movie Grid */}
-        <section>
-          {loading ? (
-            // Show blank space during loading
-            <div className="py-20" />
-          ) : error ? (
-            <APIError 
-              type={error} 
-              onRetry={handleRetry} 
-              isRetrying={isRetrying} 
-            />
-          ) : movies.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {movies.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <Film className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                {t('home.noFilms')}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-500">
-                {t('home.noFilmsDescription')}
-              </p>
-            </div>
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8 flex-grow">
+          {/* My Rentals Section */}
+          {!rentalsLoading && rentals.length > 0 && (
+            <section className={`mb-12 transition-all duration-700 ease-out ${
+              contentReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
+              <h2 className="text-3xl font-bold text-white mb-6">
+                {t('home.myRentals')}
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {rentals.map((rental) => (
+                  <RentalCard key={rental.id} rental={rental} />
+                ))}
+              </div>
+            </section>
           )}
-        </section>
-      </main>
 
-      {/* Footer */}
-      <Footer />
+          {/* Featured Films Section */}
+          <section className={`transition-all duration-700 ease-out delay-100 ${
+            contentReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <h2 className="text-3xl font-bold text-white mb-6">
+              {t('home.featured')}
+            </h2>
+
+            {/* Movie Grid */}
+            {loading ? (
+              <div className="py-20" />
+            ) : error ? (
+              <APIError 
+                type={error} 
+                onRetry={handleRetry} 
+                isRetrying={isRetrying} 
+              />
+            ) : movies.length > 0 ? (
+              <AnimatedMovieGrid movies={movies} />
+            ) : (
+              <div className="text-center py-20">
+                <Film className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-xl font-semibold text-gray-400 mb-2">
+                  {t('home.noFilms')}
+                </h3>
+                <p className="text-gray-500">
+                  {t('home.noFilmsDescription')}
+                </p>
+              </div>
+            )}
+          </section>
+        </main>
+
+        {/* Footer */}
+        <Footer variant="dark" />
+      </div>
     </div>
   );
 }
