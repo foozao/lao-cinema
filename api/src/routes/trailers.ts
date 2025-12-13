@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '../db/index.js';
 import { trailers, movies } from '../db/schema.js';
 import { eq, and, asc } from 'drizzle-orm';
-import { requireAdmin } from '../lib/auth-middleware.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 
 // Validation schemas
@@ -77,7 +77,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
   // POST /api/trailers/:movieId - Create a new trailer (admin only)
   fastify.post(
     '/trailers/:movieId',
-    { preHandler: requireAdmin },
+    { preHandler: requireEditorOrAdmin },
     async (request, reply) => {
       const { movieId } = request.params as { movieId: string };
 
@@ -143,7 +143,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
   // PATCH /api/trailers/:trailerId - Update a trailer (admin only)
   fastify.patch(
     '/trailers/:trailerId',
-    { preHandler: requireAdmin },
+    { preHandler: requireEditorOrAdmin },
     async (request, reply) => {
       const { trailerId } = request.params as { trailerId: string };
 
@@ -209,7 +209,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
   // DELETE /api/trailers/:trailerId - Delete a trailer (admin only)
   fastify.delete(
     '/trailers/:trailerId',
-    { preHandler: requireAdmin },
+    { preHandler: requireEditorOrAdmin },
     async (request, reply) => {
       const { trailerId } = request.params as { trailerId: string };
 
@@ -245,7 +245,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
   // POST /api/trailers/:movieId/reorder - Reorder trailers (admin only)
   fastify.post(
     '/trailers/:movieId/reorder',
-    { preHandler: requireAdmin },
+    { preHandler: requireEditorOrAdmin },
     async (request, reply) => {
       const { movieId } = request.params as { movieId: string };
       const { trailer_ids } = request.body as { trailer_ids: string[] };

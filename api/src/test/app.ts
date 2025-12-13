@@ -14,6 +14,8 @@ import movieProductionCompaniesRoutes from '../routes/movie-production-companies
 import auditLogRoutes from '../routes/audit-logs.js';
 import notificationRoutes from '../routes/notifications.js';
 import shortPackRoutes from '../routes/short-packs.js';
+import trailersRoutes from '../routes/trailers.js';
+import videoTokenRoutes from '../routes/video-tokens.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -27,6 +29,8 @@ interface BuildOptions {
   includeAuditLogs?: boolean;
   includeNotifications?: boolean;
   includeShortPacks?: boolean;
+  includeTrailers?: boolean;
+  includeVideoTokens?: boolean;
 }
 
 /**
@@ -94,6 +98,25 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(shortPackRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeTrailers) {
+    // Trailers require auth middleware for CUD operations
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(trailersRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeVideoTokens) {
+    // Video tokens require auth/anonymous middleware and rentals
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    if (!options.includeRentals) {
+      await app.register(rentalRoutes, { prefix: '/api' });
+    }
+    await app.register(videoTokenRoutes, { prefix: '/api' });
   }
 
   return app;
