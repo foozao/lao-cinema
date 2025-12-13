@@ -1,7 +1,7 @@
 # User Accounts Implementation
 
-**Status**: Phase 1 & 2 Complete (Backend Foundation)  
-**Last Updated**: December 6, 2025
+**Status**: Phase 1-4 Complete (Backend + Frontend)  
+**Last Updated**: December 13, 2025
 
 ## Overview
 
@@ -14,7 +14,7 @@ User accounts system with anonymous-first design. Users can browse, rent, and wa
 1. **Anonymous-First**: Full functionality without account creation
 2. **OAuth-Ready**: Modular design supports Google/Apple login (future)
 3. **Dual-Mode**: All APIs support both authenticated and anonymous users
-4. **Secure**: bcrypt password hashing, session-based auth, rate limiting ready
+4. **Secure**: scrypt password hashing, session-based auth, rate limiting ready
 
 ### Database Schema
 
@@ -126,19 +126,29 @@ GET    /api/users/me/stats      - Get user statistics
 
 ## Frontend Implementation
 
-### Status: Foundation Complete ✅
+### Status: Complete ✅
 
-**Files Created**:
+**Auth Library Files**:
 - `web/lib/anonymous-id.ts` - Anonymous ID generation and management ✅
 - `web/lib/auth/types.ts` - TypeScript type definitions ✅
 - `web/lib/auth/api-client.ts` - Auth API client with session management ✅
 - `web/lib/auth/auth-context.tsx` - React context with auto-migration ✅
 - `web/lib/auth/index.ts` - Module exports ✅
 
-**To Be Created**:
-- `web/components/auth/` - Login/register forms
-- `web/app/[locale]/login/` - Auth pages
-- `web/app/[locale]/profile/` - Profile pages
+**Auth Components**:
+- `web/components/auth/login-form.tsx` - Login form with validation ✅
+- `web/components/auth/register-form.tsx` - Registration form with validation ✅
+- `web/components/auth/user-menu.tsx` - User dropdown menu with profile/logout ✅
+
+**Auth Pages**:
+- `web/app/[locale]/login/` - Login page ✅
+- `web/app/[locale]/register/` - Registration page ✅
+
+**Profile Pages**:
+- `web/app/[locale]/profile/` - User dashboard ✅
+- `web/app/[locale]/profile/settings/` - Account settings ✅
+- `web/app/[locale]/profile/rentals/` - Rental history ✅
+- `web/app/[locale]/profile/continue-watching/` - Continue watching list ✅
 
 ## Data Migration Flow
 
@@ -230,27 +240,34 @@ Headers: {
 }
 ```
 
+## Completed Phases
+
+### Phase 3: Frontend Integration ✅
+1. ✅ Created auth context with anonymous ID system
+2. ✅ Built login/register UI components
+3. ✅ Added user menu to navigation
+4. ✅ Updated rental service for API calls
+5. ✅ Updated video player for progress sync
+
+### Phase 4: Dual-Mode APIs ✅
+1. ✅ Implemented rental routes with dual-mode support
+2. ✅ Implemented watch progress routes
+3. ✅ Updated analytics to track users
+4. ✅ Created data migration endpoint
+
+### Phase 5: Profile & Polish ✅
+1. ✅ Built profile pages (dashboard, settings)
+2. ✅ Added rental history view
+3. ✅ Added continue watching feature
+4. ✅ Cross-device sync working
+
 ## Next Steps
 
-### Phase 3: Frontend Integration (Pending)
-1. Create auth context with anonymous ID system
-2. Build login/register UI components
-3. Add user menu to navigation
-4. Update rental service for API calls
-5. Update video player for progress sync
-
-### Phase 4: Dual-Mode APIs (Pending)
-1. Implement rental routes with dual-mode support
-2. Implement watch progress routes
-3. Update analytics to track users
-4. Create data migration endpoint
-
-### Phase 5: Profile & Polish (Pending)
-1. Build profile pages
-2. Add rental history view
-3. Add continue watching feature
-4. Implement account benefits prompts
-5. Testing and bug fixes
+### Phase 6: OAuth & Email (Pending)
+1. Implement Google OAuth provider
+2. Implement Apple OAuth provider
+3. Add password reset flow (requires email service)
+4. Email verification flow
 
 ## OAuth Integration (Future)
 
@@ -287,31 +304,36 @@ interface AppleOAuthProvider implements OAuthProvider {
 
 ## Testing Checklist
 
-### Backend (Ready to Test)
-- [ ] User registration with email/password
-- [ ] Login with valid credentials
-- [ ] Login with invalid credentials (should fail)
-- [ ] Session token validation
-- [ ] Password change
-- [ ] Profile update
-- [ ] Account deletion
-- [ ] Logout (single session)
-- [ ] Logout all devices
+### Backend ✅
+- [x] User registration with email/password
+- [x] Login with valid credentials
+- [x] Login with invalid credentials (should fail)
+- [x] Session token validation
+- [x] Password change
+- [x] Profile update
+- [x] Account deletion
+- [x] Logout (single session)
+- [x] Logout all devices
 
-### Frontend (Not Yet Implemented)
-- [ ] Registration form
-- [ ] Login form
-- [ ] Auth context state management
-- [ ] Anonymous ID generation
-- [ ] Session persistence
-- [ ] Protected route redirects
+### Frontend ✅
+- [x] Registration form
+- [x] Login form
+- [x] Auth context state management
+- [x] Anonymous ID generation
+- [x] Session persistence
+- [x] Protected route redirects
 
-### Integration (Not Yet Implemented)
-- [ ] Anonymous rental → API
-- [ ] Authenticated rental → API
-- [ ] Data migration on first login
-- [ ] Watch progress sync
-- [ ] Analytics with user tracking
+### Integration ✅
+- [x] Anonymous rental → API
+- [x] Authenticated rental → API
+- [x] Data migration on first login
+- [x] Watch progress sync
+- [x] Analytics with user tracking
+
+### Pending
+- [ ] OAuth providers (Google, Apple)
+- [ ] Password reset flow
+- [ ] Email verification
 
 ## Configuration
 
@@ -366,11 +388,14 @@ Full API documentation available at:
 
 ---
 
-**Implementation Progress**: 70% Complete (Backend + Foundation)
-- ✅ Database schema (Migration 0011)
+**Implementation Progress**: 95% Complete
+- ✅ Database schema (Migration 0011+)
 - ✅ Backend auth infrastructure (routes, middleware, services)
 - ✅ Backend dual-mode APIs (rentals, watch progress, migration)
 - ✅ Frontend auth system (context, anonymous ID, API client)
-- ⏳ Frontend UI components (login/register forms)
-- ⏳ Profile pages
+- ✅ Frontend UI components (login/register forms, user menu)
+- ✅ Profile pages (dashboard, settings, rentals, continue watching)
+- ✅ Cross-device sync (rentals, watch progress)
 - ⏳ OAuth providers (Google, Apple)
+- ⏳ Password reset flow
+- ⏳ Email verification

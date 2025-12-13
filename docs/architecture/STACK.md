@@ -5,25 +5,32 @@ This document defines the technology stack for the Lao Cinema streaming platform
 **✅ Fully Implemented:**
 - Next.js 16.0.3 web application with React 19.2.0
 - Fastify backend API with PostgreSQL database
-- Drizzle ORM with migration system
-- TMDB integration (import movies, cast, crew)
+- Drizzle ORM with migration system (22 migrations)
+- TMDB integration (import movies, cast, crew, production companies)
 - Bilingual support (English/Lao) with next-intl
-- People-centric architecture (separate people table)
-- Admin panel (import, edit, analytics, people management)
+- People-centric architecture (separate people table with merge/alias support)
+- Admin panel (import, edit, analytics, people management, homepage, audit logs)
 - Video streaming (HLS via GCS in production, local in dev)
-- Authentication (HTTP Basic Auth with role-based access)
-- Rental system and analytics framework
+- User authentication (email/password with scrypt, session-based, role-based access)
+- Frontend auth UI (login, register, user menu, profile pages)
+- Rental system with database persistence (dual-mode: userId OR anonymousId)
+- Watch progress with cross-device sync
+- Video analytics framework
 - Testing framework (70+ tests)
 - Docker Compose development environment
 - GCP Cloud Run deployment
+- Production companies with TMDB sync
+- Trailers (YouTube + self-hosted)
+- Audit logging for content changes
 
 **🚧 Partially Implemented:**
-- Admin features (import/edit complete, missing search/bulk operations)
-- User accounts (HTTP Basic Auth working, need full user system)
+- Admin features (import/edit complete, missing bulk operations)
+- OAuth integration (architecture ready, providers not implemented)
 
 **📋 Planned:**
-- User authentication and profiles (full accounts)
-- Watchlist and watch history
+- OAuth providers (Google, Apple sign-in)
+- Watchlist functionality
+- Password reset flow (requires email service)
 - Mobile app (React Native/Expo)
 - Automated video transcoding pipeline
 
@@ -72,18 +79,21 @@ Features:
 	•	Language: Node.js + TypeScript ✅
 	•	API Style: REST API ✅
 	•	Authentication:
-	•	JWT-based auth (planned)
-	•	OAuth for admin panel (planned)
+	•	Session-based auth ✅ (scrypt password hashing, 30-day sessions)
+	•	Role-based access ✅ (user/editor/admin)
+	•	OAuth architecture ready (Google/Apple interfaces defined)
 
 3.2 Responsibilities
-	•	User auth + sessions (planned)
+	•	User auth + sessions ✅ (register, login, logout, profile management)
 	•	CRUD for films ✅ (movies endpoints implemented)
 	•	CRUD for genres, cast, crew ✅ (via movie relationships)
-	•	Playback authorization (planned)
-	•	Watch history + continue-watching (planned)
-	•	Search + filtering endpoints (planned)
-	•	Admin CMS endpoints ✅ (partial - movie import/edit)
-	•	TMDB integration ✅ (fetch movie data and credits)
+	•	CRUD for production companies ✅
+	•	Playback authorization ✅ (rental system with dual-mode support)
+	•	Watch progress + continue-watching ✅ (cross-device sync)
+	•	Search + filtering endpoints ✅ (people, production companies)
+	•	Admin CMS endpoints ✅ (movies, people, homepage, analytics)
+	•	TMDB integration ✅ (fetch movie data, credits, production companies)
+	•	Audit logging ✅ (tracks all content changes)
 
 3.3 Deployment
 	•	Containerized with Docker (ready)
@@ -112,26 +122,36 @@ Features:
 	•	pgvector (optional) → semantic search + recommendations (future)
 
 4.4 Core Tables (Implemented ✅)
-	•	movies ✅ (with UUID primary key)
+	•	movies ✅ (with UUID primary key, slug for vanity URLs)
 	•	movie_translations ✅ (bilingual support)
 	•	genres ✅
 	•	genre_translations ✅
 	•	movie_genres ✅ (junction table)
 	•	people ✅ (actors, directors, crew)
-	•	people_translations ✅ (bilingual names/bios)
+	•	people_translations ✅ (bilingual names/bios with nicknames)
+	•	person_aliases ✅ (tracks merged TMDB IDs)
 	•	movie_cast ✅ (movie-actor relationships)
 	•	movie_cast_translations ✅ (character names)
 	•	movie_crew ✅ (movie-crew relationships)
 	•	movie_crew_translations ✅ (job titles)
-	•	video_sources (planned - currently in movie JSON)
+	•	video_sources ✅ (HLS/MP4 with quality variants)
+	•	movie_images ✅ (multiple posters/backdrops)
+	•	movie_external_platforms ✅ (Netflix, Prime, etc.)
+	•	homepage_featured ✅ (featured movie ordering)
+	•	trailers ✅ (YouTube + self-hosted video)
+	•	production_companies ✅ (with translations)
+	•	movie_production_companies ✅ (junction table)
+	•	users ✅ (email/password auth, roles)
+	•	user_sessions ✅ (session tokens)
+	•	oauth_accounts ✅ (prepared for Google/Apple)
+	•	rentals ✅ (dual-mode: userId OR anonymousId)
+	•	watch_progress ✅ (resume playback, cross-device)
+	•	video_analytics_events ✅ (watch tracking)
+	•	audit_logs ✅ (content change history)
 
 4.5 Planned Tables
-	•	users (authentication)
-	•	watch_history (user viewing history)
 	•	watchlist (user saved movies)
-	•	resume_points (playback progress)
-	•	playback_sessions (streaming analytics)
-	•	admins (admin users)
+	•	user_ratings (movie ratings/reviews)
 
 ⸻
 
@@ -218,18 +238,22 @@ Option C — Self-hosted NGINX HLS (later stage)
 
 ⸻
 
-🔐 8. Authentication (Planned)
+🔐 8. Authentication (Implemented ✅)
 
-Backend
-	•	JWT auth (access + refresh tokens)
-	•	Password login or OAuth for admins
-	•	Argon2 password hashing
-	•	Role-based permissions (user/admin)
+Backend ✅
+	•	Session-based auth (30-day expiration)
+	•	Email/password registration and login
+	•	Scrypt password hashing with random salt
+	•	Role-based permissions (user/editor/admin)
+	•	OAuth-ready architecture (Google/Apple interfaces defined)
+	•	Dual-mode support (authenticated OR anonymous users)
 
-Frontend (Web + Mobile)
-	•	Store access token securely
-	•	Refresh token rotation
-	•	Auto-logout on token expiration
+Frontend (Web) ✅
+	•	Login/register forms with validation
+	•	User menu with profile dropdown
+	•	Auth context with automatic token refresh
+	•	Anonymous ID system for unauthenticated users
+	•	Data migration on first login (anonymous → authenticated)
 
 ⸻
 
@@ -239,14 +263,22 @@ REST Endpoints (Implemented ✅ / Planned)
 	•	/health ✅ (health check)
 	•	/api/movies ✅ (GET all, POST create)
 	•	/api/movies/:id ✅ (GET, PUT, DELETE)
-	•	/auth/* (login, register, refresh, logout) - planned
-	•	/genres/* - planned
-	•	/people/* - planned (person pages)
+	•	/api/movies/:id/cast ✅ (POST, DELETE)
+	•	/api/movies/:id/crew ✅ (POST, DELETE)
+	•	/api/movies/:id/production-companies ✅ (GET, POST, DELETE)
+	•	/api/auth/* ✅ (register, login, logout, profile)
+	•	/api/people ✅ (GET all, POST create)
+	•	/api/people/:id ✅ (GET, PUT, merge)
+	•	/api/production-companies ✅ (GET all, POST, PUT)
+	•	/api/rentals ✅ (GET, POST, migrate)
+	•	/api/watch-progress ✅ (GET, PUT, DELETE, migrate)
+	•	/api/homepage/featured ✅ (GET, POST, reorder, DELETE)
+	•	/api/trailers ✅ (CRUD for movie trailers)
+	•	/api/audit-logs ✅ (GET with filters)
+	•	/api/users/migrate ✅ (anonymous to authenticated)
+	•	/api/upload ✅ (file uploads)
 	•	/watchlist/* - planned
-	•	/history/* - planned
-	•	/resume/* - planned
 	•	/stream/* (signed playback URL) - planned
-	•	/admin/* - partial (via frontend admin panel)
 
 ⸻
 

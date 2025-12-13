@@ -44,6 +44,18 @@ Quick reference for the Lao Cinema PostgreSQL database schema.
          │                   │  format (hls|mp4)      │
          │                   │  url                   │
          │                   │  aspect_ratio          │
+         │                   │  width, height         │
+         │                   └────────────────────────┘
+         │
+         │                   ┌────────────────────────┐
+         ├──────────────────>│      trailers          │
+         │             1:N   │  ────────────────────  │
+         │                   │  id (uuid) PK          │
+         │                   │  movie_id FK           │
+         │                   │  type (youtube|video)  │
+         │                   │  youtube_key           │
+         │                   │  video_url             │
+         │                   │  name, official        │
          │                   └────────────────────────┘
          │
          │                   ┌────────────────────────┐
@@ -67,11 +79,15 @@ Quick reference for the Lao Cinema PostgreSQL database schema.
 │  profile_path    │         │  language (en|lo)      │
 │  birthday        │         │  name ★                │
 │  deathday        │         │  biography             │
-│  place_of_birth  │         └────────────────────────┘
-│  known_for_dept  │
+│  place_of_birth  │         │  nicknames (array)     │
+│  known_for_dept  │         └────────────────────────┘
 │  popularity      │
-│  gender          │
-└────────┬─────────┘
+│  gender          │         ┌────────────────────────┐
+│  imdb_id         │────────>│   person_aliases       │
+│  homepage        │   1:N   │  ────────────────────  │
+└────────┬─────────┘         │  tmdb_id PK            │
+         │                   │  canonical_person_id FK│
+         │                   └────────────────────────┘
          │
          │  ┌──────────────────────────────────────────────────────────┐
          │  │                     JUNCTION TABLES                       │
@@ -115,6 +131,27 @@ Quick reference for the Lao Cinema PostgreSQL database schema.
                    │  movie_id FK           │
                    │  genre_id FK           │
                    └────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           PRODUCTION COMPANIES                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────────┐     ┌─────────────────────────────┐
+│ production_companies  │────>│ production_company_translations│
+│  ───────────────────  │ 1:N │  ─────────────────────────  │
+│  id (int) PK          │     │  company_id FK              │
+│  slug (unique)        │     │  language (en|lo)           │
+│  logo_path            │     │  name ★                     │
+│  custom_logo_url      │     └─────────────────────────────┘
+│  website_url          │
+│  origin_country       │     ┌─────────────────────────────┐
+└───────────┬───────────┘────>│ movie_production_companies   │
+            │            N:M  │  ─────────────────────────  │
+            └─────────────────│  movie_id FK                │
+                              │  company_id FK              │
+                              │  order                      │
+                              └─────────────────────────────┘
 
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -187,6 +224,21 @@ Quick reference for the Lao Cinema PostgreSQL database schema.
                                    │  device_type               │
                                    │  timestamp                 │
                                    └────────────────────────────┘
+
+┌────────────────────────┐
+│     audit_logs         │
+│  ────────────────────  │
+│  id (uuid) PK          │
+│  user_id FK            │
+│  action (enum)         │
+│  entity_type (enum)    │
+│  entity_id             │
+│  entity_name           │
+│  changes (JSON)        │
+│  ip_address            │
+│  user_agent            │
+│  created_at            │
+└────────────────────────┘
 ```
 
 ★ = LocalizedText field (stored in translation table)
@@ -202,19 +254,27 @@ type Language = 'en' | 'lo';
 // Video
 type VideoFormat = 'mp4' | 'hls' | 'dash';
 type VideoQuality = 'original' | '1080p' | '720p' | '480p' | '360p';
+type TrailerType = 'youtube' | 'video';
 
 // Images
 type ImageType = 'poster' | 'backdrop' | 'logo';
 
 // Availability
-type AvailabilityStatus = 'available' | 'external' | 'unavailable' | 'coming_soon';
+type AvailabilityStatus = 'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon';
 
 // External Platforms
 type StreamingPlatform = 'netflix' | 'prime' | 'disney' | 'hbo' | 'apple' | 'hulu' | 'other';
 
 // Auth
-type UserRole = 'user' | 'admin';
+type UserRole = 'user' | 'editor' | 'admin';
 type AuthProvider = 'email' | 'google' | 'apple';
+
+// Audit
+type AuditAction = 'create' | 'update' | 'delete' | 'add_cast' | 'remove_cast' | 
+  'add_crew' | 'remove_crew' | 'add_image' | 'remove_image' | 'set_primary_image' |
+  'add_video' | 'remove_video' | 'add_genre' | 'remove_genre' | 
+  'add_production_company' | 'remove_production_company' | 'merge_people' | ...;
+type AuditEntityType = 'movie' | 'person' | 'genre' | 'production_company' | 'user' | 'settings';
 ```
 
 ---
@@ -226,10 +286,11 @@ These tables store bilingual content:
 | Table | LocalizedText Fields |
 |-------|---------------------|
 | `movie_translations` | `title`, `overview`, `tagline` |
-| `people_translations` | `name`, `biography` |
+| `people_translations` | `name`, `biography`, `nicknames` (array) |
 | `genre_translations` | `name` |
 | `movie_cast_translations` | `character` |
 | `movie_crew_translations` | `job` |
+| `production_company_translations` | `name` |
 
 **Pattern**: Main table + `_translations` table with composite PK (entity_id, language).
 
@@ -316,8 +377,16 @@ const userRentals = await db.select()
 | 0004 | Add external_platforms |
 | 0005 | Add slug to movies |
 | 0006 | Add availability_status |
-| ... | ... |
-| 0011 | Add user accounts, rentals, watch_progress |
+| 0007 | Add video source dimensions (width, height) |
+| 0008-0010 | Availability status refinements |
+| 0011 | Add user accounts, sessions, rentals, watch_progress |
+| 0012-0014 | Production companies and movie associations |
+| 0015 | Add auto availability status |
+| 0016 | Additional schema refinements |
+| 0017-0018 | Add person nicknames, trailers table |
+| 0019-0020 | Audit logs and person aliases |
+
+**Total migrations**: 22 (0000-0020)
 
 Run migrations:
 ```bash
@@ -334,3 +403,6 @@ npm run db:migrate
 3. **Dual-mode awareness** - Rentals and watch_progress support both `userId` and `anonymousId`
 4. **Cascade deletes** - Deleting a movie removes all related data automatically
 5. **Negative IDs** - Manual people have negative IDs; don't assume all person IDs are positive
+6. **Person aliases** - Check `person_aliases` before creating people to prevent duplicates from TMDB sync
+7. **Audit logging** - Content changes are tracked in `audit_logs` for editor/admin accountability
+8. **Three user roles** - `user` (viewers), `editor` (content management), `admin` (full access)
