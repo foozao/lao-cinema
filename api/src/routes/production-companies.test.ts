@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { build } from '../test/app.js';
+import { build, createTestEditor } from '../test/app.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
@@ -151,12 +151,14 @@ describe('Production Companies Routes', () => {
   });
 
   describe('POST /api/production-companies', () => {
-    it('should create a new production company', async () => {
-      const app = await build({ includeProductionCompanies: true });
+    it('should create a new production company with bilingual name', async () => {
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/production-companies',
+        headers,
         payload: {
           name: { en: 'New Studio', lo: 'ສະຕູດິໂອໃໝ່' },
           origin_country: 'LA',
@@ -176,12 +178,14 @@ describe('Production Companies Routes', () => {
       expect(companies).toHaveLength(1);
     });
 
-    it('should create company with only English name', async () => {
-      const app = await build({ includeProductionCompanies: true });
+    it('should create a company with only English name', async () => {
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/production-companies',
+        headers,
         payload: {
           name: { en: 'English Only Studio' },
         },
@@ -193,11 +197,13 @@ describe('Production Companies Routes', () => {
     });
 
     it('should reject request without English name', async () => {
-      const app = await build({ includeProductionCompanies: true });
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/production-companies',
+        headers,
         payload: {
           name: { lo: 'ລາວເທົ່ານັ້ນ' },
         },
@@ -209,7 +215,8 @@ describe('Production Companies Routes', () => {
 
   describe('PATCH /api/production-companies/:id', () => {
     it('should update a production company', async () => {
-      const app = await build({ includeProductionCompanies: true });
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       await db.insert(schema.productionCompanies).values({
         id: 1,
@@ -225,6 +232,7 @@ describe('Production Companies Routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: '/api/production-companies/1',
+        headers,
         payload: {
           name: { en: 'Updated Name', lo: 'ຊື່ອັບເດດ' },
           origin_country: 'US',
@@ -238,11 +246,13 @@ describe('Production Companies Routes', () => {
     });
 
     it('should return 404 for non-existent company', async () => {
-      const app = await build({ includeProductionCompanies: true });
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       const response = await app.inject({
         method: 'PATCH',
         url: '/api/production-companies/999',
+        headers,
         payload: {
           name: { en: 'Test' },
         },
@@ -254,7 +264,8 @@ describe('Production Companies Routes', () => {
 
   describe('DELETE /api/production-companies/:id', () => {
     it('should delete a production company', async () => {
-      const app = await build({ includeProductionCompanies: true });
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       await db.insert(schema.productionCompanies).values({ id: 1 });
       await db.insert(schema.productionCompanyTranslations).values({
@@ -266,6 +277,7 @@ describe('Production Companies Routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: '/api/production-companies/1',
+        headers,
       });
 
       expect(response.statusCode).toBe(200);
@@ -278,11 +290,13 @@ describe('Production Companies Routes', () => {
     });
 
     it('should return 404 for non-existent company', async () => {
-      const app = await build({ includeProductionCompanies: true });
+      const app = await build({ includeProductionCompanies: true, includeAuth: true });
+      const { headers } = await createTestEditor();
 
       const response = await app.inject({
         method: 'DELETE',
         url: '/api/production-companies/999',
+        headers,
       });
 
       expect(response.statusCode).toBe(404);

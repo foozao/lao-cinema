@@ -150,8 +150,20 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           .where(eq(schema.movieTranslations.movieId, movieId));
         const movieTitle = movieTranslations.find(t => t.language === 'en')?.title || movie.originalTitle || 'Unknown';
 
-        // Log audit event
-        await logAuditFromRequest(request, 'feature_movie', 'movie', movieId, movieTitle);
+        // Log audit event with details
+        await logAuditFromRequest(
+          request, 
+          'feature_movie', 
+          'movie', 
+          movieId, 
+          movieTitle,
+          {
+            featured_id: { before: null, after: featured.id },
+            movie_id: { before: null, after: movieId },
+            movie_title: { before: null, after: movieTitle },
+            order: { before: null, after: order },
+          }
+        );
 
         return reply.status(201).send(featured);
       } catch (error) {
@@ -202,8 +214,26 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: 'Featured film not found' });
         }
 
-        // Log audit event
-        await logAuditFromRequest(request, 'unfeature_movie', 'movie', deleted.movieId, `Removed from featured`);
+        // Get movie title for audit log
+        const movieTranslations = await db.select()
+          .from(schema.movieTranslations)
+          .where(eq(schema.movieTranslations.movieId, deleted.movieId));
+        const movieTitle = movieTranslations.find(t => t.language === 'en')?.title || 'Unknown';
+
+        // Log audit event with details
+        await logAuditFromRequest(
+          request, 
+          'unfeature_movie', 
+          'movie', 
+          deleted.movieId, 
+          movieTitle,
+          {
+            featured_id: { before: deleted.id, after: null },
+            movie_id: { before: deleted.movieId, after: null },
+            movie_title: { before: movieTitle, after: null },
+            order: { before: deleted.order, after: null },
+          }
+        );
 
         return { success: true, id: deleted.id };
       } catch (error) {

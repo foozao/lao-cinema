@@ -11,6 +11,7 @@ import peopleRoutes from '../routes/people.js';
 import homepageRoutes from '../routes/homepage.js';
 import { productionCompaniesRoutes } from '../routes/production-companies.js';
 import movieProductionCompaniesRoutes from '../routes/movie-production-companies.js';
+import auditLogRoutes from '../routes/audit-logs.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -21,6 +22,7 @@ interface BuildOptions {
   includePeople?: boolean;
   includeHomepage?: boolean;
   includeProductionCompanies?: boolean;
+  includeAuditLogs?: boolean;
 }
 
 /**
@@ -64,6 +66,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   if (options.includeProductionCompanies) {
     await app.register(productionCompaniesRoutes, { prefix: '/api' });
     await app.register(movieProductionCompaniesRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeAuditLogs) {
+    // Audit logs require auth middleware, so also register auth routes
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(auditLogRoutes, { prefix: '/api' });
   }
 
   return app;

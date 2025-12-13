@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { trailers, movies } from '../db/schema.js';
 import { eq, and, asc } from 'drizzle-orm';
 import { requireAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 // Validation schemas
 const youtubeTrailerSchema = z.object({
@@ -119,6 +120,22 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
         })
         .returning();
 
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'movie',
+        movieId,
+        `Added trailer: ${data.name}`,
+        {
+          trailer_id: { before: null, after: newTrailer.id },
+          trailer_type: { before: null, after: data.type },
+          trailer_name: { before: null, after: data.name },
+          youtube_key: { before: null, after: data.type === 'youtube' ? data.youtube_key : null },
+          video_url: { before: null, after: data.type === 'video' ? data.video_url : null },
+        }
+      );
+
       return reply.status(201).send(newTrailer);
     }
   );
@@ -162,6 +179,29 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
         .where(eq(trailers.id, trailerId))
         .returning();
 
+      // Log audit event with changes
+      const changes: Record<string, { before: any; after: any }> = {
+        trailer_id: { before: existingTrailer.id, after: updatedTrailer.id },
+      };
+      if (data.name !== undefined && data.name !== existingTrailer.name) {
+        changes.trailer_name = { before: existingTrailer.name, after: data.name };
+      }
+      if (data.video_url !== undefined && data.video_url !== existingTrailer.videoUrl) {
+        changes.video_url = { before: existingTrailer.videoUrl, after: data.video_url };
+      }
+      if (data.official !== undefined && data.official !== existingTrailer.official) {
+        changes.official = { before: existingTrailer.official, after: data.official };
+      }
+      
+      await logAuditFromRequest(
+        request,
+        'update',
+        'movie',
+        existingTrailer.movieId,
+        `Updated trailer: ${updatedTrailer.name}`,
+        Object.keys(changes).length > 1 ? changes : undefined
+      );
+
       return updatedTrailer;
     }
   );
@@ -181,6 +221,22 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
       if (!deletedTrailer) {
         return reply.status(404).send({ error: 'Trailer not found' });
       }
+
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'movie',
+        deletedTrailer.movieId,
+        `Removed trailer: ${deletedTrailer.name}`,
+        {
+          trailer_id: { before: deletedTrailer.id, after: null },
+          trailer_type: { before: deletedTrailer.type, after: null },
+          trailer_name: { before: deletedTrailer.name, after: null },
+          youtube_key: { before: deletedTrailer.youtubeKey, after: null },
+          video_url: { before: deletedTrailer.videoUrl, after: null },
+        }
+      );
 
       return { success: true, deleted: deletedTrailer };
     }

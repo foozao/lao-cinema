@@ -3,6 +3,8 @@
 import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function movieProductionCompaniesRoutes(fastify: FastifyInstance) {
   // Add production company to movie
@@ -12,7 +14,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
       company_id: number;
       order?: number;
     };
-  }>('/movies/:movieId/production-companies', async (request, reply) => {
+  }>('/movies/:movieId/production-companies', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { movieId } = request.params;
       const { company_id, order } = request.body;
@@ -63,6 +65,21 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         name[trans.language] = trans.name;
       }
 
+      // Log audit event
+      const companyName = name.en || name.lo || 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'add_production_company',
+        'movie',
+        movieId,
+        `Added ${companyName}`,
+        {
+          company_id: { before: null, after: company_id },
+          company_name: { before: null, after: companyName },
+          order: { before: null, after: companyOrder },
+        }
+      );
+
       return reply.status(201).send({
         company: {
           id: company.id,
@@ -81,10 +98,16 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
   // Remove production company from movie
   fastify.delete<{
     Params: { movieId: string; companyId: string };
-  }>('/movies/:movieId/production-companies/:companyId', async (request, reply) => {
+  }>('/movies/:movieId/production-companies/:companyId', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { movieId, companyId } = request.params;
       const companyIdNum = parseInt(companyId);
+
+      // Get company name for audit log before deletion
+      const translations = await db.select()
+        .from(schema.productionCompanyTranslations)
+        .where(eq(schema.productionCompanyTranslations.companyId, companyIdNum));
+      const companyName = translations.find(t => t.language === 'en')?.name || 'Unknown';
 
       const deleted = await db.delete(schema.movieProductionCompanies)
         .where(sql`${schema.movieProductionCompanies.movieId} = ${movieId} AND ${schema.movieProductionCompanies.companyId} = ${companyIdNum}`)
@@ -93,6 +116,19 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
       if (deleted.length === 0) {
         return reply.status(404).send({ error: 'Production company not associated with this movie' });
       }
+
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'remove_production_company',
+        'movie',
+        movieId,
+        `Removed ${companyName}`,
+        {
+          company_id: { before: companyIdNum, after: null },
+          company_name: { before: companyName, after: null },
+        }
+      );
 
       return { success: true, message: 'Production company removed from movie' };
     } catch (error) {

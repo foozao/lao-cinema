@@ -8,6 +8,15 @@ import { insertCharacterTranslations } from '../lib/movie-helpers.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 
+// Helper to get person name for audit logging
+async function getPersonName(personId: number): Promise<string> {
+  const translations = await db.select()
+    .from(schema.peopleTranslations)
+    .where(eq(schema.peopleTranslations.personId, personId));
+  const enName = translations.find(t => t.language === 'en')?.name;
+  return enName || `Person #${personId}`;
+}
+
 export default async function movieCastRoutes(fastify: FastifyInstance) {
   // Add cast member to movie
   fastify.post<{
@@ -61,8 +70,22 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       // Insert character translations
       await insertCharacterTranslations(db, schema, movieId, person_id, character);
 
-      // Log audit event
-      await logAuditFromRequest(request, 'add_cast', 'movie', movieId, `Added person ${person_id} as ${character.en}`);
+      // Log audit event with details
+      const personName = await getPersonName(person_id);
+      await logAuditFromRequest(
+        request, 
+        'add_cast', 
+        'movie', 
+        movieId, 
+        `Added ${personName} as ${character.en}`,
+        {
+          person_id: { before: null, after: person_id },
+          person_name: { before: null, after: personName },
+          character_en: { before: null, after: character.en },
+          character_lo: { before: null, after: character.lo || null },
+          order: { before: null, after: castOrder },
+        }
+      );
 
       return { success: true, message: 'Cast member added successfully' };
     } catch (error) {
@@ -79,6 +102,14 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       const { id: movieId, personId } = request.params;
       const personIdNum = parseInt(personId);
 
+      // Get existing data for audit log before deletion
+      const existingTranslations = await db.select()
+        .from(schema.movieCastTranslations)
+        .where(sql`${schema.movieCastTranslations.movieId} = ${movieId} AND ${schema.movieCastTranslations.personId} = ${personIdNum}`);
+      const characterEn = existingTranslations.find(t => t.language === 'en')?.character;
+      const characterLo = existingTranslations.find(t => t.language === 'lo')?.character;
+      const personName = await getPersonName(personIdNum);
+
       // Delete cast translations first
       await db.delete(schema.movieCastTranslations)
         .where(sql`${schema.movieCastTranslations.movieId} = ${movieId} AND ${schema.movieCastTranslations.personId} = ${personIdNum}`);
@@ -87,8 +118,20 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       await db.delete(schema.movieCast)
         .where(sql`${schema.movieCast.movieId} = ${movieId} AND ${schema.movieCast.personId} = ${personIdNum}`);
 
-      // Log audit event
-      await logAuditFromRequest(request, 'remove_cast', 'movie', movieId, `Person ${personIdNum}`);
+      // Log audit event with details
+      await logAuditFromRequest(
+        request, 
+        'remove_cast', 
+        'movie', 
+        movieId, 
+        `Removed ${personName}`,
+        {
+          person_id: { before: personIdNum, after: null },
+          person_name: { before: personName, after: null },
+          character_en: { before: characterEn || null, after: null },
+          character_lo: { before: characterLo || null, after: null },
+        }
+      );
 
       return { success: true, message: 'Cast member removed successfully' };
     } catch (error) {

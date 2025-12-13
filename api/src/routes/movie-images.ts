@@ -65,8 +65,19 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
             .where(eq(schema.movies.id, movieId));
         }
 
-        // Log audit event
-        await logAuditFromRequest(request, 'set_primary_image', 'movie', movieId, `Set primary ${type}: ${image.filePath}`);
+        // Log audit event with details
+        await logAuditFromRequest(
+          request, 
+          'set_primary_image', 
+          'movie', 
+          movieId, 
+          `Set primary ${type}`,
+          {
+            image_id: { before: null, after: imageId },
+            image_type: { before: null, after: type },
+            file_path: { before: null, after: image.filePath },
+          }
+        );
 
         return reply.status(200).send({ 
           success: true,

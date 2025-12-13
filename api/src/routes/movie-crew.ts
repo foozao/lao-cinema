@@ -8,6 +8,15 @@ import { insertJobTranslations } from '../lib/movie-helpers.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 
+// Helper to get person name for audit logging
+async function getPersonName(personId: number): Promise<string> {
+  const translations = await db.select()
+    .from(schema.peopleTranslations)
+    .where(eq(schema.peopleTranslations.personId, personId));
+  const enName = translations.find(t => t.language === 'en')?.name;
+  return enName || `Person #${personId}`;
+}
+
 export default async function movieCrewRoutes(fastify: FastifyInstance) {
   // Add crew member to movie
   fastify.post<{
@@ -52,8 +61,22 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       // Insert job translations
       await insertJobTranslations(db, schema, movieId, person_id, department, job);
 
-      // Log audit event
-      await logAuditFromRequest(request, 'add_crew', 'movie', movieId, `Added person ${person_id} as ${job.en} (${department})`);
+      // Log audit event with details
+      const personName = await getPersonName(person_id);
+      await logAuditFromRequest(
+        request, 
+        'add_crew', 
+        'movie', 
+        movieId, 
+        `Added ${personName} as ${job.en} (${department})`,
+        {
+          person_id: { before: null, after: person_id },
+          person_name: { before: null, after: personName },
+          department: { before: null, after: department },
+          job_en: { before: null, after: job.en },
+          job_lo: { before: null, after: job.lo || null },
+        }
+      );
 
       return { success: true, message: 'Crew member added successfully' };
     } catch (error) {
@@ -72,6 +95,20 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       const { department } = request.query;
       const personIdNum = parseInt(personId);
 
+      // Get existing data for audit log before deletion
+      const existingTranslations = department
+        ? await db.select()
+            .from(schema.movieCrewTranslations)
+            .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personIdNum} AND ${schema.movieCrewTranslations.department} = ${department}`)
+        : await db.select()
+            .from(schema.movieCrewTranslations)
+            .where(sql`${schema.movieCrewTranslations.movieId} = ${movieId} AND ${schema.movieCrewTranslations.personId} = ${personIdNum}`);
+      
+      const jobEn = existingTranslations.find(t => t.language === 'en')?.job;
+      const jobLo = existingTranslations.find(t => t.language === 'lo')?.job;
+      const existingDept = existingTranslations[0]?.department;
+      const personName = await getPersonName(personIdNum);
+
       if (department) {
         // Delete specific department entry
         await db.delete(schema.movieCrewTranslations)
@@ -86,8 +123,21 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
           .where(sql`${schema.movieCrew.movieId} = ${movieId} AND ${schema.movieCrew.personId} = ${personIdNum}`);
       }
 
-      // Log audit event
-      await logAuditFromRequest(request, 'remove_crew', 'movie', movieId, `Removed person ${personIdNum}${department ? ` from ${department}` : ''}`);
+      // Log audit event with details
+      await logAuditFromRequest(
+        request, 
+        'remove_crew', 
+        'movie', 
+        movieId, 
+        `Removed ${personName}${department ? ` from ${department}` : ''}`,
+        {
+          person_id: { before: personIdNum, after: null },
+          person_name: { before: personName, after: null },
+          department: { before: existingDept || department || null, after: null },
+          job_en: { before: jobEn || null, after: null },
+          job_lo: { before: jobLo || null, after: null },
+        }
+      );
 
       return { success: true, message: 'Crew member removed successfully' };
     } catch (error) {

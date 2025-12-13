@@ -160,8 +160,22 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         
         const createdMovie = JSON.parse(response.body);
         
-        // Log audit event
-        await logAuditFromRequest(request, 'create', 'movie', newMovie.id, createdMovie.title?.en || movieData.original_title);
+        // Log audit event with details
+        await logAuditFromRequest(
+          request, 
+          'create', 
+          'movie', 
+          newMovie.id, 
+          createdMovie.title?.en || movieData.original_title,
+          {
+            movie_id: { before: null, after: newMovie.id },
+            title_en: { before: null, after: createdMovie.title?.en || null },
+            title_lo: { before: null, after: createdMovie.title?.lo || null },
+            original_title: { before: null, after: movieData.original_title },
+            release_date: { before: null, after: movieData.release_date || null },
+            tmdb_id: { before: null, after: movieData.tmdb_id || null },
+          }
+        );
         
         return reply.status(201).send(createdMovie);
       } catch (error) {
@@ -176,6 +190,13 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params;
 
+      // Get translations for audit log BEFORE cascade delete removes them
+      const translations = await db.select()
+        .from(schema.movieTranslations)
+        .where(eq(schema.movieTranslations.movieId, id));
+      const titleEn = translations.find(t => t.language === 'en')?.title;
+      const titleLo = translations.find(t => t.language === 'lo')?.title;
+
       const [deletedMovie] = await db.delete(schema.movies)
         .where(eq(schema.movies.id, id))
         .returning();
@@ -184,8 +205,22 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Movie not found' });
       }
 
-      // Log audit event
-      await logAuditFromRequest(request, 'delete', 'movie', id, deletedMovie.originalTitle || 'Unknown');
+      // Log audit event with details
+      await logAuditFromRequest(
+        request, 
+        'delete', 
+        'movie', 
+        id, 
+        deletedMovie.originalTitle || titleEn || 'Unknown',
+        {
+          movie_id: { before: id, after: null },
+          title_en: { before: titleEn || null, after: null },
+          title_lo: { before: titleLo || null, after: null },
+          original_title: { before: deletedMovie.originalTitle, after: null },
+          release_date: { before: deletedMovie.releaseDate, after: null },
+          tmdb_id: { before: deletedMovie.tmdbId, after: null },
+        }
+      );
 
       return { message: 'Movie deleted successfully', id };
     } catch (error) {

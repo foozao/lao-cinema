@@ -5,7 +5,7 @@ import { db, schema } from '../db/index.js';
 import { eq, sql, ilike, or } from 'drizzle-orm';
 import { buildPersonCredits } from '../lib/movie-builder.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
-import { logAuditFromRequest } from '../lib/audit-service.js';
+import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -555,6 +555,41 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       }
 
       const updates = request.body;
+      
+      // Fetch current state for change tracking
+      const [existingPerson] = await db.select()
+        .from(schema.people)
+        .where(eq(schema.people.id, personId))
+        .limit(1);
+      
+      if (!existingPerson) {
+        return reply.status(404).send({ error: 'Person not found' });
+      }
+      
+      const existingTrans = await db.select()
+        .from(schema.peopleTranslations)
+        .where(eq(schema.peopleTranslations.personId, personId));
+      
+      // Build before state
+      const beforeState: Record<string, any> = {
+        birthday: existingPerson.birthday,
+        deathday: existingPerson.deathday,
+        place_of_birth: existingPerson.placeOfBirth,
+        known_for_department: existingPerson.knownForDepartment,
+        homepage: existingPerson.homepage,
+      };
+      
+      for (const trans of existingTrans) {
+        if (trans.language === 'en') {
+          beforeState.name_en = trans.name;
+          beforeState.biography_en = trans.biography;
+          beforeState.nicknames_en = trans.nicknames;
+        } else if (trans.language === 'lo') {
+          beforeState.name_lo = trans.name;
+          beforeState.biography_lo = trans.biography;
+          beforeState.nicknames_lo = trans.nicknames;
+        }
+      }
 
       // Update basic person info
       const personUpdates: any = {};
@@ -647,8 +682,33 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
 
       const person = updatedPerson[0];
       
-      // Log audit event
-      await logAuditFromRequest(request, 'update_person', 'person', id, name.en || name.lo || 'Unknown');
+      // Build after state for change tracking
+      const afterState: Record<string, any> = {
+        birthday: updates.birthday ?? beforeState.birthday,
+        deathday: updates.deathday ?? beforeState.deathday,
+        place_of_birth: updates.place_of_birth ?? beforeState.place_of_birth,
+        known_for_department: updates.known_for_department ?? beforeState.known_for_department,
+        homepage: updates.homepage ?? beforeState.homepage,
+        name_en: updates.name?.en ?? beforeState.name_en,
+        name_lo: updates.name?.lo ?? beforeState.name_lo,
+        biography_en: updates.biography?.en ?? beforeState.biography_en,
+        biography_lo: updates.biography?.lo ?? beforeState.biography_lo,
+        nicknames_en: updates.nicknames?.en ?? beforeState.nicknames_en,
+        nicknames_lo: updates.nicknames?.lo ?? beforeState.nicknames_lo,
+      };
+      
+      // Create changes object
+      const changes = createChangesObject(beforeState, afterState);
+      
+      // Log audit event with changes
+      await logAuditFromRequest(
+        request, 
+        'update_person', 
+        'person', 
+        id, 
+        name.en || name.lo || 'Unknown',
+        Object.keys(changes).length > 0 ? changes : undefined
+      );
 
       return {
         id: person.id,

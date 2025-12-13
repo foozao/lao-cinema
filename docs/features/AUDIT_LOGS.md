@@ -474,11 +474,11 @@ it('should log movie update', async () => {
 - [x] API endpoints
 - [x] Middleware
 
-### Phase 2 (Next)
-- [ ] Admin UI for viewing logs
-- [ ] Entity history widgets
-- [ ] User activity dashboard
-- [ ] Export functionality
+### Phase 2 (Completed - December 2025)
+- [x] Admin UI for viewing logs (`/admin/audit-logs`)
+- [x] Entity history widgets (`EntityHistory` component on movie edit page)
+- [x] Export functionality (CSV export)
+- [ ] User activity dashboard (deferred to Phase 3)
 
 ### Phase 3 (Future)
 - [ ] Real-time audit log streaming (WebSocket)

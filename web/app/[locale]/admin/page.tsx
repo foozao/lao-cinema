@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2 } from 'lucide-react';
+import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2, ClipboardList } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
 
@@ -260,6 +260,31 @@ export default function AdminPage() {
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 Total companies in database
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Audit Logs Card (Admin Only) */}
+        <Link href="/admin/audit-logs">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <ClipboardList className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Audit Logs</CardTitle>
+                    <CardDescription>Track changes</CardDescription>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                View all content changes made by editors and admins
               </p>
             </CardContent>
           </Card>

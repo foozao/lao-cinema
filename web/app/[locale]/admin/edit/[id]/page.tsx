@@ -21,6 +21,7 @@ import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, producti
 import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
 import { ProductionCompanySearch } from '@/components/admin/production-company-search';
+import { EntityHistory } from '@/components/admin/entity-history';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 
 export default function EditMoviePage() {
@@ -1986,6 +1987,9 @@ export default function EditMoviePage() {
           </TabsContent>
         </form>
       </Tabs>
+
+      {/* Change History (Admin Only) */}
+      <EntityHistory entityType="movie" entityId={movieId} />
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>

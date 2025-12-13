@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { db, schema } from '../db/index.js';
 import { eq, sql, desc } from 'drizzle-orm';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
 
 export async function productionCompaniesRoutes(fastify: FastifyInstance) {
   // Get all production companies
@@ -206,7 +208,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       website_url?: string;
       origin_country?: string;
     }
-  }>('/production-companies', async (request, reply) => {
+  }>('/production-companies', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id, name, slug, logo_path, custom_logo_url, website_url, origin_country } = request.body;
       
@@ -248,6 +250,21 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         });
       }
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'production_company',
+        String(companyId),
+        name.en,
+        {
+          company_id: { before: null, after: companyId },
+          name_en: { before: null, after: name.en },
+          name_lo: { before: null, after: name.lo || null },
+          origin_country: { before: null, after: origin_country || null },
+        }
+      );
+
       return reply.status(201).send({
         id: companyId,
         name,
@@ -274,7 +291,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       website_url?: string;
       origin_country?: string;
     }
-  }>('/production-companies/:id', async (request, reply) => {
+  }>('/production-companies/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       const companyId = parseInt(id);
@@ -288,6 +305,21 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       if (!existing) {
         return reply.status(404).send({ error: 'Production company not found' });
       }
+      
+      // Get existing translations for change tracking
+      const existingTranslations = await db.select()
+        .from(schema.productionCompanyTranslations)
+        .where(eq(schema.productionCompanyTranslations.companyId, companyId));
+      
+      const beforeState: Record<string, any> = {
+        slug: existing.slug,
+        logo_path: existing.logoPath,
+        custom_logo_url: existing.customLogoUrl,
+        website_url: existing.websiteUrl,
+        origin_country: existing.originCountry,
+        name_en: existingTranslations.find(t => t.language === 'en')?.name,
+        name_lo: existingTranslations.find(t => t.language === 'lo')?.name,
+      };
       
       // Update company fields
       const updates: any = { updatedAt: new Date() };
@@ -334,6 +366,28 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         .from(schema.productionCompanies)
         .where(eq(schema.productionCompanies.id, companyId));
       
+      // Build after state and log changes
+      const afterState: Record<string, any> = {
+        slug: slug !== undefined ? slug : beforeState.slug,
+        logo_path: logo_path !== undefined ? logo_path : beforeState.logo_path,
+        custom_logo_url: custom_logo_url !== undefined ? custom_logo_url : beforeState.custom_logo_url,
+        website_url: website_url !== undefined ? website_url : beforeState.website_url,
+        origin_country: origin_country !== undefined ? origin_country : beforeState.origin_country,
+        name_en: name?.en ?? beforeState.name_en,
+        name_lo: name?.lo ?? beforeState.name_lo,
+      };
+      
+      const changes = createChangesObject(beforeState, afterState);
+      
+      await logAuditFromRequest(
+        request,
+        'update',
+        'production_company',
+        String(companyId),
+        updatedName.en || updatedName.lo || 'Unknown',
+        Object.keys(changes).length > 0 ? changes : undefined
+      );
+
       return {
         id: companyId,
         slug: updatedCompany.slug,
@@ -350,7 +404,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
   });
 
   // Delete production company
-  fastify.delete<{ Params: { id: string } }>('/production-companies/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/production-companies/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       const companyId = parseInt(id);
@@ -363,9 +417,28 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Production company not found' });
       }
       
+      // Get name for audit log before deletion
+      const translations = await db.select()
+        .from(schema.productionCompanyTranslations)
+        .where(eq(schema.productionCompanyTranslations.companyId, companyId));
+      const companyName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      
       // Delete company (cascade will delete translations and movie associations)
       await db.delete(schema.productionCompanies)
         .where(eq(schema.productionCompanies.id, companyId));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'production_company',
+        String(companyId),
+        companyName,
+        {
+          company_id: { before: companyId, after: null },
+          name_en: { before: companyName, after: null },
+        }
+      );
       
       return { success: true };
     } catch (error) {

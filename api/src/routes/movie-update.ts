@@ -5,7 +5,7 @@ import { FastifyInstance } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
-import { logAuditFromRequest } from '../lib/audit-service.js';
+import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
 import { 
   type UpdateMovieInput,
   type CastMember,
@@ -40,6 +40,33 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
 
         if (existing.length === 0) {
           return reply.status(404).send({ error: 'Movie not found' });
+        }
+
+        // Fetch current translations for change tracking
+        const existingTranslations = await db.select()
+          .from(schema.movieTranslations)
+          .where(eq(schema.movieTranslations.movieId, id));
+        
+        // Build "before" state for change tracking
+        const beforeState: Record<string, any> = {
+          release_date: existing[0].releaseDate,
+          runtime: existing[0].runtime,
+          original_language: existing[0].originalLanguage,
+          adult: existing[0].adult,
+          slug: existing[0].slug,
+        };
+        
+        // Add translation fields to before state
+        for (const trans of existingTranslations) {
+          if (trans.language === 'en') {
+            beforeState.title_en = trans.title;
+            beforeState.overview_en = trans.overview;
+            beforeState.tagline_en = trans.tagline;
+          } else if (trans.language === 'lo') {
+            beforeState.title_lo = trans.title;
+            beforeState.overview_lo = trans.overview;
+            beforeState.tagline_lo = trans.tagline;
+          }
         }
 
         // Extract fields that should be updated in movies table
@@ -102,8 +129,33 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         
         const updatedMovie = JSON.parse(response.body);
         
-        // Log audit event
-        await logAuditFromRequest(request, 'update', 'movie', id, updatedMovie.title?.en || existing[0].originalTitle);
+        // Build "after" state for change tracking
+        const afterState: Record<string, any> = {
+          release_date: updates.release_date ?? beforeState.release_date,
+          runtime: updates.runtime ?? beforeState.runtime,
+          original_language: updates.original_language ?? beforeState.original_language,
+          adult: updates.adult ?? beforeState.adult,
+          slug: updates.slug ?? beforeState.slug,
+          title_en: title?.en ?? beforeState.title_en,
+          title_lo: title?.lo ?? beforeState.title_lo,
+          overview_en: overview?.en ?? beforeState.overview_en,
+          overview_lo: overview?.lo ?? beforeState.overview_lo,
+          tagline_en: tagline?.en ?? beforeState.tagline_en,
+          tagline_lo: tagline?.lo ?? beforeState.tagline_lo,
+        };
+        
+        // Create changes object (only includes changed fields)
+        const changes = createChangesObject(beforeState, afterState);
+        
+        // Log audit event with changes
+        await logAuditFromRequest(
+          request, 
+          'update', 
+          'movie', 
+          id, 
+          updatedMovie.title?.en || existing[0].originalTitle,
+          Object.keys(changes).length > 0 ? changes : undefined
+        );
         
         return reply.status(200).send(updatedMovie);
       } catch (error) {
