@@ -10,6 +10,7 @@ export const availabilityStatusEnum = pgEnum('availability_status', ['auto', 'av
 export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 export const trailerTypeEnum = pgEnum('trailer_type', ['youtube', 'video']);
+export const movieTypeEnum = pgEnum('movie_type', ['feature', 'short']);
 export const auditActionEnum = pgEnum('audit_action', [
   'create', 'update', 'delete',
   'add_cast', 'remove_cast', 'update_cast',
@@ -32,6 +33,7 @@ export const movies = pgTable('movies', {
   tmdbId: integer('tmdb_id').unique(),
   imdbId: text('imdb_id').unique(),
   slug: text('slug').unique(), // Vanity URL slug (e.g., 'the-signal')
+  type: movieTypeEnum('type').default('feature').notNull(), // 'feature' or 'short'
   
   originalTitle: text('original_title').notNull(),
   originalLanguage: text('original_language'),
@@ -396,12 +398,69 @@ export const emailVerificationTokens = pgTable('email_verification_tokens', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// =============================================================================
+// SHORT FILM PACKS
+// =============================================================================
+
+// Short packs table - curated collections of short films
+export const shortPacks = pgTable('short_packs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  slug: text('slug').unique(), // Vanity URL (e.g., 'lao-voices-2024')
+  
+  // Media paths
+  posterPath: text('poster_path'),
+  backdropPath: text('backdrop_path'),
+  
+  // Pricing (in cents)
+  priceUsd: integer('price_usd').default(499).notNull(), // Default $4.99
+  
+  // Status
+  isPublished: boolean('is_published').default(false).notNull(),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Short pack translations table
+export const shortPackTranslations = pgTable('short_pack_translations', {
+  packId: uuid('pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  tagline: text('tagline'), // Short promotional text
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.packId, table.language] }),
+}));
+
+// Short pack items table - junction between packs and shorts (movies with type='short')
+export const shortPackItems = pgTable('short_pack_items', {
+  packId: uuid('pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }).notNull(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  order: integer('order').notNull(), // Display/playback order within the pack
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.packId, table.movieId] }),
+}));
+
+// Types for TypeScript
+export type ShortPack = typeof shortPacks.$inferSelect;
+export type NewShortPack = typeof shortPacks.$inferInsert;
+export type ShortPackTranslation = typeof shortPackTranslations.$inferSelect;
+export type NewShortPackTranslation = typeof shortPackTranslations.$inferInsert;
+export type ShortPackItem = typeof shortPackItems.$inferSelect;
+export type NewShortPackItem = typeof shortPackItems.$inferInsert;
+
 // Rentals table - supports both authenticated and anonymous users
+// Can rent either a movie OR a short pack (exactly one must be set)
 export const rentals = pgTable('rentals', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // Nullable for anonymous
   anonymousId: text('anonymous_id'), // Nullable for authenticated
-  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }), // Nullable if renting a pack
+  shortPackId: uuid('short_pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }), // Nullable if renting a movie
   purchasedAt: timestamp('purchased_at').defaultNow().notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   transactionId: text('transaction_id').notNull(),

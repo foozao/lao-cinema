@@ -250,3 +250,72 @@ export const productionCompaniesAPI = {
     method: 'DELETE',
   }),
 };
+
+// Short Packs API methods
+export const shortPacksAPI = {
+  // Get all short packs
+  getAll: (params?: { published?: boolean }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.published !== undefined) searchParams.set('published', String(params.published));
+    const query = searchParams.toString();
+    return fetchAPI<{ short_packs: any[] }>(`/short-packs${query ? `?${query}` : ''}`);
+  },
+
+  // Get short pack by ID or slug
+  getById: (id: string) => fetchAPI<any>(`/short-packs/${id}`),
+
+  // Create short pack
+  create: (data: {
+    slug?: string;
+    title: { en: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    tagline?: { en?: string; lo?: string };
+    poster_path?: string;
+    backdrop_path?: string;
+    price_usd?: number;
+    is_published?: boolean;
+  }) => fetchAPI<any>('/short-packs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Update short pack
+  update: (id: string, data: {
+    slug?: string;
+    title?: { en?: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    tagline?: { en?: string; lo?: string };
+    poster_path?: string;
+    backdrop_path?: string;
+    price_usd?: number;
+    is_published?: boolean;
+  }) => fetchAPI<any>(`/short-packs/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  // Delete short pack
+  delete: (id: string) => fetchAPI<{ message: string; id: string }>(`/short-packs/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // Add short to pack
+  addShort: (packId: string, movieId: string, order?: number) =>
+    fetchAPI<any>(`/short-packs/${packId}/shorts`, {
+      method: 'POST',
+      body: JSON.stringify({ movie_id: movieId, order }),
+    }),
+
+  // Remove short from pack
+  removeShort: (packId: string, movieId: string) =>
+    fetchAPI<any>(`/short-packs/${packId}/shorts/${movieId}`, {
+      method: 'DELETE',
+    }),
+
+  // Reorder shorts in pack
+  reorderShorts: (packId: string, shorts: { movie_id: string; order: number }[]) =>
+    fetchAPI<any>(`/short-packs/${packId}/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ shorts }),
+    }),
+};

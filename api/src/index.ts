@@ -17,6 +17,7 @@ import { uploadRoutes } from './routes/upload.js';
 import auditLogRoutes from './routes/audit-logs.js';
 import notificationRoutes from './routes/notifications.js';
 import videoTokenRoutes from './routes/video-tokens.js';
+import shortPackRoutes from './routes/short-packs.js';
 
 const fastify = Fastify({
   logger: {
@@ -55,6 +56,7 @@ await fastify.register(uploadRoutes, { prefix: '/api' });
 await fastify.register(auditLogRoutes, { prefix: '/api' });
 await fastify.register(notificationRoutes, { prefix: '/api' });
 await fastify.register(videoTokenRoutes, { prefix: '/api' });
+await fastify.register(shortPackRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

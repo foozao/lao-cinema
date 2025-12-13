@@ -13,6 +13,7 @@ import { productionCompaniesRoutes } from '../routes/production-companies.js';
 import movieProductionCompaniesRoutes from '../routes/movie-production-companies.js';
 import auditLogRoutes from '../routes/audit-logs.js';
 import notificationRoutes from '../routes/notifications.js';
+import shortPackRoutes from '../routes/short-packs.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -25,6 +26,7 @@ interface BuildOptions {
   includeProductionCompanies?: boolean;
   includeAuditLogs?: boolean;
   includeNotifications?: boolean;
+  includeShortPacks?: boolean;
 }
 
 /**
@@ -84,6 +86,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(notificationRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeShortPacks) {
+    // Short packs require auth middleware for CUD operations
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(shortPackRoutes, { prefix: '/api' });
   }
 
   return app;

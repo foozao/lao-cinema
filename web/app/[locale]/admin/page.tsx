@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2, ClipboardList } from 'lucide-react';
+import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2, ClipboardList, Package } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -234,6 +234,31 @@ export default function AdminPage() {
             <CardContent>
               <p className="text-sm text-gray-600">
                 Track watch time, completions, and engagement metrics
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Short Packs Card */}
+        <Link href="/admin/short-packs">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-pink-100 rounded-lg">
+                    <Package className="w-6 h-6 text-pink-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Short Packs</CardTitle>
+                    <CardDescription>Curate short films</CardDescription>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">
+                Create curated collections of short films for rental
               </p>
             </CardContent>
           </Card>

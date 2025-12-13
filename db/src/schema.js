@@ -6,15 +6,32 @@ export const videoQualityEnum = pgEnum('video_quality', ['original', '1080p', '7
 export const imageTypeEnum = pgEnum('image_type', ['poster', 'backdrop', 'logo']);
 export const streamingPlatformEnum = pgEnum('streaming_platform', ['netflix', 'prime', 'disney', 'hbo', 'apple', 'hulu', 'other']);
 export const availabilityStatusEnum = pgEnum('availability_status', ['auto', 'available', 'external', 'unavailable', 'coming_soon']);
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 export const trailerTypeEnum = pgEnum('trailer_type', ['youtube', 'video']);
+export const movieTypeEnum = pgEnum('movie_type', ['feature', 'short']);
+export const auditActionEnum = pgEnum('audit_action', [
+    'create', 'update', 'delete',
+    'add_cast', 'remove_cast', 'update_cast',
+    'add_crew', 'remove_crew', 'update_crew',
+    'add_image', 'remove_image', 'set_primary_image',
+    'add_video', 'remove_video', 'update_video',
+    'add_genre', 'remove_genre',
+    'add_production_company', 'remove_production_company',
+    'add_platform', 'remove_platform', 'update_platform',
+    'feature_movie', 'unfeature_movie',
+    'merge_people', 'update_person',
+]);
+export const auditEntityTypeEnum = pgEnum('audit_entity_type', [
+    'movie', 'person', 'genre', 'production_company', 'user', 'settings'
+]);
 // Movies table - language-agnostic data only
 export const movies = pgTable('movies', {
     id: uuid('id').defaultRandom().primaryKey(),
     tmdbId: integer('tmdb_id').unique(),
     imdbId: text('imdb_id').unique(),
     slug: text('slug').unique(), // Vanity URL slug (e.g., 'the-signal')
+    type: movieTypeEnum('type').default('feature').notNull(), // 'feature' or 'short'
     originalTitle: text('original_title').notNull(),
     originalLanguage: text('original_language'),
     // Media paths
@@ -213,7 +230,10 @@ export const movieExternalPlatforms = pgTable('movie_external_platforms', {
 // Production companies table
 export const productionCompanies = pgTable('production_companies', {
     id: integer('id').primaryKey(), // Use TMDB ID or negative for manual entries
-    logoPath: text('logo_path'),
+    slug: text('slug').unique(), // Vanity URL (e.g., /production/hoppin-film)
+    logoPath: text('logo_path'), // TMDB logo path
+    customLogoUrl: text('custom_logo_url'), // User-uploaded logo URL
+    websiteUrl: text('website_url'), // Company website
     originCountry: text('origin_country'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -277,12 +297,71 @@ export const userSessions = pgTable('user_sessions', {
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
 });
+// Password reset tokens table - for forgot password flow
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    token: text('token').unique().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'), // Null until token is used
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+// Email verification tokens table - for verifying user email addresses
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    token: text('token').unique().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'), // Null until token is used
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+// =============================================================================
+// SHORT FILM PACKS
+// =============================================================================
+// Short packs table - curated collections of short films
+export const shortPacks = pgTable('short_packs', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    slug: text('slug').unique(), // Vanity URL (e.g., 'lao-voices-2024')
+    // Media paths
+    posterPath: text('poster_path'),
+    backdropPath: text('backdrop_path'),
+    // Pricing (in cents)
+    priceUsd: integer('price_usd').default(499).notNull(), // Default $4.99
+    // Status
+    isPublished: boolean('is_published').default(false).notNull(),
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+// Short pack translations table
+export const shortPackTranslations = pgTable('short_pack_translations', {
+    packId: uuid('pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }).notNull(),
+    language: languageEnum('language').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    tagline: text('tagline'), // Short promotional text
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.packId, table.language] }),
+}));
+// Short pack items table - junction between packs and shorts (movies with type='short')
+export const shortPackItems = pgTable('short_pack_items', {
+    packId: uuid('pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }).notNull(),
+    movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+    order: integer('order').notNull(), // Display/playback order within the pack
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.packId, table.movieId] }),
+}));
 // Rentals table - supports both authenticated and anonymous users
+// Can rent either a movie OR a short pack (exactly one must be set)
 export const rentals = pgTable('rentals', {
     id: uuid('id').defaultRandom().primaryKey(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // Nullable for anonymous
     anonymousId: text('anonymous_id'), // Nullable for authenticated
-    movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+    movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }), // Nullable if renting a pack
+    shortPackId: uuid('short_pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }), // Nullable if renting a movie
     purchasedAt: timestamp('purchased_at').defaultNow().notNull(),
     expiresAt: timestamp('expires_at').notNull(),
     transactionId: text('transaction_id').notNull(),
@@ -316,5 +395,26 @@ export const videoAnalyticsEvents = pgTable('video_analytics_events', {
     deviceType: text('device_type'),
     source: text('source'),
     timestamp: timestamp('timestamp').defaultNow().notNull(),
+});
+// Audit logs table - tracks all content changes by editors/admins
+export const auditLogs = pgTable('audit_logs', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }).notNull(),
+    action: auditActionEnum('action').notNull(),
+    entityType: auditEntityTypeEnum('entity_type').notNull(),
+    entityId: text('entity_id').notNull(), // UUID or ID of the entity (movie, person, etc.)
+    entityName: text('entity_name'), // Human-readable name (movie title, person name, etc.)
+    changes: text('changes'), // JSON string of what changed (before/after values)
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+// Movie release notifications - users request to be notified when a movie becomes available
+export const movieNotifications = pgTable('movie_notifications', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+    notifiedAt: timestamp('notified_at'), // Null until notification sent
+    createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 //# sourceMappingURL=schema.js.map

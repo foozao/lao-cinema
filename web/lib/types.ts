@@ -49,9 +49,13 @@ export interface VideoTrailer extends BaseTrailer {
 
 export type Trailer = YouTubeTrailer | VideoTrailer;
 
+// Movie type - feature films vs short films
+export type MovieType = 'feature' | 'short';
+
 export interface Movie {
   id: string;
   slug?: string; // Vanity URL slug (e.g., 'the-signal')
+  type?: MovieType; // 'feature' (default) or 'short'
   
   // TMDB-compatible fields
   tmdb_id?: number;
@@ -198,6 +202,54 @@ export interface SpokenLanguage {
   iso_639_1: string; // ISO 639-1 language code (e.g., 'en', 'lo')
   english_name: string;
   name: string; // Native name
+}
+
+// =============================================================================
+// SHORT FILM PACKS
+// =============================================================================
+
+// Short film pack - curated collection of short films
+export interface ShortPack {
+  id: string;
+  slug?: string; // Vanity URL (e.g., 'lao-voices-2024')
+  title: LocalizedText;
+  description?: LocalizedText;
+  tagline?: LocalizedText; // Short promotional text
+  poster_path?: string;
+  backdrop_path?: string;
+  price_usd: number; // Price in cents (e.g., 499 = $4.99)
+  is_published: boolean;
+  
+  // Shorts in this pack (ordered)
+  shorts: ShortPackItem[];
+  
+  // Computed fields
+  total_runtime?: number; // Sum of all shorts' runtime in minutes
+  short_count?: number; // Number of shorts in the pack
+  
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+// Short film within a pack
+export interface ShortPackItem {
+  movie: Movie; // The short film (movie with type='short')
+  order: number; // Display/playback order
+}
+
+// Summary version for listings (without full movie data)
+export interface ShortPackSummary {
+  id: string;
+  slug?: string;
+  title: LocalizedText;
+  tagline?: LocalizedText;
+  poster_path?: string;
+  backdrop_path?: string;
+  price_usd: number;
+  is_published: boolean;
+  total_runtime?: number;
+  short_count: number;
 }
 
 // For future TMDB API integration

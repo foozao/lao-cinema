@@ -304,6 +304,7 @@ interface MovieInput {
   tmdb_id?: number;
   imdb_id?: string;
   slug?: string;
+  type?: 'feature' | 'short';
   original_title?: string;
   original_language?: string;
   poster_path?: string;
@@ -336,6 +337,7 @@ export function mapMovieToInsertData(
     originalTitle: movie.original_title || 'Untitled',
     adult: movie.adult || false,
     availabilityStatus: movie.availability_status || 'auto',
+    type: movie.type || 'feature',
   };
   
   // Only include defined values to avoid PostgreSQL undefined errors
@@ -371,6 +373,7 @@ export function mapMovieToInsertData(
 export function mapMovieToUpdateData(updates: Partial<MovieInput>): Record<string, any> {
   const data: any = {};
   
+  if (updates.type !== undefined) data.type = updates.type;
   if (updates.slug !== undefined) data.slug = updates.slug;
   if (updates.runtime !== undefined) data.runtime = updates.runtime;
   if (updates.vote_average !== undefined) data.voteAverage = updates.vote_average;

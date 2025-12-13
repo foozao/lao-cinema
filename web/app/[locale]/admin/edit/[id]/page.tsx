@@ -51,6 +51,7 @@ export default function EditMoviePage() {
     
     // Common fields
     slug: '',
+    type: 'feature' as 'feature' | 'short',
     original_title: '',
     original_language: 'lo',
     release_date: '',
@@ -202,6 +203,7 @@ export default function EditMoviePage() {
           tagline_en: movie.tagline?.en || '',
           tagline_lo: movie.tagline?.lo || '',
           slug: movie.slug || '',
+          type: movie.type || 'feature',
           original_title: movie.original_title || '',
           original_language: movie.original_language || 'lo',
           release_date: movie.release_date,
@@ -263,6 +265,7 @@ export default function EditMoviePage() {
           tagline_en: movie.tagline?.en || '',
           tagline_lo: movie.tagline?.lo || '',
           slug: movie.slug || '',
+          type: movie.type || 'feature',
           original_title: movie.original_title || '',
           original_language: movie.original_language || 'lo',
           release_date: movie.release_date,
@@ -881,6 +884,7 @@ export default function EditMoviePage() {
           lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
         } : undefined,
         slug: formData.slug || undefined,
+        type: formData.type,
         release_date: formData.release_date,
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
         poster_path: formData.poster_path || undefined,
@@ -1157,6 +1161,23 @@ export default function EditMoviePage() {
                     <option value="vi">Vietnamese</option>
                     <option value="km">Khmer</option>
                   </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="type">Movie Type</Label>
+                  <select
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={(e) => handleChange(e as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="feature">Feature Film</option>
+                    <option value="short">Short Film</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Short films can be added to curated packs
+                  </p>
                 </div>
               </div>
 
