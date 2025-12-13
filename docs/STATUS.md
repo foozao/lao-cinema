@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 10, 2025
+**Last Updated**: December 13, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -87,8 +87,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 🚧 In Progress
 
-- [ ] Bulk import operations
 - [ ] Password reset flow (requires email service)
+- [ ] OAuth integration (Google/Apple sign-in)
 
 ## 🎯 Roadmap
 
@@ -276,11 +276,16 @@ cd web && npm run dev
 - [x] Unit tests (70 tests passing)
 
 ### To Test
-- [ ] Video player with CDN video files
-- [ ] Video controls (play/pause, seek, volume, fullscreen)
-- [ ] Responsive design on mobile devices
-- [ ] Search and filtering (when implemented)
-- [ ] User authentication (when implemented)
+- [x] Video player with CDN video files
+- [x] Video controls (play/pause, seek, volume, fullscreen)
+- [x] Responsive design on mobile devices
+- [x] Search and filtering
+- [x] User authentication
+
+### Pending Tests
+- [ ] OAuth providers (when implemented)
+- [ ] Password reset flow (when implemented)
+- [ ] Bulk import operations
 
 ## 💻 Development Commands
 

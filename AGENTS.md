@@ -99,7 +99,7 @@ The data structure mirrors TMDB's API for easy integration:
 - **Always use TypeScript** with strict mode
 - Import types from `/web/lib/types.ts`
 - Never use `any` - use proper types or `unknown`
-- Validate external data with Zod (when backend is implemented)
+- Validate external data with Zod schemas in API routes
 
 ## Code Style Guidelines
 
@@ -150,10 +150,17 @@ The backend is fully implemented:
 
 ### Adding a New Movie
 
-1. Update `/web/lib/data/movies.ts`
+**Via Admin Panel (Recommended):**
+1. Navigate to `/admin/import`
+2. Enter TMDB ID and fetch movie data
+3. Click "Import Movie" to save to database
+4. Edit Lao translations on the edit page
+
+**Via API:**
+1. POST to `/api/movies` with movie data
 2. Provide both English and Lao text for all localized fields
 3. Include all required fields (see `Movie` type)
-4. Add video sources with proper format/quality metadata
+4. Add video sources via `/api/movies/:id` PUT or admin panel
 
 ### Creating a New Component
 
@@ -331,21 +338,27 @@ export default function StaticContent() { }
 - [x] User accounts system (email/password auth, sessions, OAuth-ready)
 - [x] Dual-mode APIs (authenticated OR anonymous users)
 - [x] HTTP Basic Auth for deployment-level protection
-- [x] Admin panel (TMDB import, movie editing, people management, analytics)
-- [x] Database schema (Drizzle ORM with migrations)
+- [x] Admin panel (TMDB import, movie editing, people management, analytics, audit logs)
+- [x] Database schema (Drizzle ORM with 22 migrations)
 - [x] Deployment configuration (GCP Cloud Run)
 - [x] Video streaming (HLS with GCS)
 - [x] Rental system (database-backed with cross-device sync)
 - [x] Watch progress (cross-device sync)
 - [x] Analytics framework
 - [x] Mobile video player (touch controls, fullscreen)
+- [x] Frontend auth UI (login/register forms, user menu)
+- [x] User profile pages (dashboard, settings, rentals, continue watching)
+- [x] Production companies with TMDB sync
+- [x] Trailers (YouTube + self-hosted)
+- [x] Person merge/alias system
+- [x] Audit logging for content changes
 
 **In Progress:**
-- [ ] Frontend auth UI (login/register forms)
-- [ ] User profile pages
+- [ ] Password reset flow (requires email service)
 
 **Planned:**
 - [ ] OAuth integration (Google/Apple sign-in)
+- [ ] Watchlist functionality
 - [ ] Mobile app (React Native/Expo)
 - [ ] Video transcoding pipeline automation
 

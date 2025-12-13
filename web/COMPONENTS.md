@@ -312,6 +312,72 @@ Breadcrumb navigation for admin dashboard showing current location and allowing 
 
 ---
 
+### `EntityHistory`
+**Location**: `components/admin/entity-history.tsx`  
+**Type**: Client Component  
+
+Displays audit log history for a specific entity (movie, person, etc.).
+
+**Props**:
+```typescript
+interface EntityHistoryProps {
+  entityType: 'movie' | 'person' | 'production_company';
+  entityId: string;
+}
+```
+
+---
+
+### `MergePeopleDialog`
+**Location**: `components/admin/merge-people-dialog.tsx`  
+**Type**: Client Component  
+
+Dialog for merging duplicate people entries. Preserves filmography and creates alias.
+
+**Props**:
+```typescript
+interface MergePeopleDialogProps {
+  sourcePerson: Person;
+  isOpen: boolean;
+  onClose: () => void;
+  onMerge: (targetPersonId: number) => void;
+}
+```
+
+---
+
+### `ProductionCompanySearch`
+**Location**: `components/admin/production-company-search.tsx`  
+**Type**: Client Component  
+
+Search and select production companies for movie assignment.
+
+**Props**:
+```typescript
+interface ProductionCompanySearchProps {
+  onSelect: (company: ProductionCompany) => void;
+  excludeIds?: number[];  // Already assigned companies
+}
+```
+
+---
+
+### `RequireEditor`
+**Location**: `components/admin/require-editor.tsx`  
+**Type**: Client Component  
+
+Wrapper component that checks for editor/admin role before rendering children.
+
+**Props**:
+```typescript
+interface RequireEditorProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;  // Shown if not authorized
+}
+```
+
+---
+
 ## UI Components (shadcn/ui)
 
 **Location**: `components/ui/`
@@ -347,7 +413,45 @@ import { Card, CardContent } from '@/components/ui/card';
 
 **Location**: `components/auth/`
 
-*(Placeholder for future login/register forms)*
+### `LoginForm`
+**Location**: `components/auth/login-form.tsx`  
+**Type**: Client Component  
+
+Email/password login form with validation and error handling.
+
+**Features**:
+- Email and password validation
+- Error message display
+- Redirect after successful login
+- Link to registration page
+
+---
+
+### `RegisterForm`
+**Location**: `components/auth/register-form.tsx`  
+**Type**: Client Component  
+
+User registration form with validation.
+
+**Features**:
+- Email, password, display name fields
+- Password confirmation
+- Validation with error messages
+- Redirect after successful registration
+
+---
+
+### `UserMenu`
+**Location**: `components/auth/user-menu.tsx`  
+**Type**: Client Component  
+
+Dropdown menu for authenticated users in the header.
+
+**Features**:
+- Shows user display name/email
+- Links to profile pages (dashboard, settings, rentals)
+- Logout button
+- Admin link (if user has admin/editor role)
 
 ---
 

@@ -591,6 +591,179 @@ Get user statistics. **Requires auth.**
 
 ---
 
+### Production Companies (`/api/production-companies/*`)
+
+#### `GET /api/production-companies`
+Get all production companies. Optional `?search=name&limit=20`.
+
+**Response:**
+```json
+{
+  "companies": [
+    {
+      "id": 123,
+      "slug": "hoppin-film",
+      "name": { "en": "Hoppin Film", "lo": "..." },
+      "logoPath": "/abc.jpg",
+      "customLogoUrl": null,
+      "websiteUrl": "https://...",
+      "originCountry": "LA",
+      "movieCount": 5
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/production-companies/:id`
+Get production company with filmography.
+
+**Response:** Company object plus `movies` array.
+
+---
+
+#### `POST /api/production-companies`
+Create a new production company. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "name": { "en": "New Studio", "lo": "..." },
+  "slug": "new-studio",
+  "websiteUrl": "https://...",
+  "originCountry": "LA"
+}
+```
+
+---
+
+#### `PUT /api/production-companies/:id`
+Update production company. **Editor/Admin only.**
+
+---
+
+#### `GET /api/movies/:id/production-companies`
+Get production companies for a movie.
+
+---
+
+#### `POST /api/movies/:id/production-companies`
+Add production company to movie. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "companyId": 123,
+  "order": 0
+}
+```
+
+---
+
+#### `DELETE /api/movies/:id/production-companies/:companyId`
+Remove production company from movie. **Editor/Admin only.**
+
+---
+
+### Trailers (`/api/trailers/*`)
+
+#### `GET /api/movies/:id/trailers`
+Get all trailers for a movie.
+
+**Response:**
+```json
+{
+  "trailers": [
+    {
+      "id": "uuid",
+      "type": "youtube",
+      "youtubeKey": "dQw4w9WgXcQ",
+      "name": "Official Trailer",
+      "official": true,
+      "language": "en",
+      "order": 0
+    }
+  ]
+}
+```
+
+---
+
+#### `POST /api/movies/:id/trailers`
+Add trailer to movie. **Editor/Admin only.**
+
+**Body (YouTube):**
+```json
+{
+  "type": "youtube",
+  "youtubeKey": "dQw4w9WgXcQ",
+  "name": "Official Trailer",
+  "official": true,
+  "language": "en"
+}
+```
+
+**Body (Self-hosted):**
+```json
+{
+  "type": "video",
+  "videoUrl": "https://storage.../trailer.mp4",
+  "videoFormat": "mp4",
+  "videoQuality": "1080p",
+  "name": "Teaser",
+  "durationSeconds": 120
+}
+```
+
+---
+
+#### `PUT /api/trailers/:id`
+Update trailer. **Editor/Admin only.**
+
+---
+
+#### `DELETE /api/trailers/:id`
+Delete trailer. **Editor/Admin only.**
+
+---
+
+### Audit Logs (`/api/audit-logs/*`)
+
+#### `GET /api/audit-logs`
+Get audit log entries. **Admin only.**
+
+**Query params:**
+- `entityType` - Filter by type (movie, person, etc.)
+- `entityId` - Filter by specific entity
+- `userId` - Filter by user who made changes
+- `action` - Filter by action type
+- `limit` - Results per page (default 50)
+- `offset` - Pagination offset
+
+**Response:**
+```json
+{
+  "logs": [
+    {
+      "id": "uuid",
+      "userId": "uuid",
+      "userName": "Editor Name",
+      "action": "update",
+      "entityType": "movie",
+      "entityId": "uuid",
+      "entityName": "The Signal",
+      "changes": "{\"title\":{\"before\":\"Old\",\"after\":\"New\"}}",
+      "ipAddress": "192.168.1.1",
+      "createdAt": "2025-12-13T00:00:00.000Z"
+    }
+  ],
+  "total": 150
+}
+```
+
+---
+
 ## Error Response Format
 
 All errors follow this format:
