@@ -164,10 +164,12 @@ fastify.get<{
 
 #### Priority
 
-**Medium** - Current client-side search works well for launch. Implement when:
+**Low (Deferred)** - Current client-side search works well for current catalog size. Implement when:
 1. Catalog exceeds 300-500 movies
 2. Search performance becomes noticeably slow
 3. Users request genre/year filtering
+
+**Status**: Not needed until catalog grows significantly. Focus on content acquisition first.
 
 ---
 
@@ -403,9 +405,9 @@ If subtitle files already exist:
 
 ### Priority
 
-**Medium** - Improves accessibility and UX, but not blocking for launch.
+**Low** - Improves accessibility and UX, but not critical for launch.
 
-**Recommendation**: Implement after core rental/auth features are stable.
+**Recommendation**: Implement after catalog reaches 50+ movies and core features are stable.
 
 ---
 
@@ -650,14 +652,17 @@ Frontend displays → "Because you watched [Movie] with [Actor]"
 
 ### Priority
 
-**Medium-Low** - Nice-to-have feature that improves engagement, but not critical for launch.
+**Low (Deferred)** - Nice-to-have feature that improves engagement, but not critical for launch.
 
-**Recommendation**: Implement after core features are stable (auth, rentals, analytics). Good candidate for A/B testing to measure impact on engagement.
+**Recommendation**: Implement after catalog reaches 100+ movies and there's sufficient user watch history data. Good candidate for A/B testing to measure impact on engagement.
 
 **Dependencies**:
 - Settings system (can be used for other feature flags too)
 - Sufficient watch history data (need active users first)
+- Larger catalog (recommendations need variety)
 - Performance monitoring (ensure queries don't slow down homepage)
+
+**Status**: Deferred until user base and catalog are established.
 
 ---
 

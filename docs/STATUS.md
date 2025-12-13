@@ -87,8 +87,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 🚧 In Progress
 
-- [ ] Password reset flow (requires email service)
-- [ ] OAuth integration (Google/Apple sign-in)
+- [ ] Content management features (bulk import, batch translation)
+- [ ] Production monitoring and analytics
 
 ## 🎯 Roadmap
 
@@ -115,8 +115,8 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Anonymous user support with migration
 - [x] Frontend auth UI (login/register forms, user menu)
 - [x] User profile pages (dashboard, settings, rentals, continue watching)
-- [ ] Password reset flow (requires email service)
-- [ ] Watchlist functionality
+- [x] Password reset flow (email-based recovery)
+- [ ] Watchlist functionality (deferred - needs larger catalog)
 - [ ] User ratings/reviews
 
 ### Phase 4: Advanced Features (Partial)
@@ -358,22 +358,27 @@ None currently. See GitHub Issues (when created) for bug tracking.
 See [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) for full history.
 
 **Latest Updates (December 2025)**:
-- Fixed critical cast/crew data loss bug
-- Implemented cross-device watch progress sync
-- Fixed mobile video player (fullscreen, touch controls, height)
-- Migrated rental system to database-first approach
-- Completed user accounts backend (auth, sessions, dual-mode APIs)
-- Added anonymous user support with seamless migration
-- Cleaned up documentation structure
+- ✅ Completed password reset flow (email-based recovery)
+- ✅ Fixed critical cast/crew data loss bug
+- ✅ Implemented cross-device watch progress sync
+- ✅ Fixed mobile video player (fullscreen, touch controls, height)
+- ✅ Migrated rental system to database-first approach
+- ✅ Completed user accounts backend (auth, sessions, dual-mode APIs)
+- ✅ Added anonymous user support with seamless migration
+- ✅ Cleaned up documentation structure
 
 ## 🎯 Current Priority
 
-1. **Password reset flow** - Email-based password recovery
-2. **OAuth integration** - Google/Apple sign-in implementation
-3. **Watchlist functionality** - User watchlist feature
-4. **Backend search API** - Server-side search with pagination (for scaling)
-5. **Genre/year filters** - Additional filter options
-6. **Mobile app** - React Native/Expo companion app
+1. **Content Management** - Bulk TMDB import, batch Lao translation workflow
+2. **Production Monitoring** - Analytics, error tracking, performance monitoring
+3. **Content Growth** - Build catalog to 100+ movies before advanced features
+
+### Deferred (Lower Priority)
+- **OAuth integration** - Google/Apple sign-in (deferred until user base grows)
+- **Watchlist functionality** - Needs larger catalog first
+- **Backend search API** - Current client-side search scales to ~500 movies
+- **Genre/year filters** - Not needed until catalog is larger
+- **Mobile app** - Phase 2 after web is stable and proven
 
 ## 📚 External Resources
 
