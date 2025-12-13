@@ -13,9 +13,11 @@ import { Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
+import { useAuth } from '@/lib/auth';
 
 export default function Home() {
   const t = useTranslations();
+  const { user, isLoading: authLoading } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +82,15 @@ export default function Home() {
 
   useEffect(() => {
     loadMovies();
-    loadRentals();
-  }, [loadMovies, loadRentals]);
+  }, [loadMovies]);
+
+  // Reload rentals when auth state changes (login/logout)
+  useEffect(() => {
+    if (!authLoading) {
+      setRentalsLoading(true);
+      loadRentals();
+    }
+  }, [user?.id, authLoading, loadRentals]);
 
   const handleRetry = () => {
     setIsRetrying(true);
