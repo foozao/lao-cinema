@@ -107,7 +107,6 @@ fastify.get<{
 
 - Add genre filter dropdown (fetch from `/api/genres`)
 - Add year range picker or dropdown
-- Add rating slider (0-10 stars)
 - Switch from client-side filtering to API calls
 - Add pagination controls (page numbers or infinite scroll)
 - Debounce search input (500ms delay)
@@ -149,11 +148,6 @@ fastify.get<{
 - Dropdown with decades (1990s, 2000s, 2010s, 2020s)
 - Or range picker (2015-2023)
 - URL: `?year=2020-2023`
-
-**Rating Filter**:
-- Star rating slider (0-10)
-- Show only movies above threshold
-- URL: `?minRating=7.5`
 
 **Language Filter** (future):
 - Filter by original language

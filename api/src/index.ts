@@ -33,6 +33,12 @@ fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
+// Block all crawlers
+fastify.get('/robots.txt', async (request, reply) => {
+  reply.type('text/plain');
+  return 'User-agent: *\nDisallow: /';
+});
+
 // Register routes
 await fastify.register(authRoutes, { prefix: '/api' });
 await fastify.register(userDataRoutes, { prefix: '/api' });

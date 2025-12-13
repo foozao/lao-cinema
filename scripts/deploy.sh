@@ -38,6 +38,15 @@ log_error() {
 # ========================================
 log_info "Starting deployment to GCP Cloud Run..."
 
+# Check correct GCP project is active
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    log_error "Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID"
+    log_error "Run: gcloud config configurations activate lao-cinema"
+    exit 1
+fi
+log_info "✓ Correct GCP project active: $PROJECT_ID"
+
 # Check if gcloud is installed
 if ! command -v gcloud &> /dev/null; then
     log_error "gcloud CLI is not installed. Please install it first."
