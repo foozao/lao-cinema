@@ -355,6 +355,45 @@
     "register": {
       "title": "Create Account - Lao Cinema",
       "description": "Create a Lao Cinema account to sync your rentals"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password - Lao Cinema",
+      "description": "Reset your Lao Cinema password",
+      "heading": "Forgot Password",
+      "subtitle": "Enter your email address and we'll send you a link to reset your password.",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Send Reset Link",
+      "sending": "Sending...",
+      "backToLogin": "Back to Sign In",
+      "checkEmail": "Check Your Email",
+      "emailSentMessage": "If an account exists with this email, we've sent a password reset link. Please check your inbox and spam folder.",
+      "didntReceive": "Didn't receive the email?",
+      "checkSpam": "Check your spam/junk folder",
+      "correctEmail": "Make sure you entered the correct email",
+      "waitAndRetry": "Wait a few minutes and try again",
+      "tryAnother": "Try Another Email"
+    },
+    "resetPassword": {
+      "title": "Reset Password - Lao Cinema",
+      "description": "Create a new password for your account",
+      "heading": "Reset Password",
+      "subtitle": "Enter your new password below.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "passwordRequirements": "Must be at least 8 characters",
+      "submit": "Reset Password",
+      "resetting": "Resetting Password...",
+      "backToLogin": "Back to Sign In",
+      "validating": "Validating reset link...",
+      "invalidToken": "Invalid or Expired Link",
+      "invalidTokenMessage": "This password reset link is invalid or has expired. Please request a new one.",
+      "requestNewLink": "Request New Reset Link",
+      "success": "Password Reset Successfully",
+      "successMessage": "Your password has been updated. You can now sign in with your new password.",
+      "signIn": "Sign In",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters"
     }
   },
   "profile": {

@@ -376,6 +376,16 @@ export const userSessions = pgTable('user_sessions', {
   userAgent: text('user_agent'),
 });
 
+// Password reset tokens table - for forgot password flow
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token: text('token').unique().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'), // Null until token is used
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Rentals table - supports both authenticated and anonymous users
 export const rentals = pgTable('rentals', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -442,6 +452,9 @@ export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
 
 export type UserSession = typeof userSessions.$inferSelect;
 export type NewUserSession = typeof userSessions.$inferInsert;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
 export type Rental = typeof rentals.$inferSelect;
 export type NewRental = typeof rentals.$inferInsert;

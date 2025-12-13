@@ -7,8 +7,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, userSessions, oauthAccounts } from '../db/schema.js';
-import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount } from '../db/schema.js';
+import { users, userSessions, oauthAccounts, passwordResetTokens } from '../db/schema.js';
+import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount, PasswordResetToken } from '../db/schema.js';
 import { hashPassword, verifyPassword, generateSessionToken, getSessionExpiration } from './auth-utils.js';
 
 // =============================================================================
@@ -309,4 +309,79 @@ export async function updateOAuthTokens(
  */
 export async function unlinkOAuthAccount(accountId: string): Promise<void> {
   await db.delete(oauthAccounts).where(eq(oauthAccounts.id, accountId));
+}
+
+// =============================================================================
+// PASSWORD RESET TOKENS
+// =============================================================================
+
+/**
+ * Create a password reset token for a user
+ * Token expires in 1 hour
+ */
+export async function createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
+  // Delete any existing unused tokens for this user
+  await db.delete(passwordResetTokens)
+    .where(eq(passwordResetTokens.userId, userId));
+  
+  const token = generateSessionToken(); // Reuse secure token generator
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  
+  const [resetToken] = await db.insert(passwordResetTokens).values({
+    userId,
+    token,
+    expiresAt,
+  }).returning();
+  
+  return resetToken;
+}
+
+/**
+ * Find a valid password reset token
+ * Returns null if token is expired, already used, or doesn't exist
+ */
+export async function findValidPasswordResetToken(token: string): Promise<(PasswordResetToken & { user: User }) | null> {
+  const [result] = await db.select()
+    .from(passwordResetTokens)
+    .innerJoin(users, eq(passwordResetTokens.userId, users.id))
+    .where(eq(passwordResetTokens.token, token))
+    .limit(1);
+  
+  if (!result) {
+    return null;
+  }
+  
+  const resetToken = result.password_reset_tokens;
+  
+  // Check if token is expired
+  if (new Date() > resetToken.expiresAt) {
+    return null;
+  }
+  
+  // Check if token was already used
+  if (resetToken.usedAt) {
+    return null;
+  }
+  
+  return {
+    ...resetToken,
+    user: result.users,
+  };
+}
+
+/**
+ * Mark a password reset token as used
+ */
+export async function markPasswordResetTokenUsed(tokenId: string): Promise<void> {
+  await db.update(passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(passwordResetTokens.id, tokenId));
+}
+
+/**
+ * Delete expired password reset tokens (cleanup)
+ */
+export async function cleanupExpiredPasswordResetTokens(): Promise<void> {
+  await db.delete(passwordResetTokens)
+    .where(eq(passwordResetTokens.expiresAt, new Date()));
 }
