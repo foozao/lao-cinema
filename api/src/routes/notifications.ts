@@ -5,10 +5,10 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { movieNotifications, movies, movieTranslations } from '../db/schema.js';
-import { requireAuth } from '../lib/auth-middleware.js';
+import { movieNotifications, movies, movieTranslations, users } from '../db/schema.js';
+import { requireAuth, requireAdmin } from '../lib/auth-middleware.js';
 import type { MovieNotification } from '../db/schema.js';
 
 export default async function notificationRoutes(fastify: FastifyInstance) {
@@ -201,6 +201,81 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to fetch notifications',
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/notifications/movies/:movieId/subscribers
+   * Get all users who subscribed to notifications for a movie (admin only)
+   * Returns users who haven't been notified yet (notifiedAt is null)
+   */
+  fastify.get('/admin/notifications/movies/:movieId/subscribers', { preHandler: [requireAuth, requireAdmin] }, async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+    
+    try {
+      // Get all subscribers who haven't been notified yet
+      const subscribers = await db.select({
+        id: movieNotifications.id,
+        userId: movieNotifications.userId,
+        createdAt: movieNotifications.createdAt,
+        email: users.email,
+        displayName: users.displayName,
+      })
+        .from(movieNotifications)
+        .innerJoin(users, eq(movieNotifications.userId, users.id))
+        .where(and(
+          eq(movieNotifications.movieId, movieId),
+          isNull(movieNotifications.notifiedAt)
+        ))
+        .orderBy(movieNotifications.createdAt);
+      
+      return reply.send({
+        movieId,
+        subscriberCount: subscribers.length,
+        subscribers: subscribers.map(s => ({
+          id: s.id,
+          userId: s.userId,
+          email: s.email,
+          displayName: s.displayName,
+          subscribedAt: s.createdAt,
+        })),
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to fetch notification subscribers');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch notification subscribers',
+      });
+    }
+  });
+
+  /**
+   * POST /api/admin/notifications/movies/:movieId/mark-notified
+   * Mark all subscribers for a movie as notified (admin only)
+   */
+  fastify.post('/admin/notifications/movies/:movieId/mark-notified', { preHandler: [requireAuth, requireAdmin] }, async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+    
+    try {
+      const updated = await db.update(movieNotifications)
+        .set({ notifiedAt: new Date() })
+        .where(and(
+          eq(movieNotifications.movieId, movieId),
+          isNull(movieNotifications.notifiedAt)
+        ))
+        .returning();
+      
+      return reply.send({
+        success: true,
+        markedCount: updated.length,
+        message: `Marked ${updated.length} subscribers as notified`,
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to mark subscribers as notified');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to mark subscribers as notified',
       });
     }
   });

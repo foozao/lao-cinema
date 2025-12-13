@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink, X } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink, X, Bell, Mail, Copy, Check } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { useTranslations } from 'next-intl';
@@ -18,6 +18,8 @@ import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, StreamingPlatform, ExternalPlatform, Trailer } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, productionCompaniesAPI } from '@/lib/api/client';
+import { getRawSessionToken } from '@/lib/auth/api-client';
+import { useAuth } from '@/lib/auth';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
 import { ProductionCompanySearch } from '@/components/admin/production-company-search';
@@ -28,6 +30,8 @@ export default function EditMoviePage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const movieId = params.id as string;
   
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
@@ -97,6 +101,73 @@ export default function EditMoviePage() {
   // Sync result modal state
   const [showSyncResultModal, setShowSyncResultModal] = useState(false);
   const [syncChanges, setSyncChanges] = useState<string[]>([]);
+  
+  // Notification subscribers modal state
+  const [showSubscribersModal, setShowSubscribersModal] = useState(false);
+  const [subscribers, setSubscribers] = useState<Array<{
+    id: string;
+    userId: string;
+    email: string;
+    displayName: string | null;
+    subscribedAt: string;
+  }>>([]);
+  const [copiedEmails, setCopiedEmails] = useState(false);
+  const [subscribersChecked, setSubscribersChecked] = useState(false);
+  
+  // Check for notification subscribers when status changes to available
+  useEffect(() => {
+    const checkSubscribers = async () => {
+      // Only check if status changed from coming_soon/unavailable to available/external/auto
+      const wasUnavailable = originalAvailabilityStatus === 'coming_soon' || originalAvailabilityStatus === 'unavailable';
+      const nowAvailable = availabilityStatus === 'available' || availabilityStatus === 'external' || availabilityStatus === 'auto';
+      
+      console.log('Checking subscribers:', { 
+        originalAvailabilityStatus, 
+        availabilityStatus, 
+        wasUnavailable, 
+        nowAvailable, 
+        subscribersChecked 
+      });
+      
+      if (wasUnavailable && nowAvailable && !subscribersChecked && isAdmin) {
+        console.log('Fetching subscribers for movie:', movieId);
+        try {
+          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          const token = getRawSessionToken();
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          const response = await fetch(`${API_BASE_URL}/admin/notifications/movies/${movieId}/subscribers`, {
+            headers,
+          });
+          console.log('Subscribers API response:', response.status);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Subscribers data:', data);
+            if (data.subscribers && data.subscribers.length > 0) {
+              setSubscribers(data.subscribers);
+              setShowSubscribersModal(true);
+              setSubscribersChecked(true);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch notification subscribers:', err);
+        }
+      }
+      
+      // Reset check flag if status goes back to unavailable
+      if (!nowAvailable) {
+        setSubscribersChecked(false);
+      }
+    };
+    
+    if (currentMovie) {
+      checkSubscribers();
+    }
+  }, [availabilityStatus, originalAvailabilityStatus, movieId, subscribersChecked, currentMovie, isAdmin]);
   
   // State for adding new cast/crew
   const [showAddCast, setShowAddCast] = useState(false);
@@ -846,6 +917,9 @@ export default function EditMoviePage() {
       setOriginalExternalPlatforms([...externalPlatforms]);
       setOriginalAvailabilityStatus(availabilityStatus);
       
+      // Reset subscribers check for next time
+      setSubscribersChecked(false);
+      
       // Show success modal
       setShowSuccessModal(true);
     } catch (error) {
@@ -866,8 +940,8 @@ export default function EditMoviePage() {
     <div>
       <Tabs defaultValue="content" className="space-y-6">
         {/* Sticky Header */}
-        <div className="sticky top-16 z-[5] bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-4 border-b border-gray-200 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="sticky top-[104px] z-[5] bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-4 border-b border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <h2 className="text-2xl font-bold text-gray-900">
               Editing: <span className="text-gray-700">{currentMovie ? getLocalizedText(currentMovie.title, 'en') : 'Loading...'}</span>
             </h2>
@@ -1348,7 +1422,8 @@ export default function EditMoviePage() {
             </CardContent>
           </Card>
 
-          {/* Availability Status */}
+          {/* Availability Status - Admin Only */}
+          {isAdmin && (
           <Card>
             <CardHeader>
               <CardTitle>Availability Status</CardTitle>
@@ -1379,6 +1454,7 @@ export default function EditMoviePage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* External Platforms */}
           <Card>
@@ -2058,6 +2134,81 @@ export default function EditMoviePage() {
               className="w-full"
             >
               OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Subscribers Preview Modal */}
+      <Dialog open={showSubscribersModal} onOpenChange={setShowSubscribersModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                <Bell className="h-6 w-6 text-blue-600" />
+              </div>
+              <DialogTitle className="text-xl">Users Waiting for This Movie</DialogTitle>
+            </div>
+            <DialogDescription>
+              {subscribers.length} user{subscribers.length !== 1 ? 's' : ''} requested to be notified when this movie becomes available.
+              You'll need to notify them manually after saving.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 space-y-4">
+            {/* Email list with copy button */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Email Addresses</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const emails = subscribers.map(s => s.email).join(', ');
+                    navigator.clipboard.writeText(emails);
+                    setCopiedEmails(true);
+                    setTimeout(() => setCopiedEmails(false), 2000);
+                  }}
+                >
+                  {copiedEmails ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copy All
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                <ul className="space-y-2">
+                  {subscribers.map((sub) => (
+                    <li key={sub.id} className="flex items-center gap-2 text-sm">
+                      <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-900">{sub.email}</span>
+                      {sub.displayName && (
+                        <span className="text-gray-500">({sub.displayName})</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-500">
+              Copy these emails now, then click "Update" to save your changes. You can mark them as notified after you've contacted them.
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-2 mt-4">
+            <Button
+              onClick={() => setShowSubscribersModal(false)}
+              className="w-full"
+            >
+              Got It
             </Button>
           </div>
         </DialogContent>
