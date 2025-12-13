@@ -92,36 +92,36 @@ export default function NotificationsPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header variant="light" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
       <div className="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile">
-            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-gray-600 hover:text-gray-900">
+            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-gray-400 hover:text-white">
               <ArrowLeft className="h-4 w-4 mr-1" />
               {t('backToProfile')}
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
 
         {/* Notifications List */}
         {notifications.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="h-8 w-8 text-gray-400" />
+          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="h-8 w-8 text-gray-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('empty')}</h3>
-            <p className="text-gray-600 mb-6">{t('emptyMessage')}</p>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('empty')}</h3>
+            <p className="text-gray-400 mb-6">{t('emptyMessage')}</p>
             <Link href="/">
               <Button>{t('browseMovies')}</Button>
             </Link>
@@ -140,7 +140,7 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={notification.id}
-                  className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                  className="bg-gray-900 rounded-lg shadow-sm p-4 border border-gray-700"
                 >
                   <div className="flex items-center gap-4">
                     {/* Poster */}
@@ -163,7 +163,7 @@ export default function NotificationsPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <Link href={`/movies/${moviePath}`}>
-                        <h3 className="font-semibold text-gray-900 hover:text-blue-600 truncate">
+                        <h3 className="font-semibold text-white hover:text-blue-400 truncate">
                           {title}
                         </h3>
                       </Link>

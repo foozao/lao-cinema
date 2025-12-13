@@ -31,7 +31,7 @@ export function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {
       className={`gap-1.5 ${hoverClass}`}
       aria-label={t('switchLanguage')}
     >
-      <span className={`font-medium ${textColor}`}>
+      <span className={`font-medium text-lg leading-none ${textColor}`}>
         ລາວ
       </span>
       <span className={separatorColor}>/</span>

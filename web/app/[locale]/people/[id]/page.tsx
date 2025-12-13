@@ -55,12 +55,12 @@ export default function PersonPage() {
 
   // Show blank page during loading
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black" />;
+    return <div className="min-h-screen bg-black" />;
   }
 
   if (error || !person) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+      <div className="min-h-screen bg-black text-white">
         <Header variant="dark" />
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-xl text-gray-400">Person not found</p>
@@ -75,7 +75,7 @@ export default function PersonPage() {
   const personPhoto = person.profile_path;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <Header variant="dark" />
 

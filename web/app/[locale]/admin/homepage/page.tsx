@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, X, GripVertical, Save } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
+import { getAuthHeaders } from '@/lib/api/auth-headers';
 
 interface FeaturedMovie {
   id: string;
@@ -68,7 +69,7 @@ export default function HomepageAdminPage() {
       const nextOrder = featured.length;
       const res = await fetch(`${API_BASE_URL}/homepage/featured`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ movieId, order: nextOrder }),
       });
 
@@ -91,6 +92,7 @@ export default function HomepageAdminPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/homepage/featured/${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (res.ok) {
@@ -111,7 +113,7 @@ export default function HomepageAdminPage() {
 
       const res = await fetch(`${API_BASE_URL}/homepage/featured/reorder`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ items }),
       });
 

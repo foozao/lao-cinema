@@ -58,36 +58,36 @@ export default function EditProfilePage() {
   
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header variant="light" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
       <div className="max-w-2xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
             ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="bg-gray-900 rounded-lg shadow-sm p-8 border border-gray-700">
           {/* Current Profile Preview */}
-          <div className="flex items-center gap-4 mb-8 pb-8 border-b border-gray-200">
+          <div className="flex items-center gap-4 mb-8 pb-8 border-b border-gray-700">
             <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center">
               <User className="h-10 w-10 text-white" />
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-white">
                 {user?.displayName || 'User'}
               </p>
-              <p className="text-sm text-gray-600">{user?.email}</p>
+              <p className="text-sm text-gray-400">{user?.email}</p>
             </div>
           </div>
           
@@ -144,9 +144,9 @@ export default function EditProfilePage() {
         </div>
         
         {/* Account Info */}
-        <div className="mt-6 bg-gray-100 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">{t('accountInfo')}</h3>
-          <div className="space-y-1 text-sm text-gray-600">
+        <div className="mt-6 bg-gray-800 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-white mb-2">{t('accountInfo')}</h3>
+          <div className="space-y-1 text-sm text-gray-400">
             <p><strong>{t('email')}:</strong> {user?.email}</p>
             <p><strong>{t('memberSince')}:</strong> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',

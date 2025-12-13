@@ -151,34 +151,34 @@ export default function SettingsPage() {
   
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header variant="light" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
       <div className="max-w-2xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
             ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
         
         {/* Timezone */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+        <div className="bg-gray-900 rounded-lg shadow-sm p-8 mb-6 border border-gray-700">
           <div className="flex items-start gap-3 mb-6">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Globe className="h-5 w-5 text-green-600" />
+            <div className="p-2 bg-green-900/50 rounded-lg">
+              <Globe className="h-5 w-5 text-green-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">{t('timezone.title')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-xl font-semibold text-white">{t('timezone.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
                 {t('timezone.description')}
               </p>
             </div>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
               value={timezone}
               onChange={(e) => handleTimezoneChange(e.target.value)}
               disabled={isUpdatingTimezone}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-700 disabled:cursor-not-allowed"
             >
               {TIMEZONE_OPTIONS.map((tz) => (
                 <option key={tz.value} value={tz.value}>
@@ -212,7 +212,7 @@ export default function SettingsPage() {
         </div>
         
         {/* Change Password */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+        <div className="bg-gray-900 rounded-lg shadow-sm p-8 mb-6 border border-gray-700">
           <button
             type="button"
             onClick={() => {
@@ -224,12 +224,12 @@ export default function SettingsPage() {
             }}
             className="w-full flex items-start gap-3 text-left"
           >
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Lock className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-blue-900/50 rounded-lg">
+              <Lock className="h-5 w-5 text-blue-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">{t('password.title')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-xl font-semibold text-white">{t('password.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
                 {t('password.description')}
               </p>
             </div>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
           </button>
           
           {showPasswordForm && (
-          <form onSubmit={handleChangePassword} className="space-y-4 mt-6 pt-6 border-t border-gray-200">
+          <form onSubmit={handleChangePassword} className="space-y-4 mt-6 pt-6 border-t border-gray-700">
             {passwordError && (
               <div className="rounded-md bg-red-50 p-4">
                 <p className="text-sm text-red-800">{passwordError}</p>
@@ -310,21 +310,21 @@ export default function SettingsPage() {
         </div>
         
         {/* Sessions */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+        <div className="bg-gray-900 rounded-lg shadow-sm p-8 mb-6 border border-gray-700">
           <div className="flex items-start gap-3 mb-6">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <LogOut className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-purple-900/50 rounded-lg">
+              <LogOut className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{t('sessions.title')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-xl font-semibold text-white">{t('sessions.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
                 {t('sessions.description')}
               </p>
             </div>
           </div>
           
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-400">
               {t('sessions.confirmMessage')}
             </p>
             
@@ -340,14 +340,14 @@ export default function SettingsPage() {
         </div>
         
         {/* Danger Zone - Delete Account */}
-        <div className="bg-white rounded-lg shadow-sm border-2 border-red-200 p-8">
+        <div className="bg-gray-900 rounded-lg shadow-sm border-2 border-red-700 p-8">
           <div className="flex items-start gap-3 mb-6">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="p-2 bg-red-900/50 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-red-900">{t('deleteAccount.title')}</h2>
-              <p className="text-sm text-red-600 mt-1">
+              <h2 className="text-xl font-semibold text-red-400">{t('deleteAccount.title')}</h2>
+              <p className="text-sm text-red-500 mt-1">
                 {t('deleteAccount.description')}
               </p>
             </div>
@@ -355,7 +355,7 @@ export default function SettingsPage() {
           
           {!showDeleteConfirm ? (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-400">
                 {t('deleteAccount.warningMessage')}
               </p>
               
@@ -370,8 +370,8 @@ export default function SettingsPage() {
             </div>
           ) : (
             <form onSubmit={handleDeleteAccount} className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-red-900 mb-2">
+              <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+                <p className="text-sm font-semibold text-red-400 mb-2">
                   ⚠️ {t('deleteAccount.warning')}
                 </p>
                 <p className="text-sm text-red-800">

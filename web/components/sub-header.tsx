@@ -13,7 +13,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
   const t = useTranslations();
 
   const bgClass = variant === 'dark' 
-    ? 'bg-gray-900 border-gray-800' 
+    ? 'bg-black border-gray-800' 
     : 'bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700';
 
   const getTextClass = (page: 'movies' | 'people' | 'production') => {

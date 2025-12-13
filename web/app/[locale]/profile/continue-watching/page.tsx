@@ -96,36 +96,36 @@ export default function ContinueWatchingPage() {
   
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header variant="light" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
       <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
             ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
         
         {/* Error */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-6 bg-red-900/30 border border-red-700 rounded-lg p-4">
+            <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
         
         {/* Anonymous User Notice */}
         {!isAuthenticated && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+          <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+            <p className="text-sm text-blue-400">
               <strong>Viewing local progress.</strong> Sign in to sync your watch progress across devices.
             </p>
           </div>
@@ -133,9 +133,9 @@ export default function ContinueWatchingPage() {
         
         {/* Progress List */}
         {progress.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">{t('noProgress')}</p>
+          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
+            <Clock className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+            <p className="text-gray-400 mb-4">{t('noProgress')}</p>
             <p className="text-sm text-gray-500 mb-6">
               {t('noProgressDesc')}
             </p>
@@ -150,7 +150,7 @@ export default function ContinueWatchingPage() {
             {progress.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
+                className="bg-gray-900 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow group border border-gray-700"
               >
                 {/* Backdrop/Poster */}
                 <div className="relative aspect-video bg-gray-200">
@@ -195,11 +195,11 @@ export default function ContinueWatchingPage() {
                 
                 {/* Info */}
                 <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">
+                  <h3 className="font-semibold text-white mb-2 line-clamp-1">
                     {item.movieTitle || 'Movie'}
                   </h3>
                   
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                  <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
                     <span>{getProgressPercentage(item)}% watched</span>
                     <span>
                       {formatTime(item.progressSeconds)} / {formatTime(item.durationSeconds)}
@@ -232,14 +232,14 @@ export default function ContinueWatchingPage() {
         
         {/* Stats */}
         {progress.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
+          <div className="mt-8 bg-gray-900 rounded-lg shadow-sm p-6 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Summary</h3>
             <div className="grid grid-cols-3 gap-6">
               <div>
                 <p className="text-2xl font-bold text-blue-600">
                   {progress.length}
                 </p>
-                <p className="text-sm text-gray-600">Movies in Progress</p>
+                <p className="text-sm text-gray-400">Movies in Progress</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-600">
@@ -247,7 +247,7 @@ export default function ContinueWatchingPage() {
                     progress.reduce((sum, p) => sum + getProgressPercentage(p), 0) / progress.length
                   )}%
                 </p>
-                <p className="text-sm text-gray-600">Average Progress</p>
+                <p className="text-sm text-gray-400">Average Progress</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600">
@@ -255,7 +255,7 @@ export default function ContinueWatchingPage() {
                     progress.reduce((sum, p) => sum + p.progressSeconds, 0)
                   )}
                 </p>
-                <p className="text-sm text-gray-600">Total Watch Time</p>
+                <p className="text-sm text-gray-400">Total Watch Time</p>
               </div>
             </div>
           </div>

@@ -100,9 +100,9 @@ export default function ProductionCompaniesPage() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black flex flex-col">
-      <Header variant="light" />
-      <SubHeader activePage="production" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
+      <SubHeader variant="dark" activePage="production" />
 
       <main className="container mx-auto px-4 py-8 flex-grow">
         {/* Page Header */}

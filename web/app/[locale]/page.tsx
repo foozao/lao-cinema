@@ -93,13 +93,13 @@ export default function Home() {
   const contentReady = !loading && !showLoader;
 
   return (
-    <div className="min-h-screen bg-black">
+    <>
       {/* Cinematic Loader - first visit only */}
       {showLoader && (
         <CinematicLoader onComplete={() => setShowLoader(false)} />
       )}
 
-      <div className={`min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col transition-opacity duration-700 ${
+      <div className={`min-h-screen bg-black flex flex-col transition-opacity duration-700 ${
         showLoader ? 'opacity-0' : 'opacity-100'
       }`}>
         {/* Header */}
@@ -160,6 +160,6 @@ export default function Home() {
         {/* Footer */}
         <Footer variant="dark" />
       </div>
-    </div>
+    </>
   );
 }

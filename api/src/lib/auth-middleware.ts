@@ -15,7 +15,7 @@ import type { User } from '../db/schema.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: User;
+    user: User | undefined;
     userId?: string;
     anonymousId?: string;
   }

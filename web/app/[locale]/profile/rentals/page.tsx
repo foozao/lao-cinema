@@ -81,36 +81,36 @@ export default function RentalsPage() {
   
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header variant="light" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
       <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
             ← {t('backToProfile')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
         
         {/* Error */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-6 bg-red-900/30 border border-red-700 rounded-lg p-4">
+            <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
         
         {/* Anonymous User Notice */}
         {!isAuthenticated && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+          <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+            <p className="text-sm text-blue-400">
               <strong>Viewing anonymous rentals.</strong> Sign in to sync your rentals across devices.
             </p>
           </div>
@@ -118,9 +118,9 @@ export default function RentalsPage() {
         
         {/* Rentals List */}
         {rentals.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <Film className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">{t('noActive')}</p>
+          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
+            <Film className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+            <p className="text-gray-400 mb-4">{t('noActive')}</p>
             <p className="text-sm text-gray-500 mb-6">
               {t('noActiveDesc')}
             </p>
@@ -139,8 +139,8 @@ export default function RentalsPage() {
               return (
                 <div
                   key={rental.id}
-                  className={`bg-white rounded-lg shadow-sm border-2 p-6 ${
-                    expired ? 'border-gray-200 opacity-75' : 'border-green-200'
+                  className={`bg-gray-900 rounded-lg shadow-sm border-2 p-6 ${
+                    expired ? 'border-gray-700 opacity-75' : 'border-green-700'
                   }`}
                 >
                   <div className="flex gap-6">
@@ -159,7 +159,7 @@ export default function RentalsPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                          <h3 className="text-xl font-semibold text-white mb-1">
                             {rental.movieTitle || 'Movie'}
                           </h3>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -175,7 +175,7 @@ export default function RentalsPage() {
                         )}
                       </div>
                       
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-400">
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           <strong>{t('purchased')}:</strong> {formatDate(rental.purchasedAt)}
@@ -188,7 +188,7 @@ export default function RentalsPage() {
                           {t('expires')}: {formatDate(rental.expiresAt)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-600">
+                      <div className="flex items-center gap-2 text-gray-400">
                         <CreditCard className="h-4 w-4" />
                         <span>
                           {rental.amount / 100} {rental.currency} · {rental.paymentMethod}

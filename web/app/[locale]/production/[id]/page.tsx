@@ -54,12 +54,12 @@ export default function ProductionCompanyPage() {
   }, [companyId]);
 
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black" />;
+    return <div className="min-h-screen bg-black" />;
   }
 
   if (error || !company) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+      <div className="min-h-screen bg-black text-white">
         <Header variant="dark" />
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-xl text-gray-400">Production company not found</p>
@@ -80,7 +80,7 @@ export default function ProductionCompanyPage() {
   const hasLaoName = companyNameLo && companyNameLo !== companyNameEn;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex flex-col">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       <Header variant="dark" />
 
       <main className="container mx-auto px-4 pt-8 pb-8 flex-1">

@@ -25,9 +25,9 @@ export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
     : 'text-red-600';
 
   return (
-    <header className={`border-b backdrop-blur-sm sticky top-0 z-50 ${bgClass} ${textClass}`}>
-      <div className={fullWidth ? "px-4 py-4" : "container mx-auto px-4 py-4"}>
-        <div className="flex items-center justify-between">
+    <header className={`border-b backdrop-blur-sm sticky top-0 z-50 h-16 ${bgClass} ${textClass}`}>
+      <div className={fullWidth ? "px-4 h-full flex items-center" : "container mx-auto px-4 h-full flex items-center"}>
+        <div className="flex items-center justify-between w-full">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Film className={`w-8 h-8 ${logoClass}`} />
             <h1 className="text-2xl font-bold">
