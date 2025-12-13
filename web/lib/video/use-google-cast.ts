@@ -29,7 +29,10 @@ declare global {
 }
 
 /**
- * Hook for Google Cast (Chromecast) with HLS support
+ * Hook for Google Cast (Chromecast) with HLS support.
+ * 
+ * NOTE: This triggers a browser permission dialog asking to "Look for and connect
+ * to devices on your local network" - this is required for Chromecast discovery.
  */
 export function useGoogleCast({
   videoRef,

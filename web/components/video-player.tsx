@@ -285,6 +285,11 @@ export function VideoPlayer({
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
       >
+        {/* 
+          x-webkit-airplay="allow" enables AirPlay casting to Apple TV.
+          This (along with Google Cast SDK) triggers the browser's "Look for and 
+          connect to devices on your local network" permission dialog.
+        */}
         <video
           ref={videoRef}
           className="max-w-full max-h-full"
