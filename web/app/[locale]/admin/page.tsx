@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2, ClipboardList } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function AdminPage() {
   const t = useTranslations('admin');
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     moviesCount: 0,
     peopleCount: 0,
@@ -266,29 +268,31 @@ export default function AdminPage() {
         </Link>
 
         {/* Audit Logs Card (Admin Only) */}
-        <Link href="/admin/audit-logs">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <ClipboardList className="w-6 h-6 text-gray-600" />
+        {user?.role === 'admin' && (
+          <Link href="/admin/audit-logs">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gray-100 rounded-lg">
+                      <ClipboardList className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Audit Logs</CardTitle>
+                      <CardDescription>Track changes</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>Audit Logs</CardTitle>
-                    <CardDescription>Track changes</CardDescription>
-                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                View all content changes made by editors and admins
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  View all content changes made by editors and admins
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* Quick Actions */}
