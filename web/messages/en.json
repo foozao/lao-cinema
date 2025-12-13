@@ -568,5 +568,20 @@
       "yesterday": "Yesterday",
       "daysAgo": "{days} days ago"
     }
+  },
+  "shortPacks": {
+    "title": "Short Film Packs",
+    "subtitle": "Curated collections of short films",
+    "packBadge": "Pack",
+    "short": "short",
+    "shorts": "shorts",
+    "totalRuntime": "Total runtime",
+    "included": "Included in this pack",
+    "rentPack": "Rent Pack",
+    "rentFor": "Rent for {price}",
+    "watchNow": "Watch Now",
+    "description": "Description",
+    "noDescription": "No description available",
+    "featuredPacks": "Short Film Collections"
   }
 }

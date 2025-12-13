@@ -568,5 +568,20 @@
       "yesterday": "ມື້ວານນີ້",
       "daysAgo": "{days} ມື້ກ່ອນ"
     }
+  },
+  "shortPacks": {
+    "title": "ແພັກຮູບເງົາສັ້ນ",
+    "subtitle": "ຄໍເລັກຊັນຮູບເງົາສັ້ນທີ່ຄັດສັນ",
+    "packBadge": "ແພັກ",
+    "short": "ເລື່ອງ",
+    "shorts": "ເລື່ອງ",
+    "totalRuntime": "ເວລາທັງໝົດ",
+    "included": "ລວມໃນແພັກນີ້",
+    "rentPack": "ເຊົ່າແພັກ",
+    "rentFor": "ເຊົ່າໃນລາຄາ {price}",
+    "watchNow": "ເບິ່ງດຽວນີ້",
+    "description": "ລາຍລະອຽດ",
+    "noDescription": "ບໍ່ມີລາຍລະອຽດ",
+    "featuredPacks": "ຄໍເລັກຊັນຮູບເງົາສັ້ນ"
   }
 }

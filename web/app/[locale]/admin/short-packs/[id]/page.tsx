@@ -42,6 +42,8 @@ export default function ShortPackEditPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(isNew); // New packs always have "changes"
 
   // Form state
   const [slug, setSlug] = useState('');
@@ -55,11 +57,11 @@ export default function ShortPackEditPage() {
   const [isPublished, setIsPublished] = useState(false);
   const [shorts, setShorts] = useState<ShortInPack[]>([]);
 
-  // Search state for adding shorts
+  // State for adding shorts - now shows all shorts with optional filter
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Movie[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
+  const [allShorts, setAllShorts] = useState<Movie[]>([]);
+  const [loadingShorts, setLoadingShorts] = useState(false);
+  const [showShortPicker, setShowShortPicker] = useState(false);
 
   // Load pack data
   useEffect(() => {
@@ -90,43 +92,44 @@ export default function ShortPackEditPage() {
     }
   };
 
-  // Search for shorts to add
-  const searchShorts = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
+  // Load all short films when picker is opened
+  const loadAllShorts = useCallback(async () => {
     try {
-      setSearching(true);
+      setLoadingShorts(true);
       const response = await movieAPI.getAll();
-      // Filter to only shorts (runtime <= 40min) that match the query and aren't already in the pack
-      const existingIds = new Set(shorts.map(s => s.movie.id));
+      // Filter to only shorts (runtime <= 40min)
       const filtered = response.movies.filter((m: Movie) => {
-        // Short films are those with runtime <= threshold (or no runtime set)
-        const isShort = m.runtime && m.runtime <= SHORT_FILM_THRESHOLD_MINUTES;
-        if (!isShort) return false;
-        if (existingIds.has(m.id)) return false;
-        const title = m.title?.en?.toLowerCase() || m.original_title?.toLowerCase() || '';
-        return title.includes(query.toLowerCase());
+        return m.runtime && m.runtime <= SHORT_FILM_THRESHOLD_MINUTES;
       });
-      setSearchResults(filtered.slice(0, 10));
+      // Sort by title
+      filtered.sort((a: Movie, b: Movie) => {
+        const titleA = a.title?.en || a.original_title || '';
+        const titleB = b.title?.en || b.original_title || '';
+        return titleA.localeCompare(titleB);
+      });
+      setAllShorts(filtered);
     } catch (err) {
-      console.error('Failed to search shorts:', err);
+      console.error('Failed to load shorts:', err);
     } finally {
-      setSearching(false);
+      setLoadingShorts(false);
     }
-  }, [shorts]);
+  }, []);
 
-  // Debounced search
+  // Load shorts when picker is opened
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (showSearch) {
-        searchShorts(searchQuery);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, showSearch, searchShorts]);
+    if (showShortPicker && allShorts.length === 0) {
+      loadAllShorts();
+    }
+  }, [showShortPicker, allShorts.length, loadAllShorts]);
+
+  // Filter shorts based on search query and exclude already added
+  const filteredShorts = allShorts.filter((m) => {
+    const existingIds = new Set(shorts.map(s => s.movie.id));
+    if (existingIds.has(m.id)) return false;
+    if (!searchQuery.trim()) return true;
+    const title = m.title?.en?.toLowerCase() || m.original_title?.toLowerCase() || '';
+    return title.includes(searchQuery.toLowerCase());
+  });
 
   // Add short to pack
   const addShort = async (movie: Movie) => {
@@ -149,16 +152,13 @@ export default function ShortPackEditPage() {
     } else {
       // For existing packs, call API
       try {
-        const updatedPack = await shortPacksAPI.addShort(packId, movie.id);
-        setShorts(updatedPack.shorts || []);
+        await shortPacksAPI.addShort(packId, movie.id);
+        await loadPack();
       } catch (err) {
         console.error('Failed to add short:', err);
-        alert('Failed to add short to pack');
       }
     }
     setSearchQuery('');
-    setSearchResults([]);
-    setShowSearch(false);
   };
 
   // Remove short from pack
@@ -235,6 +235,9 @@ export default function ShortPackEditPage() {
       } else {
         await shortPacksAPI.update(packId!, data);
         await loadPack(); // Reload to get fresh data
+        setHasChanges(false);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000); // Hide after 3s
       }
     } catch (err) {
       console.error('Failed to save pack:', err);
@@ -279,11 +282,21 @@ export default function ShortPackEditPage() {
             {isNew ? 'Create a new curated collection of short films' : 'Manage this short film collection'}
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving || (!hasChanges && !isNew)}>
           <Save className="w-4 h-4 mr-2" />
           {saving ? 'Saving...' : 'Save'}
         </Button>
       </div>
+
+      {/* Success Toast */}
+      {saveSuccess && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2 duration-300">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Saved successfully!
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -305,7 +318,7 @@ export default function ShortPackEditPage() {
                 <Input
                   id="titleEn"
                   value={titleEn}
-                  onChange={(e) => setTitleEn(e.target.value)}
+                  onChange={(e) => { setTitleEn(e.target.value); setHasChanges(true); }}
                   placeholder="e.g., Lao Voices 2024"
                 />
               </div>
@@ -314,7 +327,7 @@ export default function ShortPackEditPage() {
                 <Input
                   id="titleLo"
                   value={titleLo}
-                  onChange={(e) => setTitleLo(e.target.value)}
+                  onChange={(e) => { setTitleLo(e.target.value); setHasChanges(true); }}
                   placeholder="ຊື່ພາສາລາວ"
                 />
               </div>
@@ -325,7 +338,7 @@ export default function ShortPackEditPage() {
               <Input
                 id="slug"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                onChange={(e) => { setSlug(e.target.value); setHasChanges(true); }}
                 placeholder="e.g., lao-voices-2024"
               />
               <p className="text-sm text-gray-500">
@@ -339,7 +352,7 @@ export default function ShortPackEditPage() {
                 <Input
                   id="taglineEn"
                   value={taglineEn}
-                  onChange={(e) => setTaglineEn(e.target.value)}
+                  onChange={(e) => { setTaglineEn(e.target.value); setHasChanges(true); }}
                   placeholder="Short promotional text"
                 />
               </div>
@@ -348,7 +361,7 @@ export default function ShortPackEditPage() {
                 <Input
                   id="taglineLo"
                   value={taglineLo}
-                  onChange={(e) => setTaglineLo(e.target.value)}
+                  onChange={(e) => { setTaglineLo(e.target.value); setHasChanges(true); }}
                   placeholder="ຄຳໂຄສະນາ"
                 />
               </div>
@@ -360,7 +373,7 @@ export default function ShortPackEditPage() {
                 <Textarea
                   id="descriptionEn"
                   value={descriptionEn}
-                  onChange={(e) => setDescriptionEn(e.target.value)}
+                  onChange={(e) => { setDescriptionEn(e.target.value); setHasChanges(true); }}
                   placeholder="Describe this collection..."
                   rows={4}
                 />
@@ -370,7 +383,7 @@ export default function ShortPackEditPage() {
                 <Textarea
                   id="descriptionLo"
                   value={descriptionLo}
-                  onChange={(e) => setDescriptionLo(e.target.value)}
+                  onChange={(e) => { setDescriptionLo(e.target.value); setHasChanges(true); }}
                   placeholder="ຄຳອະທິບາຍ..."
                   rows={4}
                 />
@@ -396,7 +409,7 @@ export default function ShortPackEditPage() {
                     step="0.01"
                     min="0"
                     value={(priceUsd / 100).toFixed(2)}
-                    onChange={(e) => setPriceUsd(Math.round(parseFloat(e.target.value || '0') * 100))}
+                    onChange={(e) => { setPriceUsd(Math.round(parseFloat(e.target.value || '0') * 100)); setHasChanges(true); }}
                     className="pl-7"
                   />
                 </div>
@@ -405,7 +418,7 @@ export default function ShortPackEditPage() {
                 <Switch
                   id="published"
                   checked={isPublished}
-                  onCheckedChange={setIsPublished}
+                  onCheckedChange={(checked: boolean) => { setIsPublished(checked); setHasChanges(true); }}
                 />
                 <Label htmlFor="published" className="cursor-pointer">
                   Published
@@ -428,76 +441,77 @@ export default function ShortPackEditPage() {
                   {shorts.length} shorts • {formatRuntime(totalRuntime)} total runtime
                 </CardDescription>
               </div>
-              <Button variant="outline" onClick={() => setShowSearch(true)}>
+              <Button variant="outline" onClick={() => setShowShortPicker(!showShortPicker)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Short
+                {showShortPicker ? 'Hide' : 'Add Short'}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {/* Search Modal */}
-            {showSearch && (
-              <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+            {/* Short Film Picker */}
+            {showShortPicker && (
+              <div className="mb-6 p-4 border rounded-lg bg-gray-50">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search for short films..."
+                      placeholder="Filter short films..."
                       className="pl-9"
-                      autoFocus
                     />
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setShowSearch(false)}>
+                  <Button variant="ghost" size="icon" onClick={() => setShowShortPicker(false)}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
 
-                {searching && (
-                  <p className="text-sm text-gray-500">Searching...</p>
+                {loadingShorts && (
+                  <p className="text-sm text-gray-500 text-center py-4">Loading short films...</p>
                 )}
 
-                {searchResults.length > 0 && (
-                  <div className="space-y-2">
-                    {searchResults.map((movie) => (
+                {!loadingShorts && filteredShorts.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-96 overflow-y-auto">
+                    {filteredShorts.map((movie) => (
                       <div
                         key={movie.id}
-                        className="flex items-center justify-between p-3 border rounded-lg bg-white hover:bg-gray-50 cursor-pointer"
+                        className="group cursor-pointer rounded-lg overflow-hidden border bg-white hover:ring-2 hover:ring-purple-500 transition-all"
                         onClick={() => addShort(movie)}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="relative aspect-[2/3]">
                           {movie.poster_path ? (
                             <img
-                              src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                              src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
                               alt=""
-                              className="w-10 h-14 object-cover rounded"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center">
-                              <Film className="w-5 h-5 text-gray-400" />
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <Film className="w-8 h-8 text-gray-400" />
                             </div>
                           )}
-                          <div>
-                            <p className="font-medium">{movie.title?.en || movie.original_title}</p>
-                            <p className="text-sm text-gray-500">
-                              {movie.runtime ? `${movie.runtime}m` : 'No runtime'}
-                            </p>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <Plus className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </div>
-                        <Button size="sm" variant="ghost">
-                          <Plus className="w-4 h-4" />
-                        </Button>
+                        <div className="p-2">
+                          <p className="text-xs font-medium line-clamp-1">{movie.title?.en || movie.original_title}</p>
+                          <p className="text-xs text-gray-500">{movie.runtime ? `${movie.runtime}m` : ''}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {searchQuery && !searching && searchResults.length === 0 && (
-                  <p className="text-sm text-gray-500">
-                    No short films found. Short films have runtime ≤ {SHORT_FILM_THRESHOLD_MINUTES} minutes.
+                {!loadingShorts && filteredShorts.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    {searchQuery ? 'No matching short films found.' : 'No short films available.'}
                   </p>
                 )}
+
+                <p className="text-xs text-gray-400 mt-3 text-center">
+                  Short films have runtime ≤ {SHORT_FILM_THRESHOLD_MINUTES} minutes. Click a poster to add.
+                </p>
               </div>
             )}
 

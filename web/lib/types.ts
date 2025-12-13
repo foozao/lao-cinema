@@ -250,6 +250,7 @@ export interface ShortPackSummary {
   is_published: boolean;
   total_runtime?: number;
   short_count: number;
+  short_posters?: string[]; // Poster paths from shorts for collage display
 }
 
 // For future TMDB API integration

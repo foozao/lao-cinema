@@ -4,15 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { RentalCard } from '@/components/rental-card';
+import { ShortPackCard } from '@/components/short-pack-card';
 import { Header } from '@/components/header';
 import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
 import { CinematicLoader } from '@/components/cinematic-loader';
 import { AnimatedMovieGrid } from '@/components/animated-movie-grid';
-import { Film } from 'lucide-react';
+import { Film, ChevronRight } from 'lucide-react';
 import { APIError } from '@/components/api-error';
-import type { Movie } from '@/lib/types';
+import type { Movie, ShortPackSummary } from '@/lib/types';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
+import { shortPacksAPI } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth';
 
 export default function Home() {
@@ -20,6 +22,7 @@ export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
+  const [shortPacks, setShortPacks] = useState<ShortPackSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [error, setError] = useState<'network' | 'server' | null>(null);
@@ -80,9 +83,20 @@ export default function Home() {
     }
   }, []);
 
+  const loadShortPacks = useCallback(async () => {
+    try {
+      const response = await shortPacksAPI.getAll({ published: true });
+      setShortPacks(response.short_packs || []);
+    } catch (err) {
+      console.error('Failed to load short packs:', err);
+      // Silently fail - not critical for homepage
+    }
+  }, []);
+
   useEffect(() => {
     loadMovies();
-  }, [loadMovies]);
+    loadShortPacks();
+  }, [loadMovies, loadShortPacks]);
 
   // Reload rentals when auth state changes (login/logout)
   useEffect(() => {
@@ -164,6 +178,31 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          {/* Short Film Collections Section */}
+          {shortPacks.length > 0 && (
+            <section className={`mt-12 transition-all duration-700 ease-out delay-200 ${
+              contentReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-white">
+                  {t('shortPacks.featuredPacks')}
+                </h2>
+                <Link 
+                  href="/short-packs" 
+                  className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  {t('home.viewAll')}
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {shortPacks.slice(0, 6).map((pack) => (
+                  <ShortPackCard key={pack.id} pack={pack} />
+                ))}
+              </div>
+            </section>
+          )}
         </main>
 
         {/* Footer */}

@@ -8,6 +8,7 @@ import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { VideoPlayer } from '@/components/video-player';
+import { PackUpNext } from '@/components/pack-up-next';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, X } from 'lucide-react';
@@ -194,6 +195,14 @@ export default function WatchPage() {
           constrainToViewport={true}
           aspectRatio={videoSource?.aspect_ratio}
           onInfoClick={() => setShowInfo(true)}
+        />
+      </div>
+
+      {/* Pack Up Next - Shows when watching a short from a pack */}
+      <div className="px-4 py-3 md:px-8">
+        <PackUpNext 
+          movieId={movie.id} 
+          autoPlayDelay={10}
         />
       </div>
 

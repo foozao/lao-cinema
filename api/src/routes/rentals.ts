@@ -6,9 +6,9 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { eq, and, or, gt, desc } from 'drizzle-orm';
+import { eq, and, or, gt, desc, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { rentals, movies, watchProgress } from '../db/schema.js';
+import { rentals, movies, watchProgress, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import * as schema from '../db/schema.js';
@@ -289,6 +289,204 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to create rental',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // CREATE PACK RENTAL
+  // =============================================================================
+  
+  /**
+   * POST /api/rentals/packs/:packId
+   * Create a new rental for a short pack (grants access to all shorts in the pack)
+   */
+  fastify.post('/rentals/packs/:packId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { packId } = request.params as { packId: string };
+    const { transactionId, paymentMethod = 'demo' } = request.body as {
+      transactionId: string;
+      paymentMethod?: string;
+    };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    if (!transactionId) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Transaction ID is required',
+      });
+    }
+    
+    try {
+      // Check if pack exists
+      const [pack] = await db.select()
+        .from(shortPacks)
+        .where(eq(shortPacks.id, packId))
+        .limit(1);
+      
+      if (!pack) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Short pack not found',
+        });
+      }
+      
+      // Check if user already has an active rental for this pack
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      const [existingRental] = await db.select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.shortPackId, packId),
+            userClause,
+            gt(rentals.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      
+      if (existingRental) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'You already have an active rental for this pack',
+          rental: existingRental,
+        });
+      }
+      
+      // Create rental
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + RENTAL_DURATION_MS);
+      
+      const [rental] = await db.insert(rentals).values({
+        userId: userId || null,
+        anonymousId: anonymousId || null,
+        shortPackId: packId,
+        movieId: null,
+        purchasedAt: now,
+        expiresAt,
+        transactionId,
+        amount: pack.priceUsd,
+        currency: 'USD',
+        paymentMethod,
+      }).returning();
+      
+      // Get pack title for response
+      const translations = await db.select()
+        .from(shortPackTranslations)
+        .where(eq(shortPackTranslations.packId, packId));
+      
+      const title: Record<string, string> = {};
+      for (const t of translations) {
+        title[t.language] = t.title;
+      }
+      
+      return reply.status(201).send({
+        rental: {
+          id: rental.id,
+          shortPackId: rental.shortPackId,
+          purchasedAt: rental.purchasedAt,
+          expiresAt: rental.expiresAt,
+          transactionId: rental.transactionId,
+          amount: rental.amount,
+          currency: rental.currency,
+          paymentMethod: rental.paymentMethod,
+        },
+        pack: {
+          id: pack.id,
+          slug: pack.slug,
+          title,
+        },
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to create pack rental');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to create pack rental',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // CHECK ACCESS (Movie or Pack)
+  // =============================================================================
+  
+  /**
+   * GET /api/rentals/access/:movieId
+   * Check if user has access to a movie (via direct rental or pack rental)
+   */
+  fastify.get('/rentals/access/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    try {
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      // Check for direct movie rental
+      const [directRental] = await db.select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.movieId, movieId),
+            userClause,
+            gt(rentals.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      
+      if (directRental) {
+        return reply.send({
+          hasAccess: true,
+          accessType: 'movie',
+          rental: {
+            id: directRental.id,
+            expiresAt: directRental.expiresAt,
+          },
+        });
+      }
+      
+      // Check for pack rental that includes this movie
+      const packItems = await db.select({ packId: shortPackItems.packId })
+        .from(shortPackItems)
+        .where(eq(shortPackItems.movieId, movieId));
+      
+      if (packItems.length > 0) {
+        const packIds = packItems.map(p => p.packId);
+        
+        const [packRental] = await db.select()
+          .from(rentals)
+          .where(
+            and(
+              inArray(rentals.shortPackId, packIds),
+              userClause,
+              gt(rentals.expiresAt, new Date())
+            )
+          )
+          .limit(1);
+        
+        if (packRental) {
+          return reply.send({
+            hasAccess: true,
+            accessType: 'pack',
+            rental: {
+              id: packRental.id,
+              shortPackId: packRental.shortPackId,
+              expiresAt: packRental.expiresAt,
+            },
+          });
+        }
+      }
+      
+      return reply.send({
+        hasAccess: false,
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to check access');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to check access',
       });
     }
   });

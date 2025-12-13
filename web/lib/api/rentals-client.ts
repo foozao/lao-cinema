@@ -123,3 +123,65 @@ export async function hasActiveRental(movieId: string): Promise<boolean> {
     return false;
   }
 }
+
+// =============================================================================
+// PACK RENTALS
+// =============================================================================
+
+export interface PackRental {
+  id: string;
+  shortPackId: string;
+  purchasedAt: string;
+  expiresAt: string;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  paymentMethod: string;
+}
+
+export interface AccessCheckResponse {
+  hasAccess: boolean;
+  accessType?: 'movie' | 'pack';
+  rental?: {
+    id: string;
+    shortPackId?: string;
+    expiresAt: string;
+  };
+}
+
+/**
+ * Create a new pack rental
+ */
+export async function createPackRental(
+  packId: string,
+  data: CreateRentalRequest
+): Promise<{ rental: PackRental; pack: { id: string; slug: string; title: Record<string, string> } }> {
+  const response = await fetch(`${API_URL}/rentals/packs/${packId}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create pack rental');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Check if user has access to a movie (via direct rental or pack rental)
+ */
+export async function checkMovieAccess(movieId: string): Promise<AccessCheckResponse> {
+  const response = await fetch(`${API_URL}/rentals/access/${movieId}`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to check access');
+  }
+  
+  return response.json();
+}

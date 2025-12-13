@@ -254,11 +254,23 @@ export const productionCompaniesAPI = {
 // Short Packs API methods
 export const shortPacksAPI = {
   // Get all short packs
-  getAll: (params?: { published?: boolean }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.published !== undefined) searchParams.set('published', String(params.published));
-    const query = searchParams.toString();
-    return fetchAPI<{ short_packs: any[] }>(`/short-packs${query ? `?${query}` : ''}`);
+  getAll: async (params?: { published?: boolean }): Promise<{ short_packs: any[] }> => {
+    const url = new URL(`${API_BASE_URL}/short-packs`);
+    if (params?.published !== undefined) {
+      url.searchParams.set('published', String(params.published));
+    }
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Failed to fetch short packs');
+    return response.json();
+  },
+
+  getPackContext: async (movieId: string): Promise<any> => {
+    const { getAuthHeaders } = await import('./auth-headers');
+    const response = await fetch(`${API_BASE_URL}/short-packs/context/${movieId}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get pack context');
+    return response.json();
   },
 
   // Get short pack by ID or slug
