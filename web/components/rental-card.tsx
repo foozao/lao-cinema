@@ -51,7 +51,7 @@ export function RentalCard({ rental }: RentalCardProps) {
     : 0;
   
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700 bg-[#ddd] hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700">
       <div className="flex h-full">
         {/* Poster - Clickable to watch/rent */}
         <Link 
@@ -88,7 +88,7 @@ export function RentalCard({ rental }: RentalCardProps) {
         {/* Content - Clickable to movie details */}
         <Link 
           href={`/movies/${getMoviePath(movie)}`}
-          className="flex-1 p-4 flex flex-col group/info hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          className="flex-1 p-4 flex flex-col group/info"
         >
             {/* Title */}
             <h3 className="font-bold text-lg mb-1 line-clamp-2 text-gray-900 dark:text-white">

@@ -94,7 +94,7 @@ export function MovieCard({ movie }: MovieCardProps) {
   
   return (
     <Link href={getMovieUrl(movie)}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group h-full p-0 border-2 border-gray-200 dark:border-gray-700">
+      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group h-full p-0 border-2 border-gray-200 dark:border-gray-700 bg-[#ddd] hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700">
         <div className="flex h-full">
           {/* Poster - Full Height */}
           <div className="relative w-40 h-full flex-shrink-0 bg-gray-200 dark:bg-gray-800">

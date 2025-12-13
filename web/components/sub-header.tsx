@@ -27,11 +27,11 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
       : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white';
   };
 
-  const NavItem = ({ page, href, icon: Icon, label }: { 
+  const NavLink = ({ page, href, icon: Icon, children }: { 
     page: 'movies' | 'people' | 'production';
     href: string;
     icon: typeof Film;
-    label: string;
+    children: React.ReactNode;
   }) => {
     const isActive = activePage === page;
     const className = `inline-flex items-center gap-2 text-sm transition-colors whitespace-nowrap ${getTextClass(page)}`;
@@ -40,7 +40,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
       return (
         <span className={className}>
           <Icon className="w-4 h-4" />
-          <span>{label}</span>
+          {children}
         </span>
       );
     }
@@ -48,7 +48,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
     return (
       <Link href={href} className={className}>
         <Icon className="w-4 h-4" />
-        <span>{label}</span>
+        {children}
       </Link>
     );
   };
@@ -56,10 +56,22 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
   return (
     <nav className={`border-b sticky top-16 z-40 ${bgClass}`}>
       <div className="container mx-auto px-4 py-2">
-        <div className="flex items-center gap-6">
-          <NavItem page="movies" href="/movies" icon={Film} label={t('nav.movies')} />
-          <NavItem page="people" href="/people" icon={Users} label={t('nav.people')} />
-          <NavItem page="production" href="/production" icon={Building2} label={t('nav.production')} />
+        <div className="flex items-center gap-4 md:gap-6">
+          <NavLink page="movies" href="/movies" icon={Film}>
+            <span className="hidden md:inline">Browse </span>
+            <span>{t('nav.movies')}</span>
+          </NavLink>
+          <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
+          <NavLink page="people" href="/people" icon={Users}>
+            <span className="hidden md:inline">Browse </span>
+            <span>{t('nav.people')}</span>
+          </NavLink>
+          <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
+          <NavLink page="production" href="/production" icon={Building2}>
+            <span className="hidden md:inline">Browse </span>
+            <span>Production</span>
+            <span className="hidden lg:inline"> Studios</span>
+          </NavLink>
         </div>
       </div>
     </nav>
