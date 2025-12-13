@@ -31,6 +31,7 @@ interface BuildOptions {
   includeShortPacks?: boolean;
   includeTrailers?: boolean;
   includeVideoTokens?: boolean;
+  includeUserData?: boolean;
 }
 
 /**
@@ -117,6 +118,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(rentalRoutes, { prefix: '/api' });
     }
     await app.register(videoTokenRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeUserData) {
+    // User data routes require auth
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(userDataRoutes, { prefix: '/api' });
   }
 
   return app;
