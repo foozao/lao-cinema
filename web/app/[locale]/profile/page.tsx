@@ -5,16 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Film, Clock, Settings, User as UserIcon, Loader2 } from 'lucide-react';
+import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
 export default function ProfilePage() {
   const t = useTranslations('profile');
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
   const router = useRouter();
   
   useEffect(() => {
@@ -37,6 +43,35 @@ export default function ProfilePage() {
       console.error('Failed to load stats:', err);
     } finally {
       setIsLoadingStats(false);
+    }
+  };
+  
+  const sendVerificationEmail = async () => {
+    setIsSendingVerification(true);
+    setVerificationError('');
+    setVerificationSent(false);
+    
+    try {
+      const token = localStorage.getItem('lao_cinema_session_token');
+      const response = await fetch(`${API_URL}/auth/send-verification-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ locale: 'en' }),
+      });
+      
+      if (response.ok) {
+        setVerificationSent(true);
+      } else {
+        const data = await response.json();
+        setVerificationError(data.message || 'Failed to send verification email');
+      }
+    } catch (err) {
+      setVerificationError('Failed to send verification email');
+    } finally {
+      setIsSendingVerification(false);
     }
   };
   
@@ -148,6 +183,54 @@ export default function ProfilePage() {
                   })}
                 </p>
               </div>
+            </div>
+            
+            {/* Email Verification Status */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">{t('emailVerification.status')}</span>
+                </div>
+                {user.emailVerified ? (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">{t('emailVerification.verified')}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-amber-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">{t('emailVerification.notVerified')}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={sendVerificationEmail}
+                      disabled={isSendingVerification || verificationSent}
+                    >
+                      {isSendingVerification ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          {t('emailVerification.sending')}
+                        </>
+                      ) : verificationSent ? (
+                        t('emailVerification.sent')
+                      ) : (
+                        t('emailVerification.sendVerification')
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {verificationSent && (
+                <p className="mt-2 text-sm text-green-600">{t('emailVerification.sentMessage')}</p>
+              )}
+              
+              {verificationError && (
+                <p className="mt-2 text-sm text-red-600">{verificationError}</p>
+              )}
             </div>
           </div>
         )}

@@ -394,6 +394,19 @@
       "signIn": "Sign In",
       "passwordMismatch": "Passwords do not match",
       "passwordTooShort": "Password must be at least 8 characters"
+    },
+    "verifyEmail": {
+      "title": "Verify Email - Lao Cinema",
+      "description": "Verify your email address",
+      "verifying": "Verifying your email...",
+      "pleaseWait": "Please wait while we verify your email address.",
+      "success": "Email Verified!",
+      "successMessage": "Your email address has been successfully verified.",
+      "error": "Verification Failed",
+      "errorMessage": "We couldn't verify your email. The link may be expired or invalid.",
+      "invalidLink": "Invalid Link",
+      "invalidLinkMessage": "This verification link is missing or invalid.",
+      "goToProfile": "Go to Profile"
     }
   },
   "profile": {
@@ -402,6 +415,15 @@
     "myProfile": "My Profile",
     "manageAccount": "Manage your account and view your activity",
     "memberSince": "Member since",
+    "emailVerification": {
+      "status": "Email Status",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "sendVerification": "Verify",
+      "sending": "Sending...",
+      "sent": "Email Sent",
+      "sentMessage": "Verification email sent! Check your inbox."
+    },
     "yourActivity": "Your Activity",
     "totalRentals": "Total Rentals",
     "activeNow": "Active Now",

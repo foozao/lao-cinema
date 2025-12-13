@@ -7,8 +7,8 @@
 
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, userSessions, oauthAccounts, passwordResetTokens } from '../db/schema.js';
-import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount, PasswordResetToken } from '../db/schema.js';
+import { users, userSessions, oauthAccounts, passwordResetTokens, emailVerificationTokens } from '../db/schema.js';
+import type { User, NewUser, UserSession, NewUserSession, OAuthAccount, NewOAuthAccount, PasswordResetToken, EmailVerificationToken } from '../db/schema.js';
 import { hashPassword, verifyPassword, generateSessionToken, getSessionExpiration } from './auth-utils.js';
 
 // =============================================================================
@@ -384,4 +384,79 @@ export async function markPasswordResetTokenUsed(tokenId: string): Promise<void>
 export async function cleanupExpiredPasswordResetTokens(): Promise<void> {
   await db.delete(passwordResetTokens)
     .where(eq(passwordResetTokens.expiresAt, new Date()));
+}
+
+// =============================================================================
+// EMAIL VERIFICATION
+// =============================================================================
+
+/**
+ * Create an email verification token for a user
+ */
+export async function createEmailVerificationToken(userId: string): Promise<EmailVerificationToken> {
+  // Invalidate any existing tokens for this user
+  await db.delete(emailVerificationTokens)
+    .where(eq(emailVerificationTokens.userId, userId));
+  
+  const token = generateSessionToken(); // Reuse secure token generation
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  const [verificationToken] = await db.insert(emailVerificationTokens).values({
+    userId,
+    token,
+    expiresAt,
+  }).returning();
+  
+  return verificationToken;
+}
+
+/**
+ * Find a valid email verification token and its associated user
+ */
+export async function findValidEmailVerificationToken(token: string): Promise<{ token: EmailVerificationToken; user: User } | null> {
+  const result = await db.select()
+    .from(emailVerificationTokens)
+    .innerJoin(users, eq(emailVerificationTokens.userId, users.id))
+    .where(eq(emailVerificationTokens.token, token))
+    .limit(1)
+    .then(rows => rows[0]);
+  
+  if (!result) {
+    return null;
+  }
+  
+  const verificationToken = result.email_verification_tokens;
+  
+  // Check if token is expired
+  if (new Date() > verificationToken.expiresAt) {
+    return null;
+  }
+  
+  // Check if token was already used
+  if (verificationToken.usedAt) {
+    return null;
+  }
+  
+  return {
+    token: verificationToken,
+    user: result.users,
+  };
+}
+
+/**
+ * Mark email as verified and token as used
+ */
+export async function verifyUserEmail(tokenId: string, userId: string): Promise<User> {
+  // Mark token as used
+  await db.update(emailVerificationTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(emailVerificationTokens.id, tokenId));
+  
+  // Update user's emailVerified status
+  const [user] = await db.update(users)
+    .set({ emailVerified: true, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+  
+  return user;
 }

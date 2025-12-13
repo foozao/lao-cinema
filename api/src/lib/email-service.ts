@@ -35,6 +35,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@laocinema.com';
   const senderName = process.env.BREVO_SENDER_NAME || 'Lao Cinema';
   
+  console.log('[Email Service] Sending email to:', options.to);
+  console.log('[Email Service] Subject:', options.subject);
+  console.log('[Email Service] Sender:', senderEmail);
+  
   const payload: BrevoEmailPayload = {
     sender: { name: senderName, email: senderEmail },
     to: [{ email: options.to }],
@@ -159,6 +163,105 @@ This link will expire in 1 hour. If you did not request a password reset, you ca
 ${resetUrl}
 
 ລິ້ງນີ້ຈະໝົດອາຍຸໃນ 1 ຊົ່ວໂມງ.
+
+© ${new Date().getFullYear()} Lao Cinema`;
+  
+  return sendEmail({
+    to: email,
+    subject,
+    htmlContent,
+    textContent,
+  });
+}
+
+/**
+ * Send email verification email
+ */
+export async function sendEmailVerificationEmail(
+  email: string,
+  verificationToken: string,
+  locale: 'en' | 'lo' = 'en'
+): Promise<{ success: boolean; error?: string }> {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const verifyUrl = `${frontendUrl}/${locale}/verify-email?token=${verificationToken}`;
+  
+  const isEnglish = locale === 'en';
+  
+  const subject = isEnglish 
+    ? 'Verify Your Email - Lao Cinema' 
+    : 'ຢືນຢັນອີເມວຂອງທ່ານ - Lao Cinema';
+  
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: #fff; margin: 0; font-size: 28px;">🎬 Lao Cinema</h1>
+  </div>
+  
+  <div style="background: #fff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+    <h2 style="color: #1a1a2e; margin-top: 0;">
+      ${isEnglish ? 'Verify Your Email Address' : 'ຢືນຢັນທີ່ຢູ່ອີເມວຂອງທ່ານ'}
+    </h2>
+    
+    <p>
+      ${isEnglish 
+        ? 'Thank you for signing up for Lao Cinema! Please click the button below to verify your email address:'
+        : 'ຂອບໃຈທີ່ລົງທະບຽນກັບ Lao Cinema! ກະລຸນາຄລິກປຸ່ມຂ້າງລຸ່ມເພື່ອຢືນຢັນທີ່ຢູ່ອີເມວຂອງທ່ານ:'}
+    </p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${verifyUrl}" style="background: #22c55e; color: #fff; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+        ${isEnglish ? 'Verify Email' : 'ຢືນຢັນອີເມວ'}
+      </a>
+    </div>
+    
+    <p style="color: #666; font-size: 14px;">
+      ${isEnglish 
+        ? 'This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.'
+        : 'ລິ້ງນີ້ຈະໝົດອາຍຸໃນ 24 ຊົ່ວໂມງ. ຖ້າທ່ານບໍ່ໄດ້ສ້າງບັນຊີ, ທ່ານສາມາດບໍ່ສົນໃຈອີເມລນີ້ໄດ້.'}
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+    
+    <p style="color: #999; font-size: 12px; margin: 0;">
+      ${isEnglish 
+        ? "If the button doesn't work, copy and paste this link into your browser:"
+        : 'ຖ້າປຸ່ມບໍ່ເຮັດວຽກ, ກະລຸນາຄັດລອກແລະວາງລິ້ງນີ້ໃນບຣາວເຊີຂອງທ່ານ:'}
+    </p>
+    <p style="color: #666; font-size: 12px; word-break: break-all;">
+      <a href="${verifyUrl}" style="color: #0066cc;">${verifyUrl}</a>
+    </p>
+  </div>
+  
+  <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+    <p>© ${new Date().getFullYear()} Lao Cinema. All rights reserved.</p>
+  </div>
+</body>
+</html>
+  `.trim();
+  
+  const textContent = isEnglish
+    ? `Verify Your Email - Lao Cinema
+
+Thank you for signing up for Lao Cinema! Please click the link below to verify your email address:
+
+${verifyUrl}
+
+This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.
+
+© ${new Date().getFullYear()} Lao Cinema`
+    : `ຢືນຢັນອີເມວຂອງທ່ານ - Lao Cinema
+
+ຂອບໃຈທີ່ລົງທະບຽນກັບ Lao Cinema! ກະລຸນາຄລິກລິ້ງຂ້າງລຸ່ມເພື່ອຢືນຢັນທີ່ຢູ່ອີເມວຂອງທ່ານ:
+
+${verifyUrl}
+
+ລິ້ງນີ້ຈະໝົດອາຍຸໃນ 24 ຊົ່ວໂມງ.
 
 © ${new Date().getFullYear()} Lao Cinema`;
   
