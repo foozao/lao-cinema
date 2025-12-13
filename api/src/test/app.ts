@@ -12,6 +12,7 @@ import homepageRoutes from '../routes/homepage.js';
 import { productionCompaniesRoutes } from '../routes/production-companies.js';
 import movieProductionCompaniesRoutes from '../routes/movie-production-companies.js';
 import auditLogRoutes from '../routes/audit-logs.js';
+import notificationRoutes from '../routes/notifications.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -23,6 +24,7 @@ interface BuildOptions {
   includeHomepage?: boolean;
   includeProductionCompanies?: boolean;
   includeAuditLogs?: boolean;
+  includeNotifications?: boolean;
 }
 
 /**
@@ -74,6 +76,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(auditLogRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeNotifications) {
+    // Notifications require auth middleware
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(notificationRoutes, { prefix: '/api' });
   }
 
   return app;

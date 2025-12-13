@@ -15,6 +15,7 @@ import trailersRoutes from './routes/trailers.js';
 import { productionCompaniesRoutes } from './routes/production-companies.js';
 import { uploadRoutes } from './routes/upload.js';
 import auditLogRoutes from './routes/audit-logs.js';
+import notificationRoutes from './routes/notifications.js';
 
 const fastify = Fastify({
   logger: {
@@ -51,6 +52,7 @@ await fastify.register(trailersRoutes, { prefix: '/api' });
 await fastify.register(productionCompaniesRoutes, { prefix: '/api' });
 await fastify.register(uploadRoutes, { prefix: '/api' });
 await fastify.register(auditLogRoutes, { prefix: '/api' });
+await fastify.register(notificationRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
 import { Header } from '@/components/header';
@@ -156,6 +156,23 @@ export default function ProfilePage() {
                   <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.settings')}</h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {t('quickLinks.settingsDesc')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+          
+          {/* Notifications */}
+          <Link href="/profile/notifications">
+            <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-200">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-100 rounded-lg">
+                  <Bell className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('quickLinks.notifications')}</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t('quickLinks.notificationsDesc')}
                   </p>
                 </div>
               </div>

@@ -22,6 +22,7 @@ import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
 import { TrailerPlayer } from '@/components/trailer-player';
+import { NotifyMeButton } from '@/components/notify-me-button';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -377,13 +378,14 @@ export default function MoviePage() {
                           <div className="bg-purple-600/20 border border-purple-600/50 rounded-lg p-4">
                             <div className="flex items-start gap-3">
                               <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                              <div>
+                              <div className="flex-1">
                                 <h4 className="font-semibold text-purple-200 mb-1">
                                   {t('movie.availabilityStatus.comingSoon')}
                                 </h4>
-                                <p className="text-sm text-purple-300">
+                                <p className="text-sm text-purple-300 mb-3">
                                   {t('movie.comingSoonMessage')}
                                 </p>
+                                <NotifyMeButton movieId={movie.id} inline />
                               </div>
                             </div>
                           </div>
@@ -394,16 +396,19 @@ export default function MoviePage() {
                           />
                         </div>
                       ) : isUnavailable ? (
-                        <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <Ban className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <h4 className="font-semibold text-gray-200 mb-1">
-                                {t('movie.availabilityStatus.unavailable')}
-                              </h4>
-                              <p className="text-sm text-gray-400">
-                                {t('movie.unavailableMessage')}
-                              </p>
+                        <div className="space-y-3">
+                          <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <Ban className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-200 mb-1">
+                                  {t('movie.availabilityStatus.unavailable')}
+                                </h4>
+                                <p className="text-sm text-gray-400 mb-3">
+                                  {t('movie.unavailableMessage')}
+                                </p>
+                                <NotifyMeButton movieId={movie.id} inline />
+                              </div>
                             </div>
                           </div>
                         </div>

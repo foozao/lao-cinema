@@ -453,6 +453,15 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Movie release notifications - users request to be notified when a movie becomes available
+export const movieNotifications = pgTable('movie_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  notifiedAt: timestamp('notified_at'), // Null until notification sent
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -480,3 +489,6 @@ export type NewVideoAnalyticsEvent = typeof videoAnalyticsEvents.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+export type MovieNotification = typeof movieNotifications.$inferSelect;
+export type NewMovieNotification = typeof movieNotifications.$inferInsert;

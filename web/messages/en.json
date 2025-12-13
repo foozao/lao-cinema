@@ -99,6 +99,20 @@
       "external": "External",
       "unavailable": "Unavailable",
       "comingSoon": "Coming Soon"
+    },
+    "notifications": {
+      "notifyMe": "Notify Me",
+      "notifyMeEnabled": "Notification Set",
+      "checking": "Checking...",
+      "wantToBeNotified": "Want to be notified?",
+      "signUpBenefits": "Create a free account to get notified when this film becomes available, plus track your watch history across devices.",
+      "createAccount": "Create Account",
+      "signIn": "Sign In",
+      "signUpToNotify": "Sign up to get notified",
+      "verifyEmailRequired": "Verify your email",
+      "verifyEmailMessage": "To receive notifications about this film, please verify your email address first.",
+      "sendVerificationEmail": "Send Verification Email",
+      "verificationSent": "Verification email sent! Check your inbox."
     }
   },
   "watch": {
@@ -437,7 +451,18 @@
       "editProfile": "Edit Profile",
       "editProfileDesc": "Update your display name",
       "settings": "Settings",
-      "settingsDesc": "Manage your account settings and preferences"
+      "settingsDesc": "Manage your account settings and preferences",
+      "notifications": "Notifications",
+      "notificationsDesc": "Manage movie release alerts"
+    },
+    "notifications": {
+      "title": "Movie Notifications",
+      "subtitle": "Movies you want to be notified about when they become available",
+      "backToProfile": "Back to Profile",
+      "empty": "No Notifications",
+      "emptyMessage": "You haven't subscribed to any movie notifications yet. Browse movies and click 'Notify Me' on upcoming titles.",
+      "browseMovies": "Browse Movies",
+      "subscribedOn": "Subscribed"
     },
     "edit": {
       "title": "Edit Profile",
