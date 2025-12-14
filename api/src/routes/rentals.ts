@@ -41,6 +41,8 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       const userRentals = await db.select({
         id: rentals.id,
         movieId: rentals.movieId,
+        shortPackId: rentals.shortPackId,
+        currentShortId: rentals.currentShortId,
         purchasedAt: rentals.purchasedAt,
         expiresAt: rentals.expiresAt,
         transactionId: rentals.transactionId,
@@ -49,11 +51,14 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         paymentMethod: rentals.paymentMethod,
         // Include full movie data
         movie: movies,
+        // Include pack data
+        pack: shortPacks,
         // Include watch progress
         watchProgress: watchProgress,
       })
       .from(rentals)
       .leftJoin(movies, eq(rentals.movieId, movies.id))
+      .leftJoin(shortPacks, eq(rentals.shortPackId, shortPacks.id))
       .leftJoin(watchProgress, and(
         eq(watchProgress.movieId, rentals.movieId),
         userId 
@@ -83,10 +88,12 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         return false;
       });
       
-      // Build complete movie objects with translations
+      // Build complete movie/pack objects with translations
       const rentalsWithMovies = await Promise.all(
         filteredRentals.map(async (rental) => {
           let completeMovie = null;
+          let completePack = null;
+          
           try {
             if (rental.movie) {
               completeMovie = await buildMovieWithRelations(rental.movie, db, schema, {
@@ -95,13 +102,59 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
                 includeGenres: false,
               });
             }
+            
+            // Build pack with translations if this is a pack rental
+            if (rental.pack && rental.shortPackId) {
+              const packTranslations = await db.select()
+                .from(shortPackTranslations)
+                .where(eq(shortPackTranslations.packId, rental.shortPackId));
+              
+              const title: Record<string, string> = {};
+              const description: Record<string, string> = {};
+              for (const trans of packTranslations) {
+                title[trans.language] = trans.title;
+                if (trans.description) {
+                  description[trans.language] = trans.description;
+                }
+              }
+              
+              // Get shorts posters for montage
+              const packItems = await db.select({
+                movieId: shortPackItems.movieId,
+                order: shortPackItems.order,
+                posterPath: movies.posterPath,
+              })
+              .from(shortPackItems)
+              .leftJoin(movies, eq(shortPackItems.movieId, movies.id))
+              .where(eq(shortPackItems.packId, rental.shortPackId))
+              .orderBy(shortPackItems.order)
+              .limit(4);
+              
+              const shortPosters = packItems
+                .map(item => item.posterPath)
+                .filter(Boolean);
+              
+              completePack = {
+                id: rental.pack.id,
+                slug: rental.pack.slug,
+                posterPath: rental.pack.posterPath || (rental.pack as any).poster_path,
+                backdropPath: rental.pack.backdropPath || (rental.pack as any).backdrop_path,
+                isPublished: rental.pack.isPublished,
+                short_posters: shortPosters,
+                short_count: packItems.length,
+                title,
+                description: Object.keys(description).length > 0 ? description : undefined,
+              };
+            }
           } catch (err) {
-            request.log.error({ err, movieId: rental.movieId }, 'Failed to build movie relations');
+            request.log.error({ err, movieId: rental.movieId }, 'Failed to build relations');
           }
           
           return {
             id: rental.id,
             movieId: rental.movieId,
+            shortPackId: rental.shortPackId,
+            currentShortId: rental.currentShortId ?? null,
             purchasedAt: rental.purchasedAt,
             expiresAt: rental.expiresAt,
             transactionId: rental.transactionId,
@@ -109,6 +162,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
             currency: rental.currency,
             paymentMethod: rental.paymentMethod,
             movie: completeMovie,
+            pack: completePack,
             watchProgress: rental.watchProgress,
           };
         })
@@ -128,28 +182,124 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
   });
   
   // =============================================================================
-  // GET RENTAL BY MOVIE ID
+  // CHECK ACCESS (Movie or Pack) - Must be before :movieId route
   // =============================================================================
   
   /**
-   * GET /api/rentals/:movieId
-   * Check if user has active rental for a specific movie
+   * GET /api/rentals/access/:movieId
+   * Check if user has access to a movie (via direct rental or pack rental)
    */
-  fastify.get('/rentals/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+  fastify.get('/rentals/access/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
     const { movieId } = request.params as { movieId: string };
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      // Build where clause for dual-mode
       const userClause = userId 
         ? eq(rentals.userId, userId)
         : eq(rentals.anonymousId, anonymousId!);
       
-      const [rental] = await db.select()
+      // Check for direct movie rental
+      const [directRental] = await db.select()
         .from(rentals)
         .where(
           and(
             eq(rentals.movieId, movieId),
+            userClause,
+            gt(rentals.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      
+      if (directRental) {
+        return reply.send({
+          hasAccess: true,
+          accessType: 'movie',
+          rental: {
+            id: directRental.id,
+            expiresAt: directRental.expiresAt,
+          },
+        });
+      }
+      
+      // Check for pack rental that includes this movie
+      const packItems = await db.select({ packId: shortPackItems.packId })
+        .from(shortPackItems)
+        .where(eq(shortPackItems.movieId, movieId));
+      
+      if (packItems.length > 0) {
+        const packIds = packItems.map(p => p.packId);
+        
+        const [packRental] = await db.select()
+          .from(rentals)
+          .where(
+            and(
+              inArray(rentals.shortPackId, packIds),
+              userClause,
+              gt(rentals.expiresAt, new Date())
+            )
+          )
+          .limit(1);
+        
+        if (packRental) {
+          return reply.send({
+            hasAccess: true,
+            accessType: 'pack',
+            rental: {
+              id: packRental.id,
+              shortPackId: packRental.shortPackId,
+              expiresAt: packRental.expiresAt,
+            },
+          });
+        }
+      }
+      
+      return reply.send({
+        hasAccess: false,
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to check access');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to check access',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // GET PACK RENTAL STATUS - Must be before :movieId route
+  // =============================================================================
+  
+  /**
+   * GET /api/rentals/packs/:packId
+   * Check if user has active rental for a specific pack
+   */
+  fastify.get('/rentals/packs/:packId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { packId } = request.params as { packId: string };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    try {
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      const [rental] = await db.select({
+        id: rentals.id,
+        userId: rentals.userId,
+        anonymousId: rentals.anonymousId,
+        movieId: rentals.movieId,
+        shortPackId: rentals.shortPackId,
+        currentShortId: rentals.currentShortId,
+        purchasedAt: rentals.purchasedAt,
+        expiresAt: rentals.expiresAt,
+        transactionId: rentals.transactionId,
+        amount: rentals.amount,
+        currency: rentals.currency,
+        paymentMethod: rentals.paymentMethod,
+      })
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.shortPackId, packId),
             userClause
           )
         )
@@ -175,7 +325,8 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       return reply.send({
         rental: {
           id: rental.id,
-          movieId: rental.movieId,
+          shortPackId: rental.shortPackId,
+          currentShortId: rental.currentShortId ?? null,
           purchasedAt: rental.purchasedAt,
           expiresAt: rental.expiresAt,
           transactionId: rental.transactionId,
@@ -184,6 +335,114 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
           paymentMethod: rental.paymentMethod,
         },
       });
+    } catch (error) {
+      request.log.error({ err: error }, 'Failed to fetch pack rental');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch pack rental',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // GET RENTAL BY MOVIE ID
+  // =============================================================================
+  
+  /**
+   * GET /api/rentals/:movieId
+   * Check if user has active rental for a specific movie
+   */
+  fastify.get('/rentals/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    try {
+      // Build where clause for dual-mode
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      // Check for direct movie rental first
+      const [directRental] = await db.select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.movieId, movieId),
+            userClause
+          )
+        )
+        .orderBy(desc(rentals.purchasedAt))
+        .limit(1);
+      
+      if (directRental) {
+        // Check if rental is expired
+        const now = new Date();
+        const isExpired = new Date(directRental.expiresAt) <= now;
+        
+        if (isExpired) {
+          // Don't return early - check for pack rental below
+        } else {
+          return reply.send({
+            rental: {
+              id: directRental.id,
+              movieId: directRental.movieId,
+              purchasedAt: directRental.purchasedAt,
+              expiresAt: directRental.expiresAt,
+              transactionId: directRental.transactionId,
+              amount: directRental.amount,
+              currency: directRental.currency,
+              paymentMethod: directRental.paymentMethod,
+            },
+          });
+        }
+      }
+      
+      // Check for pack rental that includes this movie
+      const packItems = await db.select({ packId: shortPackItems.packId })
+        .from(shortPackItems)
+        .where(eq(shortPackItems.movieId, movieId));
+      
+      if (packItems.length > 0) {
+        const packIds = packItems.map(p => p.packId);
+        
+        const [packRental] = await db.select()
+          .from(rentals)
+          .where(
+            and(
+              inArray(rentals.shortPackId, packIds),
+              userClause,
+              gt(rentals.expiresAt, new Date())
+            )
+          )
+          .limit(1);
+        
+        if (packRental) {
+          return reply.send({
+            rental: {
+              id: packRental.id,
+              movieId: null, // This is a pack rental, not direct
+              shortPackId: packRental.shortPackId,
+              purchasedAt: packRental.purchasedAt,
+              expiresAt: packRental.expiresAt,
+              transactionId: packRental.transactionId,
+              amount: packRental.amount,
+              currency: packRental.currency,
+              paymentMethod: packRental.paymentMethod,
+            },
+          });
+        }
+      }
+      
+      // Check if direct rental was expired
+      if (directRental) {
+        return reply.send({ 
+          rental: null,
+          expired: true,
+          expiredAt: directRental.expiresAt,
+        });
+      }
+      
+      return reply.send({ rental: null });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch rental');
       return reply.status(500).send({
@@ -194,107 +453,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
   });
   
   // =============================================================================
-  // CREATE RENTAL
-  // =============================================================================
-  
-  /**
-   * POST /api/rentals/:movieId
-   * Create a new rental for a movie
-   */
-  fastify.post('/rentals/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { movieId } = request.params as { movieId: string };
-    const { transactionId, amount = 500, paymentMethod = 'demo' } = request.body as {
-      transactionId: string;
-      amount?: number;
-      paymentMethod?: string;
-    };
-    const { userId, anonymousId } = getUserContext(request);
-    
-    // Validate input
-    if (!transactionId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Transaction ID is required',
-      });
-    }
-    
-    try {
-      // Check if movie exists
-      const [movie] = await db.select()
-        .from(movies)
-        .where(eq(movies.id, movieId))
-        .limit(1);
-      
-      if (!movie) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not found',
-        });
-      }
-      
-      // Check if user already has an active rental
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
-      
-      const [existingRental] = await db.select()
-        .from(rentals)
-        .where(
-          and(
-            eq(rentals.movieId, movieId),
-            userClause,
-            gt(rentals.expiresAt, new Date())
-          )
-        )
-        .limit(1);
-      
-      if (existingRental) {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'You already have an active rental for this movie',
-          rental: existingRental,
-        });
-      }
-      
-      // Create rental
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + RENTAL_DURATION_MS);
-      
-      const [rental] = await db.insert(rentals).values({
-        userId: userId || null,
-        anonymousId: anonymousId || null,
-        movieId,
-        purchasedAt: now,
-        expiresAt,
-        transactionId,
-        amount,
-        currency: 'USD',
-        paymentMethod,
-      }).returning();
-      
-      return reply.status(201).send({
-        rental: {
-          id: rental.id,
-          movieId: rental.movieId,
-          purchasedAt: rental.purchasedAt,
-          expiresAt: rental.expiresAt,
-          transactionId: rental.transactionId,
-          amount: rental.amount,
-          currency: rental.currency,
-          paymentMethod: rental.paymentMethod,
-        },
-      });
-    } catch (error) {
-      request.log.error({ error }, 'Failed to create rental');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create rental',
-      });
-    }
-  });
-  
-  // =============================================================================
-  // CREATE PACK RENTAL
+  // CREATE PACK RENTAL - Must be before :movieId route
   // =============================================================================
   
   /**
@@ -408,91 +567,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
   });
   
   // =============================================================================
-  // CHECK ACCESS (Movie or Pack)
-  // =============================================================================
-  
-  /**
-   * GET /api/rentals/access/:movieId
-   * Check if user has access to a movie (via direct rental or pack rental)
-   */
-  fastify.get('/rentals/access/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { movieId } = request.params as { movieId: string };
-    const { userId, anonymousId } = getUserContext(request);
-    
-    try {
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
-      
-      // Check for direct movie rental
-      const [directRental] = await db.select()
-        .from(rentals)
-        .where(
-          and(
-            eq(rentals.movieId, movieId),
-            userClause,
-            gt(rentals.expiresAt, new Date())
-          )
-        )
-        .limit(1);
-      
-      if (directRental) {
-        return reply.send({
-          hasAccess: true,
-          accessType: 'movie',
-          rental: {
-            id: directRental.id,
-            expiresAt: directRental.expiresAt,
-          },
-        });
-      }
-      
-      // Check for pack rental that includes this movie
-      const packItems = await db.select({ packId: shortPackItems.packId })
-        .from(shortPackItems)
-        .where(eq(shortPackItems.movieId, movieId));
-      
-      if (packItems.length > 0) {
-        const packIds = packItems.map(p => p.packId);
-        
-        const [packRental] = await db.select()
-          .from(rentals)
-          .where(
-            and(
-              inArray(rentals.shortPackId, packIds),
-              userClause,
-              gt(rentals.expiresAt, new Date())
-            )
-          )
-          .limit(1);
-        
-        if (packRental) {
-          return reply.send({
-            hasAccess: true,
-            accessType: 'pack',
-            rental: {
-              id: packRental.id,
-              shortPackId: packRental.shortPackId,
-              expiresAt: packRental.expiresAt,
-            },
-          });
-        }
-      }
-      
-      return reply.send({
-        hasAccess: false,
-      });
-    } catch (error) {
-      request.log.error({ error }, 'Failed to check access');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to check access',
-      });
-    }
-  });
-  
-  // =============================================================================
-  // DATA MIGRATION
+  // DATA MIGRATION - Must be before :movieId route
   // =============================================================================
   
   /**
@@ -540,6 +615,158 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to migrate rentals',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // CREATE RENTAL
+  // =============================================================================
+  
+  /**
+   * POST /api/rentals/:movieId
+   * Create a new rental for a movie
+   */
+  fastify.post('/rentals/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+    const { transactionId, amount = 500, paymentMethod = 'demo' } = request.body as {
+      transactionId: string;
+      amount?: number;
+      paymentMethod?: string;
+    };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    // Validate input
+    if (!transactionId) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Transaction ID is required',
+      });
+    }
+    
+    try {
+      // Check if movie exists
+      const [movie] = await db.select()
+        .from(movies)
+        .where(eq(movies.id, movieId))
+        .limit(1);
+      
+      if (!movie) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Movie not found',
+        });
+      }
+      
+      // Check if user already has an active rental
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      const [existingRental] = await db.select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.movieId, movieId),
+            userClause,
+            gt(rentals.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      
+      if (existingRental) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'You already have an active rental for this movie',
+          rental: existingRental,
+        });
+      }
+      
+      // Create rental
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + RENTAL_DURATION_MS);
+      
+      const [rental] = await db.insert(rentals).values({
+        userId: userId || null,
+        anonymousId: anonymousId || null,
+        movieId,
+        purchasedAt: now,
+        expiresAt,
+        transactionId,
+        amount,
+        currency: 'USD',
+        paymentMethod,
+      }).returning();
+      
+      return reply.status(201).send({
+        rental: {
+          id: rental.id,
+          movieId: rental.movieId,
+          purchasedAt: rental.purchasedAt,
+          expiresAt: rental.expiresAt,
+          transactionId: rental.transactionId,
+          amount: rental.amount,
+          currency: rental.currency,
+          paymentMethod: rental.paymentMethod,
+        },
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to create rental');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to create rental',
+      });
+    }
+  });
+  
+  // =============================================================================
+  // UPDATE PACK POSITION
+  // =============================================================================
+  
+  /**
+   * PATCH /api/rentals/:rentalId/position
+   * Update the current short position for a pack rental
+   */
+  fastify.patch('/rentals/:rentalId/position', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
+    const { rentalId } = request.params as { rentalId: string };
+    const { currentShortId } = request.body as { currentShortId: string };
+    const { userId, anonymousId } = getUserContext(request);
+    
+    try {
+      // Verify rental belongs to user
+      const userClause = userId 
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+      
+      const [rental] = await db.select()
+        .from(rentals)
+        .where(
+          and(
+            eq(rentals.id, rentalId),
+            userClause,
+            gt(rentals.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+      
+      if (!rental) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Rental not found or expired',
+        });
+      }
+      
+      // Update the current short position
+      await db.update(rentals)
+        .set({ currentShortId })
+        .where(eq(rentals.id, rentalId));
+      
+      return reply.send({ success: true });
+    } catch (error) {
+      request.log.error({ error }, 'Failed to update pack position');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to update pack position',
       });
     }
   });

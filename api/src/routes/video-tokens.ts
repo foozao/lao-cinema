@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { rentals, movies, videoSources } from '../db/schema.js';
-import { eq, and, gte } from 'drizzle-orm';
+import { rentals, movies, videoSources, shortPackItems } from '../db/schema.js';
+import { eq, and, gte, inArray } from 'drizzle-orm';
 import { generateVideoToken } from '../lib/video-token.js';
 import { requireAuthOrAnonymous } from '../lib/auth-middleware.js';
 
@@ -44,29 +44,62 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // 2. Check rental validity
+      // 2. Check rental validity (direct rental OR pack rental)
       const now = new Date();
-      const rentalQuery = db
+      const userClause = userId
+        ? eq(rentals.userId, userId)
+        : eq(rentals.anonymousId, anonymousId!);
+
+      // Check for direct movie rental
+      const [directRental] = await db
         .select()
         .from(rentals)
         .where(
           and(
             eq(rentals.movieId, movieId),
             gte(rentals.expiresAt, now),
-            userId
-              ? eq(rentals.userId, userId)
-              : eq(rentals.anonymousId, anonymousId!)
+            userClause
           )
         )
         .limit(1);
 
-      const [rental] = await rentalQuery;
+      if (directRental) {
+        // Valid direct rental found
+      } else {
+        // Check for pack rental that includes this movie
+        const packItems = await db
+          .select({ packId: shortPackItems.packId })
+          .from(shortPackItems)
+          .where(eq(shortPackItems.movieId, movieId));
 
-      if (!rental) {
-        return reply.status(403).send({
-          error: 'No valid rental found',
-          code: 'RENTAL_REQUIRED',
-        });
+        if (packItems.length > 0) {
+          const packIds = packItems.map(p => p.packId);
+
+          const [packRental] = await db
+            .select()
+            .from(rentals)
+            .where(
+              and(
+                inArray(rentals.shortPackId, packIds),
+                gte(rentals.expiresAt, now),
+                userClause
+              )
+            )
+            .limit(1);
+
+          if (!packRental) {
+            return reply.status(403).send({
+              error: 'No valid rental found',
+              code: 'RENTAL_REQUIRED',
+            });
+          }
+        } else {
+          // No pack rental found either
+          return reply.status(403).send({
+            error: 'No valid rental found',
+            code: 'RENTAL_REQUIRED',
+          });
+        }
       }
 
       // 3. Construct video path

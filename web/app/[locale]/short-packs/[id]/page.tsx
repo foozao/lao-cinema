@@ -14,7 +14,8 @@ import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
 import { ShareButton } from '@/components/share-button';
 import { shortPacksAPI } from '@/lib/api/client';
-import { createPackRental } from '@/lib/api/rentals-client';
+import { createPackRental, getPackRentalStatus, type PackRental } from '@/lib/api/rentals-client';
+import { useAuth } from '@/lib/auth';
 import { PaymentModal } from '@/components/payment-modal';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
@@ -32,10 +33,60 @@ export default function ShortPackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [rental, setRental] = useState<PackRental | null>(null);
+  const [rentalExpired, setRentalExpired] = useState(false);
+  const { isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     loadPack();
   }, [packId]);
+
+  // Check rental status after auth is ready
+  useEffect(() => {
+    if (authLoading || !pack) return;
+    checkRentalStatus();
+  }, [authLoading, pack]);
+
+  const checkRentalStatus = async () => {
+    if (!pack) return;
+    try {
+      const { rental: activeRental, expired } = await getPackRentalStatus(pack.id);
+      setRental(activeRental);
+      setRentalExpired(expired || false);
+    } catch (err) {
+      console.error('Failed to check pack rental status:', err);
+    }
+  };
+
+  const formatTimeRemaining = (expiresAt: string): string => {
+    const now = Date.now();
+    const expiry = new Date(expiresAt).getTime();
+    const remaining = expiry - now;
+    
+    if (remaining <= 0) return '';
+    
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+    if (hours > 0) return `${hours}h ${minutes}m remaining`;
+    return `${minutes}m remaining`;
+  };
+
+  const handleWatchNow = () => {
+    if (pack?.shorts && pack.shorts.length > 0) {
+      // Resume from saved position if available
+      let targetShort = pack.shorts[0];
+      
+      if (rental?.currentShortId) {
+        const savedShort = pack.shorts.find(s => s.movie.id === rental.currentShortId);
+        if (savedShort) {
+          targetShort = savedShort;
+        }
+      }
+      
+      router.push(`/movies/${targetShort.movie.slug || targetShort.movie.id}/watch`);
+    }
+  };
 
   const loadPack = async () => {
     try {
@@ -79,7 +130,16 @@ export default function ShortPackDetailPage() {
         const firstShort = pack.shorts[0];
         router.push(`/movies/${firstShort.movie.slug || firstShort.movie.id}/watch`);
       }
-    } catch (err) {
+    } catch (err: any) {
+      // 409 = already have an active rental - treat as success
+      if (err.message?.includes('already have an active rental')) {
+        setShowPayment(false);
+        if (pack.shorts && pack.shorts.length > 0) {
+          const firstShort = pack.shorts[0];
+          router.push(`/movies/${firstShort.movie.slug || firstShort.movie.id}/watch`);
+        }
+        return;
+      }
       console.error('Failed to rent pack:', err);
       alert('Failed to rent pack. Please try again.');
     }
@@ -240,16 +300,35 @@ export default function ShortPackDetailPage() {
                 </div>
               )}
 
+              {/* Rental Status */}
+              {rental && (
+                <div className="mb-4 flex items-center gap-2 text-green-400">
+                  <Clock className="w-5 h-5" />
+                  <span className="font-medium">{formatTimeRemaining(rental.expiresAt)}</span>
+                </div>
+              )}
+
               {/* CTA */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                <Button 
-                  size="lg" 
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-8"
-                  onClick={() => setShowPayment(true)}
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  {t('rentPack')}
-                </Button>
+                {rental ? (
+                  <Button 
+                    size="lg" 
+                    className="bg-green-600 hover:bg-green-700 text-white px-8"
+                    onClick={handleWatchNow}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {t('watchNow')}
+                  </Button>
+                ) : (
+                  <Button 
+                    size="lg" 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+                    onClick={() => setShowPayment(true)}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {t('rentPack')}
+                  </Button>
+                )}
                 <Button
                   size="lg"
                   variant="outline"

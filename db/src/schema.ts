@@ -458,6 +458,7 @@ export const rentals = pgTable('rentals', {
   anonymousId: text('anonymous_id'), // Nullable for authenticated
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }), // Nullable if renting a pack
   shortPackId: uuid('short_pack_id').references(() => shortPacks.id, { onDelete: 'cascade' }), // Nullable if renting a movie
+  currentShortId: uuid('current_short_id').references(() => movies.id, { onDelete: 'set null' }), // For pack rentals: tracks which short is currently being watched
   purchasedAt: timestamp('purchased_at').defaultNow().notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   transactionId: text('transaction_id').notNull(),

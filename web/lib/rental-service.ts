@@ -10,6 +10,7 @@ import {
   getRentalStatus, 
   createRental as apiCreateRental,
   hasActiveRental as apiHasActiveRental,
+  checkMovieAccess,
   type Rental 
 } from './api/rentals-client';
 
@@ -78,12 +79,18 @@ export async function isInGracePeriod(movieId: string): Promise<boolean> {
 }
 
 /**
- * Check if user can watch the movie (valid rental or in grace period)
+ * Check if user can watch the movie (valid rental, pack rental, or in grace period)
  */
 export async function canWatch(movieId: string): Promise<boolean> {
-  const valid = await isRentalValid(movieId);
-  if (valid) return true;
+  try {
+    // Use access check which handles both direct and pack rentals
+    const { hasAccess } = await checkMovieAccess(movieId);
+    if (hasAccess) return true;
+  } catch (error) {
+    console.error('Failed to check movie access:', error);
+  }
   
+  // Fallback: check grace period for direct rentals
   return await isInGracePeriod(movieId);
 }
 

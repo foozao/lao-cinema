@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
-import { Clock, Play, Info } from 'lucide-react';
+import { Clock, Play, Info, Package } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath, getMovieWatchUrl } from '@/lib/movie-url';
@@ -20,16 +20,26 @@ export function RentalCard({ rental }: RentalCardProps) {
   const tMovie = useTranslations('movie');
   const locale = useLocale() as Language;
   
+  // Determine if this is a pack or movie rental
+  const isPack = !!(rental.pack && rental.shortPackId);
   const movie = rental.movie;
-  if (!movie) return null;
+  const pack = rental.pack;
   
-  // Handle title - could be LocalizedText object or string
-  const title = movie.title 
-    ? (typeof movie.title === 'object' ? getLocalizedText(movie.title, locale) : movie.title)
-    : movie.original_title || 'Untitled';
+  // Skip if neither movie nor pack
+  if (!movie && !pack) {
+    return null;
+  }
+  
+  // Handle title
+  const title = isPack
+    ? (pack?.title ? getLocalizedText(pack.title, locale) : 'Pack')
+    : (movie?.title 
+        ? (typeof movie.title === 'object' ? getLocalizedText(movie.title, locale) : movie.title)
+        : movie?.original_title || 'Untitled');
   
   // Use getPosterUrl helper for proper URL construction
-  const posterUrl = getPosterUrl(movie.poster_path, 'medium') || '/placeholder-poster.png';
+  const posterPath = isPack ? pack?.posterPath : movie?.poster_path;
+  const posterUrl = getPosterUrl(posterPath, 'medium') || '/placeholder-poster.png';
   
   // Calculate time remaining or expired
   const now = new Date();
@@ -39,9 +49,9 @@ export function RentalCard({ rental }: RentalCardProps) {
   const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
   
-  // Get movie metadata
-  const year = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
-  const runtime = movie.runtime;
+  // Get metadata
+  const year = !isPack && movie?.release_date ? new Date(movie.release_date).getFullYear() : null;
+  const runtime = !isPack && movie?.runtime ? movie.runtime : null;
   
   // Calculate watch progress percentage (handle both camelCase and snake_case from API)
   const wp = rental.watchProgress as any;
@@ -51,21 +61,128 @@ export function RentalCard({ rental }: RentalCardProps) {
     ? Math.round((progressSeconds / durationSeconds) * 100)
     : 0;
   
+  // Generate paths
+  const detailPath = isPack
+    ? `/short-packs/${pack?.slug || rental.shortPackId}`
+    : `/movies/${movie ? getMoviePath(movie) : rental.movieId}`;
+  
+  const watchPath = isPack
+    ? detailPath // For packs, go to pack detail page
+    : (movie ? getMovieWatchUrl(movie) : detailPath);
+  
+  // Render poster collage for packs (same logic as ShortPackCard)
+  const renderPosterCollage = () => {
+    const shortPosters = ((pack as any)?.short_posters || []).slice(0, 4);
+    
+    if (shortPosters.length === 0) {
+      // No posters - show placeholder
+      return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-900 text-white/60">
+          <Package className="w-12 h-12 mb-1" />
+          <span className="text-xs font-medium">{(pack as any)?.short_count || 0} shorts</span>
+        </div>
+      );
+    }
+
+    if (shortPosters.length === 1) {
+      // Single poster
+      return (
+        <Image
+          src={getPosterUrl(shortPosters[0], 'medium') || ''}
+          alt=""
+          fill
+          className="object-cover group-hover/poster:scale-105 transition-transform duration-300"
+          sizes="160px"
+        />
+      );
+    }
+
+    if (shortPosters.length === 2) {
+      // Two posters side by side
+      return (
+        <div className="absolute inset-0 flex">
+          {shortPosters.map((poster: string, i: number) => (
+            <div key={i} className="relative w-1/2 h-full">
+              <Image
+                src={getPosterUrl(poster, 'small') || ''}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (shortPosters.length === 3) {
+      // One large on left, two stacked on right
+      return (
+        <div className="absolute inset-0 flex">
+          <div className="relative w-1/2 h-full">
+            <Image
+              src={getPosterUrl(shortPosters[0], 'small') || ''}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
+          </div>
+          <div className="w-1/2 h-full flex flex-col">
+            {shortPosters.slice(1).map((poster: string, i: number) => (
+              <div key={i} className="relative w-full h-1/2">
+                <Image
+                  src={getPosterUrl(poster, 'small') || ''}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // 4 posters - 2x2 grid
+    return (
+      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+        {shortPosters.map((poster: string, i: number) => (
+          <div key={i} className="relative">
+            <Image
+              src={getPosterUrl(poster, 'small') || ''}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-[220px] p-0 border-2 border-gray-200 dark:border-gray-700 bg-[#ddd] hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700">
       <div className="flex h-full">
         {/* Poster - Clickable to watch/rent */}
         <Link 
-          href={isExpired ? `/movies/${getMoviePath(movie)}` : getMovieWatchUrl(movie)}
-          className="relative w-40 h-full flex-shrink-0 bg-gray-200 dark:bg-gray-800 group/poster"
+          href={isExpired ? detailPath : watchPath}
+          className="relative w-40 h-full flex-shrink-0 bg-gray-200 dark:bg-gray-800 group/poster overflow-hidden"
         >
-          <Image
-            src={posterUrl}
-            alt={title}
-            fill
-            className="object-cover group-hover/poster:scale-105 transition-transform duration-300"
-            sizes="192px"
-          />
+          {isPack ? (
+            renderPosterCollage()
+          ) : (
+            <Image
+              src={posterUrl}
+              alt={title}
+              fill
+              className="object-cover group-hover/poster:scale-105 transition-transform duration-300"
+              sizes="192px"
+            />
+          )}
           
           {/* Play button overlay for active rentals */}
           {!isExpired && (
@@ -86,9 +203,9 @@ export function RentalCard({ rental }: RentalCardProps) {
           </div>
         </Link>
 
-        {/* Content - Clickable to movie details */}
+        {/* Content - Clickable to details */}
         <Link 
-          href={`/movies/${getMoviePath(movie)}`}
+          href={detailPath}
           className="flex-1 p-4 flex flex-col group/info"
         >
             {/* Title */}
@@ -96,20 +213,28 @@ export function RentalCard({ rental }: RentalCardProps) {
               {title}
             </h3>
             
-            {/* Movie metadata: Year • Runtime */}
+            {/* Pack badge or Movie metadata */}
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
-              {year && <span>{year}</span>}
-              {year && runtime && <span>•</span>}
-              {runtime && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{runtime} {tMovie('min')}</span>
-                </div>
+              {isPack ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-200">
+                  Pack
+                </span>
+              ) : (
+                <>
+                  {year && <span>{year}</span>}
+                  {year && runtime && <span>•</span>}
+                  {runtime && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{runtime} {tMovie('min')}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             
-            {/* Watch progress bar - always show for active rentals */}
-            {!isExpired && (
+            {/* Watch progress bar - only show for active movie rentals */}
+            {!isExpired && !isPack && (
               <div className="mb-3">
                 <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                   <span>{t('percentWatched', { percent: progressPercent })}</span>

@@ -14,7 +14,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export interface Rental {
   id: string;
-  movieId: string;
+  movieId: string | null;
+  shortPackId?: string | null;
+  currentShortId?: string | null;
   purchasedAt: string;
   expiresAt: string;
   transactionId: string;
@@ -24,6 +26,7 @@ export interface Rental {
   movieTitle?: string;
   moviePosterPath?: string;
   movie?: any; // Full movie object from API
+  pack?: any; // Full pack object from API
   watchProgress?: {
     progressSeconds: number;
     durationSeconds: number;
@@ -124,6 +127,30 @@ export async function hasActiveRental(movieId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Update the current short position for a pack rental
+ */
+export async function updatePackPosition(
+  rentalId: string,
+  currentShortId: string
+): Promise<void> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  
+  const response = await fetch(`${apiUrl}/rentals/${rentalId}/position`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({ currentShortId }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to update pack position');
+  }
+}
+
 // =============================================================================
 // PACK RENTALS
 // =============================================================================
@@ -131,12 +158,19 @@ export async function hasActiveRental(movieId: string): Promise<boolean> {
 export interface PackRental {
   id: string;
   shortPackId: string;
+  currentShortId?: string | null;
   purchasedAt: string;
   expiresAt: string;
   transactionId: string;
   amount: number;
   currency: string;
   paymentMethod: string;
+  pack?: {
+    id: string;
+    slug: string;
+    title: Record<string, string>;
+    description?: Record<string, string>;
+  };
 }
 
 export interface AccessCheckResponse {
@@ -147,6 +181,28 @@ export interface AccessCheckResponse {
     shortPackId?: string;
     expiresAt: string;
   };
+}
+
+export interface PackRentalStatusResponse {
+  rental: PackRental | null;
+  expired?: boolean;
+  expiredAt?: string;
+}
+
+/**
+ * Check rental status for a specific pack
+ */
+export async function getPackRentalStatus(packId: string): Promise<PackRentalStatusResponse> {
+  const response = await fetch(`${API_URL}/rentals/packs/${packId}`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch pack rental status');
+  }
+  
+  return response.json();
 }
 
 /**

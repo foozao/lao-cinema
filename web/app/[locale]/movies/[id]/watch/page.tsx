@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -43,6 +43,30 @@ export default function WatchPage() {
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
   const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoEnded, setVideoEnded] = useState(false);
+  const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
+  const [nextVideoTitle, setNextVideoTitle] = useState<string | null>(null);
+  const [onCancelHandler, setOnCancelHandler] = useState<(() => void) | undefined>();
+  const [onPlayNowHandler, setOnPlayNowHandler] = useState<(() => void) | undefined>();
+  const [showBackToPack, setShowBackToPack] = useState(false);
+  const [backToPackUrl, setBackToPackUrl] = useState<string | null>(null);
+
+  // Memoized callback to prevent infinite render loop
+  const handleCountdownChange = useCallback((countdown: number | null, nextTitle: string | null, onCancel?: () => void, onPlayNow?: () => void) => {
+    setAutoPlayCountdown(countdown);
+    setNextVideoTitle(nextTitle);
+    setOnCancelHandler(() => onCancel);
+    setOnPlayNowHandler(() => onPlayNow);
+  }, []);
+
+  const handleBackToPackChange = useCallback((show: boolean, packUrl: string | null) => {
+    setShowBackToPack(show);
+    setBackToPackUrl(packUrl);
+  }, []);
+
+  const handleDismissBackToPack = useCallback(() => {
+    setShowBackToPack(false);
+  }, []);
   
   // First, load the movie to get its UUID
   useEffect(() => {
@@ -195,14 +219,26 @@ export default function WatchPage() {
           constrainToViewport={true}
           aspectRatio={videoSource?.aspect_ratio}
           onInfoClick={() => setShowInfo(true)}
+          onEnded={() => setVideoEnded(true)}
+          nextVideoTitle={nextVideoTitle || undefined}
+          autoPlayCountdown={autoPlayCountdown}
+          onCancelAutoPlay={onCancelHandler}
+          onPlayNow={onPlayNowHandler}
+          showBackToPack={showBackToPack}
+          backToPackUrl={backToPackUrl || undefined}
+          onDismissBackToPack={handleDismissBackToPack}
         />
       </div>
 
       {/* Pack Up Next - Shows when watching a short from a pack */}
-      <div className="px-4 py-3 md:px-8">
+      <div className="fixed top-16 left-0 right-0 z-30">
         <PackUpNext 
-          movieId={movie.id} 
+          movieId={movie.id}
+          currentMovieTitle={title}
           autoPlayDelay={10}
+          videoEnded={videoEnded}
+          onCountdownChange={handleCountdownChange}
+          onBackToPackChange={handleBackToPackChange}
         />
       </div>
 

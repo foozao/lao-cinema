@@ -25,6 +25,14 @@ interface VideoPlayerProps {
   constrainToViewport?: boolean;
   aspectRatio?: string;
   onInfoClick?: () => void;
+  onEnded?: () => void;
+  nextVideoTitle?: string;
+  autoPlayCountdown?: number | null;
+  onCancelAutoPlay?: () => void;
+  onPlayNow?: () => void;
+  showBackToPack?: boolean;
+  backToPackUrl?: string;
+  onDismissBackToPack?: () => void;
 }
 
 export function VideoPlayer({ 
@@ -38,6 +46,14 @@ export function VideoPlayer({
   movieDuration,
   constrainToViewport = false,
   onInfoClick,
+  onEnded,
+  nextVideoTitle,
+  autoPlayCountdown,
+  onCancelAutoPlay,
+  onPlayNow,
+  showBackToPack,
+  backToPackUrl,
+  onDismissBackToPack,
 }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -210,6 +226,7 @@ export function VideoPlayer({
     };
     const handleEnded = () => {
       analytics.trackComplete();
+      onEnded?.();
     };
     const handleWaiting = () => {}; // Loading handled by HLS hook
     const handleCanPlay = () => {};
@@ -332,6 +349,59 @@ export function VideoPlayer({
           error={displayCastError}
           onDismiss={() => setDisplayCastError(null)}
         />
+
+        {/* Auto-play Countdown Overlay or Back to Pack */}
+        {autoPlayCountdown !== undefined && autoPlayCountdown !== null && autoPlayCountdown > 0 && nextVideoTitle && (
+          <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/60 backdrop-blur-sm">
+            <div className="text-center px-8 py-6 bg-black/80 rounded-lg border border-gray-700 max-w-md">
+              <p className="text-gray-400 text-sm mb-2">Up Next</p>
+              <p className="text-white text-xl font-semibold mb-4">{nextVideoTitle}</p>
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-5xl font-bold text-white">{autoPlayCountdown}</div>
+              </div>
+              <div className="mt-4 flex gap-3 justify-center">
+                {onPlayNow && (
+                  <button
+                    onClick={onPlayNow}
+                    className="px-6 py-2 bg-white hover:bg-gray-200 text-black rounded-md transition-colors font-medium"
+                  >
+                    Play Now
+                  </button>
+                )}
+                {onCancelAutoPlay && (
+                  <button
+                    onClick={onCancelAutoPlay}
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-md transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {showBackToPack && backToPackUrl && (
+          <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/60 backdrop-blur-sm">
+            <div className="text-center px-8 py-6 bg-black/80 rounded-lg border border-gray-700 max-w-md">
+              <p className="text-gray-400 text-sm mb-2">Auto-play cancelled</p>
+              <p className="text-white text-lg mb-6">What would you like to do?</p>
+              <div className="flex flex-col gap-3">
+                <a
+                  href={backToPackUrl}
+                  className="px-6 py-3 bg-white hover:bg-gray-200 text-black rounded-md transition-colors font-medium"
+                >
+                  Back to Pack
+                </a>
+                <button
+                  onClick={onDismissBackToPack}
+                  className="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-md transition-colors text-sm"
+                >
+                  Stay Here
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Controls */}
         <VideoControls

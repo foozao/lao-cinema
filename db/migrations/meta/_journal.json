@@ -176,6 +176,13 @@
       "when": 1765644204272,
       "tag": "0024_kind_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1765733173323,
+      "tag": "0025_polite_maddog",
+      "breakpoints": true
     }
   ]
 }

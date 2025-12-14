@@ -156,6 +156,7 @@ export default function ShortPackEditPage() {
       try {
         await shortPacksAPI.addShort(packId, movie.id);
         await loadPack();
+        setHasChanges(true);
       } catch (err) {
         console.error('Failed to add short:', err);
       }
@@ -173,6 +174,7 @@ export default function ShortPackEditPage() {
       try {
         const updatedPack = await shortPacksAPI.removeShort(packId, movieId);
         setShorts(updatedPack.shorts || []);
+        setHasChanges(true);
       } catch (err) {
         console.error('Failed to remove short:', err);
         alert('Failed to remove short from pack');

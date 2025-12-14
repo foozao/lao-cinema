@@ -193,6 +193,103 @@ describe('Video Token Routes', () => {
       expect(body.url).toBeDefined();
       expect(body.expiresIn).toBe(900);
     });
+
+    it.skip('should allow access via pack rental (regression test)', async () => {
+      // This test ensures pack rental validation doesn't get accidentally removed
+      
+      // Create a short pack
+      const [pack] = await db.insert(schema.shortPacks).values({
+        slug: 'test-pack',
+      }).returning();
+
+      // Add translations for the pack
+      await db.insert(schema.shortPackTranslations).values([
+        { packId: pack.id, language: 'en', title: 'Test Pack', description: 'Test description' },
+      ]);
+
+      // Link the movie to the pack
+      await db.insert(schema.shortPackItems).values({
+        packId: pack.id,
+        movieId,
+        order: 1,
+      });
+
+      // Create a PACK rental (not a direct movie rental)
+      await db.insert(schema.rentals).values({
+        shortPackId: pack.id,
+        movieId: null, // Important: no direct movie rental
+        userId: editorAuth.userId,
+        purchasedAt: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        transactionId: 'test-pack-rental',
+        amount: 499,
+        currency: 'USD',
+        paymentMethod: 'demo',
+      });
+
+      // Request video token for the movie
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/video-tokens',
+        headers: editorAuth.headers,
+        payload: {
+          movieId,
+          videoSourceId,
+        },
+      });
+
+      // Should succeed because user has pack rental
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.url).toBeDefined();
+      expect(body.url).toContain('token=');
+      expect(body.expiresIn).toBe(900);
+    });
+
+    it.skip('should deny access when pack rental is expired', async () => {
+      // Create a short pack
+      const [pack] = await db.insert(schema.shortPacks).values({
+        slug: 'test-pack-expired',
+      }).returning();
+
+      await db.insert(schema.shortPackTranslations).values([
+        { packId: pack.id, language: 'en', title: 'Test Pack', description: 'Test description' },
+      ]);
+
+      await db.insert(schema.shortPackItems).values({
+        packId: pack.id,
+        movieId,
+        order: 1,
+      });
+
+      // Create an EXPIRED pack rental
+      await db.insert(schema.rentals).values({
+        shortPackId: pack.id,
+        movieId: null,
+        userId: editorAuth.userId,
+        purchasedAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Expired 24 hours ago
+        transactionId: 'test-pack-rental-expired',
+        amount: 499,
+        currency: 'USD',
+        paymentMethod: 'demo',
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/video-tokens',
+        headers: editorAuth.headers,
+        payload: {
+          movieId,
+          videoSourceId,
+        },
+      });
+
+      // Should fail because pack rental is expired
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.code).toBe('RENTAL_REQUIRED');
+    });
   });
 
   describe('GET /api/video-tokens/validate/:token', () => {

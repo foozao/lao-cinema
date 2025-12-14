@@ -18,6 +18,7 @@ import { movieAPI, shortPacksAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
 import { isRentalValid, purchaseRental, getFormattedRemainingTime, getRecentlyExpiredRental } from '@/lib/rental-service';
+import { getRentalStatus } from '@/lib/api/rentals-client';
 import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
@@ -43,6 +44,7 @@ export default function MoviePage() {
   const [hasValidRental, setHasValidRental] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
   const [recentlyExpired, setRecentlyExpired] = useState<{ expiredAt: Date } | null>(null);
+  const [rentalPackName, setRentalPackName] = useState<string | null>(null);
   const [moviePacks, setMoviePacks] = useState<Array<{
     id: string;
     slug?: string;
@@ -101,10 +103,26 @@ export default function MoviePage() {
         const time = await getFormattedRemainingTime(movie.id);
         setRemainingTime(time);
         setRecentlyExpired(null);
+        
+        // Check if this is a pack rental and get pack name
+        try {
+          const rentalStatus = await getRentalStatus(movie.id);
+          if (rentalStatus.rental && rentalStatus.rental.shortPackId && moviePacks.length > 0) {
+            const pack = moviePacks.find(p => p.id === rentalStatus.rental!.shortPackId);
+            if (pack) {
+              setRentalPackName(getLocalizedText(pack.title, locale));
+            }
+          } else {
+            setRentalPackName(null);
+          }
+        } catch (err) {
+          console.error('Failed to check rental pack:', err);
+        }
       } else {
         // Check if rental recently expired
         const expired = await getRecentlyExpiredRental(movie.id);
         setRecentlyExpired(expired);
+        setRentalPackName(null);
       }
     };
 
@@ -112,7 +130,7 @@ export default function MoviePage() {
     // Check every minute to update remaining time
     const interval = setInterval(checkRental, 60000);
     return () => clearInterval(interval);
-  }, [movie, authLoading]);
+  }, [movie, authLoading, moviePacks, locale]);
 
   const handleWatchNowClick = async () => {
     if (!movie) return;
@@ -396,7 +414,15 @@ export default function MoviePage() {
                           </div>
                           {hasValidRental && remainingTime && (
                             <p className="text-sm text-green-400">
-                              {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
+                              {rentalPackName ? (
+                                <>
+                                  {t('payment.rentalActive')} ({rentalPackName}) • {t('payment.expiresIn', { time: remainingTime })}
+                                </>
+                              ) : (
+                                <>
+                                  {t('payment.rentalActive')} • {t('payment.expiresIn', { time: remainingTime })}
+                                </>
+                              )}
                             </p>
                           )}
                           {!hasValidRental && recentlyExpired && (

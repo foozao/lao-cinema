@@ -40,7 +40,7 @@ interface BuildOptions {
  */
 export async function build(options: BuildOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: false, // Disable logging in tests
+    logger: process.env.TEST_LOGGING === 'true', // Enable with TEST_LOGGING=true
   });
 
   // Register CORS

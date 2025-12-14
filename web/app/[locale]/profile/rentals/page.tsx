@@ -153,13 +153,28 @@ export default function RentalsPage() {
           <div className="space-y-4">
             {rentals.map((rental) => {
               const expired = isExpired(rental.expiresAt);
-              const movieTitle = rental.movie?.title 
-                ? getLocalizedText(rental.movie.title, locale)
-                : 'Movie';
-              const posterPath = rental.movie?.poster_path;
-              const moviePath = rental.movie 
-                ? getMoviePath(rental.movie)
-                : rental.movieId;
+              
+              // Determine if this is a pack or movie rental
+              const isPack = rental.pack && rental.shortPackId;
+              
+              const title = isPack
+                ? (rental.pack?.title ? getLocalizedText(rental.pack.title, locale) : 'Pack')
+                : (rental.movie?.title ? getLocalizedText(rental.movie.title, locale) : 'Movie');
+              
+              const posterPath = isPack
+                ? rental.pack?.posterPath
+                : rental.movie?.poster_path;
+              
+              const detailPath = isPack
+                ? `/short-packs/${rental.pack?.slug || rental.shortPackId}`
+                : (rental.movie ? getMoviePath(rental.movie) : rental.movieId || '#');
+              
+              const watchPath = isPack
+                ? detailPath // For packs, go to pack detail page
+                : `/movies/${detailPath}/watch`;
+              
+              // Skip if no valid path
+              if (!detailPath || detailPath === '#') return null;
               
               return (
                 <div
@@ -169,12 +184,12 @@ export default function RentalsPage() {
                   }`}
                 >
                   <div className="flex gap-4">
-                    {/* Movie Poster */}
-                    <Link href={`/movies/${moviePath}`} className="flex-shrink-0">
+                    {/* Poster */}
+                    <Link href={detailPath} className="flex-shrink-0">
                       {posterPath ? (
                         <img
                           src={getPosterUrl(posterPath, 'small') || ''}
-                          alt={movieTitle}
+                          alt={title}
                           className="w-16 h-24 object-cover rounded-md hover:opacity-80 transition-opacity"
                         />
                       ) : (
@@ -188,11 +203,16 @@ export default function RentalsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0">
-                          <Link href={`/movies/${moviePath}`}>
+                          <Link href={detailPath}>
                             <h3 className="text-base font-semibold text-white mb-1 truncate hover:text-gray-300 transition-colors">
-                              {movieTitle}
+                              {title}
                             </h3>
                           </Link>
+                          {isPack && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-200 mr-2">
+                              Pack
+                            </span>
+                          )}
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             expired 
                               ? 'bg-gray-700 text-gray-300' 
@@ -202,9 +222,9 @@ export default function RentalsPage() {
                           </span>
                         </div>
                         {!expired && (
-                          <Link href={`/movies/${moviePath}/watch`}>
+                          <Link href={watchPath}>
                             <Button size="sm">
-                              {t('watchNow')}
+                              {isPack ? t('viewPack') : t('watchNow')}
                             </Button>
                           </Link>
                         )}
