@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +50,7 @@ function formatHours(seconds: number): string {
 
 export default function AnalyticsPage() {
   const t = useTranslations('analytics');
+  const router = useRouter();
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [rentals, setRentals] = useState<{ total: number; active: number }>({ total: 0, active: 0 });
   const [loading, setLoading] = useState(true);
@@ -337,16 +339,18 @@ export default function AnalyticsPage() {
                     </thead>
                     <tbody>
                       {summary.movieStats.map((movie) => (
-                        <tr key={movie.movieId} className="border-b last:border-0 hover:bg-gray-50 cursor-pointer transition-colors">
-                          <Link href={`/admin/analytics/${movie.movieId}`} className="contents">
-                            <td className="py-3 font-medium">{movie.movieTitle}</td>
-                            <td className="py-3 text-right">{movie.uniqueViewers}</td>
-                            <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
-                            <td className="py-3 text-right">{formatDuration(movie.averageWatchTime)}</td>
-                            <td className="py-3 text-right">{movie.completions}</td>
-                            <td className="py-3 text-right">{movie.completionRate.toFixed(0)}%</td>
-                            <td className="py-3 text-right">{movie.averageProgress.toFixed(0)}%</td>
-                          </Link>
+                        <tr 
+                          key={movie.movieId} 
+                          className="border-b last:border-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => router.push(`/admin/analytics/${movie.movieId}`)}
+                        >
+                          <td className="py-3 font-medium">{movie.movieTitle}</td>
+                          <td className="py-3 text-right">{movie.uniqueViewers}</td>
+                          <td className="py-3 text-right">{formatDuration(movie.totalWatchTime)}</td>
+                          <td className="py-3 text-right">{formatDuration(movie.averageWatchTime)}</td>
+                          <td className="py-3 text-right">{movie.completions}</td>
+                          <td className="py-3 text-right">{movie.completionRate.toFixed(0)}%</td>
+                          <td className="py-3 text-right">{movie.averageProgress.toFixed(0)}%</td>
                         </tr>
                       ))}
                     </tbody>
