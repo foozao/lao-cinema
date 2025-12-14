@@ -3411,23 +3411,6 @@ export declare const shortPacks: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        priceUsd: import("drizzle-orm/pg-core").PgColumn<{
-            name: "price_usd";
-            tableName: "short_packs";
-            dataType: "number";
-            columnType: "PgInteger";
-            data: number;
-            driverParam: string | number;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
         isPublished: import("drizzle-orm/pg-core").PgColumn<{
             name: "is_published";
             tableName: "short_packs";
@@ -4523,6 +4506,81 @@ export declare const movieNotifications: import("drizzle-orm/pg-core").PgTableWi
     };
     dialect: "pg";
 }>;
+export declare const userWatchlist: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "user_watchlist";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/pg-core").PgColumn<{
+            name: "id";
+            tableName: "user_watchlist";
+            dataType: "string";
+            columnType: "PgUUID";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        userId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "user_id";
+            tableName: "user_watchlist";
+            dataType: "string";
+            columnType: "PgUUID";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        movieId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "movie_id";
+            tableName: "user_watchlist";
+            dataType: "string";
+            columnType: "PgUUID";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "user_watchlist";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+    };
+    dialect: "pg";
+}>;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
@@ -4543,4 +4601,6 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
 export type MovieNotification = typeof movieNotifications.$inferSelect;
 export type NewMovieNotification = typeof movieNotifications.$inferInsert;
+export type UserWatchlistItem = typeof userWatchlist.$inferSelect;
+export type NewUserWatchlistItem = typeof userWatchlist.$inferInsert;
 //# sourceMappingURL=schema.d.ts.map

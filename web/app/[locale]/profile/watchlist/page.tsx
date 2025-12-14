@@ -9,6 +9,7 @@ import { Bookmark, Trash2, ArrowLeft, Loader2, Film, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
@@ -110,24 +111,12 @@ export default function WatchlistPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header variant="dark" />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+      <ProfileBreadcrumbWrapper />
+      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/profile">
-            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-gray-400 hover:text-white">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {t('backToProfile')}
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <Bookmark className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-              <p className="text-gray-400 mt-1">{t('subtitle')}</p>
-            </div>
-          </div>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
 
         {/* Watchlist */}
@@ -143,7 +132,7 @@ export default function WatchlistPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {watchlist.map((item) => {
               const title = getLocalizedText(item.movie.title, locale);
               const posterUrl = getPosterUrl(item.movie.poster_path, 'medium');
@@ -152,87 +141,45 @@ export default function WatchlistPage() {
                 tmdb_id: item.movie.tmdb_id ?? undefined,
                 title: item.movie.title,
               });
-              const isAvailable = item.movie.availability_status === 'available' || item.movie.availability_status === 'auto';
 
               return (
-                <div
-                  key={item.id}
-                  className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-colors group"
-                >
-                  {/* Poster */}
+                <div key={item.id} className="group relative">
                   <Link href={`/movies/${moviePath}`}>
-                    <div className="relative aspect-[2/3] bg-gray-800">
+                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
                       {posterUrl ? (
                         <img
                           src={posterUrl}
                           alt={title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Film className="h-12 w-12 text-gray-600" />
-                        </div>
-                      )}
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                          <Play className="w-8 h-8 text-white" fill="white" />
-                        </div>
-                      </div>
-                      {/* Availability badge */}
-                      {!isAvailable && (
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-gray-900/80 rounded text-xs text-gray-300">
-                          {item.movie.availability_status === 'coming_soon' ? t('comingSoon') : t('unavailable')}
+                          <Film className="h-8 w-8 text-gray-600" />
                         </div>
                       )}
                     </div>
                   </Link>
-
-                  {/* Info */}
-                  <div className="p-4">
-                    <Link href={`/movies/${moviePath}`}>
-                      <h3 className="font-semibold text-white hover:text-amber-400 truncate mb-1">
-                        {title}
-                      </h3>
-                    </Link>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-                      {item.movie.release_date && (
-                        <span>{new Date(item.movie.release_date).getFullYear()}</span>
-                      )}
-                      {item.movie.runtime && (
-                        <>
-                          <span>•</span>
-                          <span>{formatRuntime(item.movie.runtime)}</span>
-                        </>
-                      )}
-                      {item.movie.vote_average && item.movie.vote_average > 0 && (
-                        <>
-                          <span>•</span>
-                          <span>★ {item.movie.vote_average.toFixed(1)}</span>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">
-                        {t('addedOn')} {new Date(item.addedAt).toLocaleDateString()}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFromWatchlist(item.movie.id)}
-                        disabled={removingId === item.movie.id}
-                        className="text-gray-500 hover:text-red-500"
-                      >
-                        {removingId === item.movie.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  {/* Remove button */}
+                  <button
+                    onClick={() => removeFromWatchlist(item.movie.id)}
+                    disabled={removingId === item.movie.id}
+                    className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    {removingId === item.movie.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                  {/* Title */}
+                  <h3 className="mt-2 text-sm font-medium text-white truncate">
+                    {title}
+                  </h3>
+                  {item.movie.release_date && (
+                    <p className="text-xs text-gray-500">
+                      {new Date(item.movie.release_date).getFullYear()}
+                    </p>
+                  )}
                 </div>
               );
             })}

@@ -24,6 +24,7 @@
     "movies": "Movies",
     "people": "People",
     "production": "Production",
+    "shorts": "Shorts",
     "admin": "Admin",
     "back": "Back"
   },
@@ -91,6 +92,7 @@
     "spokenLanguages": "Spoken Languages",
     "filmography": "Filmography",
     "availableOn": "This film is available on:",
+    "partOfCollection": "Part of Short Film Collection",
     "externalOnly": "External",
     "comingSoonMessage": "This film will be available to watch soon. Check back later!",
     "unavailableMessage": "This film is not currently available to watch.",
@@ -485,8 +487,15 @@
     },
     "settings": {
       "title": "Account Settings",
-      "subtitle": "Manage your security and account preferences",
+      "subtitle": "Manage your profile and account preferences",
       "backToProfile": "Back to Profile",
+      "displayName": {
+        "title": "Display Name",
+        "description": "This is how your name appears across the site",
+        "placeholder": "Your name",
+        "save": "Save",
+        "successMessage": "Display name updated!"
+      },
       "timezone": {
         "title": "Time Zone",
         "description": "Set your timezone to display dates and times correctly",
@@ -574,7 +583,7 @@
     }
   },
   "shortPacks": {
-    "title": "Short Film Packs",
+    "title": "Short Film Collections",
     "subtitle": "Curated collections of short films",
     "packBadge": "Pack",
     "short": "short",
@@ -586,7 +595,8 @@
     "watchNow": "Watch Now",
     "description": "Description",
     "noDescription": "No description available",
-    "featuredPacks": "Short Film Collections"
+    "featuredPacks": "Short Film Collections",
+    "empty": "No short film collections available yet"
   },
   "watchlist": {
     "title": "My Watchlist",

@@ -249,6 +249,7 @@ export interface ShortPackSummary {
   total_runtime?: number;
   short_count: number;
   short_posters?: string[]; // Poster paths from shorts for collage display
+  directors?: LocalizedText[]; // Directors from all shorts in pack
 }
 
 // For future TMDB API integration

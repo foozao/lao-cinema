@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -85,6 +86,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header variant="dark" />
+      <ProfileBreadcrumbWrapper />
       <div className="max-w-4xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
@@ -122,23 +124,6 @@ export default function ProfilePage() {
                   <h2 className="text-lg font-semibold text-white">{t('quickLinks.continueWatching')}</h2>
                   <p className="text-sm text-gray-400 mt-1">
                     {t('quickLinks.continueWatchingDesc')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Link>
-          
-          {/* Edit Profile */}
-          <Link href="/profile/edit">
-            <div className="bg-gray-900 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-700">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <UserIcon className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">{t('quickLinks.editProfile')}</h2>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {t('quickLinks.editProfileDesc')}
                   </p>
                 </div>
               </div>

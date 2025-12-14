@@ -273,6 +273,19 @@ export const shortPacksAPI = {
     return response.json();
   },
 
+  // Get published packs containing a movie (public, no auth)
+  getPacksForMovie: async (movieId: string): Promise<{ packs: Array<{
+    id: string;
+    slug?: string;
+    title: { en: string; lo?: string };
+    poster_path?: string;
+    short_count: number;
+  }> }> => {
+    const response = await fetch(`${API_BASE_URL}/short-packs/for-movie/${movieId}`);
+    if (!response.ok) throw new Error('Failed to get packs for movie');
+    return response.json();
+  },
+
   // Get short pack by ID or slug
   getById: (id: string) => fetchAPI<any>(`/short-packs/${id}`),
 

@@ -81,6 +81,36 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
             .filter((p): p is string => p !== null)
             .slice(0, 4); // Max 4 posters for collage
 
+          // Get unique directors from all shorts in pack
+          const directors: { en: string; lo?: string }[] = [];
+          for (const item of items) {
+            const crewMembers = await db.select({
+              personId: schema.movieCrewTranslations.personId,
+            })
+              .from(schema.movieCrewTranslations)
+              .where(
+                and(
+                  eq(schema.movieCrewTranslations.movieId, item.movieId),
+                  eq(schema.movieCrewTranslations.language, 'en'),
+                  eq(schema.movieCrewTranslations.job, 'Director')
+                )
+              );
+            
+            for (const crew of crewMembers) {
+              const personTranslations = await db.select()
+                .from(schema.peopleTranslations)
+                .where(eq(schema.peopleTranslations.personId, crew.personId));
+              
+              const nameEn = personTranslations.find(t => t.language === 'en')?.name || '';
+              const nameLo = personTranslations.find(t => t.language === 'lo')?.name;
+              
+              // Check if director already added
+              if (nameEn && !directors.some(d => d.en === nameEn)) {
+                directors.push({ en: nameEn, lo: nameLo || undefined });
+              }
+            }
+          }
+
           return {
             id: pack.id,
             slug: pack.slug,
@@ -98,6 +128,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
             short_count: items.length,
             total_runtime: totalRuntime,
             short_posters: shortPosters,
+            directors: directors,
             created_at: pack.createdAt.toISOString(),
             updated_at: pack.updatedAt.toISOString(),
           };
@@ -525,6 +556,75 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
   // =============================================================================
   // GET PACK CONTEXT FOR A MOVIE
   // =============================================================================
+
+  /**
+   * GET /api/short-packs/for-movie/:movieId
+   * Get published packs that contain a movie (public, no auth required)
+   * Used for displaying pack info on movie detail page
+   */
+  fastify.get('/short-packs/for-movie/:movieId', async (request, reply) => {
+    const { movieId } = request.params as { movieId: string };
+
+    try {
+      // Find which published packs contain this movie
+      const packItems = await db.select({
+        packId: schema.shortPackItems.packId,
+        order: schema.shortPackItems.order,
+      })
+        .from(schema.shortPackItems)
+        .innerJoin(schema.shortPacks, eq(schema.shortPackItems.packId, schema.shortPacks.id))
+        .where(
+          and(
+            eq(schema.shortPackItems.movieId, movieId),
+            eq(schema.shortPacks.isPublished, true)
+          )
+        );
+
+      if (packItems.length === 0) {
+        return reply.send({ packs: [] });
+      }
+
+      // Get pack details
+      const packs = await Promise.all(
+        packItems.map(async (item) => {
+          const [pack] = await db.select()
+            .from(schema.shortPacks)
+            .where(eq(schema.shortPacks.id, item.packId))
+            .limit(1);
+
+          if (!pack) return null;
+
+          const translations = await db.select()
+            .from(schema.shortPackTranslations)
+            .where(eq(schema.shortPackTranslations.packId, pack.id));
+
+          const titleEn = translations.find(t => t.language === 'en');
+          const titleLo = translations.find(t => t.language === 'lo');
+
+          // Get short count
+          const [countResult] = await db.select({ count: sql<number>`count(*)::int` })
+            .from(schema.shortPackItems)
+            .where(eq(schema.shortPackItems.packId, pack.id));
+
+          return {
+            id: pack.id,
+            slug: pack.slug,
+            title: {
+              en: titleEn?.title || '',
+              lo: titleLo?.title,
+            },
+            poster_path: pack.posterPath,
+            short_count: countResult?.count || 0,
+          };
+        })
+      );
+
+      return reply.send({ packs: packs.filter(Boolean) });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get packs for movie' });
+    }
+  });
 
   /**
    * GET /api/short-packs/context/:movieId

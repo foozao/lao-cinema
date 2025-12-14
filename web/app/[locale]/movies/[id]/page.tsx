@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Calendar, Clock, Star, Play, Ban, Sparkles, AlertCircle } from 'lucide-react';
-import { movieAPI } from '@/lib/api/client';
+import { Calendar, Clock, Star, Play, Ban, Sparkles, AlertCircle, Package } from 'lucide-react';
+import { movieAPI, shortPacksAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
 import { isRentalValid, purchaseRental, getFormattedRemainingTime, getRecentlyExpiredRental } from '@/lib/rental-service';
@@ -43,6 +43,13 @@ export default function MoviePage() {
   const [hasValidRental, setHasValidRental] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
   const [recentlyExpired, setRecentlyExpired] = useState<{ expiredAt: Date } | null>(null);
+  const [moviePacks, setMoviePacks] = useState<Array<{
+    id: string;
+    slug?: string;
+    title: { en: string; lo?: string };
+    poster_path?: string;
+    short_count: number;
+  }>>([]);
 
   // Check for rental query param (redirect from watch page)
   useEffect(() => {
@@ -61,6 +68,16 @@ export default function MoviePage() {
       try {
         const data = await movieAPI.getById(id);
         setMovie(data);
+        
+        // Check if this is a short film (runtime <= 40 min) and load pack info
+        if (data.runtime && data.runtime <= 40) {
+          try {
+            const packData = await shortPacksAPI.getPacksForMovie(data.id);
+            setMoviePacks(packData.packs);
+          } catch (err) {
+            console.error('Failed to load pack info:', err);
+          }
+        }
       } catch (error) {
         console.error('Failed to load movie:', error);
       } finally {
@@ -329,6 +346,32 @@ export default function MoviePage() {
                       </p>
                     </div>
 
+                    {/* Part of Short Pack */}
+                    {moviePacks.length > 0 && (
+                      <div className="mb-6 p-4 bg-purple-900/30 rounded-lg border border-purple-700/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Package className="w-5 h-5 text-purple-400" />
+                          <span className="text-sm font-medium text-purple-300">
+                            {t('movie.partOfCollection')}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {moviePacks.map((pack) => (
+                            <Link
+                              key={pack.id}
+                              href={`/short-packs/${pack.slug || pack.id}`}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-800/50 hover:bg-purple-700/50 rounded-md text-sm text-white transition-colors"
+                            >
+                              <span>{getLocalizedText(pack.title, locale)}</span>
+                              <Badge variant="secondary" className="text-xs bg-purple-600/50">
+                                {pack.short_count} {t('shortPacks.shorts')}
+                              </Badge>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Watch Now Button or Status Message */}
                     <div className="flex flex-col gap-3">
                       {isAvailableOnSite ? (
@@ -342,7 +385,7 @@ export default function MoviePage() {
                               <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
                               {t('movie.watchNow')}
                             </Button>
-                            <WatchlistButton movieId={movie.id} size="lg" />
+                            <WatchlistButton movieId={movie.id} size="lg" className="px-6 md:px-8 py-5 md:py-6" />
                             <ShareButton
                               path={`/movies/${getMoviePath(movie)}`}
                               title={title}

@@ -325,8 +325,6 @@ export const shortPacks = pgTable('short_packs', {
     // Media paths
     posterPath: text('poster_path'),
     backdropPath: text('backdrop_path'),
-    // Pricing (in cents)
-    priceUsd: integer('price_usd').default(499).notNull(), // Default $4.99
     // Status
     isPublished: boolean('is_published').default(false).notNull(),
     // Timestamps
@@ -415,6 +413,13 @@ export const movieNotifications = pgTable('movie_notifications', {
     userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
     movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
     notifiedAt: timestamp('notified_at'), // Null until notification sent
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+// User watchlist - movies users want to watch later
+export const userWatchlist = pgTable('user_watchlist', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 //# sourceMappingURL=schema.js.map

@@ -6,12 +6,13 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe } from 'lucide-react';
+import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 
 // Common timezone options
 const TIMEZONE_OPTIONS = [
@@ -33,6 +34,12 @@ export default function SettingsPage() {
   const t = useTranslations('profile.settings');
   const { user, isAuthenticated, isLoading: authLoading, logout, refreshUser } = useAuth();
   const router = useRouter();
+  
+  // Display name state
+  const [displayName, setDisplayName] = useState('');
+  const [isUpdatingDisplayName, setIsUpdatingDisplayName] = useState(false);
+  const [displayNameSuccess, setDisplayNameSuccess] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState('');
   
   // Timezone state
   const [timezone, setTimezone] = useState('Asia/Vientiane');
@@ -60,9 +67,28 @@ export default function SettingsPage() {
     }
     
     if (user) {
+      setDisplayName(user.displayName || '');
       setTimezone(user.timezone || 'Asia/Vientiane');
     }
   }, [isAuthenticated, authLoading, router, user]);
+  
+  const handleDisplayNameChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingDisplayName(true);
+    setDisplayNameSuccess(false);
+    setDisplayNameError('');
+    
+    try {
+      await authApi.updateProfile({ displayName: displayName || undefined });
+      await refreshUser();
+      setDisplayNameSuccess(true);
+      setTimeout(() => setDisplayNameSuccess(false), 3000);
+    } catch (err) {
+      setDisplayNameError(err instanceof Error ? err.message : 'Failed to update');
+    } finally {
+      setIsUpdatingDisplayName(false);
+    }
+  };
   
   const handleTimezoneChange = async (newTimezone: string) => {
     setTimezone(newTimezone);
@@ -160,24 +186,67 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header variant="dark" />
+      <ProfileBreadcrumbWrapper />
       <div className="max-w-2xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← {t('backToProfile')}
-          </Link>
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
         
+        {/* Display Name */}
+        <div className="bg-gray-900 rounded-lg shadow-sm p-6 mb-6 border border-gray-700">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-purple-900/50 rounded-lg">
+              <User className="h-5 w-5 text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-white">{t('displayName.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {t('displayName.description')}
+              </p>
+            </div>
+          </div>
+          
+          {displayNameSuccess && (
+            <div className="rounded-md bg-green-900/50 border border-green-700 p-3 mb-4">
+              <p className="text-sm text-green-400">{t('displayName.successMessage')}</p>
+            </div>
+          )}
+          
+          {displayNameError && (
+            <div className="rounded-md bg-red-900/50 border border-red-700 p-3 mb-4">
+              <p className="text-sm text-red-400">{displayNameError}</p>
+            </div>
+          )}
+          
+          <form onSubmit={handleDisplayNameChange} className="flex gap-3">
+            <Input
+              type="text"
+              placeholder={t('displayName.placeholder')}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              disabled={isUpdatingDisplayName}
+              className="flex-1 bg-gray-800 border-gray-600 text-white"
+            />
+            <Button type="submit" disabled={isUpdatingDisplayName} size="sm">
+              {isUpdatingDisplayName ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                t('displayName.save')
+              )}
+            </Button>
+          </form>
+        </div>
+        
         {/* Timezone */}
-        <div className="bg-gray-900 rounded-lg shadow-sm p-8 mb-6 border border-gray-700">
-          <div className="flex items-start gap-3 mb-6">
+        <div className="bg-gray-900 rounded-lg shadow-sm p-6 mb-6 border border-gray-700">
+          <div className="flex items-start gap-3 mb-4">
             <div className="p-2 bg-green-900/50 rounded-lg">
               <Globe className="h-5 w-5 text-green-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-white">{t('timezone.title')}</h2>
+              <h2 className="text-lg font-semibold text-white">{t('timezone.title')}</h2>
               <p className="text-sm text-gray-400 mt-1">
                 {t('timezone.description')}
               </p>
@@ -257,7 +326,7 @@ export default function SettingsPage() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">{t('password.currentPassword')}</Label>
+              <Label htmlFor="currentPassword" className="text-white">{t('password.currentPassword')}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -265,11 +334,12 @@ export default function SettingsPage() {
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
                 disabled={isChangingPassword}
+                className="bg-gray-800 border-gray-600 text-white"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="newPassword">{t('password.newPassword')}</Label>
+              <Label htmlFor="newPassword" className="text-white">{t('password.newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -278,12 +348,13 @@ export default function SettingsPage() {
                 required
                 minLength={8}
                 disabled={isChangingPassword}
+                className="bg-gray-800 border-gray-600 text-white"
               />
               <p className="text-xs text-gray-500">{t('password.requirements')}</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t('password.confirmPassword')}</Label>
+              <Label htmlFor="confirmPassword" className="text-white">{t('password.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -292,6 +363,7 @@ export default function SettingsPage() {
                 required
                 minLength={8}
                 disabled={isChangingPassword}
+                className="bg-gray-800 border-gray-600 text-white"
               />
             </div>
             

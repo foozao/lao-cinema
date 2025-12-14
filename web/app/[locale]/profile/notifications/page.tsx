@@ -9,6 +9,7 @@ import { Bell, BellOff, ArrowLeft, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
@@ -101,15 +102,10 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header variant="dark" />
-      <div className="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
+      <ProfileBreadcrumbWrapper />
+      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/profile">
-            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-gray-400 hover:text-white">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {t('backToProfile')}
-            </Button>
-          </Link>
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>

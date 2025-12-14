@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 
 export default function ContinueWatchingPage() {
   const t = useTranslations('profile.continueWatching');
@@ -105,12 +106,10 @@ export default function ContinueWatchingPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header variant="dark" />
+      <ProfileBreadcrumbWrapper />
       <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← {t('backToProfile')}
-          </Link>
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-gray-400 mt-2">{t('subtitle')}</p>
         </div>
@@ -158,9 +157,9 @@ export default function ContinueWatchingPage() {
                     <img
                       src={(() => {
                         if (item.movieBackdropPath) {
-                          return getBackdropUrl(item.movieBackdropPath, 'medium');
+                          return getBackdropUrl(item.movieBackdropPath, 'medium') || '';
                         } else if (item.moviePosterPath) {
-                          return getPosterUrl(item.moviePosterPath, 'medium');
+                          return getPosterUrl(item.moviePosterPath, 'medium') || '';
                         }
                         return '';
                       })()}

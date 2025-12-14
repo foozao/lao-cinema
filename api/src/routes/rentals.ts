@@ -366,7 +366,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         purchasedAt: now,
         expiresAt,
         transactionId,
-        amount: pack.priceUsd,
+        amount: 499, // Default price in cents ($4.99) - pricing TBD
         currency: 'USD',
         paymentMethod,
       }).returning();

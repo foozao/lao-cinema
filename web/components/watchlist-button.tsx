@@ -13,9 +13,10 @@ interface WatchlistButtonProps {
   movieId: string;
   variant?: 'default' | 'icon' | 'inline';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  className?: string;
 }
 
-export function WatchlistButton({ movieId, variant = 'default', size = 'default' }: WatchlistButtonProps) {
+export function WatchlistButton({ movieId, variant = 'default', size = 'default', className }: WatchlistButtonProps) {
   const t = useTranslations('watchlist');
   const { user, isAuthenticated } = useAuth();
   const [inWatchlist, setInWatchlist] = useState(false);
@@ -94,7 +95,7 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
         <Button
           variant="outline"
           size={size}
-          className="gap-2 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300"
+          className={`gap-2 border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300 ${className || ''}`}
         >
           {variant === 'icon' ? (
             <Bookmark className="w-4 h-4" />
@@ -112,7 +113,7 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
   // Loading state
   if (isChecking) {
     return (
-      <Button variant="outline" size={size} disabled className="gap-2">
+      <Button variant="outline" size={size} disabled className={`gap-2 ${className || ''}`}>
         <Loader2 className="w-4 h-4 animate-spin" />
         {variant !== 'icon' && t('checking')}
       </Button>
@@ -137,10 +138,10 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
         size="icon"
         onClick={handleToggle}
         disabled={isLoading}
-        className={inWatchlist 
+        className={`${inWatchlist 
           ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/50' 
           : 'border-gray-600 text-gray-400 hover:border-amber-500/50 hover:text-amber-300'
-        }
+        } ${className || ''}`}
         title={buttonText}
       >
         {buttonContent}
@@ -157,7 +158,7 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
       className={`gap-2 ${inWatchlist 
         ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/50' 
         : 'border-gray-600 text-gray-400 hover:border-amber-500/50 hover:text-amber-300'
-      }`}
+      } ${className || ''}`}
     >
       {buttonContent}
       {buttonText}

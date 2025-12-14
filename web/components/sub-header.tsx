@@ -2,11 +2,11 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Film, Users, Building2 } from 'lucide-react';
+import { Film, Users, Building2, Package } from 'lucide-react';
 
 interface SubHeaderProps {
   variant?: 'light' | 'dark';
-  activePage?: 'movies' | 'people' | 'production';
+  activePage?: 'movies' | 'people' | 'production' | 'shorts';
 }
 
 export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
@@ -16,7 +16,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
     ? 'bg-black border-gray-800' 
     : 'bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700';
 
-  const getTextClass = (page: 'movies' | 'people' | 'production') => {
+  const getTextClass = (page: 'movies' | 'people' | 'production' | 'shorts') => {
     if (activePage === page) {
       return variant === 'dark'
         ? 'text-white font-bold cursor-default'
@@ -28,7 +28,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
   };
 
   const NavLink = ({ page, href, icon: Icon, children }: { 
-    page: 'movies' | 'people' | 'production';
+    page: 'movies' | 'people' | 'production' | 'shorts';
     href: string;
     icon: typeof Film;
     children: React.ReactNode;
@@ -60,6 +60,11 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
           <NavLink page="movies" href="/movies" icon={Film}>
             <span className="hidden md:inline">Browse </span>
             <span>{t('nav.movies')}</span>
+          </NavLink>
+          <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
+          <NavLink page="shorts" href="/short-packs" icon={Package}>
+            <span className="hidden md:inline">Browse </span>
+            <span>{t('nav.shorts')}</span>
           </NavLink>
           <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
           <NavLink page="people" href="/people" icon={Users}>
