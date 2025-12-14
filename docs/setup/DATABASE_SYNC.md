@@ -67,7 +67,12 @@ Database credentials are configured in the scripts:
 - Instance: `lao-cinema-db`
 - Database: `laocinema`
 - User: `laocinema`
-- Password: `LaoC1nema_Dev_2024!`
+- Password: Set via `CLOUD_DB_PASS` environment variable
+
+**Setup:** Add `CLOUD_DB_PASS` to your shell profile or export before running:
+```bash
+export CLOUD_DB_PASS='your-password-here'
+```
 
 ## Troubleshooting
 

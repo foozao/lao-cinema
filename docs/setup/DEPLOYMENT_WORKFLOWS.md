@@ -362,7 +362,7 @@ export CONNECTION_NAME=$(gcloud sql instances describe lao-cinema-db \
 cd db
 
 # Set DATABASE_URL (use single quotes for passwords with special chars!)
-export DATABASE_URL='postgresql://laocinema:LaoC1nema_Dev_2024!@127.0.0.1:5432/laocinema'
+export DATABASE_URL="postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema"
 
 # Run migrations
 npm run db:push
@@ -385,7 +385,7 @@ pg_dump -h localhost -p 5432 -U laocinema -d lao_cinema \
   -f local_data_dump.sql
 
 # Truncate Cloud SQL tables (removes __drizzle_migrations from list)
-psql 'postgresql://laocinema:LaoC1nema_Dev_2024!@127.0.0.1:5432/laocinema' << 'EOF'
+psql "postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema" << 'EOF'
 TRUNCATE TABLE 
   video_sources,
   movie_images,
@@ -411,7 +411,7 @@ CASCADE;
 EOF
 
 # Restore to Cloud SQL
-psql 'postgresql://laocinema:LaoC1nema_Dev_2024!@127.0.0.1:5432/laocinema' \
+psql "postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema" \
   -f local_data_dump.sql
 
 # Cleanup
@@ -442,7 +442,7 @@ git status  # Check for modified API files
 # 3. Run migrations
 ./cloud-sql-proxy $CONNECTION_NAME &
 cd db
-export DATABASE_URL='postgresql://laocinema:LaoC1nema_Dev_2024!@127.0.0.1:5432/laocinema'
+export DATABASE_URL="postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema"
 npm run db:push
 cd ..
 

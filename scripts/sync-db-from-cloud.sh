@@ -5,6 +5,9 @@
 
 set -e
 
+# Load environment variables from .env if it exists
+[[ -f "$(dirname "$0")/../.env" ]] && source "$(dirname "$0")/../.env"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,7 +32,7 @@ REGION="asia-southeast1"
 INSTANCE_NAME="lao-cinema-db"
 CLOUD_DB_NAME="laocinema"
 CLOUD_DB_USER="laocinema"
-CLOUD_DB_PASS="LaoC1nema_Dev_2024!"
+CLOUD_DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
 
 LOCAL_DB_NAME="lao_cinema"
 LOCAL_DB_USER="laocinema"

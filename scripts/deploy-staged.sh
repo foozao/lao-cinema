@@ -2,6 +2,9 @@
 # Lao Cinema - GCP Cloud Run Deployment Script with Versioning Support
 # Supports: test deployments, canary releases, traffic splitting, rollbacks
 
+# Load environment variables from .env if it exists
+[[ -f "$(dirname "$0")/../.env" ]] && source "$(dirname "$0")/../.env"
+
 set -e  # Exit on error
 
 # ========================================
@@ -315,7 +318,7 @@ else
         --update-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME" \
         --update-env-vars="DB_NAME=laocinema" \
         --update-env-vars="DB_USER=laocinema" \
-        --update-env-vars="DB_PASS=LaoC1nema_Dev_2024!" \
+        --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \

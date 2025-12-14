@@ -141,45 +141,89 @@ echo "API deployed at: $API_URL"
 
 ---
 
-## Step 5: Run Database Migrations
+## Step 5: Database Migrations
 
-You need to run Drizzle migrations. Options:
+There are two common scenarios for database updates:
 
-### Option A: Cloud Run Job (Recommended)
+### Scenario A: Schema Changes Only (Preserves Data)
 
-```bash
-# Create a migration job
-gcloud run jobs create lao-cinema-migrate \
-  --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
-  --region=$REGION \
-  --set-env-vars="DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME?host=/cloudsql/$CONNECTION_NAME" \
-  --add-cloudsql-instances=$CONNECTION_NAME \
-  --command="npm" \
-  --args="run,db:push"
-
-# Execute the migration
-gcloud run jobs execute lao-cinema-migrate --region=$REGION
-```
-
-### Option B: Cloud SQL Proxy Locally
+Use this when you've modified the schema (added columns, tables, etc.) but want to keep existing data.
 
 ```bash
-# Download Cloud SQL Proxy
-curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64
-chmod +x cloud-sql-proxy
+# 1. Start Cloud SQL Proxy (if not already running)
+./cloud-sql-proxy lao-cinema:asia-southeast1:lao-cinema-db &
 
-# Start proxy in background
-./cloud-sql-proxy $CONNECTION_NAME &
+# 2. Set connection string (requires CLOUD_DB_PASS env var)
+export DATABASE_URL="postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema"
 
-# Run migrations from api directory
-cd api
-export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME"
+# 3. Push schema changes (preserves existing data)
+cd db
 npm run db:push
-cd ..
 
-# Kill proxy
+# 4. Stop proxy
 killall cloud-sql-proxy
 ```
+
+**What `db:push` does**: Compares your schema.ts with the remote DB and applies only the differences (new tables, columns, indexes). Existing data is preserved.
+
+---
+
+### Scenario B: Full Data Sync (Replace Remote with Local)
+
+Use this when you want to completely replace the remote database with your local data (e.g., after importing new movies locally).
+
+```bash
+# 1. Start Cloud SQL Proxy
+./cloud-sql-proxy lao-cinema:asia-southeast1:lao-cinema-db &
+
+# 2. Dump local data
+pg_dump -h localhost -p 5432 -U laocinema -d lao_cinema \
+  --data-only --no-owner --no-acl -f local_data_dump.sql
+
+# 3. Connect to remote and truncate tables (order matters for foreign keys)
+psql "postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema" << 'EOF'
+TRUNCATE TABLE 
+  video_sources, movie_images, movie_genres, trailers,
+  movie_external_platforms, movie_production_companies,
+  movie_crew_translations, movie_crew, 
+  movie_cast_translations, movie_cast, 
+  movie_translations, people_translations, people,
+  production_company_translations, production_companies,
+  homepage_featured, movies, 
+  genre_translations, genres,
+  rentals, watch_progress, video_analytics_events,
+  user_sessions, oauth_accounts, users,
+  audit_logs
+CASCADE;
+EOF
+
+# 4. Restore local data to remote
+psql "postgresql://laocinema:${CLOUD_DB_PASS}@127.0.0.1:5432/laocinema" -f local_data_dump.sql
+
+# 5. Cleanup
+rm local_data_dump.sql
+killall cloud-sql-proxy
+```
+
+**⚠️ Warning**: This deletes ALL data in the remote database. Use with caution.
+
+---
+
+### Cloud SQL Proxy Setup (One-Time)
+
+If you don't have the proxy yet:
+
+```bash
+# Download (macOS ARM)
+curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.arm64
+chmod +x cloud-sql-proxy
+
+# Or macOS Intel
+curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64
+chmod +x cloud-sql-proxy
+```
+
+The proxy file is already in the project root (gitignored).
 
 ---
 

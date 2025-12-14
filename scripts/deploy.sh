@@ -4,6 +4,9 @@
 
 set -e  # Exit on error
 
+# Load environment variables from .env if it exists
+[[ -f "$(dirname "$0")/../.env" ]] && source "$(dirname "$0")/../.env"
+
 # ========================================
 # CONFIGURATION - UPDATE THESE VALUES
 # ========================================
@@ -114,11 +117,12 @@ if [ $? -ne 0 ]; then
 fi
 
 # Build Web (pass API URL as build arg, force clean build)
-# Add /api suffix since the client expects it
-log_info "Building Web image with API_URL=$API_URL/api..."
+# Use custom API domain if configured, otherwise use Cloud Run URL
+WEB_API_URL="${CUSTOM_API_DOMAIN:-$API_URL}/api"
+log_info "Building Web image with API_URL=$WEB_API_URL..."
 cd web
 docker build --no-cache --platform linux/amd64 \
-    --build-arg NEXT_PUBLIC_API_URL=$API_URL/api \
+    --build-arg NEXT_PUBLIC_API_URL=$WEB_API_URL \
     -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest .
 if [ $? -ne 0 ]; then
     log_error "Failed to build Web image"
@@ -175,7 +179,7 @@ else
         --update-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME" \
         --update-env-vars="DB_NAME=laocinema" \
         --update-env-vars="DB_USER=laocinema" \
-        --update-env-vars="DB_PASS=LaoC1nema_Dev_2024!" \
+        --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \
@@ -240,11 +244,15 @@ log_info "========================================="
 log_info "Deployment completed successfully! 🚀"
 log_info "========================================="
 echo ""
-log_info "Web App URL:  $WEB_URL"
-log_info "API URL:      $API_URL"
+log_info "Preview Site:  ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+log_info "Preview API:   ${CUSTOM_API_DOMAIN:-$API_URL}"
+echo ""
+log_info "Cloud Run URLs (internal):"
+log_info "  Web: $WEB_URL"
+log_info "  API: $API_URL"
 echo ""
 log_info "Next steps:"
-log_info "1. Run database migrations (see DEPLOYMENT.md)"
-log_info "2. Test the application: $WEB_URL"
-log_info "3. Check logs: gcloud run services logs read lao-cinema-web --region=$REGION"
+log_info "1. If schema changed: cd db && npm run db:push (see DEPLOYMENT.md)"
+log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+log_info "3. Check logs: gcloud run services logs read lao-cinema-api --region=$REGION"
 echo ""

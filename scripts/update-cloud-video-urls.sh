@@ -3,12 +3,15 @@
 
 set -e
 
+# Load environment variables from .env if it exists
+[[ -f "$(dirname "$0")/../.env" ]] && source "$(dirname "$0")/../.env"
+
 # Configuration
 PROJECT_ID="lao-cinema"
 INSTANCE_NAME="lao-cinema-db"
 DB_NAME="laocinema"
 DB_USER="laocinema"
-DB_PASS="LaoC1nema_Dev_2024!"
+DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
 
 echo "🔄 Updating video URLs in Cloud SQL..."
 echo ""
