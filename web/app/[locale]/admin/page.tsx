@@ -233,7 +233,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
-                Track watch time, completions, and engagement metrics
+                {t('analyticsDescription')}
               </p>
             </CardContent>
           </Card>
@@ -249,8 +249,8 @@ export default function AdminPage() {
                     <Package className="w-6 h-6 text-pink-600" />
                   </div>
                   <div>
-                    <CardTitle>Short Packs</CardTitle>
-                    <CardDescription>Curate short films</CardDescription>
+                    <CardTitle>{t('shortPacks')}</CardTitle>
+                    <CardDescription>{t('curateShortFilms')}</CardDescription>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -258,7 +258,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
-                Create curated collections of short films for rental
+                {t('shortPacksDescription')}
               </p>
             </CardContent>
           </Card>
@@ -274,8 +274,8 @@ export default function AdminPage() {
                     <Building2 className="w-6 h-6 text-teal-600" />
                   </div>
                   <div>
-                    <CardTitle>Production Companies</CardTitle>
-                    <CardDescription>Manage studios</CardDescription>
+                    <CardTitle>{t('productionCompanies')}</CardTitle>
+                    <CardDescription>{t('manageStudios')}</CardDescription>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -286,7 +286,7 @@ export default function AdminPage() {
                 {stats.loading ? '...' : stats.companiesCount}
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                Total companies in database
+                {t('totalCompaniesInDatabase')}
               </p>
             </CardContent>
           </Card>
@@ -303,8 +303,8 @@ export default function AdminPage() {
                       <ClipboardList className="w-6 h-6 text-gray-600" />
                     </div>
                     <div>
-                      <CardTitle>Audit Logs</CardTitle>
-                      <CardDescription>Track changes</CardDescription>
+                      <CardTitle>{t('auditLogs')}</CardTitle>
+                      <CardDescription>{t('trackChanges')}</CardDescription>
                     </div>
                   </div>
                   <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -312,7 +312,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">
-                  View all content changes made by editors and admins
+                  {t('auditLogsDescription')}
                 </p>
               </CardContent>
             </Card>
@@ -354,12 +354,12 @@ export default function AdminPage() {
               <RefreshCw className={`w-5 h-5 text-gray-600 ${syncingAll ? 'animate-spin' : ''}`} />
               <div>
                 <p className="font-medium text-gray-900">
-                  {syncingAll ? 'Syncing...' : 'Sync All from TMDB'}
+                  {syncingAll ? t('syncing') : t('syncAllFromTMDB')}
                 </p>
                 <p className="text-sm text-gray-600">
                   {syncingAll 
                     ? `${syncProgress.current}/${syncProgress.total}: ${syncProgress.currentTitle}`
-                    : 'Update all movies with TMDB data'
+                    : t('updateAllMoviesWithTMDB')
                   }
                 </p>
               </div>
@@ -369,9 +369,9 @@ export default function AdminPage() {
           {/* Sync Results */}
           {syncResults && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 font-medium">Sync Complete!</p>
+              <p className="text-green-800 font-medium">{t('syncComplete')}</p>
               <p className="text-sm text-green-700">
-                {syncResults.synced} synced, {syncResults.failed} failed
+                {t('syncResults', { synced: syncResults.synced, failed: syncResults.failed })}
               </p>
             </div>
           )}

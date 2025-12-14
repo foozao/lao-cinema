@@ -25,6 +25,7 @@ export default function ShortPackDetailPage() {
   const packId = params.id as string;
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations('shortPacks');
+  const tWatchlist = useTranslations('watchlist');
 
   const router = useRouter();
   const [pack, setPack] = useState<ShortPack | null>(null);
@@ -255,7 +256,7 @@ export default function ShortPackDetailPage() {
                   className="border-gray-600 bg-transparent text-white hover:bg-gray-800"
                 >
                   <Bookmark className="w-5 h-5 mr-2" />
-                  Add to Watchlist
+                  {tWatchlist('addToWatchlist')}
                 </Button>
                 <ShareButton
                   path={`/short-packs/${pack.slug || pack.id}`}

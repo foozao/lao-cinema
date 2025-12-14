@@ -14,20 +14,20 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 
-// Common timezone options
+// Common timezone options - labelKey maps to translation keys
 const TIMEZONE_OPTIONS = [
-  { value: 'Asia/Vientiane', label: 'Lao Time (GMT+7)' },
-  { value: 'Asia/Bangkok', label: 'Thailand (GMT+7)' },
-  { value: 'Asia/Ho_Chi_Minh', label: 'Vietnam (GMT+7)' },
-  { value: 'Asia/Singapore', label: 'Singapore (GMT+8)' },
-  { value: 'Asia/Tokyo', label: 'Japan (GMT+9)' },
-  { value: 'Asia/Shanghai', label: 'China (GMT+8)' },
-  { value: 'Asia/Kolkata', label: 'India (GMT+5:30)' },
-  { value: 'Europe/London', label: 'UK (GMT+0/+1)' },
-  { value: 'Europe/Paris', label: 'Central Europe (GMT+1/+2)' },
-  { value: 'America/New_York', label: 'US Eastern (GMT-5/-4)' },
-  { value: 'America/Los_Angeles', label: 'US Pacific (GMT-8/-7)' },
-  { value: 'Australia/Sydney', label: 'Australia Eastern (GMT+10/+11)' },
+  { value: 'Asia/Vientiane', labelKey: 'lao' },
+  { value: 'Asia/Bangkok', labelKey: 'thailand' },
+  { value: 'Asia/Ho_Chi_Minh', labelKey: 'vietnam' },
+  { value: 'Asia/Singapore', labelKey: 'singapore' },
+  { value: 'Asia/Tokyo', labelKey: 'japan' },
+  { value: 'Asia/Shanghai', labelKey: 'china' },
+  { value: 'Asia/Kolkata', labelKey: 'india' },
+  { value: 'Europe/London', labelKey: 'uk' },
+  { value: 'Europe/Paris', labelKey: 'europe' },
+  { value: 'America/New_York', labelKey: 'usEastern' },
+  { value: 'America/Los_Angeles', labelKey: 'usPacific' },
+  { value: 'Australia/Sydney', labelKey: 'australia' },
 ];
 
 export default function SettingsPage() {
@@ -260,7 +260,7 @@ export default function SettingsPage() {
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="timezone">{t('timezone.label')}</Label>
+            <Label htmlFor="timezone" className="text-gray-200">{t('timezone.label')}</Label>
             <select
               id="timezone"
               value={timezone}
@@ -270,11 +270,11 @@ export default function SettingsPage() {
             >
               {TIMEZONE_OPTIONS.map((tz) => (
                 <option key={tz.value} value={tz.value}>
-                  {tz.label}
+                  {t(`timezone.options.${tz.labelKey}`)}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               {t('timezone.help')}
             </p>
           </div>

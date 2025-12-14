@@ -35,7 +35,7 @@ export default function ShortPacksAdminPage() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+    if (!confirm(t('confirmDeletePack', { title }))) {
       return;
     }
 
@@ -71,13 +71,13 @@ export default function ShortPacksAdminPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Short Film Packs</h2>
-          <p className="text-gray-600">Curate and manage collections of short films</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('shortFilmPacks')}</h2>
+          <p className="text-gray-600">{t('curateAndManageCollections')}</p>
         </div>
         <Link href="/admin/short-packs/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Create Pack
+            {t('createPack')}
           </Button>
         </Link>
       </div>
@@ -92,12 +92,12 @@ export default function ShortPacksAdminPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No short packs yet</h3>
-            <p className="text-gray-600 mb-4">Create your first curated collection of short films</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noShortPacksYet')}</h3>
+            <p className="text-gray-600 mb-4">{t('createFirstCollection')}</p>
             <Link href="/admin/short-packs/new">
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
-                Create Pack
+                {t('createPack')}
               </Button>
             </Link>
           </CardContent>
@@ -117,7 +117,7 @@ export default function ShortPacksAdminPage() {
                     )}
                   </div>
                   <Badge variant={pack.is_published ? 'default' : 'secondary'}>
-                    {pack.is_published ? 'Published' : 'Draft'}
+                    {pack.is_published ? t('published') : t('draft')}
                   </Badge>
                 </div>
               </CardHeader>
@@ -140,7 +140,7 @@ export default function ShortPacksAdminPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                     <Film className="w-4 h-4" />
-                    <span>{pack.short_count} shorts</span>
+                    <span>{pack.short_count} {t('shorts')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
@@ -152,7 +152,7 @@ export default function ShortPacksAdminPage() {
                   <Link href={`/admin/short-packs/${pack.id}`} className="flex-1">
                     <Button variant="outline" className="w-full">
                       <Pencil className="w-4 h-4 mr-2" />
-                      Edit
+                      {t('edit')}
                     </Button>
                   </Link>
                   <Button

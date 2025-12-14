@@ -58,24 +58,23 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center gap-4 md:gap-6">
           <NavLink page="movies" href="/movies" icon={Film}>
-            <span className="hidden md:inline">Browse </span>
+            <span className="hidden md:inline">{t('nav.browse')} </span>
             <span>{t('nav.movies')}</span>
           </NavLink>
           <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
           <NavLink page="shorts" href="/short-packs" icon={Package}>
-            <span className="hidden md:inline">Browse </span>
+            <span className="hidden md:inline">{t('nav.browse')} </span>
             <span>{t('nav.shorts')}</span>
           </NavLink>
           <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
           <NavLink page="people" href="/people" icon={Users}>
-            <span className="hidden md:inline">Browse </span>
+            <span className="hidden md:inline">{t('nav.browse')} </span>
             <span>{t('nav.people')}</span>
           </NavLink>
           <span className={`text-xs ${variant === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>•</span>
           <NavLink page="production" href="/production" icon={Building2}>
-            <span className="hidden md:inline">Browse </span>
-            <span>Production</span>
-            <span className="hidden lg:inline"> Studios</span>
+            <span className="hidden md:inline">{t('nav.browse')} </span>
+            <span>{t('nav.productionStudios')}</span>
           </NavLink>
         </div>
       </div>

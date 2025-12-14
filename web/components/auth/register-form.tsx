@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
   
   const { register } = useAuth();
   const router = useRouter();
+  const t = useTranslations('auth.register');
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +32,13 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
     
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('errorPasswordMismatch'));
       return;
     }
     
     // Validate password length
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('errorPasswordLength'));
       return;
     }
     
@@ -72,11 +74,11 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
       )}
       
       <div className="space-y-2">
-        <Label htmlFor="displayName">Display Name (optional)</Label>
+        <Label htmlFor="displayName">{t('displayName')}</Label>
         <Input
           id="displayName"
           type="text"
-          placeholder="Your name"
+          placeholder={t('displayNamePlaceholder')}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           disabled={isLoading}
@@ -85,11 +87,11 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -99,7 +101,7 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t('password')}</Label>
         <Input
           id="password"
           type="password"
@@ -111,11 +113,11 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
           autoComplete="new-password"
           minLength={8}
         />
-        <p className="text-xs text-gray-500">At least 8 characters</p>
+        <p className="text-xs text-gray-500">{t('passwordHint')}</p>
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
         <Input
           id="confirmPassword"
           type="password"
@@ -133,10 +135,10 @@ export function RegisterForm({ redirectTo = '/', onSuccess }: RegisterFormProps)
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating account...
+            {t('creatingAccount')}
           </>
         ) : (
-          'Create Account'
+          t('createAccount')
         )}
       </Button>
     </form>

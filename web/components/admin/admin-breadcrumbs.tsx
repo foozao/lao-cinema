@@ -135,8 +135,14 @@ export function AdminBreadcrumbs() {
           });
         } else if (parts[1] === 'production') {
           breadcrumbs.push({
-            label: 'Production Companies',
+            label: t('productionCompanies'),
             href: '/admin/production',
+            isLast: true,
+          });
+        } else if (parts[1] === 'audit-logs') {
+          breadcrumbs.push({
+            label: t('auditLogsTitle'),
+            href: '/admin/audit-logs',
             isLast: true,
           });
         } else if (parts[1] === 'short-packs') {

@@ -47,7 +47,7 @@ export default function ContinueWatchingPage() {
   };
   
   const handleDelete = async (movieId: string) => {
-    if (!confirm('Remove this movie from continue watching?')) return;
+    if (!confirm(t('confirmRemove'))) return;
     
     setDeletingId(movieId);
     try {
@@ -125,7 +125,7 @@ export default function ContinueWatchingPage() {
         {!isAuthenticated && (
           <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
             <p className="text-sm text-blue-400">
-              <strong>Viewing local progress.</strong> Sign in to sync your watch progress across devices.
+              <strong>{t('localProgressNotice')}</strong> {t('localProgressSignIn')}
             </p>
           </div>
         )}
@@ -199,7 +199,7 @@ export default function ContinueWatchingPage() {
                   </h3>
                   
                   <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
-                    <span>{getProgressPercentage(item)}% watched</span>
+                    <span>{t('percentWatched', { percent: getProgressPercentage(item) })}</span>
                     <span>
                       {formatTime(item.progressSeconds)} / {formatTime(item.durationSeconds)}
                     </span>
@@ -214,7 +214,7 @@ export default function ContinueWatchingPage() {
                       onClick={() => handleDelete(item.movieId)}
                       disabled={deletingId === item.movieId}
                       className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                      title="Remove from continue watching"
+                      title={t('removeFromList')}
                     >
                       {deletingId === item.movieId ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -232,13 +232,13 @@ export default function ContinueWatchingPage() {
         {/* Stats */}
         {progress.length > 0 && (
           <div className="mt-8 bg-gray-900 rounded-lg shadow-sm p-6 border border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Summary</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t('summary')}</h3>
             <div className="grid grid-cols-3 gap-6">
               <div>
                 <p className="text-2xl font-bold text-blue-600">
                   {progress.length}
                 </p>
-                <p className="text-sm text-gray-400">Movies in Progress</p>
+                <p className="text-sm text-gray-400">{t('moviesInProgress')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-600">
@@ -246,7 +246,7 @@ export default function ContinueWatchingPage() {
                     progress.reduce((sum, p) => sum + getProgressPercentage(p), 0) / progress.length
                   )}%
                 </p>
-                <p className="text-sm text-gray-400">Average Progress</p>
+                <p className="text-sm text-gray-400">{t('averageProgress')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600">
@@ -254,7 +254,7 @@ export default function ContinueWatchingPage() {
                     progress.reduce((sum, p) => sum + p.progressSeconds, 0)
                   )}
                 </p>
-                <p className="text-sm text-gray-400">Total Watch Time</p>
+                <p className="text-sm text-gray-400">{t('totalWatchTime')}</p>
               </div>
             </div>
           </div>

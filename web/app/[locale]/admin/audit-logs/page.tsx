@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -40,7 +40,13 @@ import {
 const ITEMS_PER_PAGE = 50;
 
 // Component to display changes for a single log entry
-function ChangesDisplay({ changes }: { changes: Record<string, { before: any; after: any }> | null }) {
+function ChangesDisplay({ 
+  changes,
+  translations 
+}: { 
+  changes: Record<string, { before: any; after: any }> | null;
+  translations: { before: string; after: string; empty: string; fieldChanged: string; fieldsChanged: string; moreChanges: string };
+}) {
   const [expanded, setExpanded] = useState(false);
   
   if (!changes) return null;
@@ -49,7 +55,7 @@ function ChangesDisplay({ changes }: { changes: Record<string, { before: any; af
   if (entries.length === 0) return null;
   
   const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return '(empty)';
+    if (value === null || value === undefined) return translations.empty;
     if (typeof value === 'object') {
       // Handle LocalizedText objects
       if (value.en || value.lo) {
@@ -73,7 +79,7 @@ function ChangesDisplay({ changes }: { changes: Record<string, { before: any; af
         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
       >
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        {entries.length} field{entries.length !== 1 ? 's' : ''} changed
+        {entries.length} {entries.length === 1 ? translations.fieldChanged : translations.fieldsChanged}
       </button>
       
       {(expanded || entries.length <= 3) && (
@@ -83,13 +89,13 @@ function ChangesDisplay({ changes }: { changes: Record<string, { before: any; af
               <div className="font-medium text-gray-700 mb-1">{key}</div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-gray-400 text-[10px] uppercase">Before</span>
+                  <span className="text-gray-400 text-[10px] uppercase">{translations.before}</span>
                   <div className="text-red-600 bg-red-50 p-1 rounded break-words">
                     {formatValue(value.before)}
                   </div>
                 </div>
                 <div>
-                  <span className="text-gray-400 text-[10px] uppercase">After</span>
+                  <span className="text-gray-400 text-[10px] uppercase">{translations.after}</span>
                   <div className="text-green-600 bg-green-50 p-1 rounded break-words">
                     {formatValue(value.after)}
                   </div>
@@ -99,7 +105,7 @@ function ChangesDisplay({ changes }: { changes: Record<string, { before: any; af
           ))}
           {!expanded && entries.length > 3 && (
             <div className="text-gray-400 text-center">
-              +{entries.length - 3} more changes
+              +{entries.length - 3} {translations.moreChanges}
             </div>
           )}
         </div>
@@ -110,7 +116,28 @@ function ChangesDisplay({ changes }: { changes: Record<string, { before: any; af
 
 export default function AuditLogsPage() {
   const t = useTranslations('admin');
+  const locale = useLocale() as 'en' | 'lo';
   const { user } = useAuth();
+  
+  // Translations for ChangesDisplay component
+  const changesTranslations = {
+    before: t('before'),
+    after: t('after'),
+    empty: t('empty'),
+    fieldChanged: t('fieldChanged'),
+    fieldsChanged: t('fieldsChanged'),
+    moreChanges: t('moreChanges'),
+  };
+  
+  // Get translated action label
+  const getTranslatedActionLabel = (action: AuditAction): string => {
+    return t(`actionLabels.${action}`) || action;
+  };
+  
+  // Get translated entity type label
+  const getTranslatedEntityLabel = (entityType: AuditEntityType): string => {
+    return t(`entityLabels.${entityType}`) || entityType;
+  };
   
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,6 +215,22 @@ export default function AuditLogsPage() {
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    
+    if (locale === 'lo') {
+      const laoMonths = [
+        'ມ.ກ.', 'ກ.ພ.', 'ມີ.ນ.', 'ເມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.',
+        'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'
+      ];
+      const day = date.getDate();
+      const month = laoMonths[date.getMonth()];
+      const year = date.getFullYear();
+      const hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const period = hours >= 12 ? 'ຫຼັງທ່ຽງ' : 'ກ່ອນທ່ຽງ';
+      const hour12 = hours % 12 || 12;
+      return `${day} ${month} ${year}, ${hour12}:${minutes} ${period}`;
+    }
+    
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -219,9 +262,9 @@ export default function AuditLogsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="max-w-md">
           <CardHeader>
-            <CardTitle className="text-red-600">Access Denied</CardTitle>
+            <CardTitle className="text-red-600">{t('accessDenied')}</CardTitle>
             <CardDescription>
-              Only administrators can view audit logs.
+              {t('adminOnlyAuditLogs')}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -232,8 +275,8 @@ export default function AuditLogsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Audit Logs</h2>
-        <p className="text-gray-600">Track all content changes made by editors and admins</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('auditLogsTitle')}</h2>
+        <p className="text-gray-600">{t('auditLogsSubtitle')}</p>
       </div>
       
       {/* Filters and Actions */}
@@ -244,7 +287,7 @@ export default function AuditLogsPage() {
               {/* Action Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Action
+                  {t('action')}
                 </label>
                 <select
                   value={filterAction}
@@ -254,7 +297,7 @@ export default function AuditLogsPage() {
                   }}
                   className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 >
-                  <option value="">All actions</option>
+                  <option value="">{t('allActions')}</option>
                   {actionOptions.map(action => (
                     <option key={action} value={action}>
                       {getActionLabel(action)}
@@ -266,7 +309,7 @@ export default function AuditLogsPage() {
               {/* Entity Type Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Entity Type
+                  {t('entityType')}
                 </label>
                 <select
                   value={filterEntityType}
@@ -276,7 +319,7 @@ export default function AuditLogsPage() {
                   }}
                   className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 >
-                  <option value="">All types</option>
+                  <option value="">{t('allTypes')}</option>
                   {entityTypeOptions.map(type => (
                     <option key={type} value={type}>
                       {getEntityTypeLabel(type)}
@@ -294,7 +337,7 @@ export default function AuditLogsPage() {
                 disabled={loading}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                {t('refresh')}
               </Button>
               <Button
                 variant="outline"
@@ -303,7 +346,7 @@ export default function AuditLogsPage() {
                 disabled={logs.length === 0}
               >
                 <Download className="w-4 h-4 mr-2" />
-                Export CSV
+                {t('exportCSV')}
               </Button>
             </div>
           </div>
@@ -322,9 +365,9 @@ export default function AuditLogsPage() {
       {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity Log</CardTitle>
+          <CardTitle>{t('activityLog')}</CardTitle>
           <CardDescription>
-            Showing {logs.length} entries {page > 0 && `(page ${page + 1})`}
+            {t('showingEntries', { count: logs.length })} {page > 0 && `(${t('page')} ${page + 1})`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -334,7 +377,7 @@ export default function AuditLogsPage() {
             </div>
           ) : logs.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              No audit logs found
+              {t('noAuditLogs')}
             </div>
           ) : (
             <div className="space-y-4">
@@ -353,12 +396,12 @@ export default function AuditLogsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Action Badge */}
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getActionColor(log.action)}`}>
-                        {getActionLabel(log.action)}
+                        {getTranslatedActionLabel(log.action)}
                       </span>
                       
                       {/* Entity Info */}
                       <span className="text-sm text-gray-900">
-                        {getEntityTypeLabel(log.entityType)}
+                        {getTranslatedEntityLabel(log.entityType)}
                         {log.entityName && (
                           <span className="font-medium ml-1">"{log.entityName}"</span>
                         )}
@@ -366,15 +409,15 @@ export default function AuditLogsPage() {
                     </div>
                     
                     {/* Changes Preview */}
-                    <ChangesDisplay changes={log.changes} />
+                    <ChangesDisplay changes={log.changes} translations={changesTranslations} />
                     
                     {/* Meta Info */}
                     <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
-                        {log.userDisplayName || log.userEmail || 'Unknown user'}
+                        {log.userDisplayName || log.userEmail || t('unknownUser')}
                         {log.userRole && (
-                          <span className="text-gray-400">({log.userRole})</span>
+                          <span className="text-gray-400">({t(`role${log.userRole.charAt(0).toUpperCase()}${log.userRole.slice(1)}`)})</span>
                         )}
                       </span>
                       <span>{formatDate(log.createdAt)}</span>
@@ -397,11 +440,11 @@ export default function AuditLogsPage() {
               disabled={page === 0 || loading}
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
+              {t('previous')}
             </Button>
             
             <span className="text-sm text-gray-500">
-              Page {page + 1}
+              {t('page')} {page + 1}
             </span>
             
             <Button
@@ -410,7 +453,7 @@ export default function AuditLogsPage() {
               onClick={() => setPage(p => p + 1)}
               disabled={!hasMore || loading}
             >
-              Next
+              {t('next')}
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>

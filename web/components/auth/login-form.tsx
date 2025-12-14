@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ export function LoginForm({ redirectTo = '/', onSuccess }: LoginFormProps) {
   
   const { login } = useAuth();
   const router = useRouter();
+  const t = useTranslations('auth.login');
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +56,11 @@ export function LoginForm({ redirectTo = '/', onSuccess }: LoginFormProps) {
       )}
       
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -69,12 +71,12 @@ export function LoginForm({ redirectTo = '/', onSuccess }: LoginFormProps) {
       
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t('password')}</Label>
           <Link 
             href="/forgot-password" 
             className="text-sm text-blue-600 hover:text-blue-800"
           >
-            Forgot password?
+            {t('forgotPassword')}
           </Link>
         </div>
         <Input
@@ -94,10 +96,10 @@ export function LoginForm({ redirectTo = '/', onSuccess }: LoginFormProps) {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Signing in...
+            {t('signingIn')}
           </>
         ) : (
-          'Sign In'
+          t('signIn')
         )}
       </Button>
     </form>

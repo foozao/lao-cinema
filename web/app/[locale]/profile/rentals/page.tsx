@@ -48,16 +48,31 @@ export default function RentalsPage() {
     loadRentals();
   }, [isAuthenticated, anonymousId, authLoading, router]);
   
+  const laoMonths = [
+    'ມັງກອນ', 'ກຸມພາ', 'ມີນາ', 'ເມສາ', 'ພຶດສະພາ', 'ມິຖຸນາ',
+    'ກໍລະກົດ', 'ສິງຫາ', 'ກັນຍາ', 'ຕຸລາ', 'ພະຈິກ', 'ທັນວາ'
+  ];
+
   const formatDate = (dateString: string) => {
     const timezone = user?.timezone || 'Asia/Vientiane';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: timezone,
-    });
+    const date = new Date(dateString);
+    
+    // Get date parts in the user's timezone
+    const options: Intl.DateTimeFormatOptions = { timeZone: timezone };
+    const day = date.toLocaleDateString('en-US', { ...options, day: 'numeric' });
+    const month = date.getMonth();
+    const year = date.toLocaleDateString('en-US', { ...options, year: 'numeric' });
+    const time = date.toLocaleTimeString('en-US', { ...options, hour: '2-digit', minute: '2-digit' });
+    
+    if (locale === 'lo') {
+      return t('expiresOn', { 
+        date: `${day} ${laoMonths[month]} ${year}`, 
+        time 
+      });
+    }
+    
+    const monthName = date.toLocaleDateString('en-US', { ...options, month: 'long' });
+    return t('expiresOn', { date: `${monthName} ${day}, ${year}`, time });
   };
   
   const isExpired = (expiresAt: string) => {
@@ -69,17 +84,19 @@ export default function RentalsPage() {
     const expiry = new Date(expiresAt);
     const diff = expiry.getTime() - now.getTime();
     
-    if (diff <= 0) return 'Expired';
+    if (diff <= 0) return t('expired');
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
     if (hours > 24) {
       const days = Math.floor(hours / 24);
-      return `${days} day${days > 1 ? 's' : ''} remaining`;
+      return days > 1 
+        ? t('daysRemainingPlural', { days }) 
+        : t('daysRemaining', { days });
     }
     
-    return `${hours}h ${minutes}m remaining`;
+    return t('hoursMinutesRemaining', { hours, minutes });
   };
   
   if (authLoading || isLoading) {
@@ -201,7 +218,7 @@ export default function RentalsPage() {
                           </p>
                         )}
                         <p className="text-xs text-gray-500">
-                          {t('expires')}: {formatDate(rental.expiresAt)}
+                          {formatDate(rental.expiresAt)}
                         </p>
                       </div>
                     </div>

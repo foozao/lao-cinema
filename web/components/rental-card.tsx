@@ -17,6 +17,7 @@ interface RentalCardProps {
 
 export function RentalCard({ rental }: RentalCardProps) {
   const t = useTranslations('profile.rentals');
+  const tMovie = useTranslations('movie');
   const locale = useLocale() as Language;
   
   const movie = rental.movie;
@@ -102,7 +103,7 @@ export function RentalCard({ rental }: RentalCardProps) {
               {runtime && (
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  <span>{runtime} min</span>
+                  <span>{runtime} {tMovie('min')}</span>
                 </div>
               )}
             </div>

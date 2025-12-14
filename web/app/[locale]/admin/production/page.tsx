@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,7 @@ type SortOption = 'movies-desc' | 'movies-asc' | 'name-asc' | 'name-desc';
 
 export default function ProductionCompaniesAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
+  const t = useTranslations('admin');
   const [companies, setCompanies] = useState<ProductionCompany[]>([]);
   const [filteredCompanies, setFilteredCompanies] = useState<ProductionCompany[]>([]);
   const [loading, setLoading] = useState(true);
@@ -239,10 +240,10 @@ export default function ProductionCompaniesAdminPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">Production Companies</h2>
+        <h2 className="text-3xl font-bold text-gray-900">{t('productionCompanies')}</h2>
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Company
+          {t('addCompany')}
         </Button>
       </div>
 
@@ -253,7 +254,7 @@ export default function ProductionCompaniesAdminPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               type="text"
-              placeholder="Search companies..."
+              placeholder={t('searchCompanies')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -261,7 +262,7 @@ export default function ProductionCompaniesAdminPage() {
           </div>
           {searchQuery && (
             <p className="text-sm text-gray-600 mt-2">
-              Showing {filteredCompanies.length} of {companies.length} companies
+              {t('showingOfCompanies', { shown: filteredCompanies.length, total: companies.length })}
             </p>
           )}
         </div>
@@ -274,10 +275,10 @@ export default function ProductionCompaniesAdminPage() {
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full h-10 pl-9 pr-4 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
             >
-              <option value="movies-desc">Most Movies First</option>
-              <option value="movies-asc">Fewest Movies First</option>
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
+              <option value="movies-desc">{t('mostMoviesFirst')}</option>
+              <option value="movies-asc">{t('fewestMoviesFirst')}</option>
+              <option value="name-asc">{t('nameAZ')}</option>
+              <option value="name-desc">{t('nameZA')}</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,7 +294,7 @@ export default function ProductionCompaniesAdminPage() {
         <div className="text-center py-16">
           <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <p className="text-gray-500 text-lg">
-            {searchQuery ? 'No companies found matching your search.' : 'No production companies yet.'}
+            {searchQuery ? t('noCompaniesFound') : t('noCompaniesYet')}
           </p>
         </div>
       ) : (
@@ -352,7 +353,7 @@ export default function ProductionCompaniesAdminPage() {
                     <div className="mt-2">
                       <div className="flex flex-wrap gap-2 items-center">
                         <span className="text-xs font-medium text-gray-500">
-                          Movies ({company.movies.length})
+                          {t('moviesCount', { count: company.movies.length })}
                         </span>
                         {company.movies.map((movie) => (
                           <Link
@@ -377,12 +378,12 @@ export default function ProductionCompaniesAdminPage() {
       <Dialog open={!!editingCompany} onOpenChange={() => setEditingCompany(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Production Company</DialogTitle>
-            <DialogDescription>Update the company details.</DialogDescription>
+            <DialogTitle>{t('editProductionCompany')}</DialogTitle>
+            <DialogDescription>{t('updateCompanyDetails')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label>Name (English) *</Label>
+              <Label>{t('nameEnglish')} *</Label>
               <Input
                 value={editForm.nameEn}
                 onChange={(e) => setEditForm(prev => ({ ...prev, nameEn: e.target.value }))}
@@ -390,7 +391,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Name (Lao)</Label>
+              <Label>{t('nameLao')}</Label>
               <Input
                 value={editForm.nameLo}
                 onChange={(e) => setEditForm(prev => ({ ...prev, nameLo: e.target.value }))}
@@ -398,7 +399,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Country Code</Label>
+              <Label>{t('countryCode')}</Label>
               <Input
                 value={editForm.originCountry}
                 onChange={(e) => setEditForm(prev => ({ ...prev, originCountry: e.target.value.toUpperCase() }))}
@@ -407,7 +408,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Vanity URL (Slug)</Label>
+              <Label>{t('vanityUrl')}</Label>
               <Input
                 value={editForm.slug}
                 onChange={(e) => setEditForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
@@ -416,7 +417,7 @@ export default function ProductionCompaniesAdminPage() {
               <p className="text-xs text-gray-500 mt-1">Used in URL: /production/{editForm.slug || 'slug'}</p>
             </div>
             <div>
-              <Label>Logo</Label>
+              <Label>{t('logo')}</Label>
               <div className="space-y-2">
                 {editForm.customLogoUrl && (
                   <div className="flex items-center gap-2">
@@ -473,7 +474,7 @@ export default function ProductionCompaniesAdminPage() {
               </div>
             </div>
             <div>
-              <Label>Website</Label>
+              <Label>{t('website')}</Label>
               <Input
                 value={editForm.websiteUrl}
                 onChange={(e) => setEditForm(prev => ({ ...prev, websiteUrl: e.target.value }))}
@@ -496,12 +497,12 @@ export default function ProductionCompaniesAdminPage() {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Production Company</DialogTitle>
-            <DialogDescription>Add a new production company to the database.</DialogDescription>
+            <DialogTitle>{t('addProductionCompany')}</DialogTitle>
+            <DialogDescription>{t('addCompanyToDatabase')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label>Name (English) *</Label>
+              <Label>{t('nameEnglish')} *</Label>
               <Input
                 value={addForm.nameEn}
                 onChange={(e) => setAddForm(prev => ({ ...prev, nameEn: e.target.value }))}
@@ -509,7 +510,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Name (Lao)</Label>
+              <Label>{t('nameLao')}</Label>
               <Input
                 value={addForm.nameLo}
                 onChange={(e) => setAddForm(prev => ({ ...prev, nameLo: e.target.value }))}
@@ -517,7 +518,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Country Code</Label>
+              <Label>{t('countryCode')}</Label>
               <Input
                 value={addForm.originCountry}
                 onChange={(e) => setAddForm(prev => ({ ...prev, originCountry: e.target.value.toUpperCase() }))}
@@ -526,7 +527,7 @@ export default function ProductionCompaniesAdminPage() {
               />
             </div>
             <div>
-              <Label>Vanity URL (Slug)</Label>
+              <Label>{t('vanityUrl')}</Label>
               <Input
                 value={addForm.slug}
                 onChange={(e) => setAddForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') }))}
@@ -535,7 +536,7 @@ export default function ProductionCompaniesAdminPage() {
               <p className="text-xs text-gray-500 mt-1">Used in URL: /production/{addForm.slug || 'slug'}</p>
             </div>
             <div>
-              <Label>Logo</Label>
+              <Label>{t('logo')}</Label>
               <div className="space-y-2">
                 {addForm.customLogoUrl && (
                   <div className="flex items-center gap-2">
@@ -592,7 +593,7 @@ export default function ProductionCompaniesAdminPage() {
               </div>
             </div>
             <div>
-              <Label>Website</Label>
+              <Label>{t('website')}</Label>
               <Input
                 value={addForm.websiteUrl}
                 onChange={(e) => setAddForm(prev => ({ ...prev, websiteUrl: e.target.value }))}

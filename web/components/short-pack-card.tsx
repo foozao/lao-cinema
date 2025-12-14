@@ -171,7 +171,7 @@ export function ShortPackCard({ pack }: ShortPackCardProps) {
             {pack.directors && pack.directors.length > 0 && (
               <div className="text-sm mb-2">
                 <span className="text-gray-500 dark:text-gray-400">
-                  {pack.directors.length === 1 ? 'Director' : 'Directors'}:{' '}
+                  {pack.directors.length === 1 ? t('director') : t('directors')}:{' '}
                 </span>
                 <span className="text-gray-700 dark:text-gray-200">
                   {pack.directors.map(d => getLocalizedText(d, locale)).join(', ')}

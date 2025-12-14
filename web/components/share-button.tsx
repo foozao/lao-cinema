@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Share2, Check } from 'lucide-react';
 
@@ -51,6 +52,7 @@ export function ShareButton({
   showLabel = true,
   className,
 }: ShareButtonProps) {
+  const t = useTranslations('share');
   const [copied, setCopied] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -114,12 +116,12 @@ export function ShareButton({
         {copied ? (
           <>
             <Check className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-            {showLabel && 'Copied!'}
+            {showLabel && t('copied')}
           </>
         ) : (
           <>
             <Share2 className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-            {showLabel && 'Share'}
+            {showLabel && t('share')}
           </>
         )}
       </Button>
@@ -127,7 +129,7 @@ export function ShareButton({
       {/* Tooltip */}
       {showTooltip && !copied && (
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
-          {hasNativeShare ? 'Share this page' : 'Copy link to clipboard'}
+          {hasNativeShare ? t('shareThisPage') : t('copyLink')}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
             <div className="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
           </div>

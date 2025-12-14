@@ -85,7 +85,7 @@ export function Hero({ movie, onLoaded }: HeroProps) {
             {movie.runtime && (
               <>
                 <span>•</span>
-                <span>{movie.runtime} min</span>
+                <span>{movie.runtime} {t('movie.min')}</span>
               </>
             )}
             {director && (

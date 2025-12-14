@@ -139,7 +139,7 @@ export function MovieCard({ movie }: MovieCardProps) {
                   <span>•</span>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>{movie.runtime} min</span>
+                    <span>{movie.runtime} {t('min')}</span>
                   </div>
                 </>
               )}

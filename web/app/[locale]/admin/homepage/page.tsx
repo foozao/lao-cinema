@@ -30,7 +30,7 @@ interface Movie {
 
 export default function HomepageAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
-  const t = useTranslations();
+  const t = useTranslations('admin');
   
   const [featured, setFeatured] = useState<FeaturedMovie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
@@ -87,7 +87,7 @@ export default function HomepageAdminPage() {
   };
 
   const removeFeatured = async (id: string) => {
-    if (!confirm('Remove this film from featured?')) return;
+    if (!confirm(t('removeFromFeatured'))) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/homepage/featured/${id}`, {
@@ -118,7 +118,7 @@ export default function HomepageAdminPage() {
       });
 
       if (res.ok) {
-        alert('Order saved successfully!');
+        alert(t('orderSaved'));
       }
     } catch (error) {
       console.error('Failed to save order:', error);
@@ -197,15 +197,15 @@ export default function HomepageAdminPage() {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Homepage Featured Films</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('homepageFeaturedFilms')}</h1>
         <div className="flex gap-2">
           <Button onClick={() => setShowAddModal(true)} className="gap-2">
             <Plus className="w-4 h-4" />
-            Add Film
+            {t('addFilm')}
           </Button>
           <Button onClick={saveOrder} disabled={saving} className="gap-2 bg-green-600 hover:bg-green-700">
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save Order'}
+            {saving ? t('saving') : t('saveOrder')}
           </Button>
         </div>
       </div>
@@ -214,12 +214,12 @@ export default function HomepageAdminPage() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>Featured Films ({featured.length}/5 recommended)</CardTitle>
-            <p className="text-sm text-gray-600">Drag to reorder, then click Save Order</p>
+            <CardTitle>{t('featuredFilmsCount', { count: featured.length })}</CardTitle>
+            <p className="text-sm text-gray-600">{t('dragToReorder')}</p>
           </CardHeader>
           <CardContent>
             {featured.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No featured films yet. Add some!</p>
+              <p className="text-gray-500 text-center py-8">{t('noFeaturedFilms')}</p>
             ) : (
               <div className="space-y-3">
                 {featured.map((item, index) => (
@@ -276,7 +276,7 @@ export default function HomepageAdminPage() {
           <Card className="bg-white max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
-                <CardTitle>Add Featured Film</CardTitle>
+                <CardTitle>{t('addFeaturedFilm')}</CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => setShowAddModal(false)}>
                   <X className="w-5 h-5" />
                 </Button>
@@ -284,7 +284,7 @@ export default function HomepageAdminPage() {
             </CardHeader>
             <CardContent className="overflow-y-auto">
               {availableMovies.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">All movies are already featured!</p>
+                <p className="text-gray-500 text-center py-8">{t('allMoviesFeatured')}</p>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {availableMovies.map((movie) => (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { User, LogOut, Settings, Film } from 'lucide-react';
@@ -18,6 +18,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations();
   const menuRef = useRef<HTMLDivElement>(null);
   
   // Close dropdown when clicking outside
@@ -52,12 +53,12 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
       <div className="flex items-center gap-2">
         <Link href="/login">
           <Button variant="ghost" size="sm">
-            Sign In
+            {t('nav.signIn')}
           </Button>
         </Link>
         <Link href="/register">
           <Button size="sm">
-            Sign Up
+            {t('nav.signUp')}
           </Button>
         </Link>
       </div>
@@ -101,7 +102,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <User className="h-4 w-4" />
-                Profile
+                {t('nav.profile')}
               </Link>
               
               <Link
@@ -110,7 +111,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Film className="h-4 w-4" />
-                My Rentals
+                {t('nav.myRentals')}
               </Link>
               
               <Link
@@ -119,7 +120,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Settings className="h-4 w-4" />
-                Settings
+                {t('nav.settings')}
               </Link>
             </div>
             
@@ -131,7 +132,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
                 className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
               >
                 <LogOut className="h-4 w-4" />
-                {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+                {isLoggingOut ? t('nav.signingOut') : t('nav.signOut')}
               </button>
             </div>
           </div>
