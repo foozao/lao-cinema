@@ -11,12 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft, Save, Plus, Trash2, GripVertical, Search, Film, Clock, X 
+  Save, Plus, Trash2, GripVertical, Search, Film, Clock, X 
 } from 'lucide-react';
 import { shortPacksAPI, movieAPI } from '@/lib/api/client';
 import { Link } from '@/i18n/routing';
 import type { ShortPack, Movie } from '@/lib/types';
 import { getLocalizedText } from '@/lib/i18n';
+import { getPosterUrl } from '@/lib/images';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
 
 interface ShortInPack {
@@ -53,7 +54,6 @@ export default function ShortPackEditPage() {
   const [descriptionLo, setDescriptionLo] = useState('');
   const [taglineEn, setTaglineEn] = useState('');
   const [taglineLo, setTaglineLo] = useState('');
-  const [priceUsd, setPriceUsd] = useState(499);
   const [isPublished, setIsPublished] = useState(false);
   const [shorts, setShorts] = useState<ShortInPack[]>([]);
 
@@ -62,6 +62,9 @@ export default function ShortPackEditPage() {
   const [allShorts, setAllShorts] = useState<Movie[]>([]);
   const [loadingShorts, setLoadingShorts] = useState(false);
   const [showShortPicker, setShowShortPicker] = useState(false);
+  
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Load pack data
   useEffect(() => {
@@ -81,7 +84,6 @@ export default function ShortPackEditPage() {
       setDescriptionLo(pack.description?.lo || '');
       setTaglineEn(pack.tagline?.en || '');
       setTaglineLo(pack.tagline?.lo || '');
-      setPriceUsd(pack.price_usd || 499);
       setIsPublished(pack.is_published || false);
       setShorts(pack.shorts || []);
     } catch (err) {
@@ -178,31 +180,40 @@ export default function ShortPackEditPage() {
     }
   };
 
-  // Move short up/down
-  const moveShort = async (index: number, direction: 'up' | 'down') => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= shorts.length) return;
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
 
     const newShorts = [...shorts];
-    const temp = newShorts[index];
-    newShorts[index] = newShorts[newIndex];
-    newShorts[newIndex] = temp;
-
+    const draggedItem = newShorts[draggedIndex];
+    newShorts.splice(draggedIndex, 1);
+    newShorts.splice(index, 0, draggedItem);
+    
     // Update order values
     const reordered = newShorts.map((s, i) => ({ ...s, order: i }));
     setShorts(reordered);
+    setDraggedIndex(index);
+    setHasChanges(true);
+  };
 
-    // If editing existing pack, save the reorder
-    if (packId) {
+  const handleDragEnd = async () => {
+    // Save order to API if editing existing pack
+    if (packId && draggedIndex !== null) {
       try {
         await shortPacksAPI.reorderShorts(
           packId,
-          reordered.map(s => ({ movie_id: s.movie.id, order: s.order }))
+          shorts.map(s => ({ movie_id: s.movie.id, order: s.order }))
         );
       } catch (err) {
         console.error('Failed to reorder shorts:', err);
       }
     }
+    setDraggedIndex(null);
   };
 
   // Save pack
@@ -221,7 +232,6 @@ export default function ShortPackEditPage() {
         title: { en: titleEn, lo: titleLo || undefined },
         description: descriptionEn || descriptionLo ? { en: descriptionEn, lo: descriptionLo || undefined } : undefined,
         tagline: taglineEn || taglineLo ? { en: taglineEn, lo: taglineLo || undefined } : undefined,
-        price_usd: priceUsd,
         is_published: isPublished,
       };
 
@@ -268,24 +278,31 @@ export default function ShortPackEditPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/admin/short-packs">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h2 className="text-3xl font-bold text-gray-900">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
             {isNew ? 'Create Short Pack' : 'Edit Short Pack'}
-          </h2>
+          </h1>
           <p className="text-gray-600">
             {isNew ? 'Create a new curated collection of short films' : 'Manage this short film collection'}
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving || (!hasChanges && !isNew)}>
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save'}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="published-header"
+              checked={isPublished}
+              onCheckedChange={(checked: boolean) => { setIsPublished(checked); setHasChanges(true); }}
+            />
+            <Label htmlFor="published-header" className="cursor-pointer text-sm">
+              {isPublished ? 'Published' : 'Draft'}
+            </Label>
+          </div>
+          <Button onClick={handleSave} disabled={saving || (!hasChanges && !isNew)}>
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
       </div>
 
       {/* Success Toast */}
@@ -392,44 +409,6 @@ export default function ShortPackEditPage() {
           </CardContent>
         </Card>
 
-        {/* Pricing & Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing & Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (USD)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={(priceUsd / 100).toFixed(2)}
-                    onChange={(e) => { setPriceUsd(Math.round(parseFloat(e.target.value || '0') * 100)); setHasChanges(true); }}
-                    className="pl-7"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4 pt-8">
-                <Switch
-                  id="published"
-                  checked={isPublished}
-                  onCheckedChange={(checked: boolean) => { setIsPublished(checked); setHasChanges(true); }}
-                />
-                <Label htmlFor="published" className="cursor-pointer">
-                  Published
-                  <span className="block text-sm text-gray-500 font-normal">
-                    Make this pack visible to users
-                  </span>
-                </Label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Shorts in Pack */}
         <Card>
@@ -523,57 +502,54 @@ export default function ShortPackEditPage() {
                 <p className="text-sm">Click "Add Short" to add short films</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {shorts.map((short, index) => (
-                  <div
-                    key={short.movie.id}
-                    className="flex items-center gap-3 p-3 border rounded-lg bg-white"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => moveShort(index, 'up')}
-                        disabled={index === 0}
-                      >
-                        <span className="text-xs">▲</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => moveShort(index, 'down')}
-                        disabled={index === shorts.length - 1}
-                      >
-                        <span className="text-xs">▼</span>
-                      </Button>
-                    </div>
-                    <Badge variant="outline" className="w-8 justify-center">
-                      {index + 1}
-                    </Badge>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {short.movie.title?.en || short.movie.original_title}
-                      </p>
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {short.movie.runtime ? `${short.movie.runtime}m` : 'No runtime'}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeShort(short.movie.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              <>
+                <p className="text-sm text-gray-600 mb-3">Drag to reorder</p>
+                <div className="space-y-3">
+                  {shorts.map((short, index) => (
+                    <div
+                      key={short.movie.id}
+                      draggable
+                      data-short-index={index}
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={`flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
+                        draggedIndex === index ? 'opacity-50' : ''
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                      <GripVertical className="w-5 h-5 text-gray-400" />
+                      <span className="text-2xl font-bold text-gray-400 w-8">{index + 1}</span>
+                      {short.movie.poster_path ? (
+                        <img
+                          src={getPosterUrl(short.movie.poster_path, 'small') || ''}
+                          alt={short.movie.title?.en || short.movie.original_title}
+                          className="w-16 h-24 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center">
+                          <Film className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-gray-900">
+                          {short.movie.title?.en || short.movie.original_title}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {short.movie.runtime ? `${short.movie.runtime} min` : 'No runtime'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeShort(short.movie.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

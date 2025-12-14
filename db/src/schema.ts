@@ -411,9 +411,6 @@ export const shortPacks = pgTable('short_packs', {
   posterPath: text('poster_path'),
   backdropPath: text('backdrop_path'),
   
-  // Pricing (in cents)
-  priceUsd: integer('price_usd').default(499).notNull(), // Default $4.99
-  
   // Status
   isPublished: boolean('is_published').default(false).notNull(),
   
@@ -521,6 +518,14 @@ export const movieNotifications = pgTable('movie_notifications', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// User watchlist - movies users want to watch later
+export const userWatchlist = pgTable('user_watchlist', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -551,3 +556,6 @@ export type NewAuditLog = typeof auditLogs.$inferInsert;
 
 export type MovieNotification = typeof movieNotifications.$inferSelect;
 export type NewMovieNotification = typeof movieNotifications.$inferInsert;
+
+export type UserWatchlistItem = typeof userWatchlist.$inferSelect;
+export type NewUserWatchlistItem = typeof userWatchlist.$inferInsert;

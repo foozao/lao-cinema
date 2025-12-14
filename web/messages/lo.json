@@ -294,6 +294,8 @@
     "analytics": "ການວິເຄາະ",
     "viewAnalytics": "ເບິ່ງການວິເຄາະການຫຼິ້ນວິດີໂອ",
     "homepageSettings": "ການຕັ້ງຄ່າໜ້າຫຼັກ",
+    "shortPacks": "ແພັກໜັງສັ້ນ",
+    "newPack": "ແພັກໃໝ່",
     "productionCompanies": "ບໍລິສັດຜະລິດ",
     "noProductionCompanies": "ບໍ່ພົບບໍລິສັດຜະລິດ.",
     "noResultsFound": "ບໍ່ພົບຜົນການຄົ້ນຫາ.",
@@ -453,7 +455,9 @@
       "settings": "ການຕັ້ງຄ່າ",
       "settingsDesc": "ຈັດການການຕັ້ງຄ່າບັນຊີແລະຄວາມມັກ",
       "notifications": "ການແຈ້ງເຕືອນ",
-      "notificationsDesc": "ຈັດການການແຈ້ງເຕືອນຮູບເງົາໃໝ່"
+      "notificationsDesc": "ຈັດການການແຈ້ງເຕືອນຮູບເງົາໃໝ່",
+      "watchlist": "ລາຍການທີ່ຢາກເບິ່ງ",
+      "watchlistDesc": "ຮູບເງົາທີ່ທ່ານຢາກເບິ່ງພາຍຫຼັງ"
     },
     "notifications": {
       "title": "ການແຈ້ງເຕືອນຮູບເງົາ",
@@ -583,5 +587,20 @@
     "description": "ລາຍລະອຽດ",
     "noDescription": "ບໍ່ມີລາຍລະອຽດ",
     "featuredPacks": "ຄໍເລັກຊັນຮູບເງົາສັ້ນ"
+  },
+  "watchlist": {
+    "title": "ລາຍການທີ່ຢາກເບິ່ງ",
+    "subtitle": "ຮູບເງົາທີ່ທ່ານຢາກເບິ່ງພາຍຫຼັງ",
+    "backToProfile": "ກັບໄປໂປຣໄຟລ໌",
+    "addToWatchlist": "ເພີ່ມໃສ່ລາຍການ",
+    "inWatchlist": "ຢູ່ໃນລາຍການແລ້ວ",
+    "removeFromWatchlist": "ລຶບອອກຈາກລາຍການ",
+    "checking": "ກຳລັງກວດສອບ...",
+    "empty": "ລາຍການວ່າງເປົ່າ",
+    "emptyMessage": "ບັນທຶກຮູບເງົາທີ່ຢາກເບິ່ງພາຍຫຼັງໂດຍກົດໄອຄອນບຸກມາກໃນຮູບເງົາໃດກໍ່ໄດ້.",
+    "browseMovies": "ຊອກຫາຮູບເງົາ",
+    "addedOn": "ເພີ່ມເມື່ອ",
+    "comingSoon": "ໃກ້ຈະມາ",
+    "unavailable": "ບໍ່ພ້ອມໃຫ້ເບິ່ງ"
   }
 }

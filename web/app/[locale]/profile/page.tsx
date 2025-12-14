@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle, Bell } from 'lucide-react';
+import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle, Bell, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
 import { Header } from '@/components/header';
@@ -173,6 +173,23 @@ export default function ProfilePage() {
                   <h2 className="text-lg font-semibold text-white">{t('quickLinks.notifications')}</h2>
                   <p className="text-sm text-gray-400 mt-1">
                     {t('quickLinks.notificationsDesc')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+          
+          {/* Watchlist */}
+          <Link href="/profile/watchlist">
+            <div className="bg-gray-900 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-700">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <Bookmark className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{t('quickLinks.watchlist')}</h2>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {t('quickLinks.watchlistDesc')}
                   </p>
                 </div>
               </div>

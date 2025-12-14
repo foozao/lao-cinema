@@ -294,6 +294,8 @@
     "analytics": "Analytics",
     "viewAnalytics": "View playback analytics",
     "homepageSettings": "Homepage Settings",
+    "shortPacks": "Short Packs",
+    "newPack": "New Pack",
     "productionCompanies": "Production Companies",
     "noProductionCompanies": "No production companies found.",
     "noResultsFound": "No results found.",
@@ -453,7 +455,9 @@
       "settings": "Settings",
       "settingsDesc": "Manage your account settings and preferences",
       "notifications": "Notifications",
-      "notificationsDesc": "Manage movie release alerts"
+      "notificationsDesc": "Manage movie release alerts",
+      "watchlist": "Watchlist",
+      "watchlistDesc": "Movies you want to watch later"
     },
     "notifications": {
       "title": "Movie Notifications",
@@ -583,5 +587,20 @@
     "description": "Description",
     "noDescription": "No description available",
     "featuredPacks": "Short Film Collections"
+  },
+  "watchlist": {
+    "title": "My Watchlist",
+    "subtitle": "Movies you want to watch later",
+    "backToProfile": "Back to Profile",
+    "addToWatchlist": "Add to Watchlist",
+    "inWatchlist": "In Watchlist",
+    "removeFromWatchlist": "Remove from Watchlist",
+    "checking": "Checking...",
+    "empty": "Your Watchlist is Empty",
+    "emptyMessage": "Save movies to watch later by clicking the bookmark icon on any movie.",
+    "browseMovies": "Browse Movies",
+    "addedOn": "Added",
+    "comingSoon": "Coming Soon",
+    "unavailable": "Unavailable"
   }
 }

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Clock, Film, Pencil, Trash2 } from 'lucide-react';
+import { getPosterUrl } from '@/lib/images';
 import { shortPacksAPI } from '@/lib/api/client';
 import type { ShortPackSummary } from '@/lib/types';
 
@@ -57,9 +58,6 @@ export default function ShortPacksAdminPage() {
     return `${mins}m`;
   };
 
-  const formatPrice = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`;
-  };
 
   if (loading) {
     return (
@@ -124,6 +122,21 @@ export default function ShortPacksAdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Poster row */}
+                {pack.short_posters && pack.short_posters.length > 0 && (
+                  <div className="flex gap-1 mb-4 overflow-hidden rounded">
+                    {pack.short_posters.slice(0, 5).map((poster, idx) => (
+                      <div key={idx} className="flex-1 aspect-[2/3] min-w-0">
+                        <img
+                          src={getPosterUrl(poster, 'small') || ''}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                     <Film className="w-4 h-4" />
@@ -132,9 +145,6 @@ export default function ShortPacksAdminPage() {
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     <span>{formatRuntime(pack.total_runtime)}</span>
-                  </div>
-                  <div className="font-medium text-gray-900">
-                    {formatPrice(pack.price_usd)}
                   </div>
                 </div>
 

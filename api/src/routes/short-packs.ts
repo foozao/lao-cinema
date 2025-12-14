@@ -21,7 +21,6 @@ const CreateShortPackSchema = z.object({
   tagline: LocalizedTextSchema.optional(),
   poster_path: z.string().optional(),
   backdrop_path: z.string().optional(),
-  price_usd: z.number().int().min(0).default(499),
   is_published: z.boolean().default(false),
 });
 
@@ -95,7 +94,6 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
             },
             poster_path: pack.posterPath,
             backdrop_path: pack.backdropPath,
-            price_usd: pack.priceUsd,
             is_published: pack.isPublished,
             short_count: items.length,
             total_runtime: totalRuntime,
@@ -144,7 +142,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         .where(eq(schema.shortPackItems.packId, pack.id))
         .orderBy(asc(schema.shortPackItems.order));
 
-      // Build full movie data for each short
+      // Build full movie data for each short (including cast, crew, video_sources for MovieCard)
       const shorts = await Promise.all(
         packItems.map(async (item) => {
           const [movie] = await db.select()
@@ -154,33 +152,15 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
 
           if (!movie) return null;
 
-          // Get movie translations
-          const movieTranslations = await db.select()
-            .from(schema.movieTranslations)
-            .where(eq(schema.movieTranslations.movieId, movie.id));
-
-          const movieTitleEn = movieTranslations.find(t => t.language === 'en');
-          const movieTitleLo = movieTranslations.find(t => t.language === 'lo');
+          // Use buildMovieWithRelations for full movie data
+          const fullMovie = await buildMovieWithRelations(movie, db, schema, {
+            includeCast: true,
+            includeCrew: true,
+            includeGenres: true,
+          });
 
           return {
-            movie: {
-              id: movie.id,
-              slug: movie.slug,
-              type: movie.type,
-              original_title: movie.originalTitle,
-              poster_path: movie.posterPath,
-              backdrop_path: movie.backdropPath,
-              runtime: movie.runtime,
-              release_date: movie.releaseDate,
-              title: {
-                en: movieTitleEn?.title || movie.originalTitle,
-                lo: movieTitleLo?.title,
-              },
-              overview: {
-                en: movieTitleEn?.overview || '',
-                lo: movieTitleLo?.overview,
-              },
-            },
+            movie: fullMovie,
             order: item.order,
           };
         })
@@ -206,7 +186,6 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         },
         poster_path: pack.posterPath,
         backdrop_path: pack.backdropPath,
-        price_usd: pack.priceUsd,
         is_published: pack.isPublished,
         shorts: validShorts,
         total_runtime: totalRuntime,
@@ -233,7 +212,6 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           slug: data.slug || null,
           posterPath: data.poster_path || null,
           backdropPath: data.backdrop_path || null,
-          priceUsd: data.price_usd,
           isPublished: data.is_published,
         }).returning();
 
@@ -298,7 +276,6 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         if (data.slug !== undefined) updateData.slug = data.slug;
         if (data.poster_path !== undefined) updateData.posterPath = data.poster_path;
         if (data.backdrop_path !== undefined) updateData.backdropPath = data.backdrop_path;
-        if (data.price_usd !== undefined) updateData.priceUsd = data.price_usd;
         if (data.is_published !== undefined) updateData.isPublished = data.is_published;
 
         await db.update(schema.shortPacks)

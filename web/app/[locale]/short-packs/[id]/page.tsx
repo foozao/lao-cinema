@@ -5,10 +5,14 @@ import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link, useRouter } from '@/i18n/routing';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Film, Package, Play, ArrowLeft } from 'lucide-react';
+import { Clock, Film, Package, Play, ArrowLeft, Bookmark } from 'lucide-react';
+import { MovieCard } from '@/components/movie-card';
+import { Header } from '@/components/header';
+import { SubHeader } from '@/components/sub-header';
+import { Footer } from '@/components/footer';
+import { ShareButton } from '@/components/share-button';
 import { shortPacksAPI } from '@/lib/api/client';
 import { createPackRental } from '@/lib/api/rentals-client';
 import { PaymentModal } from '@/components/payment-modal';
@@ -82,7 +86,7 @@ export default function ShortPackDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
       </div>
     );
@@ -90,17 +94,22 @@ export default function ShortPackDetailPage() {
 
   if (error || !pack) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pack not found</h1>
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </Link>
+      <div className="min-h-screen bg-black flex flex-col">
+        <Header variant="dark" />
+        <SubHeader variant="dark" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">Pack not found</h1>
+            <Link href="/">
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Home
+              </Button>
+            </Link>
+          </div>
         </div>
+        <Footer variant="dark" />
       </div>
     );
   }
@@ -110,9 +119,18 @@ export default function ShortPackDetailPage() {
   const tagline = pack.tagline ? getLocalizedText(pack.tagline, locale) : null;
   const posterUrl = pack.poster_path ? getPosterUrl(pack.poster_path, 'large') : null;
   const backdropUrl = pack.backdrop_path ? `https://image.tmdb.org/t/p/w1280${pack.backdrop_path}` : null;
+  
+  // Get up to 4 short posters for collage when no custom poster
+  const shortPosters = pack.shorts
+    ?.map(s => s.movie.poster_path)
+    .filter((p): p is string => p !== null)
+    .slice(0, 4) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-black flex flex-col">
+      <Header variant="dark" />
+      <SubHeader variant="dark" />
+      
       {/* Hero Section */}
       <div className="relative">
         {/* Backdrop */}
@@ -128,13 +146,13 @@ export default function ShortPackDetailPage() {
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 dark:from-gray-950 via-gray-50/80 dark:via-gray-950/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
         </div>
 
         {/* Content */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
           {/* Back button */}
-          <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6">
+          <Link href="/" className="inline-flex items-center text-gray-400 hover:text-white mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Link>
@@ -151,13 +169,33 @@ export default function ShortPackDetailPage() {
                     className="object-cover"
                     priority
                   />
+                ) : shortPosters.length > 0 ? (
+                  /* Poster collage from shorts */
+                  <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-gray-900">
+                    {shortPosters.map((poster, idx) => (
+                      <div key={idx} className="relative w-full h-full">
+                        <Image
+                          src={getPosterUrl(poster, 'medium') || ''}
+                          alt=""
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                    {/* Fill empty slots if less than 4 posters */}
+                    {Array.from({ length: Math.max(0, 4 - shortPosters.length) }).map((_, idx) => (
+                      <div key={`empty-${idx}`} className="relative w-full h-full bg-gradient-to-br from-purple-900/50 to-indigo-900/50 flex items-center justify-center">
+                        <Film className="w-8 h-8 text-purple-400/50" />
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 flex flex-col items-center justify-center text-white">
                     <Package className="w-16 h-16 mb-2" />
                     <span className="text-sm">{pack.short_count} shorts</span>
                   </div>
                 )}
-                <div className="absolute top-2 left-2">
+                <div className="absolute top-2 left-2 z-10">
                   <Badge className="bg-purple-600 text-white">
                     <Package className="w-3 h-3 mr-1" />
                     {t('packBadge')}
@@ -168,31 +206,41 @@ export default function ShortPackDetailPage() {
 
             {/* Info */}
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 {title}
               </h1>
-              
-              {tagline && (
-                <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
-                  {tagline}
-                </p>
-              )}
 
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-6">
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-4">
+                <div className="flex items-center gap-2 text-gray-400">
                   <Film className="w-5 h-5" />
                   <span>{pack.short_count} {pack.short_count === 1 ? t('short') : t('shorts')}</span>
                 </div>
                 {pack.total_runtime && (
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-gray-400">
                     <Clock className="w-5 h-5" />
-                    <span>{formatRuntime(pack.total_runtime)} {t('totalRuntime')}</span>
+                    <span>{formatRuntime(pack.total_runtime)}</span>
                   </div>
                 )}
               </div>
+              
+              {tagline && (
+                <p className="text-lg text-gray-300 italic mb-4">
+                  "{tagline}"
+                </p>
+              )}
+
+              {/* Description */}
+              {description && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-2">{t('description')}</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    {description}
+                  </p>
+                </div>
+              )}
 
               {/* CTA */}
-              <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                 <Button 
                   size="lg" 
                   className="bg-purple-600 hover:bg-purple-700 text-white px-8"
@@ -201,70 +249,36 @@ export default function ShortPackDetailPage() {
                   <Play className="w-5 h-5 mr-2" />
                   {t('rentPack')}
                 </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-gray-600 text-white hover:bg-gray-800"
+                >
+                  <Bookmark className="w-5 h-5 mr-2" />
+                  Add to Watchlist
+                </Button>
+                <ShareButton
+                  path={`/short-packs/${pack.slug || pack.id}`}
+                  title={title}
+                  size="lg"
+                  variant="secondary"
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Description */}
-      {description && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            {t('description')}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
-            {description}
-          </p>
-        </div>
-      )}
-
       {/* Shorts List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+        <h2 className="text-xl font-semibold text-white mb-6">
           {t('included')} ({pack.short_count})
         </h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {pack.shorts?.map((item, index) => {
-            const movieTitle = getLocalizedText(item.movie.title, locale);
-            const moviePoster = item.movie.poster_path ? getPosterUrl(item.movie.poster_path, 'medium') : null;
-            
-            return (
-              <Card key={item.movie.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative aspect-[2/3] bg-gray-200 dark:bg-gray-800">
-                  {moviePoster ? (
-                    <Image
-                      src={moviePoster}
-                      alt={movieTitle}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Film className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="secondary" className="bg-black/70 text-white">
-                      {index + 1}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-medium text-gray-900 dark:text-white line-clamp-1">
-                    {movieTitle}
-                  </h3>
-                  {item.movie.runtime && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {item.movie.runtime}m
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {pack.shorts?.map((item) => (
+            <MovieCard key={item.movie.id} movie={item.movie} />
+          ))}
         </div>
       </div>
 
@@ -275,6 +289,8 @@ export default function ShortPackDetailPage() {
         movieTitle={title}
         onPaymentComplete={handlePaymentComplete}
       />
+      
+      <Footer variant="dark" />
     </div>
   );
 }

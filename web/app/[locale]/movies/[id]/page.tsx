@@ -23,6 +23,7 @@ import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
 import { TrailerPlayer } from '@/components/trailer-player';
 import { NotifyMeButton } from '@/components/notify-me-button';
+import { WatchlistButton } from '@/components/watchlist-button';
 import type { Movie } from '@/lib/types';
 
 export default function MoviePage() {
@@ -332,7 +333,7 @@ export default function MoviePage() {
                     <div className="flex flex-col gap-3">
                       {isAvailableOnSite ? (
                         <>
-                          <div className="flex gap-3">
+                          <div className="flex gap-3 flex-wrap">
                             <Button
                               size="lg"
                               onClick={handleWatchNowClick}
@@ -341,6 +342,7 @@ export default function MoviePage() {
                               <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
                               {t('movie.watchNow')}
                             </Button>
+                            <WatchlistButton movieId={movie.id} size="lg" />
                             <ShareButton
                               path={`/movies/${getMoviePath(movie)}`}
                               title={title}

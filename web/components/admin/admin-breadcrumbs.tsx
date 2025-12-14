@@ -139,6 +139,55 @@ export function AdminBreadcrumbs() {
             href: '/admin/production',
             isLast: true,
           });
+        } else if (parts[1] === 'short-packs') {
+          if (parts.length === 2) {
+            breadcrumbs.push({
+              label: t('shortPacks'),
+              href: '/admin/short-packs',
+              isLast: true,
+            });
+          } else if (parts.length === 3) {
+            // Short pack edit page
+            const packId = parts[2];
+            if (packId === 'new') {
+              breadcrumbs.push(
+                {
+                  label: t('shortPacks'),
+                  href: '/admin/short-packs',
+                  isLast: false,
+                },
+                {
+                  label: t('newPack') || 'New Pack',
+                  href: '/admin/short-packs/new',
+                  isLast: true,
+                }
+              );
+            } else {
+              try {
+                const { shortPacksAPI } = await import('@/lib/api/client');
+                const pack = await shortPacksAPI.getById(packId);
+                breadcrumbs.push(
+                  {
+                    label: t('shortPacks'),
+                    href: '/admin/short-packs',
+                    isLast: false,
+                  },
+                  {
+                    label: getLocalizedText(pack.title, 'en'),
+                    href: `/admin/short-packs/${packId}`,
+                    isLast: true,
+                  }
+                );
+              } catch (error) {
+                console.error('Failed to load short pack:', error);
+                breadcrumbs.push({
+                  label: t('shortPacks'),
+                  href: '/admin/short-packs',
+                  isLast: true,
+                });
+              }
+            }
+          }
         }
 
         setSegments(breadcrumbs);

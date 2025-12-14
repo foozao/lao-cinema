@@ -43,7 +43,6 @@ describe('Short Packs API', () => {
       // Create a pack directly in DB
       const [pack] = await db.insert(schema.shortPacks).values({
         slug: 'test-pack',
-        priceUsd: 499,
         isPublished: true,
       }).returning();
 
@@ -117,7 +116,6 @@ describe('Short Packs API', () => {
           slug: 'new-pack',
           title: { en: 'New Pack', lo: 'ແພັກໃໝ່' },
           description: { en: 'A new pack' },
-          price_usd: 599,
           is_published: false,
         },
       });
@@ -126,7 +124,6 @@ describe('Short Packs API', () => {
       const body = JSON.parse(response.body);
       expect(body.title.en).toBe('New Pack');
       expect(body.title.lo).toBe('ແພັກໃໝ່');
-      expect(body.price_usd).toBe(599);
       expect(body.is_published).toBe(false);
     });
   });
@@ -144,7 +141,6 @@ describe('Short Packs API', () => {
     it('should return pack by ID', async () => {
       const [pack] = await db.insert(schema.shortPacks).values({
         slug: 'detail-pack',
-        priceUsd: 499,
       }).returning();
 
       await db.insert(schema.shortPackTranslations).values({
@@ -167,7 +163,6 @@ describe('Short Packs API', () => {
     it('should return pack by slug', async () => {
       const [pack] = await db.insert(schema.shortPacks).values({
         slug: 'slug-test-pack',
-        priceUsd: 499,
       }).returning();
 
       await db.insert(schema.shortPackTranslations).values({
@@ -417,7 +412,6 @@ describe('Short Packs API', () => {
     it('should update pack metadata', async () => {
       const [pack] = await db.insert(schema.shortPacks).values({
         slug: 'update-pack',
-        priceUsd: 499,
         isPublished: false,
       }).returning();
 
@@ -433,7 +427,6 @@ describe('Short Packs API', () => {
         headers: editorAuth.headers,
         payload: {
           title: { en: 'Updated Title', lo: 'ຊື່ໃໝ່' },
-          price_usd: 699,
           is_published: true,
         },
       });
@@ -442,7 +435,6 @@ describe('Short Packs API', () => {
       const body = JSON.parse(response.body);
       expect(body.title.en).toBe('Updated Title');
       expect(body.title.lo).toBe('ຊື່ໃໝ່');
-      expect(body.price_usd).toBe(699);
       expect(body.is_published).toBe(true);
     });
 

@@ -217,7 +217,6 @@ export interface ShortPack {
   tagline?: LocalizedText; // Short promotional text
   poster_path?: string;
   backdrop_path?: string;
-  price_usd: number; // Price in cents (e.g., 499 = $4.99)
   is_published: boolean;
   
   // Shorts in this pack (ordered)
@@ -246,7 +245,6 @@ export interface ShortPackSummary {
   tagline?: LocalizedText;
   poster_path?: string;
   backdrop_path?: string;
-  price_usd: number;
   is_published: boolean;
   total_runtime?: number;
   short_count: number;
