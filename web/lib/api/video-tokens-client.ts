@@ -1,4 +1,5 @@
 import { getRawSessionToken } from '../auth/api-client';
+import { getAnonymousId } from '../anonymous-id';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -32,10 +33,14 @@ export async function getSignedVideoUrl(
     'Content-Type': 'application/json',
   };
   
-  // Add auth token if available
+  // Add auth token if available (logged-in users)
   const token = getRawSessionToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Add anonymous ID if not logged in
+    const anonymousId = getAnonymousId();
+    headers['x-anonymous-id'] = anonymousId;
   }
   
   const response = await fetch(url, {
