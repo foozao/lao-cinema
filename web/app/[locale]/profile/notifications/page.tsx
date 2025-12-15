@@ -1,43 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Bell, BellOff, ArrowLeft, Loader2, Film } from 'lucide-react';
+import { Bell, BellOff, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { EmptyState } from '@/components/empty-state';
 import { getMovieNotifications, unsubscribeFromMovie, type MovieNotification } from '@/lib/api/notifications-client';
 
 export default function NotificationsPage() {
   const t = useTranslations('profile.notifications');
   const locale = useLocale() as 'en' | 'lo';
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<MovieNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    if (isAuthenticated) {
-      loadNotifications();
-    }
-  }, [isAuthenticated, authLoading, router]);
+    loadNotifications();
+  }, []);
 
   const loadNotifications = async () => {
-    try {
+    try{
       const data = await getMovieNotifications();
       setNotifications(data.notifications || []);
     } catch (error) {
@@ -59,19 +46,8 @@ export default function NotificationsPage() {
     }
   };
 
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout isLoading={isLoading}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -158,8 +134,6 @@ export default function NotificationsPage() {
             })}
           </div>
         )}
-      </div>
-      <Footer variant="dark" />
-    </div>
+    </ProfilePageLayout>
   );
 }

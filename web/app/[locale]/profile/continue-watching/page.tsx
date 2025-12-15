@@ -1,44 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { getContinueWatching, deleteWatchProgress, type WatchProgress } from '@/lib/api/watch-progress-client';
 import { Link } from '@/i18n/routing';
 import { Play, Clock, Trash2, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { getBackdropUrl, getPosterUrl } from '@/lib/images';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { EmptyState } from '@/components/empty-state';
 import { AnonymousNotice } from '@/components/anonymous-notice';
 import { formatDuration } from '@/lib/utils';
 
 export default function ContinueWatchingPage() {
   const t = useTranslations('profile.continueWatching');
-  const { user, isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [progress, setProgress] = useState<WatchProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const router = useRouter();
   
   useEffect(() => {
     loadProgress();
-  }, [isAuthenticated, anonymousId, authLoading]);
+  }, []);
   
   const loadProgress = async () => {
-    // Wait for auth to initialize
-    if (authLoading) return;
-    
-    // Must be authenticated or have anonymous ID
-    if (!isAuthenticated && !anonymousId) {
-      router.push('/login');
-      return;
-    }
-    
     try {
       const data = await getContinueWatching();
       setProgress(data);
@@ -88,19 +74,8 @@ export default function ContinueWatchingPage() {
     });
   };
   
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-  
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout allowAnonymous isLoading={isLoading}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -246,8 +221,6 @@ export default function ContinueWatchingPage() {
             </div>
           </div>
         )}
-      </div>
-      <Footer />
-    </div>
+    </ProfilePageLayout>
   );
 }

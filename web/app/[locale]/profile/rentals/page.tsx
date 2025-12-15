@@ -1,39 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
-import { Link } from '@/i18n/routing';
-import { Film, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { Film } from 'lucide-react';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { RentalCard } from '@/components/rental-card';
 import { EmptyState } from '@/components/empty-state';
 import { AnonymousNotice } from '@/components/anonymous-notice';
 
 export default function RentalsPage() {
   const t = useTranslations('profile.rentals');
-  const { user, isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const router = useRouter();
   
   useEffect(() => {
     const loadRentals = async () => {
-      // Wait for auth to initialize
-      if (authLoading) return;
-      
-      // Must be authenticated or have anonymous ID
-      if (!isAuthenticated && !anonymousId) {
-        router.push('/login');
-        return;
-      }
-      
       try {
         const data = await getRentals(true); // Include recently expired rentals
         setRentals(data.rentals);
@@ -45,22 +30,11 @@ export default function RentalsPage() {
     };
     
     loadRentals();
-  }, [isAuthenticated, anonymousId, authLoading, router]);
+  }, []);
   
-  
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
   
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout allowAnonymous isLoading={isLoading}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -99,8 +73,6 @@ export default function RentalsPage() {
           </div>
         )}
         
-      </div>
-      <Footer />
-    </div>
+    </ProfilePageLayout>
   );
 }

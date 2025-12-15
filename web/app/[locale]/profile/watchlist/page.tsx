@@ -1,41 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Bookmark, Trash2, ArrowLeft, Loader2, Film, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { Bookmark, Trash2, Loader2, Film } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { EmptyState } from '@/components/empty-state';
-import { formatRuntime } from '@/lib/utils';
 import { getWatchlist, removeFromWatchlist, type WatchlistItem } from '@/lib/api/watchlist-client';
 
 export default function WatchlistPage() {
   const t = useTranslations('watchlist');
   const locale = useLocale() as 'en' | 'lo';
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    if (isAuthenticated) {
-      loadWatchlist();
-    }
-  }, [isAuthenticated, authLoading, router]);
+    loadWatchlist();
+  }, []);
 
   const loadWatchlist = async () => {
     try {
@@ -60,19 +45,8 @@ export default function WatchlistPage() {
     }
   };
 
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout isLoading={isLoading}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -142,8 +116,6 @@ export default function WatchlistPage() {
             })}
           </div>
         )}
-      </div>
-      <Footer variant="dark" />
-    </div>
+    </ProfilePageLayout>
   );
 }

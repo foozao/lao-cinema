@@ -1,16 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
-import { Link } from '@/i18n/routing';
-import { Film, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { Film } from 'lucide-react';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { RentalCard } from '@/components/rental-card';
 import { EmptyState } from '@/components/empty-state';
 import { AnonymousNotice } from '@/components/anonymous-notice';
@@ -19,26 +14,18 @@ type Tab = 'active' | 'history';
 
 export default function MyMoviesPage() {
   const t = useTranslations('profile.myMovies');
-  const { user, isAuthenticated, anonymousId, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('active');
   const [activeRentals, setActiveRentals] = useState<Rental[]>([]);
   const [allRentals, setAllRentals] = useState<Rental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const router = useRouter();
   
   useEffect(() => {
     loadData();
-  }, [isAuthenticated, anonymousId, authLoading]);
+  }, []);
   
   const loadData = async () => {
-    if (authLoading) return;
-    
-    if (!isAuthenticated && !anonymousId) {
-      router.push('/login');
-      return;
-    }
-    
     try {
       const data = await getRentals(false, true); // Get all rentals (includeRecent=false, includeAll=true)
       const now = new Date();
@@ -57,19 +44,8 @@ export default function MyMoviesPage() {
   };
   
   
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-  
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-6xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout allowAnonymous isLoading={isLoading}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -153,8 +129,6 @@ export default function MyMoviesPage() {
             </div>
           )
         )}
-      </div>
-      <Footer variant="dark" />
-    </div>
+    </ProfilePageLayout>
   );
 }

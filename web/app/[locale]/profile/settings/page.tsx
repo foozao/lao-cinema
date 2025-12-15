@@ -1,18 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/auth';
-import { Link } from '@/i18n/routing';
 import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 
 // Common timezone options - labelKey maps to translation keys
 const TIMEZONE_OPTIONS = [
@@ -32,8 +28,7 @@ const TIMEZONE_OPTIONS = [
 
 export default function SettingsPage() {
   const t = useTranslations('profile.settings');
-  const { user, isAuthenticated, isLoading: authLoading, logout, refreshUser } = useAuth();
-  const router = useRouter();
+  const { user, logout, refreshUser } = useAuth();
   
   // Display name state
   const [displayName, setDisplayName] = useState('');
@@ -61,16 +56,11 @@ export default function SettingsPage() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    
     if (user) {
       setDisplayName(user.displayName || '');
       setTimezone(user.timezone || 'Asia/Vientiane');
     }
-  }, [isAuthenticated, authLoading, router, user]);
+  }, [user]);
   
   const handleDisplayNameChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,19 +165,8 @@ export default function SettingsPage() {
     }
   };
   
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-  
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-2xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout maxWidth="2xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
@@ -498,8 +477,6 @@ export default function SettingsPage() {
             </form>
           )}
         </div>
-      </div>
-      <Footer variant="dark" />
-    </div>
+    </ProfilePageLayout>
   );
 }

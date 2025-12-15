@@ -1,39 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { Film, Clock, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle, Bell, Bookmark } from 'lucide-react';
+import { Film, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCircle, Bell, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { ProfilePageLayout } from '@/components/profile-page-layout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
-  const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationError, setVerificationError] = useState('');
-  const router = useRouter();
   
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    
-    if (isAuthenticated) {
-      loadStats();
-    }
-  }, [isAuthenticated, authLoading, router]);
+    loadStats();
+  }, []);
   
   const loadStats = async () => {
     setIsLoadingStats(true);
@@ -76,18 +65,8 @@ export default function ProfilePage() {
     }
   };
   
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header variant="dark" />
-      <ProfileBreadcrumbWrapper />
-      <div className="max-w-4xl mx-auto px-4 py-8 flex-grow">
+    <ProfilePageLayout maxWidth="4xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{t('myProfile')}</h1>
@@ -267,8 +246,6 @@ export default function ProfilePage() {
             <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
           </div>
         )}
-      </div>
-      <Footer variant="dark" />
-    </div>
+    </ProfilePageLayout>
   );
 }
