@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
@@ -66,6 +67,7 @@ describe('MoviesPage', () => {
       id: '1',
       title: { en: 'The Signal', lo: 'ສັນຍານ' },
       runtime: 90,
+      video_sources: [{ id: 'v1', url: '/video1.m3u8', quality: '1080p', format: 'hls' }],
       cast: [
         {
           person: {
@@ -91,6 +93,7 @@ describe('MoviesPage', () => {
       id: '2',
       title: { en: 'Short Film', lo: 'ຮູບເງົາສັ້ນ' },
       runtime: 30,
+      video_sources: [{ id: 'v2', url: '/video2.m3u8', quality: '1080p', format: 'hls' }],
       cast: [],
       crew: [],
     },
@@ -98,10 +101,20 @@ describe('MoviesPage', () => {
       id: '3',
       title: { en: 'Feature Film', lo: 'ຮູບເງົາຍາວ' },
       runtime: 120,
+      video_sources: [{ id: 'v3', url: '/video3.m3u8', quality: '1080p', format: 'hls' }],
       cast: [],
       crew: [],
     },
   ];
+
+  // Helper function to render component with Suspense
+  const renderMoviesPage = () => {
+    return render(
+      <Suspense fallback={<div>Loading...</div>}>
+        <MoviesPage />
+      </Suspense>
+    );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -113,8 +126,16 @@ describe('MoviesPage', () => {
     
     // Mock fetch to handle both movies and people API calls
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      // Handle movies API
+      if (url.includes('/api/movies') || url.includes('/movies')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ movies: mockMovies }),
+        });
+      }
+      
+      // Handle people search API
       if (url.includes('/people?search=')) {
-        // Mock people search API
         const searchQuery = new URL(url, 'http://localhost').searchParams.get('search') || '';
         const matchingPeople = mockMovies
           .flatMap(m => [...(m.cast || []), ...(m.crew || [])])
@@ -127,7 +148,7 @@ describe('MoviesPage', () => {
         });
       }
       
-      // Default: mock movies API
+      // Default fallback
       return Promise.resolve({
         ok: true,
         json: async () => ({ movies: mockMovies }),
@@ -137,28 +158,28 @@ describe('MoviesPage', () => {
 
   describe('Initial Load', () => {
     it('renders header and footer', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('header')).toBeInTheDocument();
         expect(screen.getByTestId('footer')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('fetches and displays movies', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
         expect(screen.getByTestId('movie-card-2')).toBeInTheDocument();
         expect(screen.getByTestId('movie-card-3')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
   });
 
   describe('Search Functionality', () => {
     it('filters movies by title', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -179,7 +200,7 @@ describe('MoviesPage', () => {
 
   describe('Filter Functionality', () => {
     it('filters to show all movies by default', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -189,7 +210,7 @@ describe('MoviesPage', () => {
     });
 
     it('filters to show only feature films', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -206,7 +227,7 @@ describe('MoviesPage', () => {
     });
 
     it('filters to show only short films', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -232,7 +253,7 @@ describe('MoviesPage', () => {
         return null;
       });
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
@@ -241,7 +262,7 @@ describe('MoviesPage', () => {
     });
 
     it('updates URL when search query changes', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -259,7 +280,7 @@ describe('MoviesPage', () => {
     });
 
     it('updates URL when filter changes', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -282,7 +303,7 @@ describe('MoviesPage', () => {
         return null;
       });
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
@@ -308,7 +329,7 @@ describe('MoviesPage', () => {
         json: async () => ({ movies: [] }),
       });
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByText('home.noFilms')).toBeInTheDocument();
@@ -316,7 +337,7 @@ describe('MoviesPage', () => {
     });
 
     it('shows no results message when search returns nothing', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -337,7 +358,7 @@ describe('MoviesPage', () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
@@ -354,7 +375,7 @@ describe('MoviesPage', () => {
         json: async () => ({ error: 'Server error' }),
       });
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
@@ -371,7 +392,7 @@ describe('MoviesPage', () => {
           json: async () => ({ movies: mockMovies }),
         });
 
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
@@ -390,14 +411,14 @@ describe('MoviesPage', () => {
 
   describe('Accessibility', () => {
     it('has accessible search input', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       expect(searchInput).toHaveAttribute('type', 'text');
     });
 
     it('has accessible filter buttons', async () => {
-      render(<MoviesPage />);
+      renderMoviesPage();
       
       const allButton = screen.getByText('movies.all');
       const featureButton = screen.getByText('movies.feature');

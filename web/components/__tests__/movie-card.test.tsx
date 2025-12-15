@@ -260,6 +260,7 @@ describe('MovieCard', () => {
     it('should show coming soon badge', () => {
       const movie = createTestMovie({
         availability_status: 'coming_soon',
+        video_sources: [],
       });
       render(<MovieCard movie={movie} />);
       
