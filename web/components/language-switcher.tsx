@@ -30,6 +30,7 @@ export function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {
       onClick={toggleLanguage}
       className={`gap-1.5 ${hoverClass}`}
       aria-label={t('switchLanguage')}
+      data-testid="language-toggle"
     >
       <span className={`font-medium text-lg leading-none ${textColor}`}>
         ລາວ

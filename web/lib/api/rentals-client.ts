@@ -72,8 +72,9 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch rentals');
+    // Return empty result instead of throwing - gracefully handle API errors
+    console.warn('Failed to fetch rentals:', response.status);
+    return { rentals: [], total: 0 };
   }
   
   return response.json();

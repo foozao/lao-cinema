@@ -70,6 +70,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 rounded-full p-1 transition-colors ${variant === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+        data-testid="user-menu-trigger"
       >
         {user.profileImageUrl ? (
           <img
@@ -130,6 +131,7 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
                 onClick={handleLogout}
                 disabled={isLoggingOut}
                 className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                data-testid="logout-button"
               >
                 <LogOut className="h-4 w-4" />
                 {isLoggingOut ? t('nav.signingOut') : t('nav.signOut')}

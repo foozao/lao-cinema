@@ -82,6 +82,9 @@ async function authFetch(
 export async function register(credentials: RegisterCredentials): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(credentials),
   });
   
@@ -104,6 +107,9 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(credentials),
   });
   

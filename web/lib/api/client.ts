@@ -260,7 +260,10 @@ export const shortPacksAPI = {
       url.searchParams.set('published', String(params.published));
     }
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('Failed to fetch short packs');
+    if (!response.ok) {
+      console.warn('Failed to fetch short packs:', response.status);
+      return { short_packs: [] };
+    }
     return response.json();
   },
 
