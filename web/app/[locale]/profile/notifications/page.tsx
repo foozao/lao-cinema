@@ -13,6 +13,7 @@ import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrappe
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
+import { EmptyState } from '@/components/empty-state';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -112,16 +113,13 @@ export default function NotificationsPage() {
 
         {/* Notifications List */}
         {notifications.length === 0 ? (
-          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="h-8 w-8 text-gray-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">{t('empty')}</h3>
-            <p className="text-gray-400 mb-6">{t('emptyMessage')}</p>
-            <Link href="/">
-              <Button>{t('browseMovies')}</Button>
-            </Link>
-          </div>
+          <EmptyState
+            icon={Bell}
+            title={t('empty')}
+            description={t('emptyMessage')}
+            actionLabel={t('browseMovies')}
+            actionHref="/"
+          />
         ) : (
           <div className="space-y-4">
             {notifications.map((notification) => {

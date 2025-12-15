@@ -12,6 +12,9 @@ import { getBackdropUrl, getPosterUrl } from '@/lib/images';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
+import { EmptyState } from '@/components/empty-state';
+import { AnonymousNotice } from '@/components/anonymous-notice';
+import { formatDuration } from '@/lib/utils';
 
 export default function ContinueWatchingPage() {
   const t = useTranslations('profile.continueWatching');
@@ -65,16 +68,6 @@ export default function ContinueWatchingPage() {
     return Math.round((item.progressSeconds / item.durationSeconds) * 100);
   };
   
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-  
   const formatLastWatched = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -123,27 +116,21 @@ export default function ContinueWatchingPage() {
         
         {/* Anonymous User Notice */}
         {!isAuthenticated && (
-          <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
-            <p className="text-sm text-blue-400">
-              <strong>{t('localProgressNotice')}</strong> {t('localProgressSignIn')}
-            </p>
-          </div>
+          <AnonymousNotice
+            message={t('localProgressNotice')}
+            signInMessage={t('localProgressSignIn')}
+          />
         )}
         
         {/* Progress List */}
         {progress.length === 0 ? (
-          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-            <Clock className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400 mb-4">{t('noProgress')}</p>
-            <p className="text-sm text-gray-500 mb-6">
-              {t('noProgressDesc')}
-            </p>
-            <Link href="/movies">
-              <Button>
-                {t('browseMovies')}
-              </Button>
-            </Link>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title={t('noProgress')}
+            description={t('noProgressDesc')}
+            actionLabel={t('browseMovies')}
+            actionHref="/movies"
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {progress.map((item) => (
@@ -201,7 +188,7 @@ export default function ContinueWatchingPage() {
                   <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
                     <span>{t('percentWatched', { percent: getProgressPercentage(item) })}</span>
                     <span>
-                      {formatTime(item.progressSeconds)} / {formatTime(item.durationSeconds)}
+                      {formatDuration(item.progressSeconds)} / {formatDuration(item.durationSeconds)}
                     </span>
                   </div>
                   
@@ -250,7 +237,7 @@ export default function ContinueWatchingPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600">
-                  {formatTime(
+                  {formatDuration(
                     progress.reduce((sum, p) => sum + p.progressSeconds, 0)
                   )}
                 </p>

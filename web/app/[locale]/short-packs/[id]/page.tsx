@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { PaymentModal } from '@/components/payment-modal';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
+import { formatRuntime } from '@/lib/utils';
 import type { ShortPack } from '@/lib/types';
 
 export default function ShortPackDetailPage() {
@@ -99,16 +100,6 @@ export default function ShortPackDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatRuntime = (minutes?: number) => {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
   };
 
   const handlePaymentComplete = async () => {

@@ -13,6 +13,8 @@ import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrappe
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
+import { EmptyState } from '@/components/empty-state';
+import { formatRuntime } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -93,13 +95,6 @@ export default function WatchlistPage() {
     }
   };
 
-  const formatRuntime = (minutes: number | null) => {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -121,16 +116,13 @@ export default function WatchlistPage() {
 
         {/* Watchlist */}
         {watchlist.length === 0 ? (
-          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bookmark className="h-8 w-8 text-gray-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">{t('empty')}</h3>
-            <p className="text-gray-400 mb-6">{t('emptyMessage')}</p>
-            <Link href="/">
-              <Button>{t('browseMovies')}</Button>
-            </Link>
-          </div>
+          <EmptyState
+            icon={Bookmark}
+            title={t('empty')}
+            description={t('emptyMessage')}
+            actionLabel={t('browseMovies')}
+            actionHref="/"
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {watchlist.map((item) => {

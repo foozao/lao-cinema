@@ -12,6 +12,8 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 import { RentalCard } from '@/components/rental-card';
+import { EmptyState } from '@/components/empty-state';
+import { AnonymousNotice } from '@/components/anonymous-notice';
 
 type Tab = 'active' | 'history';
 
@@ -83,11 +85,10 @@ export default function MyMoviesPage() {
         
         {/* Anonymous User Notice */}
         {!isAuthenticated && (
-          <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
-            <p className="text-sm text-blue-400">
-              <strong>{t('anonymousNotice')}</strong> {t('signInToSync')}
-            </p>
-          </div>
+          <AnonymousNotice
+            message={t('anonymousNotice')}
+            signInMessage={t('signInToSync')}
+          />
         )}
         
         {/* Tabs */}
@@ -120,19 +121,13 @@ export default function MyMoviesPage() {
         {activeTab === 'active' ? (
           /* Active Rentals Tab */
           activeRentals.length === 0 ? (
-            <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-              <Film className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">{t('noRentals')}</p>
-              <p className="text-sm text-gray-500 mb-6">
-                {t('noRentalsDesc')}
-              </p>
-              <Link href="/movies">
-                <Button>
-                  <Film className="mr-2 h-4 w-4" />
-                  {t('browseMovies')}
-                </Button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={Film}
+              title={t('noRentals')}
+              description={t('noRentalsDesc')}
+              actionLabel={t('browseMovies')}
+              actionHref="/movies"
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {activeRentals.map((rental) => (
@@ -143,19 +138,13 @@ export default function MyMoviesPage() {
         ) : (
           /* Rental History Tab */
           allRentals.length === 0 ? (
-            <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-              <Film className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">{t('noHistory')}</p>
-              <p className="text-sm text-gray-500 mb-6">
-                {t('noHistoryDesc')}
-              </p>
-              <Link href="/movies">
-                <Button>
-                  <Film className="mr-2 h-4 w-4" />
-                  {t('browseMovies')}
-                </Button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={Film}
+              title={t('noHistory')}
+              description={t('noHistoryDesc')}
+              actionLabel={t('browseMovies')}
+              actionHref="/movies"
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {allRentals.map((rental) => (

@@ -12,6 +12,8 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { ProfileBreadcrumbWrapper } from '@/components/profile-breadcrumb-wrapper';
 import { RentalCard } from '@/components/rental-card';
+import { EmptyState } from '@/components/empty-state';
+import { AnonymousNotice } from '@/components/anonymous-notice';
 
 export default function RentalsPage() {
   const t = useTranslations('profile.rentals');
@@ -74,28 +76,21 @@ export default function RentalsPage() {
         
         {/* Anonymous User Notice */}
         {!isAuthenticated && (
-          <div className="mb-6 bg-blue-900/30 border border-blue-700 rounded-lg p-4">
-            <p className="text-sm text-blue-400">
-              <strong>Viewing anonymous rentals.</strong> Sign in to sync your rentals across devices.
-            </p>
-          </div>
+          <AnonymousNotice
+            message="Viewing anonymous rentals."
+            signInMessage="Sign in to sync your rentals across devices."
+          />
         )}
         
         {/* Rentals List */}
         {rentals.length === 0 ? (
-          <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center border border-gray-700">
-            <Film className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400 mb-4">{t('noActive')}</p>
-            <p className="text-sm text-gray-500 mb-6">
-              {t('noActiveDesc')}
-            </p>
-            <Link href="/movies">
-              <Button>
-                <Film className="mr-2 h-4 w-4" />
-                {t('browseMovies')}
-              </Button>
-            </Link>
-          </div>
+          <EmptyState
+            icon={Film}
+            title={t('noActive')}
+            description={t('noActiveDesc')}
+            actionLabel={t('browseMovies')}
+            actionHref="/movies"
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {rentals.map((rental) => (
