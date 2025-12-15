@@ -113,7 +113,7 @@ export function ImageUploader({ type, onUploadSuccess }: ImageUploaderProps) {
     }
   };
 
-  const typeLabel = type === 'poster' ? 'Poster' : type === 'backdrop' ? 'Backdrop' : 'Logo';
+  const typeLabel = type === 'poster' ? 'Poster' : type === 'backdrop' ? 'Backdrop' : type === 'logo' ? 'Logo' : 'Profile Photo';
 
   return (
     <div className="space-y-4">

@@ -10,9 +10,9 @@ const VIDEO_SERVER_PUBLIC_DIR = process.env.VIDEO_SERVER_PUBLIC_DIR || '../video
 const VIDEO_SERVER_URL = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
 const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'lao-cinema-images';
 
-type ImageType = 'poster' | 'backdrop' | 'logo';
+type ImageType = 'poster' | 'backdrop' | 'logo' | 'profile';
 
-const imageTypeSchema = z.enum(['poster', 'backdrop', 'logo']);
+const imageTypeSchema = z.enum(['poster', 'backdrop', 'logo', 'profile']);
 
 export async function uploadRoutes(fastify: FastifyInstance) {
   // Register multipart support for this route
@@ -33,7 +33,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       
       if (!validationType.success) {
         return reply.status(400).send({ 
-          error: 'Invalid image type. Allowed: poster, backdrop, logo' 
+          error: 'Invalid image type. Allowed: poster, backdrop, logo, profile' 
         });
       }
       

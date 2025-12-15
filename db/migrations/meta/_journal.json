@@ -183,6 +183,13 @@
       "when": 1765733173323,
       "tag": "0025_polite_maddog",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1765807043189,
+      "tag": "0026_add_person_images",
+      "breakpoints": true
     }
   ]
 }

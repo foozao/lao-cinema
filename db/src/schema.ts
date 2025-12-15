@@ -140,6 +140,20 @@ export const peopleTranslations = pgTable('people_translations', {
   pk: primaryKey({ columns: [table.personId, table.language] }),
 }));
 
+// Person images table - stores profile photos
+export const personImages = pgTable('person_images', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }).notNull(),
+  filePath: text('file_path').notNull(), // Image path (TMDB or uploaded)
+  aspectRatio: real('aspect_ratio'),
+  height: integer('height'),
+  width: integer('width'),
+  voteAverage: real('vote_average'),
+  voteCount: integer('vote_count'),
+  isPrimary: boolean('is_primary').default(false), // Primary profile photo to display
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Person aliases table - tracks merged TMDB person IDs
 // When person A is merged into person B, we create an alias: tmdbId=A -> canonicalPersonId=B
 // This ensures TMDB syncs don't recreate deleted duplicates

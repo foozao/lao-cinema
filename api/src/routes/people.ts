@@ -338,6 +338,12 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       // Get cast and crew credits using optimized batch queries
       const { cast, crew } = await buildPersonCredits(personId, db, schema);
 
+      // Get person images
+      const images = await db.select()
+        .from(schema.personImages)
+        .where(eq(schema.personImages.personId, personId))
+        .orderBy(sql`${schema.personImages.isPrimary} DESC, ${schema.personImages.createdAt} DESC`);
+
       // Return in expected format with fallbacks
       return {
         id: person.id,
@@ -355,6 +361,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         homepage: person.homepage,
         cast,
         crew,
+        images: images.length > 0 ? images : undefined,
       };
     } catch (error) {
       fastify.log.error(error);

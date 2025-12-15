@@ -2,7 +2,7 @@ import { getAuthHeaders } from './auth-headers';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-export type ImageType = 'poster' | 'backdrop' | 'logo';
+export type ImageType = 'poster' | 'backdrop' | 'logo' | 'profile';
 
 export interface UploadImageResponse {
   url: string;

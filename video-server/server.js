@@ -206,6 +206,12 @@ fastify.register(require('@fastify/static'), {
   decorateReply: false,
 });
 
+fastify.register(require('@fastify/static'), {
+  root: path.join(PUBLIC_PATH, 'profiles'),
+  prefix: '/profiles/',
+  decorateReply: false,
+});
+
 // Health check
 fastify.get('/health', async () => {
   return { status: 'ok', service: 'video-server' };

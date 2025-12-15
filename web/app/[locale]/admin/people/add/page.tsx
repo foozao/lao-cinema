@@ -160,6 +160,15 @@ export default function AddPersonPage() {
           </CardContent>
         </Card>
 
+        {/* Note about profile photos */}
+        <Card className="mb-6 bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> You can add profile photos after creating the person. Save this person first, then you'll be able to upload and manage profile photos on the edit page.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Personal Information */}
         <Card className="mb-6">
           <CardHeader>

@@ -14,6 +14,7 @@ import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
 import { getLocalizedText } from '@/lib/i18n';
 import { MergePeopleDialog } from '@/components/admin/merge-people-dialog';
+import { ProfileManager } from '@/components/admin/profile-manager';
 
 export default function EditPersonPage() {
   const params = useParams();
@@ -268,16 +269,27 @@ export default function EditPersonPage() {
 
       {/* Main Content */}
       <div className="max-w-4xl">
-        {/* Profile Image */}
-        {profileUrl && (
-          <div className="mb-8 flex justify-center">
-            <img
-              src={profileUrl}
-              alt={nameEn}
-              className="w-48 h-48 rounded-full object-cover"
-            />
-          </div>
-        )}
+        {/* Profile Photos */}
+        <div className="mb-6">
+          <ProfileManager
+            images={person.images || []}
+            personId={personId}
+            tmdbProfilePath={person.profile_path}
+            onImageAdded={async () => {
+              const personData = await peopleAPI.getById(personId);
+              setPerson(personData);
+            }}
+            onImageDeleted={async (imageId) => {
+              await peopleAPI.deleteImage(personId, imageId);
+              const personData = await peopleAPI.getById(personId);
+              setPerson(personData);
+            }}
+            onPrimaryChanged={async () => {
+              const personData = await peopleAPI.getById(personId);
+              setPerson(personData);
+            }}
+          />
+        </div>
 
         {/* Name Section */}
         <Card className="mb-6">

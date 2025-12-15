@@ -160,6 +160,33 @@ export const peopleAPI = {
   }>(`/people/${id}`, {
     method: 'DELETE',
   }),
+
+  // Add image to person
+  addImage: (personId: string | number, data: {
+    filePath: string;
+    width?: number;
+    height?: number;
+    aspectRatio?: number;
+    isPrimary?: boolean;
+  }) => fetchAPI<any>(`/people/${personId}/images`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+
+  // Delete person image
+  deleteImage: async (personId: string | number, imageId: string): Promise<void> => {
+    await fetchAPI(`/people/${personId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  setPrimaryImage: async (personId: string | number, imageId: string): Promise<void> => {
+    await fetchAPI(`/people/${personId}/images/${imageId}/primary`, {
+      method: 'PUT',
+      body: JSON.stringify({}),
+    });
+  },
 };
 
 // Cast/Crew API methods
