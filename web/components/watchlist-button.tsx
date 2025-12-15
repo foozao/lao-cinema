@@ -6,8 +6,7 @@ import { Bookmark, BookmarkCheck, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { getWatchlistStatus, toggleWatchlist } from '@/lib/api/watchlist-client';
 
 interface WatchlistButtonProps {
   movieId: string;
@@ -31,17 +30,8 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
 
     const checkWatchlist = async () => {
       try {
-        const token = localStorage.getItem('lao_cinema_session_token');
-        const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setInWatchlist(data.inWatchlist);
-        }
+        const data = await getWatchlistStatus(movieId);
+        setInWatchlist(data.inWatchlist);
       } catch (error) {
         console.error('Failed to check watchlist status:', error);
       } finally {
@@ -57,19 +47,8 @@ export function WatchlistButton({ movieId, variant = 'default', size = 'default'
     
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const method = inWatchlist ? 'DELETE' : 'POST';
-      
-      const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        setInWatchlist(!inWatchlist);
-      }
+      const newStatus = await toggleWatchlist(movieId, inWatchlist);
+      setInWatchlist(newStatus);
     } catch (error) {
       console.error('Failed to toggle watchlist:', error);
     } finally {

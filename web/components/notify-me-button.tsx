@@ -6,7 +6,7 @@ import { Bell, BellOff, Loader2, UserPlus, Mail, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
-import { authApi } from '@/lib/auth';
+import { getNotificationStatus, toggleNotification } from '@/lib/api/notifications-client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -34,17 +34,8 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
 
     const checkSubscription = async () => {
       try {
-        const token = localStorage.getItem('lao_cinema_session_token');
-        const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsSubscribed(data.subscribed);
-        }
+        const data = await getNotificationStatus(movieId);
+        setIsSubscribed(data.subscribed);
       } catch (error) {
         console.error('Failed to check notification status:', error);
       } finally {
@@ -66,19 +57,8 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const method = isSubscribed ? 'DELETE' : 'POST';
-      
-      const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        setIsSubscribed(!isSubscribed);
-      }
+      const newStatus = await toggleNotification(movieId, isSubscribed);
+      setIsSubscribed(newStatus);
     } catch (error) {
       console.error('Failed to toggle notification:', error);
     } finally {

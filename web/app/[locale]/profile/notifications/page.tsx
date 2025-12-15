@@ -14,22 +14,7 @@ import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
 import { EmptyState } from '@/components/empty-state';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-interface MovieNotification {
-  id: string;
-  movieId: string;
-  createdAt: string;
-  movie: {
-    id: string;
-    tmdb_id: number | null;
-    title: { en: string; lo?: string };
-    poster_path: string | null;
-    release_date: string | null;
-    availability_status: string | null;
-  };
-}
+import { getMovieNotifications, unsubscribeFromMovie, type MovieNotification } from '@/lib/api/notifications-client';
 
 export default function NotificationsPage() {
   const t = useTranslations('profile.notifications');
@@ -53,17 +38,8 @@ export default function NotificationsPage() {
 
   const loadNotifications = async () => {
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/notifications/movies`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
-      }
+      const data = await getMovieNotifications();
+      setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
@@ -74,17 +50,8 @@ export default function NotificationsPage() {
   const removeNotification = async (movieId: string) => {
     setRemovingId(movieId);
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        setNotifications(prev => prev.filter(n => n.movieId !== movieId));
-      }
+      await unsubscribeFromMovie(movieId);
+      setNotifications(prev => prev.filter(n => n.movieId !== movieId));
     } catch (error) {
       console.error('Failed to remove notification:', error);
     } finally {

@@ -15,24 +15,7 @@ import { getPosterUrl } from '@/lib/images';
 import { getMoviePath } from '@/lib/movie-url';
 import { EmptyState } from '@/components/empty-state';
 import { formatRuntime } from '@/lib/utils';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-interface WatchlistItem {
-  id: string;
-  addedAt: string;
-  movie: {
-    id: string;
-    tmdb_id: number | null;
-    title: { en: string; lo?: string };
-    overview: { en: string; lo?: string };
-    poster_path: string | null;
-    release_date: string | null;
-    runtime: number | null;
-    vote_average: number | null;
-    availability_status: string | null;
-  };
-}
+import { getWatchlist, removeFromWatchlist, type WatchlistItem } from '@/lib/api/watchlist-client';
 
 export default function WatchlistPage() {
   const t = useTranslations('watchlist');
@@ -56,17 +39,8 @@ export default function WatchlistPage() {
 
   const loadWatchlist = async () => {
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/watchlist`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setWatchlist(data.watchlist || []);
-      }
+      const data = await getWatchlist();
+      setWatchlist(data.watchlist || []);
     } catch (error) {
       console.error('Failed to load watchlist:', error);
     } finally {
@@ -74,20 +48,11 @@ export default function WatchlistPage() {
     }
   };
 
-  const removeFromWatchlist = async (movieId: string) => {
+  const handleRemoveFromWatchlist = async (movieId: string) => {
     setRemovingId(movieId);
     try {
-      const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        setWatchlist(prev => prev.filter(item => item.movie.id !== movieId));
-      }
+      await removeFromWatchlist(movieId);
+      setWatchlist(prev => prev.filter(item => item.movie.id !== movieId));
     } catch (error) {
       console.error('Failed to remove from watchlist:', error);
     } finally {
@@ -153,7 +118,7 @@ export default function WatchlistPage() {
                   </Link>
                   {/* Remove button */}
                   <button
-                    onClick={() => removeFromWatchlist(item.movie.id)}
+                    onClick={() => handleRemoveFromWatchlist(item.movie.id)}
                     disabled={removingId === item.movie.id}
                     className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
