@@ -5,6 +5,8 @@ import { eq, and, sql } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 import { z } from 'zod';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 const addPersonImageSchema = z.object({
   filePath: z.string(),
@@ -99,9 +101,26 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: 'Image not found' });
         }
         
-        // Delete the image
+        // Delete the database record
         await db.delete(schema.personImages)
           .where(eq(schema.personImages.id, imageId));
+        
+        // Delete the physical file if it's a local upload (not TMDB)
+        if (image.filePath.startsWith('http://') || image.filePath.startsWith('https://')) {
+          try {
+            // Extract filename from URL (e.g., http://localhost:3002/profiles/abc.png -> abc.png)
+            const filename = image.filePath.split('/').pop();
+            if (filename) {
+              const VIDEO_SERVER_PUBLIC_DIR = process.env.VIDEO_SERVER_PUBLIC_DIR || '../video-server/public';
+              const filePath = join(VIDEO_SERVER_PUBLIC_DIR, 'profiles', filename);
+              await unlink(filePath);
+              fastify.log.info(`Deleted file: ${filePath}`);
+            }
+          } catch (error) {
+            // Log error but don't fail the request if file doesn't exist
+            fastify.log.warn(`Failed to delete file for image ${imageId}:`, error);
+          }
+        }
         
         // If this was the primary image, set another image as primary
         if (image.isPrimary) {

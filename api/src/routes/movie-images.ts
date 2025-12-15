@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { db, schema } from '../db/index.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 const addImageSchema = z.object({
   type: z.enum(['poster', 'backdrop', 'logo']),
@@ -223,9 +225,29 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: 'Image not found' });
         }
 
-        // Delete the image
+        // Delete the database record
         await db.delete(schema.movieImages)
           .where(eq(schema.movieImages.id, imageId));
+
+        // Delete the physical file if it's a local upload (not TMDB)
+        if (image.filePath.startsWith('http://') || image.filePath.startsWith('https://')) {
+          try {
+            // Extract filename from URL
+            const filename = image.filePath.split('/').pop();
+            if (filename) {
+              const VIDEO_SERVER_PUBLIC_DIR = process.env.VIDEO_SERVER_PUBLIC_DIR || '../video-server/public';
+              // Determine subdirectory based on image type
+              const subdir = image.type === 'poster' ? 'posters' : 
+                            image.type === 'backdrop' ? 'backdrops' : 'logos';
+              const filePath = join(VIDEO_SERVER_PUBLIC_DIR, subdir, filename);
+              await unlink(filePath);
+              fastify.log.info(`Deleted file: ${filePath}`);
+            }
+          } catch (error) {
+            // Log error but don't fail the request if file doesn't exist
+            fastify.log.warn(`Failed to delete file for image ${imageId}:`, error);
+          }
+        }
 
         // If this was the primary image, we might need to update the movie's poster/backdrop path
         // But we'll leave it as is - the frontend will need to select a new primary
