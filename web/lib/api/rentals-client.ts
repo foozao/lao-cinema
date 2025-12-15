@@ -58,10 +58,13 @@ export interface CreateRentalRequest {
 /**
  * Get all rentals for current user/anonymous
  * @param includeRecent - Include recently expired rentals (within 24 hours)
+ * @param includeAll - Include all rentals (active and expired)
  */
-export async function getRentals(includeRecent = false): Promise<RentalsResponse> {
+export async function getRentals(includeRecent = false, includeAll = false): Promise<RentalsResponse> {
   const url = new URL(`${API_URL}/rentals`);
-  if (includeRecent) {
+  if (includeAll) {
+    url.searchParams.set('includeAll', 'true');
+  } else if (includeRecent) {
     url.searchParams.set('includeRecent', 'true');
   }
   

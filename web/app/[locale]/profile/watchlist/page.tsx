@@ -186,7 +186,7 @@ export default function WatchlistPage() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

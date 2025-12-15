@@ -202,7 +202,7 @@ function MoviesPageContent() {
       <main className="container mx-auto px-4 py-8 flex-grow">
         {/* Page Header */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-3xl font-bold text-white mb-4">
             {t('nav.movies')}
           </h2>
 
@@ -284,7 +284,7 @@ function MoviesPageContent() {
             <>
               {/* Result count at top */}
               {!searchQuery && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-sm text-gray-400 mb-6">
                   {t('admin.showing')} {filteredMovies.length} {t('admin.of')} {movies.length} {t('admin.movies')}
                 </p>
               )}

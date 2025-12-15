@@ -27,10 +27,11 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
    * Get all active rentals for current user/anonymous
    * Query params:
    * - includeRecent: boolean (default: false) - include recently expired rentals (within 24 hours)
+   * - includeAll: boolean (default: false) - include all rentals (active and expired)
    */
   fastify.get('/rentals', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
     const { userId, anonymousId } = getUserContext(request);
-    const { includeRecent } = request.query as { includeRecent?: string };
+    const { includeRecent, includeAll } = request.query as { includeRecent?: string; includeAll?: string };
     
     try {
       // Build where clause for dual-mode
@@ -68,12 +69,17 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       .where(whereClause)
       .orderBy(desc(rentals.purchasedAt));
       
-      // Filter rentals based on includeRecent parameter
+      // Filter rentals based on query parameters
       const now = new Date();
       const recentCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
       
       const filteredRentals = userRentals.filter(rental => {
         const expiresAt = new Date(rental.expiresAt);
+        
+        // If includeAll is true, return all rentals
+        if (includeAll === 'true') {
+          return true;
+        }
         
         if (expiresAt > now) {
           // Active rental

@@ -106,12 +106,12 @@ export function UserMenu({ variant = 'light' }: UserMenuProps) {
               </Link>
               
               <Link
-                href="/profile/rentals"
+                href="/profile/movies"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Film className="h-4 w-4" />
-                {t('nav.myRentals')}
+                {t('nav.myMovies')}
               </Link>
               
               <Link

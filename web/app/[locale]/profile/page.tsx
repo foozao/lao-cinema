@@ -96,34 +96,17 @@ export default function ProfilePage() {
         
         {/* Quick Links Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* My Rentals */}
-          <Link href="/profile/rentals">
+          {/* My Movies */}
+          <Link href="/profile/movies">
             <div className="bg-gray-900 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-700">
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <Film className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{t('quickLinks.myRentals')}</h2>
+                  <h2 className="text-lg font-semibold text-white">{t('quickLinks.myMovies')}</h2>
                   <p className="text-sm text-gray-400 mt-1">
-                    {t('quickLinks.myRentalsDesc')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Link>
-          
-          {/* Continue Watching */}
-          <Link href="/profile/continue-watching">
-            <div className="bg-gray-900 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-700">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Clock className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">{t('quickLinks.continueWatching')}</h2>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {t('quickLinks.continueWatchingDesc')}
+                    {t('quickLinks.myMoviesDesc')}
                   </p>
                 </div>
               </div>
@@ -285,7 +268,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

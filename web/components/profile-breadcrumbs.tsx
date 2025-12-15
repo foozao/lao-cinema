@@ -44,16 +44,10 @@ export function ProfileBreadcrumbs() {
       }
 
       // Handle different profile routes
-      if (parts[1] === 'rentals') {
+      if (parts[1] === 'movies') {
         breadcrumbs.push({
-          label: t('quickLinks.myRentals'),
-          href: '/profile/rentals',
-          isLast: true,
-        });
-      } else if (parts[1] === 'continue-watching') {
-        breadcrumbs.push({
-          label: t('quickLinks.continueWatching'),
-          href: '/profile/continue-watching',
+          label: t('quickLinks.myMovies'),
+          href: '/profile/movies',
           isLast: true,
         });
       } else if (parts[1] === 'watchlist') {

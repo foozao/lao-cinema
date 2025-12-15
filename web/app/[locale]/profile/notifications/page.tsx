@@ -194,7 +194,7 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

@@ -25,7 +25,7 @@
     "people": "People",
     "production": "Production",
     "productionStudios": "Production Studios",
-    "shorts": "Shorts",
+    "shorts": "Short Packs",
     "admin": "Admin",
     "back": "Back",
     "browse": "Browse",
@@ -35,6 +35,7 @@
     "signingOut": "Signing out...",
     "profile": "Profile",
     "myRentals": "My Rentals",
+    "myMovies": "My Movies",
     "settings": "Settings"
   },
   "home": {
@@ -614,6 +615,8 @@
     "inProgress": "In Progress",
     "completed": "Completed",
     "quickLinks": {
+      "myMovies": "My Movies",
+      "myMoviesDesc": "View your rentals and watch history",
       "myRentals": "My Rentals",
       "myRentalsDesc": "View your rented movies and rental history",
       "continueWatching": "Continue Watching",
@@ -771,6 +774,21 @@
       "localProgressSignIn": "Sign in to sync your watch progress across devices.",
       "confirmRemove": "Remove this movie from continue watching?",
       "removeFromList": "Remove from continue watching"
+    },
+    "myMovies": {
+      "title": "My Movies",
+      "subtitle": "Manage your active and past rentals",
+      "anonymousNotice": "Viewing anonymous data.",
+      "signInToSync": "Sign in to sync your rentals across devices.",
+      "tabs": {
+        "active": "Active Rentals",
+        "history": "Rental History"
+      },
+      "noRentals": "No Active Rentals",
+      "noRentalsDesc": "Rent a movie to start watching.",
+      "noHistory": "No Rental History",
+      "noHistoryDesc": "Your past rentals will appear here.",
+      "browseMovies": "Browse Movies"
     }
   },
   "shortPacks": {

@@ -499,7 +499,7 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }
