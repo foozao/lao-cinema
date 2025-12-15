@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
-import { Clock, Play, Info, Package } from 'lucide-react';
+import { Clock, Play, Info, Package, Film } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getMoviePath, getMovieWatchUrl } from '@/lib/movie-url';
@@ -19,6 +20,7 @@ export function RentalCard({ rental }: RentalCardProps) {
   const t = useTranslations('profile.rentals');
   const tMovie = useTranslations('movie');
   const locale = useLocale() as Language;
+  const [imageError, setImageError] = useState(false);
   
   // Determine if this is a pack or movie rental
   const isPack = !!(rental.pack && rental.shortPackId);
@@ -52,6 +54,10 @@ export function RentalCard({ rental }: RentalCardProps) {
   // Get metadata
   const year = !isPack && movie?.release_date ? new Date(movie.release_date).getFullYear() : null;
   const runtime = !isPack && movie?.runtime ? movie.runtime : null;
+  
+  // Pack metadata
+  const shortCount = isPack ? (pack?.short_count ?? (pack as any)?.shortCount ?? 0) : 0;
+  const totalRuntime = isPack ? (pack?.total_runtime ?? (pack as any)?.totalRuntime ?? 0) : 0;
   
   // Calculate watch progress percentage (handle both camelCase and snake_case from API)
   const wp = rental.watchProgress as any;
@@ -174,6 +180,11 @@ export function RentalCard({ rental }: RentalCardProps) {
         >
           {isPack ? (
             renderPosterCollage()
+          ) : imageError || !posterPath ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800 text-white/60">
+              <Film className="w-12 h-12 mb-1" />
+              <span className="text-xs font-medium text-center px-2">{title}</span>
+            </div>
           ) : (
             <Image
               src={posterUrl}
@@ -181,6 +192,7 @@ export function RentalCard({ rental }: RentalCardProps) {
               fill
               className="object-cover group-hover/poster:scale-105 transition-transform duration-300"
               sizes="192px"
+              onError={() => setImageError(true)}
             />
           )}
           
@@ -216,9 +228,26 @@ export function RentalCard({ rental }: RentalCardProps) {
             {/* Pack badge or Movie metadata */}
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
               {isPack ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-200">
-                  Pack
-                </span>
+                <>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-200">
+                    Pack
+                  </span>
+                  {shortCount > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>{shortCount} shorts</span>
+                    </>
+                  )}
+                  {totalRuntime > 0 && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{totalRuntime}m</span>
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <>
                   {year && <span>{year}</span>}
@@ -233,8 +262,8 @@ export function RentalCard({ rental }: RentalCardProps) {
               )}
             </div>
             
-            {/* Watch progress bar - only show for active movie rentals */}
-            {!isExpired && !isPack && (
+            {/* Watch progress bar - show for active rentals (movies and packs) */}
+            {!isExpired && progressPercent > 0 && (
               <div className="mb-3">
                 <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                   <span>{t('percentWatched', { percent: progressPercent })}</span>

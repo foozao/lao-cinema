@@ -123,6 +123,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
                 movieId: shortPackItems.movieId,
                 order: shortPackItems.order,
                 posterPath: movies.posterPath,
+                runtime: movies.runtime,
               })
               .from(shortPackItems)
               .leftJoin(movies, eq(shortPackItems.movieId, movies.id))
@@ -134,6 +135,8 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
                 .map(item => item.posterPath)
                 .filter(Boolean);
               
+              const totalRuntime = packItems.reduce((sum, item) => sum + (item.runtime || 0), 0);
+              
               completePack = {
                 id: rental.pack.id,
                 slug: rental.pack.slug,
@@ -142,12 +145,67 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
                 isPublished: rental.pack.isPublished,
                 short_posters: shortPosters,
                 short_count: packItems.length,
+                total_runtime: totalRuntime,
                 title,
                 description: Object.keys(description).length > 0 ? description : undefined,
               };
             }
           } catch (err) {
             request.log.error({ err, movieId: rental.movieId }, 'Failed to build relations');
+          }
+          
+          // Calculate aggregate watch progress for pack rentals
+          let packWatchProgress = null;
+          if (rental.shortPackId && completePack) {
+            try {
+              // Get all shorts in the pack
+              const allPackItems = await db.select({
+                movieId: shortPackItems.movieId,
+                runtime: movies.runtime,
+              })
+              .from(shortPackItems)
+              .leftJoin(movies, eq(shortPackItems.movieId, movies.id))
+              .where(eq(shortPackItems.packId, rental.shortPackId));
+              
+              const shortIds = allPackItems.map(item => item.movieId).filter(Boolean) as string[];
+              
+              if (shortIds.length > 0) {
+                // Get watch progress for all shorts in pack
+                const progressRecords = await db.select()
+                  .from(watchProgress)
+                  .where(and(
+                    inArray(watchProgress.movieId, shortIds),
+                    userId 
+                      ? eq(watchProgress.userId, userId)
+                      : eq(watchProgress.anonymousId, anonymousId!)
+                  ));
+                
+                // Calculate total watched seconds and total duration
+                let totalWatchedSeconds = 0;
+                let totalDurationSeconds = 0;
+                
+                for (const item of allPackItems) {
+                  const runtime = item.runtime || 0;
+                  const durationSeconds = runtime * 60; // runtime is in minutes
+                  totalDurationSeconds += durationSeconds;
+                  
+                  const progress = progressRecords.find(p => p.movieId === item.movieId);
+                  if (progress) {
+                    totalWatchedSeconds += progress.progressSeconds;
+                  }
+                }
+                
+                if (totalDurationSeconds > 0) {
+                  packWatchProgress = {
+                    progressSeconds: totalWatchedSeconds,
+                    durationSeconds: totalDurationSeconds,
+                    completed: totalWatchedSeconds >= totalDurationSeconds * 0.9,
+                  };
+                }
+              }
+            } catch (err) {
+              request.log.error({ err, packId: rental.shortPackId }, 'Failed to calculate pack watch progress');
+            }
           }
           
           return {
@@ -163,7 +221,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
             paymentMethod: rental.paymentMethod,
             movie: completeMovie,
             pack: completePack,
-            watchProgress: rental.watchProgress,
+            watchProgress: packWatchProgress || rental.watchProgress,
           };
         })
       );

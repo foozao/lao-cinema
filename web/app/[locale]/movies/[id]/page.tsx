@@ -398,10 +398,19 @@ export default function MoviePage() {
                             <Button
                               size="lg"
                               onClick={handleWatchNowClick}
-                              className="gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 bg-red-600 hover:bg-red-700"
+                              className={`gap-2 text-base md:text-lg px-6 md:px-8 py-5 md:py-6 ${
+                                hasValidRental 
+                                  ? 'bg-green-600 hover:bg-green-700' 
+                                  : 'bg-red-600 hover:bg-red-700'
+                              }`}
                             >
                               <Play className="w-5 h-5 md:w-6 md:h-6 fill-white" />
-                              {t('movie.watchNow')}
+                              {hasValidRental 
+                                ? t('movie.watchNow')
+                                : recentlyExpired
+                                ? t('movie.rentAgain')
+                                : t('movie.rentToWatch')
+                              }
                             </Button>
                             <WatchlistButton movieId={movie.id} size="lg" className="px-6 md:px-8 py-5 md:py-6" />
                             <ShareButton
