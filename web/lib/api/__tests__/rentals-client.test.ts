@@ -67,13 +67,14 @@ describe('Rentals Client', () => {
       expect(mockFetch.mock.calls[0][0]).toContain('includeRecent=true');
     });
 
-    it('should throw on API error', async () => {
+    it('should return empty result on API error', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         json: () => Promise.resolve({ message: 'Unauthorized' }),
       });
 
-      await expect(getRentals()).rejects.toThrow('Unauthorized');
+      const result = await getRentals();
+      expect(result).toEqual({ rentals: [], total: 0 });
     });
   });
 

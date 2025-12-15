@@ -1,2 +1,4 @@
-# Ignore uploaded logos (local dev only, production uses GCS)
+# Ignore uploaded images (local dev only, production uses GCS)
 logos/
+posters/
+backdrops/

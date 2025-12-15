@@ -3,11 +3,16 @@ import { FastifyInstance } from 'fastify';
 import { randomUUID } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { z } from 'zod';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || '../video-server/public/logos';
-const LOCAL_UPLOAD_URL = process.env.LOCAL_UPLOAD_URL || 'http://localhost:3002/logos';
+const VIDEO_SERVER_PUBLIC_DIR = process.env.VIDEO_SERVER_PUBLIC_DIR || '../video-server/public';
+const VIDEO_SERVER_URL = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
 const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'lao-cinema-images';
+
+type ImageType = 'poster' | 'backdrop' | 'logo';
+
+const imageTypeSchema = z.enum(['poster', 'backdrop', 'logo']);
 
 export async function uploadRoutes(fastify: FastifyInstance) {
   // Register multipart support for this route
@@ -17,9 +22,23 @@ export async function uploadRoutes(fastify: FastifyInstance) {
     },
   });
 
-  // Upload image endpoint
-  fastify.post('/upload/image', async (request, reply) => {
+  // Upload image endpoint (posters, backdrops, logos)
+  fastify.post<{
+    Querystring: { type?: string };
+  }>('/upload/image', async (request, reply) => {
     try {
+      // Validate image type from query parameter
+      const typeParam = request.query.type || 'logo';
+      const validationType = imageTypeSchema.safeParse(typeParam);
+      
+      if (!validationType.success) {
+        return reply.status(400).send({ 
+          error: 'Invalid image type. Allowed: poster, backdrop, logo' 
+        });
+      }
+      
+      const imageType: ImageType = validationType.data;
+      
       const data = await request.file();
       
       if (!data) {
@@ -29,7 +48,9 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       if (!allowedTypes.includes(data.mimetype)) {
-        return reply.status(400).send({ error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' });
+        return reply.status(400).send({ 
+          error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' 
+        });
       }
 
       // Generate unique filename
@@ -44,7 +65,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         const { Storage } = await import('@google-cloud/storage');
         const storage = new Storage();
         const bucket = storage.bucket(GCS_BUCKET_NAME);
-        const file = bucket.file(`logos/${filename}`);
+        const file = bucket.file(`${imageType}s/${filename}`);
         
         await file.save(buffer, {
           contentType: data.mimetype,
@@ -54,19 +75,19 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         });
         await file.makePublic();
         
-        publicUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/logos/${filename}`;
+        publicUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${imageType}s/${filename}`;
       } else {
         // Development: Save locally to video-server
-        const uploadDir = join(process.cwd(), LOCAL_UPLOAD_DIR);
+        const uploadDir = join(process.cwd(), VIDEO_SERVER_PUBLIC_DIR, `${imageType}s`);
         await mkdir(uploadDir, { recursive: true });
         
         const filePath = join(uploadDir, filename);
         await writeFile(filePath, buffer);
         
-        publicUrl = `${LOCAL_UPLOAD_URL}/${filename}`;
+        publicUrl = `${VIDEO_SERVER_URL}/${imageType}s/${filename}`;
       }
       
-      return { url: publicUrl };
+      return { url: publicUrl, type: imageType };
     } catch (error) {
       fastify.log.error(error);
       return reply.status(500).send({ error: 'Failed to upload image' });

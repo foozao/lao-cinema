@@ -3,20 +3,24 @@
 import { useState } from 'react';
 import { MovieImage } from '@/lib/types';
 import { PosterGallery } from '../poster-gallery';
+import { ImageUploader } from './image-uploader';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Image as ImageIcon, Film, Tag, Save, AlertCircle, RefreshCw } from 'lucide-react';
+import { Image as ImageIcon, Film, Tag, Save, AlertCircle, RefreshCw, Upload } from 'lucide-react';
+import { movieAPI } from '@/lib/api/client';
 
 interface PosterManagerProps {
   images: MovieImage[];
   movieId: string;
   onPrimaryChange?: (imageId: string, type: 'poster' | 'backdrop' | 'logo') => Promise<void>;
   onRefresh?: () => Promise<void>;
+  onImageAdded?: () => Promise<void>;
+  onImageDeleted?: (imageId: string) => Promise<void>;
   refreshing?: boolean;
 }
 
-export function PosterManager({ images, movieId, onPrimaryChange, onRefresh, refreshing }: PosterManagerProps) {
+export function PosterManager({ images, movieId, onPrimaryChange, onRefresh, onImageAdded, onImageDeleted, refreshing }: PosterManagerProps) {
   const [activeTab, setActiveTab] = useState<'poster' | 'backdrop' | 'logo'>('poster');
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [selectedBackdrop, setSelectedBackdrop] = useState<string | null>(null);
@@ -24,6 +28,7 @@ export function PosterManager({ images, movieId, onPrimaryChange, onRefresh, ref
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   // Count images by type
   const posterCount = images.filter((img) => img.type === 'poster').length;
@@ -122,34 +127,112 @@ export function PosterManager({ images, movieId, onPrimaryChange, onRefresh, ref
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="poster" className="mt-6">
+          <TabsContent value="poster" className="mt-6 space-y-6">
             <PosterGallery
               images={images}
               type="poster"
               allowSelection
               onSelectPrimary={setSelectedPoster}
+              onDelete={onImageDeleted}
               columns={4}
             />
+            <div className="pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowUpload(!showUpload)}
+                className="mb-4"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {showUpload ? 'Hide Upload' : 'Add More Posters'}
+              </Button>
+              {showUpload && (
+                <ImageUploader
+                  type="poster"
+                  onUploadSuccess={async (url) => {
+                    await movieAPI.addImage(movieId, {
+                      type: 'poster',
+                      filePath: url,
+                      isPrimary: false,
+                    });
+                    await onImageAdded?.();
+                    setShowUpload(false);
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
 
-          <TabsContent value="backdrop" className="mt-6">
+          <TabsContent value="backdrop" className="mt-6 space-y-6">
             <PosterGallery
               images={images}
               type="backdrop"
               allowSelection
               onSelectPrimary={setSelectedBackdrop}
+              onDelete={onImageDeleted}
               columns={3}
             />
+            <div className="pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowUpload(!showUpload)}
+                className="mb-4"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {showUpload ? 'Hide Upload' : 'Add More Backdrops'}
+              </Button>
+              {showUpload && (
+                <ImageUploader
+                  type="backdrop"
+                  onUploadSuccess={async (url) => {
+                    await movieAPI.addImage(movieId, {
+                      type: 'backdrop',
+                      filePath: url,
+                      isPrimary: false,
+                    });
+                    await onImageAdded?.();
+                    setShowUpload(false);
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
 
-          <TabsContent value="logo" className="mt-6">
+          <TabsContent value="logo" className="mt-6 space-y-6">
             <PosterGallery
               images={images}
               type="logo"
               allowSelection
               onSelectPrimary={setSelectedLogo}
+              onDelete={onImageDeleted}
               columns={5}
             />
+            <div className="pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowUpload(!showUpload)}
+                className="mb-4"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {showUpload ? 'Hide Upload' : 'Add More Logos'}
+              </Button>
+              {showUpload && (
+                <ImageUploader
+                  type="logo"
+                  onUploadSuccess={async (url) => {
+                    await movieAPI.addImage(movieId, {
+                      type: 'logo',
+                      filePath: url,
+                      isPrimary: false,
+                    });
+                    await onImageAdded?.();
+                    setShowUpload(false);
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

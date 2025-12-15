@@ -24,6 +24,7 @@ import { PosterManager } from '@/components/admin/poster-manager';
 import { PersonSearch } from '@/components/admin/person-search';
 import { ProductionCompanySearch } from '@/components/admin/production-company-search';
 import { EntityHistory } from '@/components/admin/entity-history';
+import { ImageUploader } from '@/components/admin/image-uploader';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 
 export default function EditMoviePage() {
@@ -1557,36 +1558,100 @@ export default function EditMoviePage() {
           </Card>
 
           {/* Poster Management */}
-          {currentMovie?.tmdb_id && (
-            currentMovie.images && currentMovie.images.length > 0 ? (
-              <PosterManager
-                images={currentMovie.images}
-                movieId={movieId}
-                onPrimaryChange={handlePrimaryImageChange}
-                onRefresh={handleFetchImages}
-                refreshing={fetchingImages}
-              />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Poster & Image Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Load posters, backdrops, and logos from TMDB to choose which images to display.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleFetchImages}
-                    disabled={fetchingImages}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
-                    {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
-                  </Button>
-                </CardContent>
-              </Card>
-            )
+          {currentMovie?.images && currentMovie.images.length > 0 ? (
+            <PosterManager
+              images={currentMovie.images}
+              movieId={movieId}
+              onPrimaryChange={handlePrimaryImageChange}
+              onRefresh={currentMovie.tmdb_id ? handleFetchImages : undefined}
+              onImageAdded={async () => {
+                const updatedMovie = await movieAPI.getById(movieId);
+                setCurrentMovie(updatedMovie);
+              }}
+              onImageDeleted={async (imageId: string) => {
+                await movieAPI.deleteImage(movieId, imageId);
+                const updatedMovie = await movieAPI.getById(movieId);
+                setCurrentMovie(updatedMovie);
+              }}
+              refreshing={fetchingImages}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Poster & Image Management</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {currentMovie?.tmdb_id && (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      Load posters, backdrops, and logos from TMDB to choose which images to display.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleFetchImages}
+                      disabled={fetchingImages}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
+                      {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
+                    </Button>
+                    <div className="relative py-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-2 text-gray-500">OR</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Upload Custom Images</h4>
+                  <Tabs defaultValue="poster" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="poster">Poster</TabsTrigger>
+                      <TabsTrigger value="backdrop">Backdrop</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="poster" className="mt-4">
+                      <ImageUploader 
+                        type="poster"
+                        onUploadSuccess={async (url) => {
+                          try {
+                            await movieAPI.addImage(movieId, {
+                              type: 'poster',
+                              filePath: url,
+                              isPrimary: !currentMovie?.images?.some(img => img.type === 'poster' && img.is_primary),
+                            });
+                            const updatedMovie = await movieAPI.getById(movieId);
+                            setCurrentMovie(updatedMovie);
+                          } catch (err) {
+                            console.error('Failed to save poster:', err);
+                          }
+                        }}
+                      />
+                    </TabsContent>
+                    <TabsContent value="backdrop" className="mt-4">
+                      <ImageUploader 
+                        type="backdrop"
+                        onUploadSuccess={async (url) => {
+                          try {
+                            await movieAPI.addImage(movieId, {
+                              type: 'backdrop',
+                              filePath: url,
+                              isPrimary: !currentMovie?.images?.some(img => img.type === 'backdrop' && img.is_primary),
+                            });
+                            const updatedMovie = await movieAPI.getById(movieId);
+                            setCurrentMovie(updatedMovie);
+                          } catch (err) {
+                            console.error('Failed to save backdrop:', err);
+                          }
+                        }}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </CardContent>
+            </Card>
           )}
           </TabsContent>
 

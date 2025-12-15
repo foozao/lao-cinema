@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
         hostname: 'image.tmdb.org',
         pathname: '/t/p/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3002',
+        pathname: '/**',
+      },
     ],
   },
   // Skip TypeScript checking during production build (checked during dev)

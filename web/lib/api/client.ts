@@ -75,11 +75,31 @@ export const movieAPI = {
     method: 'DELETE',
   }),
 
+  // Add image to movie
+  addImage: (movieId: string, data: {
+    type: 'poster' | 'backdrop' | 'logo';
+    filePath: string;
+    aspectRatio?: number;
+    height?: number;
+    width?: number;
+    isPrimary?: boolean;
+  }) =>
+    fetchAPI<{ success: boolean; image: any }>(`/movies/${movieId}/images`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Set primary image
   setPrimaryImage: (movieId: string, imageId: string, type: 'poster' | 'backdrop' | 'logo') =>
     fetchAPI<{ success: boolean; message: string }>(`/movies/${movieId}/images/${imageId}/primary`, {
       method: 'PUT',
       body: JSON.stringify({ type }),
+    }),
+
+  // Delete image
+  deleteImage: (movieId: string, imageId: string) =>
+    fetchAPI<{ success: boolean; message: string }>(`/movies/${movieId}/images/${imageId}`, {
+      method: 'DELETE',
     }),
 };
 

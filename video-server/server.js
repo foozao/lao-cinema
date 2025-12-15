@@ -187,10 +187,22 @@ fastify.register(require('@fastify/static'), {
   },
 });
 
-// Serve static files from public directory (logos, images, etc.)
+// Serve static files from public directory (logos, posters, backdrops)
 fastify.register(require('@fastify/static'), {
   root: path.join(PUBLIC_PATH, 'logos'),
   prefix: '/logos/',
+  decorateReply: false,
+});
+
+fastify.register(require('@fastify/static'), {
+  root: path.join(PUBLIC_PATH, 'posters'),
+  prefix: '/posters/',
+  decorateReply: false,
+});
+
+fastify.register(require('@fastify/static'), {
+  root: path.join(PUBLIC_PATH, 'backdrops'),
+  prefix: '/backdrops/',
   decorateReply: false,
 });
 
