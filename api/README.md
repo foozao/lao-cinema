@@ -228,15 +228,25 @@ const response = await fetch('http://localhost:3001/api/movies', {
 - Run `npm install`
 - Check `package.json` dependencies
 
+## Implemented Features
+
+- [x] User authentication (session-based with scrypt)
+- [x] User management (registration, login, profile)
+- [x] Search and filtering (people, production companies)
+- [x] Rental system (dual-mode: userId OR anonymousId)
+- [x] Watch progress tracking
+- [x] Video analytics
+- [x] Audit logging
+- [x] Role-based access control
+
 ## Next Steps
 
-- [ ] Add authentication (JWT)
-- [ ] Add user management
-- [ ] Add video upload/transcoding
-- [ ] Add search and filtering
-- [ ] Add caching (Redis)
-- [ ] Add rate limiting
-- [ ] Add API documentation (Swagger)
+- [ ] OAuth providers (Google, Apple)
+- [ ] Password reset flow (requires email service)
+- [ ] Video upload/transcoding pipeline
+- [ ] Caching layer (Redis)
+- [ ] Rate limiting
+- [ ] API documentation (Swagger/OpenAPI)
 
 ## Resources
 

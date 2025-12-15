@@ -21,7 +21,50 @@ npm install
 
 Choose one of these options:
 
-#### Option A: Local PostgreSQL (macOS)
+#### Option A: Docker Compose (Recommended for Development)
+
+From the project root:
+
+```bash
+# Start PostgreSQL in the background
+docker-compose up -d
+
+# Verify it's running
+docker-compose ps
+```
+
+You should see `lao-cinema-db` with status "Up".
+
+**Connection details:**
+- Host: localhost
+- Port: 5432
+- Database: lao_cinema
+- User: laocinema
+- Password: laocinema_dev
+- DATABASE_URL: `postgresql://laocinema:laocinema_dev@localhost:5432/lao_cinema`
+
+**Common commands:**
+```bash
+# Start database
+docker-compose up -d
+
+# Stop database
+docker-compose stop
+
+# View logs
+docker-compose logs -f postgres
+
+# Restart database
+docker-compose restart postgres
+
+# Stop and remove (keeps data)
+docker-compose down
+
+# Stop and remove everything (deletes data)
+docker-compose down -v
+```
+
+#### Option B: Local PostgreSQL (macOS)
 
 ```bash
 # Install PostgreSQL
@@ -37,7 +80,7 @@ createdb lao_cinema
 # postgresql://your_username@localhost:5432/lao_cinema
 ```
 
-#### Option B: Docker
+#### Option C: Docker (Manual)
 
 ```bash
 # Run PostgreSQL in Docker
@@ -52,7 +95,7 @@ docker run --name lao-cinema-db \
 # postgresql://laocinema:password@localhost:5432/lao_cinema
 ```
 
-#### Option C: Cloud Database (Recommended for Production)
+#### Option D: Cloud Database (Recommended for Production)
 
 **Neon (Free tier available)**
 1. Go to https://neon.tech
@@ -82,15 +125,32 @@ PORT=3001
 CORS_ORIGIN=http://localhost:3000
 ```
 
-### 4. Run Database Migrations
+### 4. Set Up Database Schema
 
 ```bash
+cd db
+npm install
+
 # Generate migration files from schema
 npm run db:generate
 
-# Push schema to database
-npm run db:push
+# Apply migrations (creates all tables)
+npm run db:migrate
+
+# Optional: Seed with sample data
+npm run db:seed
 ```
+
+This creates all database tables:
+- movies, movie_translations
+- genres, genre_translations, movie_genres
+- people, people_translations
+- movie_cast, movie_cast_translations
+- movie_crew, movie_crew_translations
+- video_sources, movie_images
+- users, user_sessions, oauth_accounts
+- rentals, watch_progress
+- And more...
 
 ### 5. Start Backend Server
 
@@ -154,11 +214,13 @@ psql $DATABASE_URL
 SELECT id, title, release_date FROM movies;
 ```
 
-Or use Drizzle Studio:
+Or use Drizzle Studio (recommended):
 ```bash
-cd api
+cd db
 npm run db:studio
 ```
+
+Opens at https://local.drizzle.studio - a visual database editor where you can view and edit all tables.
 
 ## Project Structure
 
@@ -296,7 +358,35 @@ npm run db:push -- --force
 # Or manually drop and recreate
 dropdb lao_cinema
 createdb lao_cinema
-npm run db:push
+cd db
+npm run db:migrate
+npm run db:seed
+```
+
+### Port 5432 already in use
+
+If you have PostgreSQL already running locally:
+
+```bash
+# Stop local PostgreSQL (macOS)
+brew services stop postgresql
+
+# Or change the port in docker-compose.yml
+ports:
+  - "5433:5432"  # Use 5433 instead
+```
+
+### Reset everything (Docker Compose)
+
+```bash
+# Stop and remove all data
+docker-compose down -v
+
+# Start fresh
+docker-compose up -d
+cd db
+npm run db:migrate
+npm run db:seed
 ```
 
 ## Production Deployment
@@ -332,17 +422,38 @@ Update `NEXT_PUBLIC_API_URL` to production API URL:
 NEXT_PUBLIC_API_URL=https://api.laocinema.com/api
 ```
 
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Start DB | `docker-compose up -d` |
+| Stop DB | `docker-compose stop` |
+| View DB | `cd db && npm run db:studio` |
+| Migrate | `cd db && npm run db:migrate` |
+| Seed | `cd db && npm run db:seed` |
+| Logs | `docker-compose logs -f postgres` |
+| Start API | `cd api && npm run dev` |
+
+## Implemented Features
+
+- [x] User authentication (session-based with scrypt)
+- [x] User management (registration, login, profile)
+- [x] Search and filtering (people, production companies)
+- [x] Rental system with cross-device sync
+- [x] Watch progress tracking
+- [x] Video analytics
+- [x] Audit logging
+- [x] Role-based access control
+
 ## Next Steps
 
-- [ ] Add authentication (JWT)
-- [ ] Add user management
-- [ ] Add search and filtering
-- [ ] Add pagination
-- [ ] Add caching (Redis)
-- [ ] Add rate limiting
-- [ ] Add API documentation (Swagger)
-- [ ] Add tests
-- [ ] Set up CI/CD
+- [ ] OAuth providers (Google, Apple)
+- [ ] Password reset flow (requires email service)
+- [ ] Pagination for large datasets
+- [ ] Caching layer (Redis)
+- [ ] Rate limiting
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] CI/CD pipeline
 
 ## Resources
 

@@ -167,7 +167,7 @@ Test suites:
 - `lib/__tests__/images.test.ts` - Image URL generation
 - `lib/__tests__/utils.test.ts` - Tailwind class utilities
 
-See [TESTING.md](./TESTING.md) for detailed documentation.
+Run `npm test` to execute all tests.
 
 ## Configuration
 

@@ -1,6 +1,8 @@
 # Internationalization (i18n) Setup
 
-This document explains the internationalization setup for Lao Cinema using `next-intl`.
+This document explains how to **implement** internationalization in Lao Cinema using `next-intl`.
+
+For the **architecture** and why we use a dual-system approach, see [`docs/architecture/LANGUAGE_SYSTEM.md`](../docs/architecture/LANGUAGE_SYSTEM.md).
 
 ## Overview
 
@@ -10,18 +12,16 @@ The app uses **URL-based routing** for optimal SEO:
 
 Each language version can be indexed separately by search engines, improving discoverability for both English and Lao-speaking audiences.
 
-## Architecture
+## Two Translation Systems
 
-### Dual System Approach
+**Quick Reference:**
 
-We use a **hybrid approach** that combines two systems:
+| System | Purpose | Where | Example |
+|--------|---------|-------|---------|
+| **next-intl** | UI text | `messages/*.json` | Buttons, labels, headings |
+| **LocalizedText** | Content data | Database | Movie titles, descriptions |
 
-1. **next-intl** for UI text (buttons, labels, headings)
-2. **LocalizedText** for content data (movie titles, descriptions, cast names)
-
-This separation makes sense because:
-- UI text is static and defined in JSON files
-- Content data comes from the database/API and uses the `LocalizedText` interface
+See [LANGUAGE_SYSTEM.md](../docs/architecture/LANGUAGE_SYSTEM.md) for architectural details.
 
 ### File Structure
 

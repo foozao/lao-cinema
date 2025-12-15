@@ -44,7 +44,7 @@ This document defines the technology stack for the Lao Cinema streaming platform
 	•	UI Library: React 19.2.0
 	•	Styling: Tailwind CSS v4
 	•	i18n: next-intl (URL-based routing)
-	•	Deployment: Vercel or GCP Cloud Run (planned)
+	•	Deployment: GCP Cloud Run (production)
 	•	Key Responsibilities:
 	•	Browsing/Searching film catalog
 	•	Playback UI (HLS video player)
@@ -96,10 +96,10 @@ Features:
 	•	Audit logging ✅ (tracks all content changes)
 
 3.3 Deployment
-	•	Containerized with Docker (ready)
-	•	GCP VM or Cloud Run (planned)
-	•	Currently: local development with Docker Compose
-	•	Eventually deployable to physical server
+	•	Containerized with Docker ✅
+	•	GCP Cloud Run ✅ (production deployment active)
+	•	Local development: Docker Compose ✅
+	•	Future option: Physical server deployment
 
 ⸻
 
@@ -214,8 +214,8 @@ Option C — Self-hosted NGINX HLS (later stage)
 7.1 Backend ✅
 	•	Fastify ✅ (with CORS plugin)
 	•	Drizzle ORM ✅
-	•	Zod (request/response validation) (planned)
-	•	JWT plugins (authentication) (planned)
+	•	Zod ✅ (request/response validation)
+	•	Session-based auth ✅ (scrypt password hashing)
 	•	Rate limiting (planned)
 	•	Pino (logging) ✅ (Fastify default)
 

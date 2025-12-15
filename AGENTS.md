@@ -322,7 +322,7 @@ export default function StaticContent() { }
 
 ### Required
 
-- Node.js 20.9.0+ (Next.js 15 requirement)
+- Node.js 20.9.0+ (Next.js 16 requirement)
 - npm or pnpm
 - Git
 

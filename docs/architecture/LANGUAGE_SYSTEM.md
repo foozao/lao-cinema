@@ -1,8 +1,30 @@
-# Multi-Language System
+# Multi-Language System Architecture
+
+This document explains the **architecture** and design decisions for Lao Cinema's multi-language system.
+
+For **implementation** details and how to use next-intl, see [`/web/I18N_SETUP.md`](../../web/I18N_SETUP.md).
 
 ## Overview
 
 The Lao Cinema platform uses a flexible multi-language system where each movie can have content in multiple languages. English is used as the default/fallback language.
+
+## Why Two Systems?
+
+We use **two separate translation systems** for different purposes:
+
+### 1. next-intl (UI Text)
+- **Purpose**: Static interface text (buttons, labels, navigation)
+- **Storage**: JSON files (`messages/en.json`, `messages/lo.json`)
+- **Updates**: Changed with code deploys
+- **Editors**: Developers
+
+### 2. LocalizedText (Content Data)
+- **Purpose**: Dynamic content (movie titles, descriptions, cast names)
+- **Storage**: Database translation tables
+- **Updates**: Changed via admin panel
+- **Editors**: Content administrators
+
+**Why separate?** Different sources, update cycles, and editors. Mixing them would create confusion and maintenance issues.
 
 ## Architecture
 
@@ -173,10 +195,17 @@ const movie = {
 };
 ```
 
+## Current Implementation Status
+
+- ✅ **Database storage**: Implemented with translation tables
+- ✅ **User preferences**: URL-based routing with language switcher
+- ✅ **SEO**: Language-specific URLs and metadata via next-intl
+- ✅ **Admin panel**: Full UI for managing movie translations
+- ⏳ **Translation API**: Not implemented (manual translations only)
+
 ## Future Enhancements
 
-- **Database storage**: Store translations in separate tables for easier management
-- **Translation API**: Integrate with translation services for automatic translations
-- **User preferences**: Remember user's language preference in localStorage/cookies
-- **SEO**: Generate language-specific URLs and metadata
-- **Admin panel**: UI for managing translations
+- [ ] Translation API integration for automatic suggestions
+- [ ] Bulk translation tools for admin panel
+- [ ] Translation memory/glossary system
+- [ ] Community translation contributions
