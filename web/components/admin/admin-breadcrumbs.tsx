@@ -63,6 +63,8 @@ export function AdminBreadcrumbs() {
             const personId = parseInt(parts[2]);
             try {
               const person = await peopleAPI.getById(personId);
+              const personName = getLocalizedText(person.name, 'en')
+                .replace(/^["'"'`]+|["'"'`]+$/g, ''); // Strip leading/trailing quotes
               breadcrumbs.push(
                 {
                   label: t('allPeople'),
@@ -70,7 +72,7 @@ export function AdminBreadcrumbs() {
                   isLast: false,
                 },
                 {
-                  label: getLocalizedText(person.name, 'en'),
+                  label: personName,
                   href: `/admin/people/${personId}`,
                   isLast: true,
                 }

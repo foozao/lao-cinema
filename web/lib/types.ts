@@ -144,6 +144,14 @@ export interface Genre {
   name: LocalizedText;
 }
 
+// Movie credit for search results
+export interface MovieCredit {
+  movie_id: string;
+  movie_title: LocalizedText;
+  role?: LocalizedText; // Character name for cast, job title for crew
+  type: 'cast' | 'crew';
+}
+
 // Person entity (actor, director, crew member)
 export interface Person {
   id: number; // TMDB person ID
@@ -163,6 +171,7 @@ export interface Person {
   gender?: number; // 0=unknown, 1=female, 2=male, 3=non-binary
   imdb_id?: string;
   homepage?: string;
+  movie_credits?: MovieCredit[]; // Brief credits for search results
 }
 
 // Cast member in a specific movie (extends Person with role info)
