@@ -26,6 +26,7 @@ function MoviesPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short'>('all');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc'>('date-desc');
+  const [showUnavailable, setShowUnavailable] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   
   // Initialize state from URL params
@@ -33,6 +34,7 @@ function MoviesPageContent() {
     const query = searchParams.get('q') || '';
     const filter = searchParams.get('filter') as 'all' | 'feature' | 'short' | null;
     const sort = searchParams.get('sort') as 'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc' | null;
+    const unavailable = searchParams.get('unavailable') === 'true';
     
     setSearchQuery(query);
     if (filter && ['all', 'feature', 'short'].includes(filter)) {
@@ -41,6 +43,7 @@ function MoviesPageContent() {
     if (sort && ['date-desc', 'date-asc', 'alpha-asc', 'alpha-desc'].includes(sort)) {
       setSortBy(sort);
     }
+    setShowUnavailable(unavailable);
     setIsInitialized(true);
   }, [searchParams]);
 
@@ -95,12 +98,16 @@ function MoviesPageContent() {
       params.set('sort', sortBy);
     }
     
+    if (showUnavailable) {
+      params.set('unavailable', 'true');
+    }
+    
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '';
     
     // Use replace to avoid adding to history stack
     router.replace(`/${locale}/movies${newUrl}`, { scroll: false });
-  }, [searchQuery, filterType, sortBy, router, locale, isInitialized]);
+  }, [searchQuery, filterType, sortBy, showUnavailable, router, locale, isInitialized]);
 
   // Helper function to get match type for a movie
   const getMatchType = (movie: Movie, query: string): 'title' | 'cast' | 'crew' | null => {
@@ -188,6 +195,18 @@ function MoviesPageContent() {
       if (filterType === 'feature' && isShort) return false;
     }
     
+    // Filter by availability status
+    if (!showUnavailable) {
+      const status = movie.availability_status;
+      const hasVideoSources = movie.video_sources && movie.video_sources.length > 0;
+      const hasExternalPlatforms = movie.external_platforms && movie.external_platforms.length > 0;
+      
+      // Show if: available now, coming soon, or externally available
+      // Hide if: unavailable status OR (no video sources AND no external platforms)
+      if (status === 'unavailable') return false;
+      if (!hasVideoSources && !hasExternalPlatforms && status !== 'coming_soon') return false;
+    }
+    
     return true;
   }));
 
@@ -207,8 +226,9 @@ function MoviesPageContent() {
           </h2>
 
           {/* Search Bar and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-1">
+          <div className="flex flex-col gap-4">
+            {/* Search, Filters, and Sort - Horizontal Row */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -253,19 +273,30 @@ function MoviesPageContent() {
                   {t('movies.short')}
                 </button>
               </div>
+              
+              {/* Sort Dropdown */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date-desc">{t('movies.sortNewest')}</option>
+                <option value="date-asc">{t('movies.sortOldest')}</option>
+                <option value="alpha-asc">{t('movies.sortAlphaAsc')}</option>
+                <option value="alpha-desc">{t('movies.sortAlphaDesc')}</option>
+              </select>
             </div>
             
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="date-desc">{t('movies.sortNewest')}</option>
-              <option value="date-asc">{t('movies.sortOldest')}</option>
-              <option value="alpha-asc">{t('movies.sortAlphaAsc')}</option>
-              <option value="alpha-desc">{t('movies.sortAlphaDesc')}</option>
-            </select>
+            {/* Availability Toggle - Separate Row */}
+            <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer w-fit">
+              <input 
+                type="checkbox" 
+                checked={showUnavailable}
+                onChange={(e) => setShowUnavailable(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+              />
+              {t('movies.showUnavailable')}
+            </label>
           </div>
         </div>
 

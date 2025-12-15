@@ -62,7 +62,8 @@
     "sortNewest": "Newest First",
     "sortOldest": "Oldest First",
     "sortAlphaAsc": "A → Z",
-    "sortAlphaDesc": "Z → A",
+    "sortAlphaDesc": "Title (Z-A)",
+    "showUnavailable": "Show unavailable movies",
     "matchType": {
       "cast": "Found in Cast",
       "crew": "Found in Crew"
