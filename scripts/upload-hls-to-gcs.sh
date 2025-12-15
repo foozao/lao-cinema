@@ -12,6 +12,7 @@ set -e
 # Configuration
 GCS_BUCKET="lao-cinema-videos"
 GCS_HLS_PATH="hls"
+PROJECT_ID="lao-cinema"
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -22,6 +23,16 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Check GCP project configuration
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    echo -e "${RED}Error: Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID${NC}"
+    echo -e "${YELLOW}Run: gcloud config configurations activate lao-cinema${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ GCP project: $PROJECT_ID${NC}"
+echo ""
 
 # Check if gsutil is installed
 if ! command -v gsutil &> /dev/null; then

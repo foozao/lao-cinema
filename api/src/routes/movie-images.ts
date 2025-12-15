@@ -245,7 +245,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
             }
           } catch (error) {
             // Log error but don't fail the request if file doesn't exist
-            fastify.log.warn(`Failed to delete file for image ${imageId}:`, error);
+            fastify.log.warn(`Failed to delete file for image ${imageId}: ${error}`);
           }
         }
 
@@ -255,7 +255,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         // Log audit event
         await logAuditFromRequest(
           request, 
-          'delete_image', 
+          'remove_image', 
           'movie', 
           movieId, 
           `Deleted ${image.type}${image.isPrimary ? ' (was primary)' : ''}`,

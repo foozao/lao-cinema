@@ -58,13 +58,14 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         // Log audit
         await logAuditFromRequest(
           request,
-          'image_added',
+          'add_image',
           'person',
           personId.toString(),
+          undefined,
           {
-            imageId: newImage.id,
-            filePath,
-            isPrimary: isPrimary || false,
+            imageId: { before: null, after: newImage.id },
+            filePath: { before: null, after: filePath },
+            isPrimary: { before: null, after: isPrimary || false },
           }
         );
         
@@ -118,7 +119,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
             }
           } catch (error) {
             // Log error but don't fail the request if file doesn't exist
-            fastify.log.warn(`Failed to delete file for image ${imageId}:`, error);
+            fastify.log.warn(`Failed to delete file for image ${imageId}: ${error}`);
           }
         }
         
@@ -139,12 +140,13 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         // Log audit
         await logAuditFromRequest(
           request,
-          'image_deleted',
+          'remove_image',
           'person',
           personId.toString(),
+          undefined,
           {
-            imageId,
-            filePath: image.filePath,
+            imageId: { before: imageId, after: null },
+            filePath: { before: image.filePath, after: null },
           }
         );
         
@@ -208,13 +210,13 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         // Log audit event
         await logAuditFromRequest(
           request,
-          'update',
+          'set_primary_image',
           'person',
           personId.toString(),
+          undefined,
           {
-            action: 'set_primary_profile_photo',
-            imageId,
-            filePath: image.filePath,
+            imageId: { before: null, after: imageId },
+            filePath: { before: null, after: image.filePath },
           }
         );
 

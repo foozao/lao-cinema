@@ -48,6 +48,16 @@ log_info "Database Sync: Local → Cloud SQL"
 log_info "========================================="
 echo ""
 
+# Check GCP project configuration
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    log_error "Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID"
+    log_error "Run: gcloud config configurations activate lao-cinema"
+    exit 1
+fi
+log_info "✓ GCP project: $PROJECT_ID"
+echo ""
+
 # Check if local database exists
 log_info "Checking local database connection..."
 if ! PGPASSWORD=$LOCAL_DB_PASS psql -h $LOCAL_DB_HOST -p $LOCAL_DB_PORT -U $LOCAL_DB_USER -d $LOCAL_DB_NAME -c '\q' 2>/dev/null; then

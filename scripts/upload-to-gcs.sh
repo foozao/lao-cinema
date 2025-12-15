@@ -14,6 +14,7 @@ SPECIFIC_MOVIE="$1"  # Optional: specific movie to upload
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 log_info() {
@@ -23,6 +24,20 @@ log_info() {
 log_warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check GCP project configuration
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    log_error "Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID"
+    log_error "Run: gcloud config configurations activate lao-cinema"
+    exit 1
+fi
+log_info "✓ GCP project: $PROJECT_ID"
+echo ""
 
 # Check if bucket exists, create if not
 if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then

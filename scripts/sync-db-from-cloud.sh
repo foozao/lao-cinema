@@ -48,6 +48,16 @@ log_info "Database Sync: Cloud SQL → Local"
 log_info "========================================="
 echo ""
 
+# Check GCP project configuration
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    log_error "Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID"
+    log_error "Run: gcloud config configurations activate lao-cinema"
+    exit 1
+fi
+log_info "✓ GCP project: $PROJECT_ID"
+echo ""
+
 log_warn "This will OVERWRITE your local database!"
 read -p "Are you sure you want to continue? (yes/no): " -r
 echo

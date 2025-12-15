@@ -13,6 +13,16 @@ DB_NAME="laocinema"
 DB_USER="laocinema"
 DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
 
+# Check GCP project configuration
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
+    echo "❌ Error: Wrong GCP project! Current: $CURRENT_PROJECT, Required: $PROJECT_ID"
+    echo "Run: gcloud config configurations activate lao-cinema"
+    exit 1
+fi
+echo "✓ GCP project: $PROJECT_ID"
+echo ""
+
 echo "🔄 Updating video URLs in Cloud SQL..."
 echo ""
 
