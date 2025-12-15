@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -33,7 +32,7 @@ export function ResetPasswordForm() {
       }
       
       try {
-        const response = await fetch(`${API_URL}/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
+        const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
         const data = await response.json();
         setIsTokenValid(data.valid);
       } catch {
@@ -65,7 +64,7 @@ export function ResetPasswordForm() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/auth/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -5,8 +5,7 @@
  */
 
 import { getAuthHeaders } from './auth-headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
 // TYPES
@@ -44,7 +43,7 @@ export interface NotificationStatusResponse {
  * Get all movie notifications for current user
  */
 export async function getMovieNotifications(): Promise<NotificationsResponse> {
-  const response = await fetch(`${API_URL}/notifications/movies`, {
+  const response = await fetch(`${API_BASE_URL}/notifications/movies`, {
     headers: getAuthHeaders(),
   });
   
@@ -60,7 +59,7 @@ export async function getMovieNotifications(): Promise<NotificationsResponse> {
  * Check if user is subscribed to notifications for a specific movie
  */
 export async function getNotificationStatus(movieId: string): Promise<NotificationStatusResponse> {
-  const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     headers: getAuthHeaders(),
   });
   
@@ -76,7 +75,7 @@ export async function getNotificationStatus(movieId: string): Promise<Notificati
  * Subscribe to notifications for a movie
  */
 export async function subscribeToMovie(movieId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -91,7 +90,7 @@ export async function subscribeToMovie(movieId: string): Promise<void> {
  * Unsubscribe from notifications for a movie
  */
 export async function unsubscribeFromMovie(movieId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/notifications/movies/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

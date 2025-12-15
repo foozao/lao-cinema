@@ -6,8 +6,7 @@
  */
 
 import { getRawSessionToken } from '../auth/api-client';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
 // TYPES
@@ -67,7 +66,7 @@ async function authFetch<T>(endpoint: string): Promise<T> {
     throw new Error('Not authenticated');
   }
   
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,

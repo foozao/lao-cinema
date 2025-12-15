@@ -8,8 +8,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 type VerificationState = 'loading' | 'success' | 'error' | 'invalid';
 
@@ -32,7 +31,7 @@ export default function VerifyEmailPage() {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/verify-email`, {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-email?token=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),

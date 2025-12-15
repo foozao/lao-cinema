@@ -5,8 +5,7 @@
  */
 
 import { getAuthHeaders } from './auth-headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
 // TYPES
@@ -49,7 +48,7 @@ export interface UpdateProgressRequest {
  * Get all watch progress for current user/anonymous
  */
 export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
-  const response = await fetch(`${API_URL}/watch-progress`, {
+  const response = await fetch(`${API_BASE_URL}/watch-progress`, {
     headers: getAuthHeaders(),
   });
   
@@ -65,7 +64,7 @@ export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
  * Get watch progress for a specific movie
  */
 export async function getWatchProgress(movieId: string): Promise<SingleProgressResponse> {
-  const response = await fetch(`${API_URL}/watch-progress/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     headers: getAuthHeaders(),
   });
   
@@ -84,7 +83,7 @@ export async function updateWatchProgress(
   movieId: string,
   data: UpdateProgressRequest
 ): Promise<{ progress: WatchProgress }> {
-  const response = await fetch(`${API_URL}/watch-progress/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -102,7 +101,7 @@ export async function updateWatchProgress(
  * Delete watch progress for a movie
  */
 export async function deleteWatchProgress(movieId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/watch-progress/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

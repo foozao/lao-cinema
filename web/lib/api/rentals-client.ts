@@ -5,8 +5,7 @@
  */
 
 import { getAuthHeaders } from './auth-headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
 // TYPES
@@ -61,7 +60,7 @@ export interface CreateRentalRequest {
  * @param includeAll - Include all rentals (active and expired)
  */
 export async function getRentals(includeRecent = false, includeAll = false): Promise<RentalsResponse> {
-  const url = new URL(`${API_URL}/rentals`);
+  const url = new URL(`${API_BASE_URL}/rentals`);
   if (includeAll) {
     url.searchParams.set('includeAll', 'true');
   } else if (includeRecent) {
@@ -84,7 +83,7 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
  * Check rental status for a specific movie
  */
 export async function getRentalStatus(movieId: string): Promise<RentalStatusResponse> {
-  const response = await fetch(`${API_URL}/rentals/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
     headers: getAuthHeaders(),
   });
   
@@ -103,7 +102,7 @@ export async function createRental(
   movieId: string,
   data: CreateRentalRequest
 ): Promise<{ rental: Rental }> {
-  const response = await fetch(`${API_URL}/rentals/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -196,7 +195,7 @@ export interface PackRentalStatusResponse {
  * Check rental status for a specific pack
  */
 export async function getPackRentalStatus(packId: string): Promise<PackRentalStatusResponse> {
-  const response = await fetch(`${API_URL}/rentals/packs/${packId}`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
     headers: getAuthHeaders(),
   });
   
@@ -215,7 +214,7 @@ export async function createPackRental(
   packId: string,
   data: CreateRentalRequest
 ): Promise<{ rental: PackRental; pack: { id: string; slug: string; title: Record<string, string> } }> {
-  const response = await fetch(`${API_URL}/rentals/packs/${packId}`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -233,7 +232,7 @@ export async function createPackRental(
  * Check if user has access to a movie (via direct rental or pack rental)
  */
 export async function checkMovieAccess(movieId: string): Promise<AccessCheckResponse> {
-  const response = await fetch(`${API_URL}/rentals/access/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/access/${movieId}`, {
     headers: getAuthHeaders(),
   });
   

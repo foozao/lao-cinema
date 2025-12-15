@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
 import { getNotificationStatus, toggleNotification } from '@/lib/api/notifications-client';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 interface NotifyMeButtonProps {
   movieId: string;
@@ -70,7 +69,7 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     setIsSendingVerification(true);
     try {
       const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/auth/send-verification-email`, {
+      const response = await fetch(`${API_BASE_URL}/auth/send-verification-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

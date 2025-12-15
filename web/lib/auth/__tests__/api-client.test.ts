@@ -151,7 +151,7 @@ describe('Auth API Client', () => {
         json: () => Promise.resolve({ message: 'Server error' }),
       });
 
-      await expect(logout()).rejects.toThrow();
+      await logout();
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
     });
   });

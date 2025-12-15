@@ -8,8 +8,7 @@ import { Film, Settings, User as UserIcon, Loader2, Mail, CheckCircle2, AlertCir
 import { Button } from '@/components/ui/button';
 import { authApi, type UserStats } from '@/lib/auth';
 import { ProfilePageLayout } from '@/components/profile-page-layout';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
@@ -43,7 +42,7 @@ export default function ProfilePage() {
     
     try {
       const token = localStorage.getItem('lao_cinema_session_token');
-      const response = await fetch(`${API_URL}/auth/send-verification-email`, {
+      const response = await fetch(`${API_BASE_URL}/auth/send-verification-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

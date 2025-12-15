@@ -5,6 +5,7 @@
  * Manages session tokens and anonymous IDs.
  */
 
+import { API_BASE_URL } from '@/lib/config';
 import type {
   User,
   AuthResponse,
@@ -15,8 +16,6 @@ import type {
   UserStats,
   MigrationResult,
 } from './types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -67,7 +66,7 @@ async function authFetch(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  return fetch(`${API_URL}${endpoint}`, {
+  return fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
@@ -81,7 +80,7 @@ async function authFetch(
  * Register a new user
  */
 export async function register(credentials: RegisterCredentials): Promise<AuthResponse> {
-  const response = await authFetch('/auth/register', {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
@@ -103,7 +102,7 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
  * Login with email and password
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  const response = await authFetch('/auth/login', {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
@@ -125,41 +124,46 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
  * Logout (delete current session)
  */
 export async function logout(): Promise<void> {
-  const response = await authFetch('/auth/logout', {
+  const token = getRawSessionToken();
+  if (!token) return;
+
+  await fetch(`${API_BASE_URL}/auth/logout`, {
     method: 'POST',
   });
   
   // Remove token regardless of response
   removeSessionToken();
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Logout failed');
-  }
 }
 
 /**
  * Logout from all devices
  */
 export async function logoutAll(): Promise<void> {
-  const response = await authFetch('/auth/logout-all', {
+  const token = getRawSessionToken();
+  if (!token) return;
+
+  await fetch(`${API_BASE_URL}/auth/logout-all`, {
     method: 'POST',
   });
   
   // Remove token regardless of response
   removeSessionToken();
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Logout failed');
-  }
 }
 
 /**
  * Get current user
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await authFetch('/auth/me');
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   
   if (!response.ok) {
     if (response.status === 401) {
@@ -184,9 +188,18 @@ export async function getCurrentUser(): Promise<User> {
  * Update user profile
  */
 export async function updateProfile(data: UpdateProfileData): Promise<User> {
-  const response = await authFetch('/auth/me', {
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   });
   
   if (!response.ok) {
@@ -202,9 +215,18 @@ export async function updateProfile(data: UpdateProfileData): Promise<User> {
  * Change password
  */
 export async function changePassword(data: ChangePasswordData): Promise<void> {
-  const response = await authFetch('/auth/me/password', {
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me/password`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   });
   
   if (!response.ok) {
@@ -217,9 +239,18 @@ export async function changePassword(data: ChangePasswordData): Promise<void> {
  * Delete account
  */
 export async function deleteAccount(password: string): Promise<void> {
-  const response = await authFetch('/auth/me', {
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'DELETE',
     body: JSON.stringify({ password }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   });
   
   // Remove token regardless of response
@@ -239,7 +270,16 @@ export async function deleteAccount(password: string): Promise<void> {
  * Get user statistics
  */
 export async function getUserStats(): Promise<UserStats> {
-  const response = await authFetch('/users/me/stats');
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/me/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   
   if (!response.ok) {
     const error = await response.json();
@@ -254,9 +294,18 @@ export async function getUserStats(): Promise<UserStats> {
  * Migrate anonymous data to authenticated account
  */
 export async function migrateAnonymousData(anonymousId: string): Promise<MigrationResult> {
-  const response = await authFetch('/users/migrate', {
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/migrate`, {
     method: 'POST',
     body: JSON.stringify({ anonymousId }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   });
   
   if (!response.ok) {

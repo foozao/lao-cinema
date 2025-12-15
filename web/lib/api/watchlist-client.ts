@@ -5,8 +5,7 @@
  */
 
 import { getAuthHeaders } from './auth-headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
 // TYPES
@@ -45,7 +44,7 @@ export interface WatchlistStatusResponse {
  * Get user's complete watchlist
  */
 export async function getWatchlist(): Promise<WatchlistResponse> {
-  const response = await fetch(`${API_URL}/watchlist`, {
+  const response = await fetch(`${API_BASE_URL}/watchlist`, {
     headers: getAuthHeaders(),
   });
   
@@ -61,7 +60,7 @@ export async function getWatchlist(): Promise<WatchlistResponse> {
  * Check if a movie is in user's watchlist
  */
 export async function getWatchlistStatus(movieId: string): Promise<WatchlistStatusResponse> {
-  const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     headers: getAuthHeaders(),
   });
   
@@ -77,7 +76,7 @@ export async function getWatchlistStatus(movieId: string): Promise<WatchlistStat
  * Add a movie to watchlist
  */
 export async function addToWatchlist(movieId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -92,7 +91,7 @@ export async function addToWatchlist(movieId: string): Promise<void> {
  * Remove a movie from watchlist
  */
 export async function removeFromWatchlist(movieId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/watchlist/${movieId}`, {
+  const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
