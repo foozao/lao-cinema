@@ -6,15 +6,13 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { eq, and, or, gt, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, gt, desc, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, movies, watchProgress, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
+import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS } from '../config.js';
 import * as schema from '../db/schema.js';
-
-// Rental duration: 24 hours
-const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000;
 
 export default async function rentalRoutes(fastify: FastifyInstance) {
   
@@ -720,6 +718,22 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
           error: 'Not Found',
           message: 'Movie not found',
         });
+      }
+      
+      // Check per-movie rental limit (pre-alpha protection)
+      if (isPerMovieRentalLimitEnabled()) {
+        const [{ count }] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(rentals)
+          .where(eq(rentals.movieId, movieId));
+        
+        if (count >= MAX_RENTALS_PER_MOVIE) {
+          return reply.status(403).send({
+            error: 'Rental Limit Reached',
+            message: `This movie has reached its rental limit for testing (${MAX_RENTALS_PER_MOVIE} rentals). Please try another film.`,
+            code: 'MOVIE_RENTAL_LIMIT_REACHED',
+          });
+        }
       }
       
       // Check if user already has an active rental

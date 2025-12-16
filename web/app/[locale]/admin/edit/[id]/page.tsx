@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink, X, Bell, Mail, Copy, Check } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
+import { getProfileUrl } from '@/lib/images';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, StreamingPlatform, ExternalPlatform, Trailer } from '@/lib/types';
@@ -1825,7 +1826,7 @@ export default function EditMoviePage() {
                             <div className="flex items-start gap-3">
                               {member.person.profile_path && (
                                 <img
-                                  src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                                  src={getProfileUrl(member.person.profile_path, 'small')!}
                                   alt={getLocalizedText(member.person.name, 'en')}
                                   className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                                 />
@@ -1953,7 +1954,7 @@ export default function EditMoviePage() {
                             <div className="flex items-start gap-3">
                               {member.person.profile_path && (
                                 <img
-                                  src={`https://image.tmdb.org/t/p/w92${member.person.profile_path}`}
+                                  src={getProfileUrl(member.person.profile_path, 'small')!}
                                   alt={getLocalizedText(member.person.name, 'en')}
                                   className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                                 />

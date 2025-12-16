@@ -179,10 +179,12 @@ Option C — Self-hosted NGINX HLS (later stage)
 	•	HLS (HTTP Live Streaming)
 	•	Adaptive bitrate support
 
-5.3 Playback Security
-	•	Backend-generated signed playback URLs
-	•	Time-limited tokens
-	•	Optional: per-user watermarking
+5.3 Playback Security ✅ Implemented
+	•	Backend-generated signed playback URLs ✅
+	•	Time-limited tokens (15-min expiry) ✅
+	•	Session cookies for HLS segments (20-min expiry) ✅
+	•	Rental validation before token issuance ✅
+	•	Optional: per-user watermarking (not implemented)
 
 ⸻
 
@@ -278,7 +280,7 @@ REST Endpoints (Implemented ✅ / Planned)
 	•	/api/users/migrate ✅ (anonymous to authenticated)
 	•	/api/upload ✅ (file uploads)
 	•	/watchlist/* - planned
-	•	/stream/* (signed playback URL) - planned
+	•	/api/video-tokens ✅ (signed playback URL with rental validation)
 
 ⸻
 

@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         port: '3002',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/lao-cinema-images/**',
+      },
     ],
   },
   // Skip TypeScript checking during production build (checked during dev)

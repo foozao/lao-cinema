@@ -477,50 +477,81 @@ export default function UploadVideoPage() {
 
 ---
 
-## Security & Access Control
+## Security & Access Control ✅ Implemented
 
 ### Signed URLs
 
+**Status:** ✅ Fully implemented and working
+
 **Purpose:** Prevent unauthorized access and hotlinking
 
-**Implementation depends on provider:**
+**Current Implementation:**
 
-#### Cloudflare Stream
-```typescript
-// Automatic with token parameter
-const signedUrl = `${baseUrl}?token=${generateCloudflareToken(videoId, userId)}`;
+| Component | File | Description |
+|-----------|------|-------------|
+| Token Generation | `api/src/lib/video-token.ts` | HMAC-SHA256 signed tokens |
+| API Endpoint | `api/src/routes/video-tokens.ts` | Validates rental, issues token |
+| Video Server | `video-server/server.js` | Validates tokens, serves video |
+| Client | `web/lib/api/video-tokens-client.ts` | Requests signed URLs |
+
+**Security Flow:**
+
+```
+1. Client requests signed URL
+   POST /api/video-tokens { movieId, videoSourceId }
+   
+2. API validates:
+   - Video source exists and belongs to movie
+   - User has valid rental (direct or via pack)
+   - Supports both userId and anonymousId
+   
+3. API generates signed token:
+   - HMAC-SHA256 signature
+   - 15-minute expiration
+   - Encoded payload: movieId, userId/anonymousId, videoPath
+   
+4. Client receives signed URL:
+   http://video-server/videos/hls/movie-slug/master.m3u8?token=<signed-token>
+   
+5. Video server validates token on first request:
+   - Verifies HMAC signature
+   - Checks expiration
+   - Validates path matches token
+   - Issues session cookie (20-min) for subsequent segment requests
+   
+6. HLS segments use session cookie (no token in URL):
+   - Cookie scoped to movie directory
+   - Prevents need for token on every .ts segment request
 ```
 
-#### Bunny CDN
+**Token Format:**
 ```typescript
-// Token authentication
-const token = createHmac('sha256', apiKey)
-  .update(`${videoPath}${expiresAt}`)
-  .digest('base64url');
+// Payload structure
+interface VideoTokenPayload {
+  movieId: string;
+  userId?: string;      // For authenticated users
+  anonymousId?: string; // For anonymous users
+  videoPath: string;    // e.g., "hls/movie-slug/master.m3u8"
+  exp: number;          // Unix timestamp expiration
+}
 
-const signedUrl = `${baseUrl}?token=${token}&expires=${expiresAt}`;
+// Token format: base64url(payload).signature
+const token = `${encodedPayload}.${hmacSignature}`;
 ```
 
-#### AWS CloudFront
-```typescript
-import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+**Environment Variables:**
+- `VIDEO_TOKEN_SECRET` - HMAC secret key (required for production)
+- `VIDEO_SERVER_URL` - Base URL for video server
 
-const signedUrl = getSignedUrl({
-  url: videoUrl,
-  keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID,
-  privateKey: process.env.CLOUDFRONT_PRIVATE_KEY,
-  dateLessThan: new Date(Date.now() + 3600 * 1000).toISOString(),
-});
-```
+### Access Control Layers (Implemented)
 
-### Access Control Layers
-
-1. **Authentication** - User must be logged in
-2. **Authorization** - User has access to movie (subscription, purchase, etc.)
-3. **Time-Limited URLs** - Signed URLs expire (1-4 hours typical)
-4. **Rate Limiting** - Prevent abuse
-5. **Geo-Restrictions** (optional) - Block certain countries
-6. **Concurrent Stream Limits** (optional) - Prevent account sharing
+1. **Authentication** ✅ - Supports logged-in users OR anonymous users with ID
+2. **Authorization** ✅ - Validates rental exists and not expired
+3. **Time-Limited URLs** ✅ - Tokens expire in 15 minutes, sessions in 20 minutes
+4. **Path Validation** ✅ - Token only grants access to specific movie
+5. **Rate Limiting** - Planned (not yet implemented)
+6. **Geo-Restrictions** - Optional (not implemented)
+7. **Concurrent Stream Limits** - Optional (not implemented)
 
 ### DRM (Optional - For Premium Content)
 

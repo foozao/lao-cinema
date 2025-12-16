@@ -165,9 +165,19 @@ export default function MoviePage() {
       
       // Navigate to watch page
       router.push(`/movies/${id}/watch`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create rental:', error);
-      alert('Failed to complete rental. Please try again.');
+      
+      // Check if it's a rental limit error
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('rental limit')) {
+        alert('Alpha Testing Notice: This film has reached its testing rental limit. During our alpha phase, each film has a limited number of rentals available. Please try another film.');
+      } else {
+        alert('Failed to complete rental. Please try again.');
+      }
+      
+      // Re-throw to let modal handle error state
+      throw error;
     }
   };
 

@@ -352,9 +352,11 @@ export default function StaticContent() { }
 - [x] Trailers (YouTube + self-hosted)
 - [x] Person merge/alias system
 - [x] Audit logging for content changes
+- [x] Password reset flow (email-based with Brevo)
 
 **In Progress:**
-- [ ] Password reset flow (requires email service)
+- [ ] OAuth integration (Google/Apple sign-in) - architecture ready
+- [ ] Video transcoding pipeline automation
 
 **Planned:**
 - [ ] OAuth integration (Google/Apple sign-in)

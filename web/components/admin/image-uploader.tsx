@@ -190,7 +190,7 @@ export function ImageUploader({ type, onUploadSuccess }: ImageUploaderProps) {
           
           {selectedFile && (
             <div className="mt-2 text-sm text-gray-600">
-              {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+              {selectedFile.name} {selectedFile.size ? `(${(selectedFile.size / 1024).toFixed(1)} KB)` : ''}
             </div>
           )}
 

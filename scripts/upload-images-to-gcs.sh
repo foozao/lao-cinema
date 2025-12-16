@@ -1,11 +1,13 @@
 #!/bin/bash
-# Upload images to Google Cloud Storage
+# Upload images to Google Cloud Storage and update database URLs
 # Usage: 
 #   ./upload-images-to-gcs.sh logos              # Upload all logos
 #   ./upload-images-to-gcs.sh posters            # Upload all posters
 #   ./upload-images-to-gcs.sh backdrops          # Upload all backdrops
+#   ./upload-images-to-gcs.sh profiles           # Upload all profile images
 #   ./upload-images-to-gcs.sh all                # Upload all categories
 #   ./upload-images-to-gcs.sh logos --dry-run    # Dry run mode
+#   ./upload-images-to-gcs.sh all --update-db    # Upload and update database URLs
 
 set -e
 
@@ -18,7 +20,7 @@ PROJECT_ID="lao-cinema"
 IMAGE_SERVER_DIR="video-server/public"
 
 # Supported image categories
-SUPPORTED_CATEGORIES=("logos" "posters" "backdrops")
+SUPPORTED_CATEGORIES=("logos" "posters" "backdrops" "profiles")
 
 # Colors
 GREEN='\033[0;32m'
@@ -66,12 +68,22 @@ fi
 # Parse arguments
 CATEGORY="$1"
 DRY_RUN=""
+UPDATE_DB=""
 
-if [ "$2" == "--dry-run" ]; then
-    DRY_RUN="true"
-    log_warn "DRY RUN MODE - No files will be uploaded"
-    echo ""
-fi
+for arg in "$@"; do
+    case $arg in
+        --dry-run)
+            DRY_RUN="true"
+            log_warn "DRY RUN MODE - No files will be uploaded"
+            echo ""
+            ;;
+        --update-db)
+            UPDATE_DB="true"
+            log_info "Will update database URLs after upload"
+            echo ""
+            ;;
+    esac
+done
 
 # Show usage if no arguments
 if [ -z "$CATEGORY" ]; then
@@ -81,10 +93,12 @@ if [ -z "$CATEGORY" ]; then
     echo "  logos      - Upload logo images"
     echo "  posters    - Upload movie poster images"
     echo "  backdrops  - Upload backdrop/banner images"
+    echo "  profiles   - Upload profile images"
     echo "  all        - Upload all categories"
     echo ""
     echo "Options:"
     echo "  --dry-run  - Show what would be uploaded without actually uploading"
+    echo "  --update-db - Update database URLs after upload (Cloud SQL only)"
     echo ""
     echo "Examples:"
     echo "  $0 logos"
@@ -199,6 +213,121 @@ else
     log_info "  Logos: https://storage.googleapis.com/$BUCKET_NAME/logos/filename.png"
     log_info "  Posters: https://storage.googleapis.com/$BUCKET_NAME/posters/filename.jpg"
     log_info "  Backdrops: https://storage.googleapis.com/$BUCKET_NAME/backdrops/filename.jpg"
+    log_info "  Profiles: https://storage.googleapis.com/$BUCKET_NAME/profiles/filename.jpg"
+fi
+
+echo ""
+
+# Update database URLs if requested
+if [ -n "$UPDATE_DB" ] && [ -z "$DRY_RUN" ]; then
+    log_section "🔄 Updating Database URLs"
+    echo ""
+    
+    # Check if Cloud SQL proxy is running
+    if ! lsof -i:5433 > /dev/null 2>&1; then
+        log_error "Cloud SQL proxy is not running on port 5433"
+        log_error "Start it with: ./cloud-sql-proxy <CONNECTION_NAME> --port=5433"
+        exit 1
+    fi
+    
+    log_info "Connecting to Cloud SQL via proxy..."
+    
+    # Database configuration
+    CLOUD_DB_NAME="laocinema"
+    CLOUD_DB_USER="laocinema"
+    CLOUD_DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
+    GCS_BASE_URL="https://storage.googleapis.com/$BUCKET_NAME"
+    
+    # Update movie_images table
+    log_info "Updating movie_images URLs..."
+    PGPASSWORD=$CLOUD_DB_PASS psql -h 127.0.0.1 -p 5433 -U $CLOUD_DB_USER -d $CLOUD_DB_NAME << EOF
+-- Update poster URLs
+UPDATE movie_images 
+SET file_path = REPLACE(file_path, 'http://localhost:3002/posters/', '$GCS_BASE_URL/posters/')
+WHERE file_path LIKE 'http://localhost:3002/posters/%';
+
+-- Update backdrop URLs
+UPDATE movie_images 
+SET file_path = REPLACE(file_path, 'http://localhost:3002/backdrops/', '$GCS_BASE_URL/backdrops/')
+WHERE file_path LIKE 'http://localhost:3002/backdrops/%';
+
+-- Update logo URLs
+UPDATE movie_images 
+SET file_path = REPLACE(file_path, 'http://localhost:3002/logos/', '$GCS_BASE_URL/logos/')
+WHERE file_path LIKE 'http://localhost:3002/logos/%';
+EOF
+    
+    # Update person_images table
+    log_info "Updating person_images URLs..."
+    PGPASSWORD=$CLOUD_DB_PASS psql -h 127.0.0.1 -p 5433 -U $CLOUD_DB_USER -d $CLOUD_DB_NAME << EOF
+-- Update profile URLs
+UPDATE person_images 
+SET file_path = REPLACE(file_path, 'http://localhost:3002/profiles/', '$GCS_BASE_URL/profiles/')
+WHERE file_path LIKE 'http://localhost:3002/profiles/%';
+EOF
+    
+    # Update movies table (poster_path and backdrop_path)
+    log_info "Updating movies table URLs..."
+    PGPASSWORD=$CLOUD_DB_PASS psql -h 127.0.0.1 -p 5433 -U $CLOUD_DB_USER -d $CLOUD_DB_NAME << EOF
+-- Update poster_path
+UPDATE movies 
+SET poster_path = REPLACE(poster_path, 'http://localhost:3002/posters/', '$GCS_BASE_URL/posters/')
+WHERE poster_path LIKE 'http://localhost:3002/posters/%';
+
+-- Update backdrop_path
+UPDATE movies 
+SET backdrop_path = REPLACE(backdrop_path, 'http://localhost:3002/backdrops/', '$GCS_BASE_URL/backdrops/')
+WHERE backdrop_path LIKE 'http://localhost:3002/backdrops/%';
+
+-- Set poster_path from primary movie_images if NULL
+UPDATE movies m
+SET poster_path = mi.file_path
+FROM movie_images mi
+WHERE m.id = mi.movie_id 
+  AND mi.type = 'poster' 
+  AND mi.is_primary = true 
+  AND m.poster_path IS NULL;
+
+-- Set backdrop_path from primary movie_images if NULL
+UPDATE movies m
+SET backdrop_path = mi.file_path
+FROM movie_images mi
+WHERE m.id = mi.movie_id 
+  AND mi.type = 'backdrop' 
+  AND mi.is_primary = true 
+  AND m.backdrop_path IS NULL;
+EOF
+    
+    # Update people table (profile_path)
+    log_info "Updating people table URLs..."
+    PGPASSWORD=$CLOUD_DB_PASS psql -h 127.0.0.1 -p 5433 -U $CLOUD_DB_USER -d $CLOUD_DB_NAME << EOF
+-- Update profile_path
+UPDATE people 
+SET profile_path = REPLACE(profile_path, 'http://localhost:3002/profiles/', '$GCS_BASE_URL/profiles/')
+WHERE profile_path LIKE 'http://localhost:3002/profiles/%';
+
+-- Set profile_path from primary person_images if NULL
+UPDATE people p
+SET profile_path = pi.file_path
+FROM person_images pi
+WHERE p.id = pi.person_id 
+  AND pi.is_primary = true 
+  AND p.profile_path IS NULL;
+EOF
+    
+    # Update production_companies table (custom_logo_url)
+    log_info "Updating production_companies table URLs..."
+    PGPASSWORD=$CLOUD_DB_PASS psql -h 127.0.0.1 -p 5433 -U $CLOUD_DB_USER -d $CLOUD_DB_NAME << EOF
+-- Update custom_logo_url
+UPDATE production_companies 
+SET custom_logo_url = REPLACE(custom_logo_url, 'http://localhost:3002/logos/', '$GCS_BASE_URL/logos/')
+WHERE custom_logo_url LIKE 'http://localhost:3002/logos/%';
+EOF
+    
+    log_info "✅ Database URLs updated successfully"
+    echo ""
+    log_info "All localhost:3002 URLs have been replaced with GCS URLs"
+    log_info "Primary images have been set in movies/people tables where NULL"
 fi
 
 echo ""

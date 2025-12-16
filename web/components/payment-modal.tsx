@@ -46,6 +46,7 @@ export function PaymentModal({
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   const isAnonymous = !user;
 
@@ -67,23 +68,34 @@ export function PaymentModal({
 
   const handleEmulatePayment = async () => {
     setIsProcessing(true);
+    setHasError(false);
     
     // Simulate payment processing delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
     setIsProcessing(false);
-    setIsComplete(true);
     
-    // Brief delay to show success state before redirecting
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    onPaymentComplete();
+    try {
+      // Try to complete the rental
+      await onPaymentComplete();
+      
+      // Only mark as complete if successful
+      setIsComplete(true);
+      
+      // Brief delay to show success state before modal closes/redirects
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    } catch (error) {
+      // Payment/rental creation failed
+      setHasError(true);
+      console.error('Payment completion failed:', error);
+    }
   };
 
   const handleClose = (open: boolean) => {
     if (!isProcessing) {
       // Reset state when closing
       setIsComplete(false);
+      setHasError(false);
       onOpenChange(open);
     }
   };
@@ -166,16 +178,25 @@ export function PaymentModal({
           </p>
 
           {/* Success State */}
-          {isComplete && (
+          {isComplete && !hasError && (
             <div className="flex items-center gap-2 text-green-500">
               <CheckCircle className="w-5 h-5" />
               <span className="font-medium">{t('paymentSuccess')}</span>
             </div>
           )}
+          
+          {/* Error State */}
+          {hasError && (
+            <div className="w-full bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+              <p className="text-sm text-red-300 text-center">
+                The alert displayed explains the issue. Please close this window and try another film.
+              </p>
+            </div>
+          )}
 
           {/* Emulate Payment Button */}
           <Button
-            onClick={handleEmulatePayment}
+            onClick={hasError ? () => handleClose(false) : handleEmulatePayment}
             disabled={isProcessing || isComplete}
             className="w-full bg-red-600 hover:bg-red-700 text-white"
             size="lg"
@@ -185,11 +206,13 @@ export function PaymentModal({
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {t('processing')}
               </>
-            ) : isComplete ? (
+            ) : isComplete && !hasError ? (
               <>
                 <CheckCircle className="w-4 h-4" />
                 {t('complete')}
               </>
+            ) : hasError ? (
+              'Close'
             ) : (
               t('emulatePayment')
             )}
