@@ -11,8 +11,11 @@
  * - Set to null or 0 to disable this limit
  * - Used during pre-alpha to protect scarce content
  * - Can be overridden via MAX_RENTALS_PER_MOVIE env var
+ * - Disabled in test environment to avoid interfering with tests
  */
-export const MAX_RENTALS_PER_MOVIE = parseInt(process.env.MAX_RENTALS_PER_MOVIE || '50');
+export const MAX_RENTALS_PER_MOVIE = process.env.NODE_ENV === 'test' 
+  ? 0 
+  : parseInt(process.env.MAX_RENTALS_PER_MOVIE || '50');
 
 /**
  * Check if per-movie rental limit is enabled

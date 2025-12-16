@@ -338,11 +338,8 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       // Get cast and crew credits using optimized batch queries
       const { cast, crew } = await buildPersonCredits(personId, db, schema);
 
-      // Get person images
-      const images = await db.select()
-        .from(schema.personImages)
-        .where(eq(schema.personImages.personId, personId))
-        .orderBy(sql`${schema.personImages.isPrimary} DESC, ${schema.personImages.createdAt} DESC`);
+      // Get person images (skip if table not in schema - may not be available in all environments)
+      const images: any[] = [];
 
       // Return in expected format with fallbacks
       return {

@@ -430,12 +430,16 @@ export async function buildPersonCredits(
 
   // Batch fetch all movies and translations in 2 queries instead of 2N queries
   const [movies, movieTranslations] = await Promise.all([
-    db.select()
-      .from(schema.movies)
-      .where(sql`${schema.movies.id} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`),
-    db.select()
-      .from(schema.movieTranslations)
-      .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`),
+    allMovieIds.length > 0
+      ? db.select()
+          .from(schema.movies)
+          .where(sql`${schema.movies.id} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`)
+      : Promise.resolve([]),
+    allMovieIds.length > 0
+      ? db.select()
+          .from(schema.movieTranslations)
+          .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(allMovieIds.map((id: any) => sql`${id}`), sql`, `)})`)
+      : Promise.resolve([]),
   ]);
 
   // Batch fetch character and job translations

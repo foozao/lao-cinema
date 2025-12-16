@@ -246,6 +246,9 @@ describe('People Routes', () => {
         url: `/api/people/${person.id}`,
       });
 
+      if (response.statusCode !== 200) {
+        console.log('Error:', response.body);
+      }
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.id).toBe(person.id);
