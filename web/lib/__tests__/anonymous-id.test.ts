@@ -10,49 +10,16 @@ import {
   clearAnonymousId,
   hasAnonymousId,
 } from '../anonymous-id';
+import {
+  setupLocalStorageMock,
+  setupNavigatorMock,
+  setupScreenMock,
+} from './test-utils';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-    key: (index: number) => Object.keys(store)[index] || null,
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-});
-
-// Mock navigator and screen for fingerprinting
-Object.defineProperty(global, 'navigator', {
-  value: {
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Test Browser',
-    language: 'en-US',
-  },
-  configurable: true,
-});
-
-Object.defineProperty(global, 'screen', {
-  value: {
-    width: 1920,
-    height: 1080,
-    colorDepth: 24,
-  },
-  configurable: true,
-});
+// Setup mocks
+const localStorageMock = setupLocalStorageMock();
+setupNavigatorMock();
+setupScreenMock();
 
 describe('Anonymous ID', () => {
   beforeEach(() => {

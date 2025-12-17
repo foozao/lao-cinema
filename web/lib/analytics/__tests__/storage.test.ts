@@ -17,31 +17,15 @@ import {
   exportAnalyticsData,
 } from '../storage';
 import type { WatchSession, AnalyticsEvent } from '../types';
+import { 
+  setupLocalStorageMock, 
+  setWindowWidth,
+  createTestWatchSession,
+  createTestAnalyticsEvent,
+} from '../../__tests__/test-utils';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-    key: (index: number) => Object.keys(store)[index] || null,
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-});
+// Setup localStorage mock
+const localStorageMock = setupLocalStorageMock();
 
 // Store original window.innerWidth
 const originalInnerWidth = global.window?.innerWidth;
@@ -99,24 +83,21 @@ describe('Analytics Storage', () => {
   describe('getDeviceType', () => {
     afterEach(() => {
       // Restore original innerWidth
-      Object.defineProperty(window, 'innerWidth', {
-        value: originalInnerWidth || 1024,
-        writable: true,
-      });
+      setWindowWidth(originalInnerWidth || 1024);
     });
 
     it('should return desktop for width >= 1024', () => {
-      Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true });
+      setWindowWidth(1024);
       expect(getDeviceType()).toBe('desktop');
     });
 
     it('should return tablet for width >= 768 and < 1024', () => {
-      Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });
+      setWindowWidth(800);
       expect(getDeviceType()).toBe('tablet');
     });
 
     it('should return mobile for width < 768', () => {
-      Object.defineProperty(window, 'innerWidth', { value: 500, writable: true });
+      setWindowWidth(500);
       expect(getDeviceType()).toBe('mobile');
     });
   });

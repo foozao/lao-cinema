@@ -5,28 +5,14 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
+import { setupLocalStorageMock } from '../../__tests__/test-utils';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-  };
-})();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+// Setup localStorage mock with jest.fn() for spy assertions
+const localStorageMock = setupLocalStorageMock(true);
 
 // Import after mocks
 import {
