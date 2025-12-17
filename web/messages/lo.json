@@ -834,6 +834,10 @@
     "browseMovies": "ຊອກຫາຮູບເງົາ",
     "addedOn": "ເພີ່ມເມື່ອ",
     "comingSoon": "ໃກ້ຈະມາ",
-    "unavailable": "ບໍ່ພ້ອມໃຫ້ເບິ່ງ"
+    "unavailable": "ບໍ່ພ້ອມໃຫ້ເບິ່ງ",
+    "authRequired": "ຕ້ອງການບັນຊີ",
+    "authRequiredMessage": "ສ້າງບັນຊີ ຫຼື ເຂົ້າສູ່ລະບົບເພື່ອບັນທຶກຮູບເງົາໃສ່ລາຍການທີ່ຢາກເບິ່ງ.",
+    "createAccount": "ສ້າງບັນຊີ",
+    "signIn": "ເຂົ້າສູ່ລະບົບ"
   }
 }

@@ -15,6 +15,9 @@ if (!TEST_DATABASE_URL.includes('_test')) {
 
 const sql = postgres(TEST_DATABASE_URL);
 
+// Export sql for test usage
+export { sql };
+
 export async function cleanDatabase() {
   await sql`
     TRUNCATE TABLE 

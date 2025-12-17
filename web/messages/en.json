@@ -831,6 +831,10 @@
     "browseMovies": "Browse Movies",
     "addedOn": "Added",
     "comingSoon": "Coming Soon",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "authRequired": "Account Required",
+    "authRequiredMessage": "Create an account or login to save movies to your watchlist.",
+    "createAccount": "Create Account",
+    "signIn": "Sign In"
   }
 }

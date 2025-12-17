@@ -78,7 +78,11 @@ export async function getWatchlistStatus(movieId: string): Promise<WatchlistStat
 export async function addToWatchlist(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
   });
   
   if (!response.ok) {
