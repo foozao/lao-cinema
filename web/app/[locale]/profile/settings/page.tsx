@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/auth';
-import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe, User } from 'lucide-react';
+import { Lock, Trash2, Loader2, AlertTriangle, LogOut, ChevronDown, ChevronUp, Globe, User, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfilePageLayout } from '@/components/profile-page-layout';
+import { API_BASE_URL } from '@/lib/config';
 
 // Common timezone options - labelKey maps to translation keys
 const TIMEZONE_OPTIONS = [
@@ -28,6 +29,7 @@ const TIMEZONE_OPTIONS = [
 
 export default function SettingsPage() {
   const t = useTranslations('profile.settings');
+  const tProfile = useTranslations('profile');
   const { user, logout, refreshUser } = useAuth();
   
   // Display name state
@@ -50,6 +52,19 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
+  // Email change state
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  
+  // Email verification state
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+  
   // Account deletion state
   const [deletePassword, setDeletePassword] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -61,6 +76,35 @@ export default function SettingsPage() {
       setTimezone(user.timezone || 'Asia/Vientiane');
     }
   }, [user]);
+  
+  const sendVerificationEmail = async () => {
+    setIsSendingVerification(true);
+    setVerificationError('');
+    setVerificationSent(false);
+    
+    try {
+      const token = localStorage.getItem('lao_cinema_session_token');
+      const response = await fetch(`${API_BASE_URL}/auth/send-verification-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ locale: 'en' }),
+      });
+      
+      if (response.ok) {
+        setVerificationSent(true);
+      } else {
+        const data = await response.json();
+        setVerificationError(data.message || 'Failed to send verification email');
+      }
+    } catch (err) {
+      setVerificationError('Failed to send verification email');
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
   
   const handleDisplayNameChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +176,47 @@ export default function SettingsPage() {
       setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+  
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailSuccess(false);
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      setEmailError(t('email.errorInvalidEmail'));
+      return;
+    }
+    
+    // Check if same as current
+    if (user?.email.toLowerCase() === newEmail.toLowerCase()) {
+      setEmailError(t('email.errorSameEmail'));
+      return;
+    }
+    
+    setIsChangingEmail(true);
+    try {
+      await authApi.changeEmail({
+        newEmail,
+        password: emailPassword,
+      });
+      
+      setEmailSuccess(true);
+      setNewEmail('');
+      setEmailPassword('');
+      await refreshUser();
+      
+      setTimeout(() => {
+        setEmailSuccess(false);
+        setShowEmailForm(false);
+      }, 3000);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Failed to change email');
+    } finally {
+      setIsChangingEmail(false);
     }
   };
   
@@ -216,6 +301,169 @@ export default function SettingsPage() {
               )}
             </Button>
           </form>
+        </div>
+        
+        {/* Email Address */}
+        <div className="bg-gray-900 rounded-lg shadow-sm p-6 mb-6 border border-gray-700">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-cyan-900/50 rounded-lg">
+              <Mail className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-white">{t('email.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {t('email.description')}
+              </p>
+            </div>
+          </div>
+          
+          {/* Current Email & Status */}
+          <div className="mt-4 p-4 bg-gray-800/50 rounded-lg">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-300">{user?.email}</span>
+                {user?.emailVerified ? (
+                  <span className="inline-flex items-center gap-1 text-green-500 text-xs bg-green-900/30 px-2 py-0.5 rounded-full">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {tProfile('emailVerification.verified')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-amber-500 text-xs bg-amber-900/30 px-2 py-0.5 rounded-full">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    {tProfile('emailVerification.notVerified')}
+                  </span>
+                )}
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {!user?.emailVerified && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={sendVerificationEmail}
+                    disabled={isSendingVerification || verificationSent}
+                  >
+                    {isSendingVerification ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        {tProfile('emailVerification.sending')}
+                      </>
+                    ) : verificationSent ? (
+                      tProfile('emailVerification.sent')
+                    ) : (
+                      tProfile('emailVerification.sendVerification')
+                    )}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowEmailForm(!showEmailForm);
+                    if (!showEmailForm) {
+                      setEmailError('');
+                      setEmailSuccess(false);
+                    }
+                  }}
+                  className="text-gray-400 hover:text-gray-900 hover:bg-gray-200"
+                >
+                  {t('email.changeEmail')}
+                  {showEmailForm ? (
+                    <ChevronUp className="h-4 w-4 ml-1" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {verificationSent && (
+              <p className="mt-2 text-sm text-green-500">{tProfile('emailVerification.sentMessage')}</p>
+            )}
+            {verificationError && (
+              <p className="mt-2 text-sm text-red-500">{verificationError}</p>
+            )}
+          </div>
+          
+          {/* Change Email Form */}
+          {showEmailForm && (
+          <form onSubmit={handleChangeEmail} className="space-y-4 mt-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+            {emailError && (
+              <div className="rounded-md bg-red-900/50 border border-red-700 p-3">
+                <p className="text-sm text-red-400">{emailError}</p>
+              </div>
+            )}
+            
+            {emailSuccess && (
+              <div className="rounded-md bg-green-900/50 border border-green-700 p-3">
+                <p className="text-sm text-green-400">{t('email.successMessage')}</p>
+              </div>
+            )}
+            
+            {user?.emailVerified && (
+              <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3">
+                <p className="text-sm text-amber-400">
+                  ⚠️ {t('email.verificationNote')}
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="newEmail" className="text-white">{t('email.newEmail')}</Label>
+              <Input
+                id="newEmail"
+                type="email"
+                placeholder={t('email.newEmailPlaceholder')}
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+                disabled={isChangingEmail}
+                className="bg-gray-800 border-gray-600 text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emailPassword" className="text-white">{t('email.password')}</Label>
+              <Input
+                id="emailPassword"
+                type="password"
+                placeholder={t('email.passwordPlaceholder')}
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                required
+                disabled={isChangingEmail}
+                className="bg-gray-800 border-gray-600 text-white"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <Button type="submit" disabled={isChangingEmail} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+                {isChangingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('email.changing')}
+                  </>
+                ) : (
+                  t('email.change')
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowEmailForm(false);
+                  setNewEmail('');
+                  setEmailPassword('');
+                  setEmailError('');
+                }}
+                disabled={isChangingEmail}
+              >
+                {t('email.cancel')}
+              </Button>
+            </div>
+          </form>
+          )}
         </div>
         
         {/* Timezone */}

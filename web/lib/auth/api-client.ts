@@ -13,6 +13,7 @@ import type {
   RegisterCredentials,
   UpdateProfileData,
   ChangePasswordData,
+  ChangeEmailData,
   UserStats,
   MigrationResult,
 } from './types';
@@ -239,6 +240,34 @@ export async function changePassword(data: ChangePasswordData): Promise<void> {
     const error = await response.json();
     throw new Error(error.message || 'Failed to change password');
   }
+}
+
+/**
+ * Change email address
+ * Requires password confirmation, resets email verified status
+ */
+export async function changeEmail(data: ChangeEmailData): Promise<User> {
+  const token = getRawSessionToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me/email`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to change email');
+  }
+  
+  const result = await response.json();
+  return result.user;
 }
 
 /**

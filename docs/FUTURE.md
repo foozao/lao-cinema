@@ -1,6 +1,13 @@
 
 Possible Future Changes:
 
+* remove the "email verified" requirement for notifications
+  - reduce friction for user (especially after they just created an account)
+  - can we get bounce info from Brevo?
+  - if so, assume it's correct
+
+* add change e-mail functionality
+
 * some info on Lao cinema history
   - maybe a chronology
   - kind of like a wiki?

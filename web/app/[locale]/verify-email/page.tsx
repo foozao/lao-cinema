@@ -9,6 +9,7 @@ import { Footer } from '@/components/footer';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '@/lib/config';
+import { useAuth } from '@/lib/auth';
 
 type VerificationState = 'loading' | 'success' | 'error' | 'invalid';
 
@@ -16,6 +17,7 @@ export default function VerifyEmailPage() {
   const t = useTranslations('auth.verifyEmail');
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const { refreshUser } = useAuth();
   
   const [state, setState] = useState<VerificationState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -39,6 +41,8 @@ export default function VerifyEmailPage() {
 
       if (response.ok) {
         setState('success');
+        // Refresh user data so profile shows updated verification status
+        await refreshUser();
       } else {
         const data = await response.json();
         setErrorMessage(data.message || 'Verification failed');

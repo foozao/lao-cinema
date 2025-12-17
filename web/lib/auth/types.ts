@@ -48,6 +48,11 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export interface ChangeEmailData {
+  newEmail: string;
+  password: string;
+}
+
 export interface UserStats {
   totalRentals: number;
   activeRentals: number;

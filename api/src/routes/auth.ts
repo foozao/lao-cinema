@@ -16,6 +16,7 @@ import {
   deleteAllUserSessions,
   updateUser,
   updateUserPassword,
+  updateUserEmail,
   deleteUser,
   createPasswordResetToken,
   findValidPasswordResetToken,
@@ -372,6 +373,95 @@ export default async function authRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to change password',
+      });
+    }
+  });
+  
+  /**
+   * PATCH /api/auth/me/email
+   * Change email address
+   * Requires password confirmation and resets email verified status
+   */
+  fastify.patch('/auth/me/email', { preHandler: requireAuth }, async (request, reply) => {
+    const { newEmail, password } = request.body as {
+      newEmail: string;
+      password: string;
+    };
+    
+    // Validate input
+    if (!newEmail || !password) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'New email and password are required',
+      });
+    }
+    
+    if (!isValidEmail(newEmail)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid email format',
+      });
+    }
+    
+    try {
+      // Verify password
+      const user = await findUserById(request.userId!);
+      
+      if (!user || !user.passwordHash) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Cannot change email for OAuth-only accounts',
+        });
+      }
+      
+      const isValid = await verifyPassword(password, user.passwordHash);
+      
+      if (!isValid) {
+        return reply.status(401).send({
+          error: 'Unauthorized',
+          message: 'Password is incorrect',
+        });
+      }
+      
+      // Check if new email is same as current
+      if (user.email.toLowerCase() === newEmail.toLowerCase()) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'New email must be different from current email',
+        });
+      }
+      
+      // Check if email is already in use
+      const existingUser = await findUserByEmail(newEmail);
+      if (existingUser) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Email is already in use',
+        });
+      }
+      
+      // Update email (this also resets emailVerified to false)
+      const updatedUser = await updateUserEmail(request.userId!, newEmail);
+      
+      return reply.send({
+        success: true,
+        message: 'Email changed successfully. Please verify your new email address.',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          displayName: updatedUser.displayName,
+          profileImageUrl: updatedUser.profileImageUrl,
+          timezone: updatedUser.timezone,
+          role: updatedUser.role,
+          emailVerified: updatedUser.emailVerified,
+          createdAt: updatedUser.createdAt,
+        },
+      });
+    } catch (error) {
+      request.log.error({ error }, 'Email change failed');
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to change email',
       });
     }
   });

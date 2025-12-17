@@ -114,6 +114,23 @@ export async function updateUserPassword(userId: string, newPassword: string): P
 }
 
 /**
+ * Update user email
+ * Resets emailVerified to false since the new email needs verification
+ */
+export async function updateUserEmail(userId: string, newEmail: string): Promise<User> {
+  const [user] = await db.update(users)
+    .set({
+      email: newEmail.toLowerCase(),
+      emailVerified: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+  
+  return user;
+}
+
+/**
  * Update last login timestamp
  */
 export async function updateLastLogin(userId: string): Promise<void> {

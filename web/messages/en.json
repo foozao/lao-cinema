@@ -668,6 +668,23 @@
         "save": "Save",
         "successMessage": "Display name updated!"
       },
+      "email": {
+        "title": "Email Address",
+        "description": "Manage your email address and verification status",
+        "currentEmail": "Current Email",
+        "changeEmail": "Change Email",
+        "newEmail": "New Email Address",
+        "newEmailPlaceholder": "Enter new email",
+        "password": "Confirm Password",
+        "passwordPlaceholder": "Enter your password to confirm",
+        "change": "Change Email",
+        "changing": "Changing Email...",
+        "cancel": "Cancel",
+        "successMessage": "Email changed successfully! Please verify your new email address.",
+        "verificationNote": "Your email verification status will be reset. You'll need to verify your new email address.",
+        "errorSameEmail": "New email must be different from current email",
+        "errorInvalidEmail": "Please enter a valid email address"
+      },
       "timezone": {
         "title": "Time Zone",
         "description": "Set your timezone to display dates and times correctly",
