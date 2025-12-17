@@ -68,6 +68,10 @@ export default function PersonPage() {
   const personNameEn = getLocalizedText(person.name, 'en');
   const personNameLo = getLocalizedText(person.name, 'lo');
   const hasLaoName = personNameLo && personNameLo !== personNameEn;
+  
+  // Show current locale's name as primary, other as secondary
+  const primaryName = locale === 'lo' && hasLaoName ? personNameLo : personNameEn;
+  const secondaryName = locale === 'lo' && hasLaoName ? personNameEn : (hasLaoName ? personNameLo : null);
   const personPhoto = person.profile_path;
 
   return (
@@ -112,9 +116,9 @@ export default function PersonPage() {
           {/* Right Content - Name, Bio, Filmography */}
           <div className="flex-1 min-w-0">
             {/* Name */}
-            <h1 className="text-4xl md:text-5xl font-bold mb-1">{personNameEn}</h1>
-            {hasLaoName && (
-              <p className="text-xl md:text-2xl text-gray-300">{personNameLo}</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-1">{primaryName}</h1>
+            {secondaryName && (
+              <p className="text-xl md:text-2xl text-gray-300">{secondaryName}</p>
             )}
             
             {/* Nicknames */}
