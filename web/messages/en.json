@@ -3,7 +3,9 @@
     "loading": "Loading...",
     "error": "Something went wrong",
     "noResults": "No results found",
-    "goHome": "Go Home"
+    "goHome": "Go Home",
+    "readMore": "Read More",
+    "showLess": "Show Less"
   },
   "errors": {
     "pageNotFound": "Page Not Found",

@@ -26,6 +26,7 @@ import { TrailerPlayer } from '@/components/trailer-player';
 import { NotifyMeButton } from '@/components/notify-me-button';
 import { WatchlistButton } from '@/components/watchlist-button';
 import type { Movie } from '@/lib/types';
+import { TEXT_LIMITS } from '@/lib/config';
 
 export default function MoviePage() {
   const params = useParams();
@@ -52,6 +53,7 @@ export default function MoviePage() {
     poster_path?: string;
     short_count: number;
   }>>([]);
+  const [showFullOverview, setShowFullOverview] = useState(false);
 
   // Check for rental query param (redirect from watch page)
   useEffect(() => {
@@ -369,9 +371,35 @@ export default function MoviePage() {
                     {/* Overview */}
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold mb-2">{t('movie.overview')}</h3>
-                      <p className="text-gray-200 leading-relaxed">
+                      {/* Desktop: Full overview */}
+                      <p className="hidden md:block text-gray-200 leading-relaxed">
                         {overview}
                       </p>
+                      {/* Mobile: Truncated with Read More */}
+                      <div className="md:hidden">
+                        {(() => {
+                          const { mobileMaxLength, graceThreshold } = TEXT_LIMITS.movieOverview;
+                          const exceedsGrace = overview.length > mobileMaxLength + graceThreshold;
+                          const shouldTruncate = exceedsGrace && !showFullOverview;
+                          const displayText = shouldTruncate
+                            ? overview.slice(0, mobileMaxLength).trim() + '...'
+                            : overview;
+                          
+                          return (
+                            <>
+                              <p className="text-gray-200 leading-relaxed">{displayText}</p>
+                              {exceedsGrace && (
+                                <button
+                                  onClick={() => setShowFullOverview(!showFullOverview)}
+                                  className="mt-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+                                >
+                                  {showFullOverview ? t('common.showLess') : t('common.readMore')}
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {/* Part of Short Pack */}

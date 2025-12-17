@@ -28,3 +28,19 @@ export const SITE_NAME = 'Lao Cinema';
  * Development: http://localhost:3001/api
  */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Text truncation settings
+ */
+export const TEXT_LIMITS = {
+  // Biography truncation (universal - all screen sizes)
+  biography: {
+    maxLength: 400,
+    graceThreshold: 100, // Don't truncate if remaining text is less than this
+  },
+  // Movie overview truncation (mobile only)
+  movieOverview: {
+    mobileMaxLength: 200,
+    graceThreshold: 50,
+  },
+};

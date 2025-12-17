@@ -13,11 +13,7 @@ import { getLocalizedText, getBilingualName } from '@/lib/i18n';
 import { getPosterUrl, getProfileUrl } from '@/lib/images';
 import { getMovieUrl } from '@/lib/movie-url';
 import type { Movie, CastMember, CrewMember } from '@/lib/types';
-
-// Maximum characters to show before truncating biography
-const BIOGRAPHY_TRUNCATE_LENGTH = 400;
-// Grace threshold - don't truncate if remaining text is less than this
-const BIOGRAPHY_GRACE_THRESHOLD = 100;
+import { TEXT_LIMITS } from '@/lib/config';
 
 interface PersonCredit {
   movie: Movie;
@@ -154,10 +150,11 @@ export default function PersonPage() {
             {person.biography && (() => {
               const bioText = getLocalizedText(person.biography, locale);
               // Only truncate if we'd be hiding more than the grace threshold
-              const exceedsGrace = bioText.length > BIOGRAPHY_TRUNCATE_LENGTH + BIOGRAPHY_GRACE_THRESHOLD;
+              const { maxLength, graceThreshold } = TEXT_LIMITS.biography;
+              const exceedsGrace = bioText.length > maxLength + graceThreshold;
               const shouldTruncate = exceedsGrace && !showFullBio;
               const displayText = shouldTruncate 
-                ? bioText.slice(0, BIOGRAPHY_TRUNCATE_LENGTH).trim() + '...'
+                ? bioText.slice(0, maxLength).trim() + '...'
                 : bioText;
               
               return (
