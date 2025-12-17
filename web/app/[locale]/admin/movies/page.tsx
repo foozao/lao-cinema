@@ -80,27 +80,29 @@ export default function MoviesAdminPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">{t('allMovies')}</h2>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('allMovies')}</h2>
+        <div className="flex gap-2 flex-wrap">
           <Link href="/admin/import">
-            <Button variant="outline">
+            <Button variant="outline" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
-              {t('importFromTMDB')}
+              <span className="hidden sm:inline">{t('importFromTMDB')}</span>
+              <span className="sm:hidden">Import</span>
             </Button>
           </Link>
           <Link href="/admin/add">
-            <Button>
+            <Button className="flex-1 sm:flex-none">
               <Plus className="w-4 h-4 mr-2" />
-              {t('addNewMovie')}
+              <span className="hidden sm:inline">{t('addNewMovie')}</span>
+              <span className="sm:hidden">Add Movie</span>
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Search and Sort */}
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
             type="text"
@@ -111,12 +113,12 @@ export default function MoviesAdminPage() {
           />
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <ArrowUpDown className="w-4 h-4 text-gray-500" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
           >
             <option value="title-asc">{t('sortTitleAZ')}</option>
             <option value="title-desc">{t('sortTitleZA')}</option>

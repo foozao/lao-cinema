@@ -97,10 +97,10 @@ export default function PeopleAdminPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('allPeople')}</h2>
         <Link href="/admin/people/add">
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Add Person
           </Button>
@@ -110,7 +110,7 @@ export default function PeopleAdminPage() {
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
         {/* Search */}
-        <div className="relative max-w-md">
+        <div className="relative sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
             type="text"
@@ -122,11 +122,11 @@ export default function PeopleAdminPage() {
         </div>
 
         {/* Filters and Sort */}
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           {/* Department Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">{t('filter')}:</span>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 flex-shrink-0">{t('filter')}:</span>
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant={departmentFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -173,8 +173,8 @@ export default function PeopleAdminPage() {
           </div>
 
           {/* Sort Order */}
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm font-medium text-gray-700">{t('sort')}:</span>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <span className="text-sm font-medium text-gray-700 flex-shrink-0">{t('sort')}:</span>
             <Button
               variant="outline"
               size="sm"

@@ -220,11 +220,11 @@ export default function EditPersonPage() {
     <div>
       {/* Sticky Header */}
       <div className="sticky top-16 z-[5] bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-4 border-b border-gray-200 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Editing: <span className="text-gray-700">{nameEn || 'Person'}</span>
           </h2>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -260,7 +260,8 @@ export default function EditPersonPage() {
                 className={`gap-2 ${!hasChanges && !saving ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Changes'}
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Changes'}</span>
+                <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
               </Button>
             </span>
           </div>
