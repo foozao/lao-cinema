@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import { RegisterForm } from '@/components/auth/register-form';
 import { Header } from '@/components/header';
@@ -8,6 +9,10 @@ import { Footer } from '@/components/footer';
 
 export function RegisterPageContent() {
   const t = useTranslations('auth.register');
+  const searchParams = useSearchParams();
+  
+  // Get redirect URL from query parameters
+  const redirectTo = searchParams.get('redirect') || '/';
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
@@ -23,7 +28,7 @@ export function RegisterPageContent() {
           </div>
           
           {/* Register Form */}
-          <RegisterForm />
+          <RegisterForm redirectTo={redirectTo} />
           
           {/* Divider */}
           <div className="relative my-6">

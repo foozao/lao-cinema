@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Bell, BellOff, Loader2, UserPlus, Mail, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
 import { getNotificationStatus, toggleNotification } from '@/lib/api/notifications-client';
 import { API_BASE_URL } from '@/lib/config';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 interface NotifyMeButtonProps {
   movieId: string;
@@ -17,14 +18,18 @@ interface NotifyMeButtonProps {
 export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps) {
   const t = useTranslations('movie.notifications');
   const { user, isAuthenticated } = useAuth();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const hasAutoNotified = useRef(false);
 
-  // Check subscription status on mount
+  // Check subscription status on mount and handle action parameter
   useEffect(() => {
     if (!isAuthenticated) {
       setIsChecking(false);
@@ -35,6 +40,19 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
       try {
         const data = await getNotificationStatus(movieId);
         setIsSubscribed(data.subscribed);
+        
+        // Check if user was redirected here with auto_notify parameter
+        const autoNotify = searchParams.get('auto_notify');
+        if (autoNotify === 'true' && !data.subscribed && !hasAutoNotified.current) {
+          // Mark as processing to prevent duplicate subscriptions in React Strict Mode
+          hasAutoNotified.current = true;
+          
+          // Auto-subscribe after successful auth
+          const newStatus = await toggleNotification(movieId, false);
+          setIsSubscribed(newStatus);
+          // Clean up URL
+          window.history.replaceState({}, '', pathname);
+        }
       } catch (error) {
         console.error('Failed to check notification status:', error);
       } finally {
@@ -43,10 +61,14 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     };
 
     checkSubscription();
-  }, [movieId, isAuthenticated]);
+  }, [movieId, isAuthenticated, pathname, searchParams]);
 
   const handleToggleNotification = async () => {
-    if (!isAuthenticated) return;
+    // If not authenticated, show auth modal instead
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     
     // If user's email is not verified and they're trying to subscribe, show modal
     if (user && !user.emailVerified && !isSubscribed) {
@@ -88,56 +110,63 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     }
   };
 
-  // Not authenticated - show sign up prompt
-  if (!isAuthenticated) {
-    if (inline) {
-      return (
-        <div className="flex flex-wrap gap-2">
-          <Link href="/register">
-            <Button size="sm" className="gap-2 bg-white text-gray-900 hover:bg-gray-100">
-              <UserPlus className="w-4 h-4" />
-              {t('createAccount')}
-            </Button>
-          </Link>
-          <Link href="/login">
-            <Button size="sm" variant="outline" className="border-white/50 text-white hover:bg-white/10">
-              {t('signIn')}
-            </Button>
-          </Link>
-        </div>
-      );
-    }
+  // Auth required modal for unauthenticated users
+  const AuthRequiredModal = () => {
+    if (!showAuthModal) return null;
+    
+    // Create redirect URL with auto_notify parameter
+    const redirectUrl = `${pathname}?auto_notify=true`;
+    
     return (
-      <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4 mt-3">
-        <div className="flex items-start gap-3">
-          <Bell className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-blue-200 mb-1">
-              {t('wantToBeNotified')}
-            </h4>
-            <p className="text-sm text-blue-300/80 mb-3">
-              {t('signUpBenefits')}
-            </p>
-            <div className="flex gap-2">
-              <Link href="/register">
-                <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-                  <UserPlus className="w-4 h-4" />
-                  {t('createAccount')}
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button size="sm" variant="outline" className="border-blue-500/50 text-blue-300 hover:bg-blue-600/20">
-                  {t('signIn')}
-                </Button>
-              </Link>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/70"
+          onClick={() => setShowAuthModal(false)}
+        />
+        
+        {/* Modal */}
+        <div className="relative bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full shadow-xl">
+          <button
+            onClick={() => setShowAuthModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-blue-500/20 rounded-full">
+              <Bell className="w-6 h-6 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {t('authRequired')}
+              </h3>
+              <p className="text-gray-300 text-sm mb-4">
+                {t('authRequiredMessage')}
+              </p>
+              
+              <div className="flex flex-col gap-2">
+                <Link href={`/register?redirect=${encodeURIComponent(redirectUrl)}`} className="w-full">
+                  <Button className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                    <UserPlus className="w-4 h-4" />
+                    {t('createAccount')}
+                  </Button>
+                </Link>
+                <Link href={`/login?redirect=${encodeURIComponent(redirectUrl)}`} className="w-full">
+                  <Button variant="outline" className="w-full border-gray-500 bg-transparent text-gray-200 hover:text-white hover:bg-gray-800 hover:border-gray-400">
+                    {t('signIn')}
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
     );
-  }
+  };
 
-  // Verification modal for unverified users
+  // Verification modal for verified users
   const VerifyEmailModal = () => {
     if (!showVerifyModal) return null;
     
@@ -193,8 +222,8 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     );
   };
 
-  // Loading state
-  if (isChecking) {
+  // Loading state (only for authenticated users)
+  if (isChecking && isAuthenticated) {
     return (
       <Button variant="outline" size="sm" disabled className={`gap-2 ${inline ? 'border-white/50 text-white' : ''}`}>
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -203,20 +232,21 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
     );
   }
 
-  // Authenticated user - show toggle button
+  // Button styling based on auth and subscription status
   const baseClass = inline
-    ? isSubscribed
+    ? isAuthenticated && isSubscribed
       ? 'bg-green-500 text-white hover:bg-green-600'
       : 'bg-white text-gray-900 hover:bg-gray-100'
-    : isSubscribed
+    : isAuthenticated && isSubscribed
       ? 'bg-green-600/20 text-green-300 border-green-500/50 hover:bg-green-600/30'
       : '';
 
   return (
     <>
+      <AuthRequiredModal />
       <VerifyEmailModal />
       <Button
-        variant={isSubscribed ? "secondary" : "outline"}
+        variant={isAuthenticated && isSubscribed ? "secondary" : "outline"}
         size="sm"
         onClick={handleToggleNotification}
         disabled={isLoading}
@@ -224,12 +254,12 @@ export function NotifyMeButton({ movieId, inline = false }: NotifyMeButtonProps)
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
-        ) : isSubscribed ? (
+        ) : isAuthenticated && isSubscribed ? (
           <BellOff className="w-4 h-4" />
         ) : (
           <Bell className="w-4 h-4" />
         )}
-        {isSubscribed ? t('notifyMeEnabled') : t('notifyMe')}
+        {isAuthenticated && isSubscribed ? t('notifyMeEnabled') : t('notifyMe')}
       </Button>
     </>
   );

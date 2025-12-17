@@ -120,6 +120,8 @@
       "notifyMe": "Notify Me",
       "notifyMeEnabled": "Notification Set",
       "checking": "Checking...",
+      "authRequired": "Account Required",
+      "authRequiredMessage": "Create an account or login to get notified when this film becomes available.",
       "wantToBeNotified": "Want to be notified?",
       "signUpBenefits": "Create a free account to get notified when this film becomes available, plus track your watch history across devices.",
       "createAccount": "Create Account",

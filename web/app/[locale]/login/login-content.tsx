@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import { LoginForm } from '@/components/auth/login-form';
 import { Header } from '@/components/header';
@@ -8,6 +9,10 @@ import { Footer } from '@/components/footer';
 
 export function LoginPageContent() {
   const t = useTranslations('auth.login');
+  const searchParams = useSearchParams();
+  
+  // Get redirect URL from query parameters
+  const redirectTo = searchParams.get('redirect') || '/';
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
@@ -26,7 +31,7 @@ export function LoginPageContent() {
           </div>
           
           {/* Login Form */}
-          <LoginForm />
+          <LoginForm redirectTo={redirectTo} />
           
           {/* Divider */}
           <div className="relative my-6">

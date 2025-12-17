@@ -78,6 +78,7 @@ export async function subscribeToMovie(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
+    body: JSON.stringify({}),
   });
   
   if (!response.ok) {
