@@ -151,3 +151,13 @@ export function createTestAnalyticsEvent(overrides: Record<string, any> = {}) {
     ...overrides,
   };
 }
+
+/**
+ * Sets up a mock fetch function on global object.
+ * Returns the mock for use in tests.
+ */
+export function setupFetchMock() {
+  const mockFetch = jest.fn();
+  global.fetch = mockFetch;
+  return mockFetch;
+}

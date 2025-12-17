@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
+import { setupFetchMock } from '../../__tests__/test-utils';
 
 // Mock auth-headers module
 jest.mock('../auth-headers', () => ({
@@ -15,9 +16,8 @@ jest.mock('../auth-headers', () => ({
   })),
 }));
 
-// Mock fetch globally
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+// Setup fetch mock
+const mockFetch = setupFetchMock();
 
 // Import after mocks
 import {

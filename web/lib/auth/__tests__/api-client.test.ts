@@ -5,13 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { setupLocalStorageMock } from '../../__tests__/test-utils';
+import { setupLocalStorageMock, setupFetchMock } from '../../__tests__/test-utils';
 
-// Mock fetch globally
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
-
-// Setup localStorage mock with jest.fn() for spy assertions
+// Setup mocks
+const mockFetch = setupFetchMock();
 const localStorageMock = setupLocalStorageMock(true);
 
 // Import after mocks

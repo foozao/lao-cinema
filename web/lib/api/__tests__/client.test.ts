@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
+import { setupFetchMock } from '../../__tests__/test-utils';
 
 // Mock the auth client to control session token
 jest.mock('../../auth/api-client', () => ({
@@ -12,9 +13,8 @@ jest.mock('../../auth/api-client', () => ({
   getRawSessionToken: jest.fn(),
 }));
 
-// Mock fetch globally
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+// Setup fetch mock
+const mockFetch = setupFetchMock();
 
 // Import mocked modules
 import { getRawSessionToken } from '../../auth/api-client';
