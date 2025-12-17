@@ -66,13 +66,14 @@ export default defineConfig({
       },
     },
     {
-      command: 'PORT=3010 NEXT_PUBLIC_API_URL=http://localhost:3011/api npm run dev',
+      command: 'PORT=3010 NEXT_PUBLIC_API_URL=http://localhost:3011/api NEXT_BUILD_DIR=.next-e2e npm run dev',
       url: 'http://localhost:3010',
       reuseExistingServer: false,
       timeout: 120 * 1000,
       env: {
         PORT: '3010',
         NEXT_PUBLIC_API_URL: 'http://localhost:3011/api',
+        NEXT_BUILD_DIR: '.next-e2e',
       },
     },
   ],

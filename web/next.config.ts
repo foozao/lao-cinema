@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone', // Required for Docker deployment
+  distDir: process.env.NEXT_BUILD_DIR || '.next',
   images: {
     remotePatterns: [
       {
