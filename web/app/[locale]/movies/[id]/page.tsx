@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
-import { getLanguageName } from '@/lib/i18n/get-language-name';
 import { getBackdropUrl, getPosterUrl, getProfileUrl, getProductionCompanyLogoUrl } from '@/lib/images';
 import { getGenreKey } from '@/lib/genres';
 import { Badge } from '@/components/ui/badge';
@@ -723,14 +722,7 @@ export default function MoviePage() {
                 </div>
               )}
 
-              {/* Original Language */}
-              {movie.original_language && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">{t('movie.originalLanguage')}</p>
-                  <p className="font-medium">{getLanguageName(movie.original_language, t)}</p>
-                </div>
-              )}
-
+              
               {/* Production Countries */}
               {movie.production_countries && movie.production_countries.length > 0 && (
                 <div>
