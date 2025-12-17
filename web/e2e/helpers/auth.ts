@@ -59,7 +59,8 @@ export async function logoutUser(page: Page) {
   await page.click('[data-testid="user-menu-trigger"]');
   await page.click('[data-testid="logout-button"]');
   
-  await page.waitForURL(/\/(en|lo)\/?$/);
+  // Wait for logout to complete - user menu should disappear
+  await page.waitForSelector('[data-testid="user-menu-trigger"]', { state: 'hidden', timeout: 5000 });
 }
 
 export async function getAuthToken(page: Page): Promise<string | null> {

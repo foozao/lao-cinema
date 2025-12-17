@@ -62,7 +62,7 @@ test.describe('Authentication', () => {
     
     await page.click('button[type="submit"]');
     
-    await expect(page.locator('.text-red-800')).toContainText('Invalid email or password');
+    await expect(page.locator('[data-testid="form-error"]')).toContainText('Invalid email or password');
   });
 
   test('should logout successfully', async ({ page }) => {
@@ -124,6 +124,6 @@ test.describe('Authentication', () => {
     await page.click('button[type="submit"]');
     
     // Check for password mismatch error
-    await expect(page.locator('.text-red-800')).toBeVisible();
+    await expect(page.locator('[data-testid="form-error"]')).toBeVisible();
   });
 });

@@ -51,7 +51,7 @@ export function LoginForm({ redirectTo = '/', onSuccess }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-md bg-red-950/50 border border-red-800 p-4">
+        <div className="rounded-md bg-red-950/50 border border-red-800 p-4" data-testid="form-error">
           <p className="text-sm text-red-200">{error}</p>
         </div>
       )}
