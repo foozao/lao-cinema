@@ -23,6 +23,9 @@ export function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {
   const separatorColor = variant === 'dark' ? 'text-gray-500' : 'text-gray-400';
   const hoverClass = variant === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100';
 
+  // On mobile, show only the language you can switch TO
+  const switchToLabel = locale === 'en' ? 'ລາວ' : 'English';
+
   return (
     <Button
       variant="ghost"
@@ -32,11 +35,16 @@ export function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {
       aria-label={t('switchLanguage')}
       data-testid="language-toggle"
     >
-      <span className={`font-medium text-lg leading-none ${textColor}`}>
+      {/* Mobile: Show only the inactive language */}
+      <span className={`md:hidden font-medium ${locale === 'en' ? 'text-lg leading-none' : ''} ${textColor}`}>
+        {switchToLabel}
+      </span>
+      {/* Desktop: Show both languages */}
+      <span className={`hidden md:inline font-medium text-lg leading-none ${textColor}`}>
         ລາວ
       </span>
-      <span className={separatorColor}>/</span>
-      <span className={`font-medium ${textColor}`}>
+      <span className={`hidden md:inline ${separatorColor}`}>/</span>
+      <span className={`hidden md:inline font-medium ${textColor}`}>
         English
       </span>
     </Button>
