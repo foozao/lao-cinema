@@ -7,9 +7,10 @@ import { UserMenu } from '@/components/auth/user-menu';
 interface HeaderProps {
   variant?: 'light' | 'dark';
   fullWidth?: boolean; // Use full width instead of container
+  minimal?: boolean; // Minimal version without user menu
 }
 
-export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
+export function Header({ variant = 'light', fullWidth = false, minimal = false }: HeaderProps) {
   const t = useTranslations();
 
   const bgClass = variant === 'dark' 
@@ -35,7 +36,7 @@ export function Header({ variant = 'light', fullWidth = false }: HeaderProps) {
             </h1>
           </Link>
           <div className="flex items-center gap-4">
-            <UserMenu variant={variant} />
+            {!minimal && <UserMenu variant={variant} />}
             <LanguageSwitcher variant={variant} />
           </div>
         </div>
