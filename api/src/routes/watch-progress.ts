@@ -10,6 +10,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { watchProgress, movies } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
+import { buildDualModeWhereClause } from '../lib/auth-helpers.js';
 
 export default async function watchProgressRoutes(fastify: FastifyInstance) {
   
@@ -25,10 +26,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      // Build where clause for dual-mode
-      const whereClause = userId 
-        ? eq(watchProgress.userId, userId)
-        : eq(watchProgress.anonymousId, anonymousId!);
+      const whereClause = buildDualModeWhereClause(request, watchProgress);
       
       const progressRecords = await db.select({
         id: watchProgress.id,
@@ -75,10 +73,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      // Build where clause for dual-mode
-      const userClause = userId 
-        ? eq(watchProgress.userId, userId)
-        : eq(watchProgress.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, watchProgress);
       
       const [progress] = await db.select()
         .from(watchProgress)
@@ -166,10 +161,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
         ? completed 
         : (progressSeconds / durationSeconds) > 0.9;
       
-      // Check if progress already exists
-      const userClause = userId 
-        ? eq(watchProgress.userId, userId)
-        : eq(watchProgress.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, watchProgress);
       
       const [existingProgress] = await db.select()
         .from(watchProgress)

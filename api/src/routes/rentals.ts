@@ -10,6 +10,7 @@ import { eq, and, or, gt, desc, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, movies, watchProgress, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
+import { buildDualModeWhereClause } from '../lib/auth-helpers.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS } from '../config.js';
 import * as schema from '../db/schema.js';
@@ -32,10 +33,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { includeRecent, includeAll } = request.query as { includeRecent?: string; includeAll?: string };
     
     try {
-      // Build where clause for dual-mode
-      const whereClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const whereClause = buildDualModeWhereClause(request, rentals);
       
       const userRentals = await db.select({
         id: rentals.id,
@@ -256,9 +254,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       // Check for direct movie rental
       const [directRental] = await db.select()
@@ -340,9 +336,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       const [rental] = await db.select({
         id: rentals.id,
@@ -419,10 +413,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      // Build where clause for dual-mode
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       // Check for direct movie rental first
       const [directRental] = await db.select()
@@ -552,9 +543,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       }
       
       // Check if user already has an active rental for this pack
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       const [existingRental] = await db.select()
         .from(rentals)
@@ -737,9 +726,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       }
       
       // Check if user already has an active rental
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       const [existingRental] = await db.select()
         .from(rentals)
@@ -812,9 +799,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     
     try {
       // Verify rental belongs to user
-      const userClause = userId 
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
+      const userClause = buildDualModeWhereClause(request, rentals);
       
       const [rental] = await db.select()
         .from(rentals)
