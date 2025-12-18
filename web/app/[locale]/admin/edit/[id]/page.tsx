@@ -1,33 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter, Link } from '@/i18n/routing';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, RefreshCw, AlertCircle, Trash2, ChevronDown, ChevronRight, CheckCircle, ExternalLink, X, Bell, Mail, Copy, Check } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, CheckCircle, Bell, Mail, Copy, Check } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
-import { translateCrewJob } from '@/lib/i18n/translate-crew-job';
-import { getProfileUrl } from '@/lib/images';
 import { useTranslations } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
-import type { Movie, StreamingPlatform, ExternalPlatform, Trailer } from '@/lib/types';
+import type { Movie, Trailer, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { getRawSessionToken } from '@/lib/auth/api-client';
 import { useAuth } from '@/lib/auth';
-import { PosterManager } from '@/components/admin/poster-manager';
-import { PersonSearch } from '@/components/admin/person-search';
-import { ProductionCompanySearch } from '@/components/admin/production-company-search';
 import { EntityHistory } from '@/components/admin/entity-history';
-import { ImageUploader } from '@/components/admin/image-uploader';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 import { API_BASE_URL } from '@/lib/config';
+
+import { ContentTab } from './components/ContentTab';
+import { MediaTab } from './components/MediaTab';
+import { CastCrewTab } from './components/CastCrewTab';
+import {
+  MovieFormData,
+  CastTranslations,
+  CrewTranslations,
+  AvailabilityStatus,
+  initialFormData,
+  loadFormDataFromMovie,
+  buildCastTranslations,
+  buildCrewTranslations,
+} from './components/types';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -37,76 +41,38 @@ export default function EditMoviePage() {
   const isAdmin = user?.role === 'admin';
   const movieId = params.id as string;
   
+  // Core state
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
+  const [formData, setFormData] = useState<MovieFormData>(initialFormData);
+  const [slugError, setSlugError] = useState<string | null>(null);
+  
+  // Cast/crew translations state
+  const [castTranslations, setCastTranslations] = useState<CastTranslations>({});
+  const [crewTranslations, setCrewTranslations] = useState<CrewTranslations>({});
+  
+  // Media state
+  const [trailers, setTrailers] = useState<Trailer[]>([]);
+  const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
+  const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('auto');
+  
+  // Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [fetchingImages, setFetchingImages] = useState(false);
-  const [formData, setFormData] = useState({
-    // English fields
-    title_en: '',
-    overview_en: '',
-    tagline_en: '',
-    
-    // Lao fields
-    title_lo: '',
-    overview_lo: '',
-    tagline_lo: '',
-    
-    // Common fields
-    slug: '',
-    type: 'feature' as 'feature' | 'short',
-    original_title: '',
-    original_language: 'lo',
-    release_date: '',
-    runtime: '',
-    vote_average: '',
-    status: 'Released',
-    budget: '',
-    revenue: '',
-    homepage: '',
-    imdb_id: '',
-    poster_path: '',
-    backdrop_path: '',
-    video_url: '',
-    video_quality: 'original',
-    video_format: 'mp4',
-    video_aspect_ratio: '',
-  });
-
-  // State for cast/crew translations
-  const [castTranslations, setCastTranslations] = useState<Record<string, { character_en: string; character_lo: string }>>({});
-  const [crewTranslations, setCrewTranslations] = useState<Record<string, { job_en: string; job_lo: string }>>({});
-  const [editingCast, setEditingCast] = useState<string | null>(null);
-  const [editingCrew, setEditingCrew] = useState<string | null>(null);
   
-  // State for external platforms
-  const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
-  
-  // State for trailers
-  const [trailers, setTrailers] = useState<Trailer[]>([]);
-  
-  // State for availability status
-  const [availabilityStatus, setAvailabilityStatus] = useState<'auto' | 'available' | 'external' | 'unavailable' | 'coming_soon'>('auto');
-  
-  // Track if form has been modified
+  // Change tracking
   const [hasChanges, setHasChanges] = useState(false);
+  const [originalFormData, setOriginalFormData] = useState<MovieFormData>(initialFormData);
+  const [originalCastTranslations, setOriginalCastTranslations] = useState<CastTranslations>({});
+  const [originalCrewTranslations, setOriginalCrewTranslations] = useState<CrewTranslations>({});
+  const [originalTrailers, setOriginalTrailers] = useState<Trailer[]>([]);
+  const [originalExternalPlatforms, setOriginalExternalPlatforms] = useState<ExternalPlatform[]>([]);
+  const [originalAvailabilityStatus, setOriginalAvailabilityStatus] = useState<AvailabilityStatus>('auto');
   
-  // Original values for change detection
-  const [originalFormData, setOriginalFormData] = useState(formData);
-  const [originalCastTranslations, setOriginalCastTranslations] = useState(castTranslations);
-  const [originalCrewTranslations, setOriginalCrewTranslations] = useState(crewTranslations);
-  const [originalTrailers, setOriginalTrailers] = useState(trailers);
-  const [originalExternalPlatforms, setOriginalExternalPlatforms] = useState(externalPlatforms);
-  const [originalAvailabilityStatus, setOriginalAvailabilityStatus] = useState(availabilityStatus);
-  
-  // Success modal state
+  // Modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  // Sync result modal state
   const [showSyncResultModal, setShowSyncResultModal] = useState(false);
   const [syncChanges, setSyncChanges] = useState<string[]>([]);
-  
-  // Notification subscribers modal state
   const [showSubscribersModal, setShowSubscribersModal] = useState(false);
   const [subscribers, setSubscribers] = useState<Array<{
     id: string;
@@ -117,39 +83,77 @@ export default function EditMoviePage() {
   }>>([]);
   const [copiedEmails, setCopiedEmails] = useState(false);
   const [subscribersChecked, setSubscribersChecked] = useState(false);
-  
+
+  // Load movie data on mount
+  useEffect(() => {
+    const loadMovie = async () => {
+      try {
+        const movie = await movieAPI.getById(movieId);
+        setCurrentMovie(movie);
+        
+        const formDataFromMovie = loadFormDataFromMovie(movie);
+        setFormData(formDataFromMovie);
+        setOriginalFormData(formDataFromMovie);
+        
+        const castTrans = buildCastTranslations(movie);
+        setCastTranslations(castTrans);
+        setOriginalCastTranslations({...castTrans});
+        
+        const crewTrans = buildCrewTranslations(movie);
+        setCrewTranslations(crewTrans);
+        setOriginalCrewTranslations({...crewTrans});
+        
+        const initialPlatforms = movie.external_platforms || [];
+        setExternalPlatforms(initialPlatforms);
+        setOriginalExternalPlatforms([...initialPlatforms]);
+        
+        const initialStatus = (movie.availability_status || 'auto') as AvailabilityStatus;
+        setAvailabilityStatus(initialStatus);
+        setOriginalAvailabilityStatus(initialStatus);
+        
+        const initialTrailers = movie.trailers || [];
+        setTrailers(initialTrailers);
+        setOriginalTrailers([...initialTrailers]);
+      } catch (error) {
+        console.error('Failed to load movie:', error);
+        setSyncError('Failed to load movie from database');
+      }
+    };
+
+    loadMovie();
+  }, [movieId]);
+
+  // Change detection
+  useEffect(() => {
+    const formDataChanged = Object.keys(formData).some(
+      (key) => formData[key as keyof MovieFormData] !== originalFormData[key as keyof MovieFormData]
+    );
+    const castChanged = JSON.stringify(castTranslations) !== JSON.stringify(originalCastTranslations);
+    const crewChanged = JSON.stringify(crewTranslations) !== JSON.stringify(originalCrewTranslations);
+    const platformsChanged = JSON.stringify(externalPlatforms) !== JSON.stringify(originalExternalPlatforms);
+    const statusChanged = availabilityStatus !== originalAvailabilityStatus;
+    const trailersChanged = JSON.stringify(trailers) !== JSON.stringify(originalTrailers);
+
+    setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged || trailersChanged);
+  }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, trailers, 
+      originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, 
+      originalAvailabilityStatus, originalTrailers]);
+
   // Check for notification subscribers when status changes to available
   useEffect(() => {
     const checkSubscribers = async () => {
-      // Only check if status changed from coming_soon/unavailable to available/external/auto
       const wasUnavailable = originalAvailabilityStatus === 'coming_soon' || originalAvailabilityStatus === 'unavailable';
       const nowAvailable = availabilityStatus === 'available' || availabilityStatus === 'external' || availabilityStatus === 'auto';
       
-      console.log('Checking subscribers:', { 
-        originalAvailabilityStatus, 
-        availabilityStatus, 
-        wasUnavailable, 
-        nowAvailable, 
-        subscribersChecked 
-      });
-      
       if (wasUnavailable && nowAvailable && !subscribersChecked && isAdmin) {
-        console.log('Fetching subscribers for movie:', movieId);
         try {
           const token = getRawSessionToken();
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          };
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          const response = await fetch(`${API_BASE_URL}/admin/notifications/movies/${movieId}/subscribers`, {
-            headers,
-          });
-          console.log('Subscribers API response:', response.status);
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          
+          const response = await fetch(`${API_BASE_URL}/admin/notifications/movies/${movieId}/subscribers`, { headers });
           if (response.ok) {
             const data = await response.json();
-            console.log('Subscribers data:', data);
             if (data.subscribers && data.subscribers.length > 0) {
               setSubscribers(data.subscribers);
               setShowSubscribersModal(true);
@@ -161,195 +165,35 @@ export default function EditMoviePage() {
         }
       }
       
-      // Reset check flag if status goes back to unavailable
-      if (!nowAvailable) {
-        setSubscribersChecked(false);
-      }
+      if (!nowAvailable) setSubscribersChecked(false);
     };
     
-    if (currentMovie) {
-      checkSubscribers();
-    }
+    if (currentMovie) checkSubscribers();
   }, [availabilityStatus, originalAvailabilityStatus, movieId, subscribersChecked, currentMovie, isAdmin]);
-  
-  // State for adding new cast/crew
-  const [showAddCast, setShowAddCast] = useState(false);
-  const [showAddCrew, setShowAddCrew] = useState(false);
-  const [selectedCastPerson, setSelectedCastPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
-  const [selectedCrewPerson, setSelectedCrewPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
-  const [newCastCharacterEn, setNewCastCharacterEn] = useState('');
-  const [newCastCharacterLo, setNewCastCharacterLo] = useState('');
-  const [newCrewDepartment, setNewCrewDepartment] = useState('Directing');
-  const [newCrewJobEn, setNewCrewJobEn] = useState('');
-  const [newCrewJobLo, setNewCrewJobLo] = useState('');
-  const [addingCast, setAddingCast] = useState(false);
-  const [addingCrew, setAddingCrew] = useState(false);
-  const [slugError, setSlugError] = useState<string | null>(null);
-  
-  // State for production companies
-  const [showAddProductionCompany, setShowAddProductionCompany] = useState(false);
-  const [addingProductionCompany, setAddingProductionCompany] = useState(false);
 
-  // Load movie data on mount
-  useEffect(() => {
-    const loadMovie = async () => {
-      try {
-        const movie = await movieAPI.getById(movieId);
-        setCurrentMovie(movie);
-        
-        setFormData({
-          title_en: movie.title.en,
-          title_lo: movie.title.lo || '',
-          overview_en: movie.overview.en,
-          overview_lo: movie.overview.lo || '',
-          tagline_en: movie.tagline?.en || '',
-          tagline_lo: movie.tagline?.lo || '',
-          slug: movie.slug || '',
-          type: movie.type || 'feature',
-          original_title: movie.original_title || '',
-          original_language: movie.original_language || 'lo',
-          release_date: movie.release_date,
-          runtime: movie.runtime?.toString() || '',
-          vote_average: movie.vote_average?.toString() || '',
-          status: movie.status || 'Released',
-          budget: movie.budget?.toString() || '',
-          revenue: movie.revenue?.toString() || '',
-          homepage: movie.homepage || '',
-          imdb_id: movie.imdb_id || '',
-          poster_path: movie.poster_path || '',
-          backdrop_path: movie.backdrop_path || '',
-          video_url: movie.video_sources[0]?.url || '',
-          video_quality: movie.video_sources[0]?.quality || 'original',
-          video_format: movie.video_sources[0]?.format || 'mp4',
-          video_aspect_ratio: movie.video_sources[0]?.aspect_ratio || '',
-        });
-
-        // Initialize cast translations
-        const castTrans: Record<string, { character_en: string; character_lo: string }> = {};
-        movie.cast.forEach((member) => {
-          const key = `${member.person.id}`;
-          castTrans[key] = {
-            character_en: member.character.en || '',
-            character_lo: member.character.lo || '',
-          };
-        });
-        setCastTranslations(castTrans);
-
-        // Initialize crew translations
-        const crewTrans: Record<string, { job_en: string; job_lo: string }> = {};
-        movie.crew.forEach((member) => {
-          const key = `${member.person.id}-${member.department}`;
-          crewTrans[key] = {
-            job_en: member.job.en || '',
-            job_lo: member.job.lo || '',
-          };
-        });
-        setCrewTranslations(crewTrans);
-
-        // Initialize external platforms
-        const initialPlatforms = movie.external_platforms || [];
-        setExternalPlatforms(initialPlatforms);
-
-        // Load availability status
-        const initialStatus = movie.availability_status || '';
-        setAvailabilityStatus(initialStatus);
-        
-        // Load trailers
-        const initialTrailers = movie.trailers || [];
-        setTrailers(initialTrailers);
-        
-        // Store original values for change detection (must use local variables, not state)
-        const initialFormData = {
-          title_en: movie.title.en,
-          title_lo: movie.title.lo || '',
-          overview_en: movie.overview.en,
-          overview_lo: movie.overview.lo || '',
-          tagline_en: movie.tagline?.en || '',
-          tagline_lo: movie.tagline?.lo || '',
-          slug: movie.slug || '',
-          type: movie.type || 'feature',
-          original_title: movie.original_title || '',
-          original_language: movie.original_language || 'lo',
-          release_date: movie.release_date,
-          runtime: movie.runtime?.toString() || '',
-          vote_average: movie.vote_average?.toString() || '',
-          status: movie.status || 'Released',
-          budget: movie.budget?.toString() || '',
-          revenue: movie.revenue?.toString() || '',
-          homepage: movie.homepage || '',
-          imdb_id: movie.imdb_id || '',
-          poster_path: movie.poster_path || '',
-          backdrop_path: movie.backdrop_path || '',
-          video_url: movie.video_sources[0]?.url || '',
-          video_quality: movie.video_sources[0]?.quality || 'original',
-          video_format: movie.video_sources[0]?.format || 'mp4',
-          video_aspect_ratio: movie.video_sources[0]?.aspect_ratio || '',
-        };
-        setOriginalFormData(initialFormData);
-        setOriginalCastTranslations({...castTrans});
-        setOriginalCrewTranslations({...crewTrans});
-        setOriginalExternalPlatforms([...initialPlatforms]);
-        setOriginalAvailabilityStatus(initialStatus);
-        setOriginalTrailers([...initialTrailers]);
-      } catch (error) {
-        console.error('Failed to load movie:', error);
-        setSyncError('Failed to load movie from database');
-      }
-    };
-
-    loadMovie();
-  }, [movieId]);
-
-  // Detect changes by comparing current values to originals
-  useEffect(() => {
-    // Compare formData
-    const formDataChanged = Object.keys(formData).some(
-      (key) => formData[key as keyof typeof formData] !== originalFormData[key as keyof typeof originalFormData]
-    );
-
-    // Compare cast translations
-    const castChanged = JSON.stringify(castTranslations) !== JSON.stringify(originalCastTranslations);
-
-    // Compare crew translations
-    const crewChanged = JSON.stringify(crewTranslations) !== JSON.stringify(originalCrewTranslations);
-
-    // Compare external platforms
-    const platformsChanged = JSON.stringify(externalPlatforms) !== JSON.stringify(originalExternalPlatforms);
-
-    // Compare availability status
-    const statusChanged = availabilityStatus !== originalAvailabilityStatus;
-
-    // Compare trailers
-    const trailersChanged = JSON.stringify(trailers) !== JSON.stringify(originalTrailers);
-    
-    if (trailersChanged) {
-      console.log('Trailers changed detected!');
-      console.log('Current trailers:', trailers);
-      console.log('Original trailers:', originalTrailers);
-    }
-
-    setHasChanges(formDataChanged || castChanged || crewChanged || platformsChanged || statusChanged || trailersChanged);
-  }, [formData, castTranslations, crewTranslations, externalPlatforms, availabilityStatus, trailers, originalFormData, originalCastTranslations, originalCrewTranslations, originalExternalPlatforms, originalAvailabilityStatus, originalTrailers]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  // Form handlers
+  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    
-    // Auto-sanitize as user types
-    const sanitized = sanitizeSlug(value);
+  const handleSlugChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = sanitizeSlug(e.target.value);
     setFormData((prev) => ({ ...prev, slug: sanitized }));
-    
-    // Validate
-    const error = getSlugValidationError(sanitized);
-    setSlugError(error);
-  };
+    setSlugError(getSlugValidationError(sanitized));
+  }, []);
 
+  const handleSlugGenerate = useCallback(() => {
+    const generated = sanitizeSlug(formData.title_en);
+    setFormData((prev) => ({ ...prev, slug: generated }));
+    setSlugError(getSlugValidationError(generated));
+  }, [formData.title_en]);
+
+  const handleSelectChange = useCallback((name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  // TMDB Sync
   const handleSync = async () => {
     if (!currentMovie?.tmdb_id) {
       setSyncError('This movie does not have a TMDB ID');
@@ -360,37 +204,19 @@ export default function EditMoviePage() {
     setSyncError(null);
 
     try {
-      // Fetch latest data from TMDB via Server Action
       const result = await syncMovieFromTMDB(currentMovie.tmdb_id);
-      
       if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to sync from TMDB');
       }
 
-      const tmdbData = result.data;
-      const credits = result.credits;
-      const images = result.images;
-      const videos = result.videos;
-      
-      console.log('TMDB videos response:', videos);
-      console.log('Videos results:', videos?.results);
-      
-      // Map to our schema, preserving Lao translations
-      // Note: mapper signature is (tmdbData, credits?, images?, videos?, existingMovie?)
-      const syncedData = mapTMDBToMovie(tmdbData, credits, images, videos, currentMovie);
+      const syncedData = mapTMDBToMovie(result.data, result.credits, result.images, result.videos, currentMovie);
 
       // Update form with synced data (preserving Lao fields)
       setFormData((prev) => ({
         ...prev,
-        // Update English content from TMDB
         title_en: syncedData.title.en,
         overview_en: syncedData.overview.en,
         tagline_en: syncedData.tagline?.en || '',
-        // Preserve Lao content
-        title_lo: prev.title_lo,
-        overview_lo: prev.overview_lo,
-        tagline_lo: prev.tagline_lo,
-        // Update metadata
         runtime: syncedData.runtime?.toString() || '',
         vote_average: syncedData.vote_average?.toString() || '',
         budget: syncedData.budget?.toString() || '',
@@ -400,23 +226,14 @@ export default function EditMoviePage() {
         backdrop_path: syncedData.backdrop_path || '',
       }));
       
-      // Update trailers
-      console.log('Synced trailers from TMDB:', syncedData.trailers);
       setTrailers(syncedData.trailers || []);
+      setCurrentMovie((prev) => prev ? { ...prev, ...syncedData, images: syncedData.images } : null);
 
-      // Update currentMovie with synced data including images
-      setCurrentMovie((prev) => prev ? {
-        ...prev,
-        ...syncedData,
-        images: syncedData.images,
-      } : null);
-
-      // Update cast translations state with synced character names
+      // Update cast/crew translations
       if (syncedData.cast) {
-        const castTrans: Record<string, { character_en: string; character_lo: string }> = {};
+        const castTrans: CastTranslations = {};
         syncedData.cast.forEach((member) => {
-          const key = `${member.person.id}`;
-          castTrans[key] = {
+          castTrans[`${member.person.id}`] = {
             character_en: member.character.en || '',
             character_lo: member.character.lo || '',
           };
@@ -424,12 +241,10 @@ export default function EditMoviePage() {
         setCastTranslations(castTrans);
       }
 
-      // Update crew translations state with synced job titles
       if (syncedData.crew) {
-        const crewTrans: Record<string, { job_en: string; job_lo: string }> = {};
+        const crewTrans: CrewTranslations = {};
         syncedData.crew.forEach((member) => {
-          const key = `${member.person.id}-${member.department}`;
-          crewTrans[key] = {
+          crewTrans[`${member.person.id}-${member.department}`] = {
             job_en: member.job.en || '',
             job_lo: member.job.lo || '',
           };
@@ -437,46 +252,20 @@ export default function EditMoviePage() {
         setCrewTranslations(crewTrans);
       }
 
-      // Detect what changed (only check editable fields)
+      // Detect changes
       const changes: string[] = [];
-      // Editable text fields
       if (currentMovie.title.en !== syncedData.title.en) changes.push('Title');
       if (currentMovie.overview.en !== syncedData.overview.en) changes.push('Overview');
       if (currentMovie.tagline?.en !== syncedData.tagline?.en) changes.push('Tagline');
       if (currentMovie.runtime !== syncedData.runtime) changes.push('Runtime');
-      // Image paths (editable via poster manager)
-      // Normalize null/undefined/empty string to null for comparison
-      const normalizePath = (path: string | null | undefined) => path || null;
-      if (normalizePath(currentMovie.poster_path) !== normalizePath(syncedData.poster_path)) changes.push('Poster');
-      if (normalizePath(currentMovie.backdrop_path) !== normalizePath(syncedData.backdrop_path)) changes.push('Backdrop');
-      // Trailers - compare by YouTube keys to avoid false positives from property differences
-      const currentTrailerKeys = (currentMovie.trailers || [])
-        .filter(t => t.type === 'youtube')
-        .map(t => t.key)
-        .sort()
-        .join(',');
-      const syncedTrailerKeys = (syncedData.trailers || [])
-        .filter(t => t.type === 'youtube')
-        .map(t => t.key)
-        .sort()
-        .join(',');
-      if (currentTrailerKeys !== syncedTrailerKeys) changes.push('Trailers');
-      // Cast/Crew (editable via add/remove buttons)
+      if ((currentMovie.poster_path || null) !== (syncedData.poster_path || null)) changes.push('Poster');
+      if ((currentMovie.backdrop_path || null) !== (syncedData.backdrop_path || null)) changes.push('Backdrop');
       if (currentMovie.cast?.length !== syncedData.cast?.length) changes.push('Cast');
       if (currentMovie.crew?.length !== syncedData.crew?.length) changes.push('Crew');
-      // Images (editable via poster manager)
       if (currentMovie.images?.length !== syncedData.images?.length) changes.push('Images');
-      // Production Companies
-      if (currentMovie.production_companies?.length !== syncedData.production_companies?.length) changes.push('Production Companies');
       
       setSyncChanges(changes);
-      
-      // Mark form as changed only if there are actual changes
-      if (changes.length > 0) {
-        setHasChanges(true);
-      }
-      
-      // Show sync result modal
+      if (changes.length > 0) setHasChanges(true);
       setShowSyncResultModal(true);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync from TMDB');
@@ -485,43 +274,26 @@ export default function EditMoviePage() {
     }
   };
 
-  const handlePrimaryImageChange = async (
-    imageId: string,
-    type: 'poster' | 'backdrop' | 'logo'
-  ) => {
+  // Image handlers
+  const handlePrimaryImageChange = async (imageId: string, type: 'poster' | 'backdrop' | 'logo') => {
     if (!currentMovie) return;
     const selected = currentMovie.images?.find((img) => img.id === imageId && img.type === type);
     if (!selected) return;
 
-    // Update form data with selected image path
-    if (type === 'poster') {
-      setFormData((prev) => ({ ...prev, poster_path: selected.file_path }));
-    } else if (type === 'backdrop') {
-      setFormData((prev) => ({ ...prev, backdrop_path: selected.file_path }));
-    }
+    if (type === 'poster') setFormData((prev) => ({ ...prev, poster_path: selected.file_path }));
+    else if (type === 'backdrop') setFormData((prev) => ({ ...prev, backdrop_path: selected.file_path }));
 
-    // Update currentMovie to mark the selected image as primary
-    setCurrentMovie((prev) =>
-      prev
-        ? {
-            ...prev,
-            images: prev.images?.map((img) =>
-              img.type === type
-                ? { ...img, is_primary: img.id === imageId }
-                : img
-            ),
-          }
-        : null
-    );
+    setCurrentMovie((prev) => prev ? {
+      ...prev,
+      images: prev.images?.map((img) => img.type === type ? { ...img, is_primary: img.id === imageId } : img),
+    } : null);
 
-    // If the image has a real UUID (not temporary ID like "poster-0"), persist to database
     const isTemporaryId = imageId.startsWith('poster-') || imageId.startsWith('backdrop-') || imageId.startsWith('logo-');
     if (!isTemporaryId) {
       try {
         await movieAPI.setPrimaryImage(movieId, imageId, type);
       } catch (error) {
         console.error('Failed to persist primary image:', error);
-        // Don't show error to user - it will be saved when they save the form
       }
     }
   };
@@ -534,67 +306,32 @@ export default function EditMoviePage() {
     
     try {
       const result = await fetchMovieImages(currentMovie.tmdb_id);
-      
       if (!result.success || !result.images) {
         throw new Error(result.error || 'Failed to fetch images from TMDB');
       }
 
-      const images = result.images;
-      
-      // Map images to MovieImage format
-      const mappedImages = [];
-      
-      images.posters.forEach((poster, index) => {
-        mappedImages.push({
-          id: `poster-${index}`,
-          type: 'poster' as const,
-          file_path: poster.file_path,
-          aspect_ratio: poster.aspect_ratio,
-          height: poster.height,
-          width: poster.width,
-          iso_639_1: poster.iso_639_1,
-          vote_average: poster.vote_average,
-          vote_count: poster.vote_count,
-          is_primary: index === 0,
-        });
-      });
-      
-      images.backdrops.forEach((backdrop, index) => {
-        mappedImages.push({
-          id: `backdrop-${index}`,
-          type: 'backdrop' as const,
-          file_path: backdrop.file_path,
-          aspect_ratio: backdrop.aspect_ratio,
-          height: backdrop.height,
-          width: backdrop.width,
-          iso_639_1: backdrop.iso_639_1,
-          vote_average: backdrop.vote_average,
-          vote_count: backdrop.vote_count,
-          is_primary: index === 0,
-        });
-      });
-      
-      images.logos.forEach((logo, index) => {
-        mappedImages.push({
-          id: `logo-${index}`,
-          type: 'logo' as const,
-          file_path: logo.file_path,
-          aspect_ratio: logo.aspect_ratio,
-          height: logo.height,
-          width: logo.width,
-          iso_639_1: logo.iso_639_1,
-          vote_average: logo.vote_average,
-          vote_count: logo.vote_count,
+      const mappedImages = [
+        ...result.images.posters.map((p, i) => ({
+          id: `poster-${i}`, type: 'poster' as const, file_path: p.file_path,
+          aspect_ratio: p.aspect_ratio, height: p.height, width: p.width,
+          iso_639_1: p.iso_639_1, vote_average: p.vote_average, vote_count: p.vote_count,
+          is_primary: i === 0,
+        })),
+        ...result.images.backdrops.map((b, i) => ({
+          id: `backdrop-${i}`, type: 'backdrop' as const, file_path: b.file_path,
+          aspect_ratio: b.aspect_ratio, height: b.height, width: b.width,
+          iso_639_1: b.iso_639_1, vote_average: b.vote_average, vote_count: b.vote_count,
+          is_primary: i === 0,
+        })),
+        ...result.images.logos.map((l, i) => ({
+          id: `logo-${i}`, type: 'logo' as const, file_path: l.file_path,
+          aspect_ratio: l.aspect_ratio, height: l.height, width: l.width,
+          iso_639_1: l.iso_639_1, vote_average: l.vote_average, vote_count: l.vote_count,
           is_primary: false,
-        });
-      });
+        })),
+      ];
 
-      // Update currentMovie with fetched images
-      setCurrentMovie((prev) => prev ? {
-        ...prev,
-        images: mappedImages,
-      } : null);
-
+      setCurrentMovie((prev) => prev ? { ...prev, images: mappedImages } : null);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to fetch images from TMDB');
     } finally {
@@ -602,251 +339,142 @@ export default function EditMoviePage() {
     }
   };
 
-  // Silent save for cast/crew updates
+  const handleImageAdded = async () => {
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
+  };
+
+  const handleImageDeleted = async (imageId: string) => {
+    await movieAPI.deleteImage(movieId, imageId);
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
+  };
+
+  const handleAddImage = async (type: 'poster' | 'backdrop', url: string) => {
+    try {
+      await movieAPI.addImage(movieId, {
+        type,
+        filePath: url,
+        isPrimary: !currentMovie?.images?.some(img => img.type === type && img.is_primary),
+      });
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (err) {
+      console.error(`Failed to save ${type}:`, err);
+    }
+  };
+
+  // Cast/Crew handlers
   const saveCastCrewUpdates = async () => {
     if (!currentMovie) return;
     
-    try {
-      // Normalize Lao text to prevent encoding issues
-      const normalizeLao = (text: string) => text.normalize('NFC');
-      
-      // Prepare cast with updated translations
-      const updatedCast = currentMovie.cast.map((member) => {
-        const key = `${member.person.id}`;
-        const trans = castTranslations[key];
-        return {
-          person: member.person,
-          character: {
-            en: trans?.character_en || member.character.en || '',
-            lo: trans?.character_lo ? normalizeLao(trans.character_lo) : member.character.lo,
-          },
-          order: member.order,
-        };
-      });
-
-      // Prepare crew with updated translations
-      const updatedCrew = currentMovie.crew.map((member) => {
-        const key = `${member.person.id}-${member.department}`;
-        const trans = crewTranslations[key];
-        return {
-          person: member.person,
-          job: {
-            en: trans?.job_en || member.job.en || '',
-            lo: trans?.job_lo ? normalizeLao(trans.job_lo) : member.job.lo,
-          },
-          department: member.department,
-        };
-      });
-      
-      // Update only cast and crew
-      const updateData = {
-        cast: updatedCast,
-        crew: updatedCrew,
-      };
-
-      await movieAPI.update(movieId, updateData);
-    } catch (error) {
-      console.error('Failed to save cast/crew updates:', error);
-    }
-  };
-
-  // Handler for selecting a person for cast
-  const handleSelectCastPerson = (person: { id: number; name: { en?: string; lo?: string } }) => {
-    setSelectedCastPerson(person);
-  };
-
-  // Handler for submitting a new cast member
-  const handleSubmitCast = async () => {
-    if (!currentMovie || !selectedCastPerson) return;
+    const normalizeLao = (text: string) => text.normalize('NFC');
     
-    try {
-      setAddingCast(true);
-      await castCrewAPI.addCast(movieId, {
-        person_id: selectedCastPerson.id,
+    const updatedCast = currentMovie.cast.map((member) => {
+      const trans = castTranslations[`${member.person.id}`];
+      return {
+        person: member.person,
         character: {
-          en: newCastCharacterEn || '',
-          lo: newCastCharacterLo || undefined,
+          en: trans?.character_en || member.character.en || '',
+          lo: trans?.character_lo ? normalizeLao(trans.character_lo) : member.character.lo,
         },
-      });
-      
-      // Reload movie to get updated cast list
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-      
-      // Reset form
-      setSelectedCastPerson(null);
-      setNewCastCharacterEn('');
-      setNewCastCharacterLo('');
-    } catch (error) {
-      console.error('Failed to add cast member:', error);
-      alert('Failed to add cast member');
-    } finally {
-      setAddingCast(false);
-    }
-  };
+        order: member.order,
+      };
+    });
 
-  // Handler for selecting a person for crew
-  const handleSelectCrewPerson = (person: { id: number; name: { en?: string; lo?: string } }) => {
-    setSelectedCrewPerson(person);
-  };
-
-  // Handler for submitting a new crew member
-  const handleSubmitCrew = async () => {
-    if (!currentMovie || !selectedCrewPerson) return;
-    
-    try {
-      setAddingCrew(true);
-      await castCrewAPI.addCrew(movieId, {
-        person_id: selectedCrewPerson.id,
-        department: newCrewDepartment,
+    const updatedCrew = currentMovie.crew.map((member) => {
+      const trans = crewTranslations[`${member.person.id}-${member.department}`];
+      return {
+        person: member.person,
         job: {
-          en: newCrewJobEn || newCrewDepartment,
-          lo: newCrewJobLo || undefined,
+          en: trans?.job_en || member.job.en || '',
+          lo: trans?.job_lo ? normalizeLao(trans.job_lo) : member.job.lo,
         },
-      });
-      
-      // Reload movie to get updated crew list
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-      
-      // Reset form
-      setSelectedCrewPerson(null);
-      setNewCrewJobEn('');
-      setNewCrewJobLo('');
-    } catch (error) {
-      console.error('Failed to add crew member:', error);
-      alert('Failed to add crew member');
-    } finally {
-      setAddingCrew(false);
-    }
+        department: member.department,
+      };
+    });
+    
+    await movieAPI.update(movieId, { cast: updatedCast, crew: updatedCrew });
   };
 
-  // Handler for creating a new person and selecting as cast
-  const handleCreatePersonForCast = async (name: string) => {
-    try {
-      const newPerson = await peopleAPI.create({
-        name: { en: name },
-        known_for_department: 'Acting',
-      });
-      setSelectedCastPerson(newPerson);
-    } catch (error) {
-      console.error('Failed to create person:', error);
-      alert('Failed to create person');
-    }
+  const handleAddCast = async (person: { id: number; name: { en?: string; lo?: string } }, characterEn: string, characterLo: string) => {
+    await castCrewAPI.addCast(movieId, {
+      person_id: person.id,
+      character: { en: characterEn || '', lo: characterLo || undefined },
+    });
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for creating a new person and selecting as crew
-  const handleCreatePersonForCrew = async (name: string) => {
-    try {
-      const newPerson = await peopleAPI.create({
-        name: { en: name },
-        known_for_department: newCrewDepartment,
-      });
-      setSelectedCrewPerson(newPerson);
-    } catch (error) {
-      console.error('Failed to create person:', error);
-      alert('Failed to create person');
-    }
+  const handleAddCrew = async (person: { id: number; name: { en?: string; lo?: string } }, department: string, jobEn: string, jobLo: string) => {
+    await castCrewAPI.addCrew(movieId, {
+      person_id: person.id,
+      department,
+      job: { en: jobEn || department, lo: jobLo || undefined },
+    });
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for removing a cast member
   const handleRemoveCast = async (personId: number) => {
-    if (!currentMovie || !confirm('Remove this cast member?')) return;
-    
-    try {
-      await castCrewAPI.removeCast(movieId, personId);
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-    } catch (error) {
-      console.error('Failed to remove cast member:', error);
-      alert('Failed to remove cast member');
-    }
+    if (!confirm('Remove this cast member?')) return;
+    await castCrewAPI.removeCast(movieId, personId);
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for removing a crew member
   const handleRemoveCrew = async (personId: number, department: string) => {
-    if (!currentMovie || !confirm('Remove this crew member?')) return;
-    
-    try {
-      await castCrewAPI.removeCrew(movieId, personId, department);
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-    } catch (error) {
-      console.error('Failed to remove crew member:', error);
-      alert('Failed to remove crew member');
-    }
+    if (!confirm('Remove this crew member?')) return;
+    await castCrewAPI.removeCrew(movieId, personId, department);
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for adding a production company
+  const handleCreatePersonForCast = async (name: string) => {
+    const newPerson = await peopleAPI.create({ name: { en: name }, known_for_department: 'Acting' });
+    return newPerson;
+  };
+
+  const handleCreatePersonForCrew = async (name: string, department: string) => {
+    const newPerson = await peopleAPI.create({ name: { en: name }, known_for_department: department });
+    return newPerson;
+  };
+
+  // Production company handlers
   const handleAddProductionCompany = async (company: { id: number; name: { en?: string; lo?: string } }) => {
-    if (!currentMovie) return;
-    
-    try {
-      setAddingProductionCompany(true);
-      await movieProductionCompaniesAPI.add(movieId, { company_id: company.id });
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-      setShowAddProductionCompany(false);
-    } catch (error) {
-      console.error('Failed to add production company:', error);
-      alert('Failed to add production company');
-    } finally {
-      setAddingProductionCompany(false);
-    }
+    await movieProductionCompaniesAPI.add(movieId, { company_id: company.id });
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for creating a new production company
   const handleCreateProductionCompany = async (name: string) => {
-    if (!currentMovie) return;
-    
-    try {
-      setAddingProductionCompany(true);
-      // Create the company first
-      const newCompany = await productionCompaniesAPI.create({ name: { en: name } });
-      // Then add it to the movie
-      await movieProductionCompaniesAPI.add(movieId, { company_id: newCompany.id });
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-      setShowAddProductionCompany(false);
-    } catch (error) {
-      console.error('Failed to create production company:', error);
-      alert('Failed to create production company');
-    } finally {
-      setAddingProductionCompany(false);
-    }
+    const newCompany = await productionCompaniesAPI.create({ name: { en: name } });
+    await movieProductionCompaniesAPI.add(movieId, { company_id: newCompany.id });
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
-  // Handler for removing a production company
   const handleRemoveProductionCompany = async (companyId: number) => {
-    if (!currentMovie || !confirm('Remove this production company?')) return;
-    
-    try {
-      await movieProductionCompaniesAPI.remove(movieId, companyId);
-      const updatedMovie = await movieAPI.getById(movieId);
-      setCurrentMovie(updatedMovie);
-    } catch (error) {
-      console.error('Failed to remove production company:', error);
-      alert('Failed to remove production company');
-    }
+    if (!confirm('Remove this production company?')) return;
+    await movieProductionCompaniesAPI.remove(movieId, companyId);
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
   };
 
+  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate slug before submitting
     if (formData.slug && slugError) {
       alert('Please fix the slug error before saving.');
       return;
     }
     
     try {
-      // Normalize Lao text to prevent encoding issues
       const normalizeLao = (text: string) => text.normalize('NFC');
       
-      // Prepare cast with updated translations
       const updatedCast = currentMovie?.cast.map((member) => {
-        const key = `${member.person.id}`;
-        const trans = castTranslations[key];
+        const trans = castTranslations[`${member.person.id}`];
         return {
           person: member.person,
           character: {
@@ -857,10 +485,8 @@ export default function EditMoviePage() {
         };
       }) || [];
 
-      // Prepare crew with updated translations
       const updatedCrew = currentMovie?.crew.map((member) => {
-        const key = `${member.person.id}-${member.department}`;
-        const trans = crewTranslations[key];
+        const trans = crewTranslations[`${member.person.id}-${member.department}`];
         return {
           person: member.person,
           job: {
@@ -871,16 +497,9 @@ export default function EditMoviePage() {
         };
       }) || [];
       
-      // Prepare the update data
       const updateData = {
-        title: {
-          en: formData.title_en,
-          lo: formData.title_lo ? normalizeLao(formData.title_lo) : undefined,
-        },
-        overview: {
-          en: formData.overview_en,
-          lo: formData.overview_lo ? normalizeLao(formData.overview_lo) : undefined,
-        },
+        title: { en: formData.title_en, lo: formData.title_lo ? normalizeLao(formData.title_lo) : undefined },
+        overview: { en: formData.overview_en, lo: formData.overview_lo ? normalizeLao(formData.overview_lo) : undefined },
         tagline: (formData.tagline_en || formData.tagline_lo) ? {
           en: formData.tagline_en || '',
           lo: formData.tagline_lo ? normalizeLao(formData.tagline_lo) : undefined,
@@ -901,45 +520,32 @@ export default function EditMoviePage() {
         }] : [],
         cast: updatedCast,
         crew: updatedCrew,
-        images: currentMovie?.images, // Include images array
+        images: currentMovie?.images,
         external_platforms: externalPlatforms,
-        availability_status: availabilityStatus || 'auto', // Default to 'auto' if empty
-        production_companies: currentMovie?.production_companies, // Include production companies
+        availability_status: availabilityStatus || 'auto',
+        production_companies: currentMovie?.production_companies,
       };
 
-      console.log('Saving trailers to API:', updateData.trailers);
       await movieAPI.update(movieId, updateData);
       
-      // Reload movie data to show updated values
       const updatedMovie = await movieAPI.getById(movieId);
-      console.log('Trailers after reload:', updatedMovie.trailers);
       setCurrentMovie(updatedMovie);
       setTrailers(updatedMovie.trailers || []);
       
-      // Update original values to match current (saved) values
+      // Reset originals
       setOriginalFormData({...formData});
       setOriginalCastTranslations({...castTranslations});
       setOriginalCrewTranslations({...crewTranslations});
       setOriginalExternalPlatforms([...externalPlatforms]);
       setOriginalAvailabilityStatus(availabilityStatus);
-      
-      // Reset subscribers check for next time
+      setOriginalTrailers([...trailers]);
       setSubscribersChecked(false);
       
-      // Show success modal
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to update movie:', error);
       alert('Failed to update movie. Please try again.');
     }
-  };
-
-  const handleCloseSuccessModal = () => {
-    setShowSuccessModal(false);
-  };
-
-  const handleBackToMovies = () => {
-    router.push('/admin');
   };
 
   return (
@@ -986,15 +592,15 @@ export default function EditMoviePage() {
             </div>
           </div>
 
-        {syncError && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-800">Sync Error</p>
-              <p className="text-sm text-red-600">{syncError}</p>
+          {syncError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">Sync Error</p>
+                <p className="text-sm text-red-600">{syncError}</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="content" className="cursor-pointer">Content</TabsTrigger>
@@ -1004,1149 +610,59 @@ export default function EditMoviePage() {
         </div>
 
         <form id="edit-movie-form" onSubmit={handleSubmit}>
-
-          <TabsContent value="content" className="space-y-6">
-          {/* English Content */}
-          <Card>
-            <CardHeader>
-              <CardTitle>English Content (Required)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title_en">Title (English) *</Label>
-                <Input
-                  id="title_en"
-                  name="title_en"
-                  value={formData.title_en}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter movie title in English"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="overview_en">Overview (English) *</Label>
-                <Textarea
-                  id="overview_en"
-                  name="overview_en"
-                  value={formData.overview_en}
-                  onChange={handleChange}
-                  required
-                  rows={4}
-                  placeholder="Enter movie description in English"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="tagline_en">Tagline (English)</Label>
-                <Input
-                  id="tagline_en"
-                  name="tagline_en"
-                  value={formData.tagline_en}
-                  onChange={handleChange}
-                  placeholder="A catchy tagline for the movie"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Lao Content */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Lao Content (Optional)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title_lo">Title (Lao)</Label>
-                <Input
-                  id="title_lo"
-                  name="title_lo"
-                  value={formData.title_lo}
-                  onChange={handleChange}
-                  placeholder="ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="overview_lo">Overview (Lao)</Label>
-                <Textarea
-                  id="overview_lo"
-                  name="overview_lo"
-                  value={formData.overview_lo}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="ປ້ອນຄໍາອະທິບາຍຮູບເງົາເປັນພາສາລາວ"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="tagline_lo">Tagline (Lao)</Label>
-                <Input
-                  id="tagline_lo"
-                  name="tagline_lo"
-                  value={formData.tagline_lo}
-                  onChange={handleChange}
-                  placeholder="ປ້ອນຄຳຂວັນຮູບເງົາເປັນພາສາລາວ"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Movie Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Movie Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="slug">Vanity URL Slug</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const generated = sanitizeSlug(formData.title_en);
-                      setFormData((prev) => ({ ...prev, slug: generated }));
-                      const error = getSlugValidationError(generated);
-                      setSlugError(error);
-                    }}
-                    className="text-xs"
-                  >
-                    Generate from title
-                  </Button>
-                </div>
-                <Input
-                  id="slug"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleSlugChange}
-                  placeholder="the-signal"
-                  className={slugError ? 'border-red-500' : ''}
-                />
-                {slugError ? (
-                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {slugError}
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Custom URL path for this movie (e.g., &quot;the-signal&quot; → /movies/the-signal). Leave empty to use ID.
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="original_title">Original Title</Label>
-                  <Input
-                    id="original_title"
-                    name="original_title"
-                    value={formData.original_title}
-                    onChange={handleChange}
-                    placeholder="Original title (if different)"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="original_language">Original Language</Label>
-                  <select
-                    id="original_language"
-                    name="original_language"
-                    value={formData.original_language}
-                    onChange={(e) => handleChange(e as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="lo">Lao</option>
-                    <option value="en">English</option>
-                    <option value="th">Thai</option>
-                    <option value="vi">Vietnamese</option>
-                    <option value="km">Khmer</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label htmlFor="type">Movie Type</Label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={(e) => handleChange(e as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="feature">Feature Film</option>
-                    <option value="short">Short Film</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Short films can be added to curated packs
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="release_date">Release Date *</Label>
-                  <Input
-                    id="release_date"
-                    name="release_date"
-                    type="date"
-                    value={formData.release_date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="runtime">Runtime (minutes) *</Label>
-                  <Input
-                    id="runtime"
-                    name="runtime"
-                    type="number"
-                    value={formData.runtime}
-                    onChange={handleChange}
-                    required
-                    placeholder="120"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="imdb_id">IMDB ID</Label>
-                  <Input
-                    id="imdb_id"
-                    name="imdb_id"
-                    value={formData.imdb_id}
-                    onChange={handleChange}
-                    placeholder="tt1234567"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          </TabsContent>
-
-          <TabsContent value="media" className="space-y-6">
-          {/* Video Source */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Video Source</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="video_url">Video URL</Label>
-                <Input
-                  id="video_url"
-                  name="video_url"
-                  value={formData.video_url}
-                  onChange={handleChange}
-                  placeholder="/videos/movie.mp4 or https://stream.example.com/video.m3u8"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  For local files: upload to /public/videos/ and enter path. For HLS: enter full URL
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="video_format">Format</Label>
-                  <select
-                    id="video_format"
-                    name="video_format"
-                    value={formData.video_format}
-                    onChange={(e) => handleChange(e as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="mp4">MP4</option>
-                    <option value="hls">HLS (.m3u8)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label htmlFor="video_quality">Quality</Label>
-                  <select
-                    id="video_quality"
-                    name="video_quality"
-                    value={formData.video_quality}
-                    onChange={(e) => handleChange(e as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="original">Original</option>
-                    <option value="1080p">1080p</option>
-                    <option value="720p">720p</option>
-                    <option value="480p">480p</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="video_aspect_ratio">Aspect Ratio</Label>
-                <select
-                  id="video_aspect_ratio"
-                  name="video_aspect_ratio"
-                  value={formData.video_aspect_ratio}
-                  onChange={(e) => handleChange(e as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Unknown / Not Set</option>
-                  <option value="16:9">16:9 (Widescreen)</option>
-                  <option value="4:3">4:3 (Standard)</option>
-                  <option value="2.35:1">2.35:1 (Cinemascope)</option>
-                  <option value="2.39:1">2.39:1 (Anamorphic)</option>
-                  <option value="1.85:1">1.85:1 (Theatrical)</option>
-                  <option value="21:9">21:9 (Ultra-wide)</option>
-                  <option value="mixed">Mixed (Multiple ratios)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Trailers */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Trailers ({trailers.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Manual Trailer Entry */}
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-medium mb-3">Add Trailer Manually</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="manual_trailer_key" className="text-xs">YouTube Video ID</Label>
-                    <Input
-                      id="manual_trailer_key"
-                      placeholder="e.g., dQw4w9WgXcQ"
-                      className="text-sm"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const input = e.currentTarget;
-                          const key = input.value.trim();
-                          if (key) {
-                            // Extract video ID from various YouTube URL formats
-                            let videoId = key;
-                            if (key.includes('youtube.com') || key.includes('youtu.be')) {
-                              const urlMatch = key.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-                              if (urlMatch) videoId = urlMatch[1];
-                            }
-                            
-                            // Check if trailer already exists
-                            if (trailers.some(t => t.type === 'youtube' && t.key === videoId)) {
-                              alert('This trailer is already in the list.');
-                              return;
-                            }
-                            
-                            // Add new trailer (YouTube trailer type)
-                            const newTrailer: Trailer = {
-                              id: `temp-${Date.now()}`, // Temporary ID, will be assigned by backend
-                              type: 'youtube',
-                              key: videoId,
-                              name: 'Manual Trailer',
-                              official: false,
-                              order: trailers.length,
-                            };
-                            setTrailers([...trailers, newTrailer]);
-                            setHasChanges(true);
-                            input.value = '';
-                          }
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-gray-600 mt-1">
-                      Paste YouTube video ID or full URL, then press Enter
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Existing Trailers */}
-              {trailers.length > 0 ? (
-                <div className="space-y-3">
-                  {trailers.map((trailer, index) => {
-                    // Type-safe check for YouTube trailers
-                    const isYouTube = trailer.type === 'youtube';
-                    if (!isYouTube) return null;
-                    
-                    // Now TypeScript knows trailer is YouTubeTrailer
-                    const ytKey = trailer.key;
-                    
-                    return (
-                    <div key={trailer.id || ytKey} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <img
-                          src={`https://img.youtube.com/vi/${ytKey}/hqdefault.jpg`}
-                          alt={trailer.name}
-                          className="w-32 h-18 rounded object-cover flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <p className="font-medium text-sm">{trailer.name}</p>
-                            {index === 0 && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium flex-shrink-0">
-                                Primary
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-                            <span className="px-2 py-0.5 bg-gray-200 rounded">YouTube</span>
-                            {trailer.official && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Official</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 underline"
-                            >
-                              Open in YouTube →
-                            </a>
-                            {index > 0 && (
-                              <button
-                                onClick={() => {
-                                  const newTrailers = [...trailers];
-                                  const [movedTrailer] = newTrailers.splice(index, 1);
-                                  newTrailers.unshift(movedTrailer);
-                                  setTrailers(newTrailers);
-                                  setHasChanges(true);
-                                }}
-                                className="text-xs text-gray-600 hover:text-gray-800 underline"
-                              >
-                                Set as Primary
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                if (confirm(`Remove trailer "${trailer.name}"?`)) {
-                                  setTrailers(trailers.filter((_, i) => i !== index));
-                                  setHasChanges(true);
-                                }
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 underline"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    );
-                  })}
-                  <p className="text-xs text-gray-500 mt-2">
-                    The primary trailer (first in list) will be displayed on the movie detail page.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No trailers available. Add one manually or sync from TMDB.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Availability Status - Admin Only */}
-          {isAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Availability Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="availability_status">Status Override (Optional)</Label>
-                <select
-                  id="availability_status"
-                  value={availabilityStatus}
-                  onChange={(e) => setAvailabilityStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="auto">Auto (based on video sources and external platforms)</option>
-                  <option value="available">Available - Movie is on our platform</option>
-                  <option value="external">External - Available on external platforms only</option>
-                  <option value="unavailable">Unavailable - Not available anywhere</option>
-                  <option value="coming_soon">Coming Soon - Will be available soon</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-2">
-                  <strong>Auto behavior:</strong>
-                  <br />• If video sources exist → Available
-                  <br />• If external platforms exist → External
-                  <br />• Otherwise → Unavailable
-                  <br /><br />
-                  Select a specific status to override the automatic behavior.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          )}
-
-          {/* External Platforms */}
-          <Card>
-            <CardHeader>
-              <CardTitle>External Availability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
-                If this film is not available on Lao Cinema but can be watched on other platforms, add them here. 
-                This will hide the Watch button and show where viewers can find the film.
-              </p>
-              
-              {/* Current platforms */}
-              {externalPlatforms.length > 0 && (
-                <div className="space-y-2">
-                  {externalPlatforms.map((platform, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium capitalize flex-1">{platform.platform}</span>
-                      <Input
-                        value={platform.url || ''}
-                        onChange={(e) => {
-                          const updated = [...externalPlatforms];
-                          updated[index] = { ...updated[index], url: e.target.value };
-                          setExternalPlatforms(updated);
-                        }}
-                        placeholder="URL (optional)"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setExternalPlatforms(externalPlatforms.filter((_, i) => i !== index));
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Add platform */}
-              <div className="flex items-center gap-3">
-                <select
-                  id="add-platform"
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const platform = e.target.value as StreamingPlatform;
-                      // Don't add if already exists
-                      if (!externalPlatforms.some(p => p.platform === platform)) {
-                        setExternalPlatforms([...externalPlatforms, { platform }]);
-                      }
-                      e.target.value = '';
-                    }
-                  }}
-                >
-                  <option value="">Add platform...</option>
-                  <option value="netflix" disabled={externalPlatforms.some(p => p.platform === 'netflix')}>Netflix</option>
-                  <option value="prime" disabled={externalPlatforms.some(p => p.platform === 'prime')}>Amazon Prime Video</option>
-                  <option value="disney" disabled={externalPlatforms.some(p => p.platform === 'disney')}>Disney+</option>
-                  <option value="hbo" disabled={externalPlatforms.some(p => p.platform === 'hbo')}>HBO Max</option>
-                  <option value="apple" disabled={externalPlatforms.some(p => p.platform === 'apple')}>Apple TV+</option>
-                  <option value="hulu" disabled={externalPlatforms.some(p => p.platform === 'hulu')}>Hulu</option>
-                  <option value="other" disabled={externalPlatforms.some(p => p.platform === 'other')}>Other</option>
-                </select>
-              </div>
-              
-              {externalPlatforms.length > 0 && (
-                <p className="text-xs text-amber-600">
-                  ⚠️ Films with external platforms will not show a Watch button on the site.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Poster Management */}
-          {currentMovie?.images && currentMovie.images.length > 0 ? (
-            <PosterManager
-              images={currentMovie.images}
-              movieId={movieId}
-              onPrimaryChange={handlePrimaryImageChange}
-              onRefresh={currentMovie.tmdb_id ? handleFetchImages : undefined}
-              onImageAdded={async () => {
-                const updatedMovie = await movieAPI.getById(movieId);
-                setCurrentMovie(updatedMovie);
-              }}
-              onImageDeleted={async (imageId: string) => {
-                await movieAPI.deleteImage(movieId, imageId);
-                const updatedMovie = await movieAPI.getById(movieId);
-                setCurrentMovie(updatedMovie);
-              }}
-              refreshing={fetchingImages}
+          <TabsContent value="content">
+            <ContentTab
+              formData={formData}
+              slugError={slugError}
+              isAdmin={isAdmin}
+              externalPlatforms={externalPlatforms}
+              availabilityStatus={availabilityStatus}
+              onFormChange={handleFormChange}
+              onSlugChange={handleSlugChange}
+              onSlugGenerate={handleSlugGenerate}
+              onSelectChange={handleSelectChange}
+              onExternalPlatformsChange={setExternalPlatforms}
+              onAvailabilityStatusChange={setAvailabilityStatus}
             />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Poster & Image Management</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {currentMovie?.tmdb_id && (
-                  <>
-                    <p className="text-sm text-gray-600">
-                      Load posters, backdrops, and logos from TMDB to choose which images to display.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleFetchImages}
-                      disabled={fetchingImages}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${fetchingImages ? 'animate-spin' : ''}`} />
-                      {fetchingImages ? 'Loading Images...' : 'Load Images from TMDB'}
-                    </Button>
-                    <div className="relative py-4">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-300"></div>
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-2 text-gray-500">OR</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Upload Custom Images</h4>
-                  <Tabs defaultValue="poster" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="poster">Poster</TabsTrigger>
-                      <TabsTrigger value="backdrop">Backdrop</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="poster" className="mt-4">
-                      <ImageUploader 
-                        type="poster"
-                        onUploadSuccess={async (url) => {
-                          try {
-                            await movieAPI.addImage(movieId, {
-                              type: 'poster',
-                              filePath: url,
-                              isPrimary: !currentMovie?.images?.some(img => img.type === 'poster' && img.is_primary),
-                            });
-                            const updatedMovie = await movieAPI.getById(movieId);
-                            setCurrentMovie(updatedMovie);
-                          } catch (err) {
-                            console.error('Failed to save poster:', err);
-                          }
-                        }}
-                      />
-                    </TabsContent>
-                    <TabsContent value="backdrop" className="mt-4">
-                      <ImageUploader 
-                        type="backdrop"
-                        onUploadSuccess={async (url) => {
-                          try {
-                            await movieAPI.addImage(movieId, {
-                              type: 'backdrop',
-                              filePath: url,
-                              isPrimary: !currentMovie?.images?.some(img => img.type === 'backdrop' && img.is_primary),
-                            });
-                            const updatedMovie = await movieAPI.getById(movieId);
-                            setCurrentMovie(updatedMovie);
-                          } catch (err) {
-                            console.error('Failed to save backdrop:', err);
-                          }
-                        }}
-                      />
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </CardContent>
-            </Card>
-          )}
           </TabsContent>
 
-          <TabsContent value="cast" className="space-y-6">
-          {/* Add Cast Member - Collapsible */}
-          <Card>
-            <CardHeader 
-              className="cursor-pointer select-none" 
-              onClick={() => setShowAddCast(!showAddCast)}
-            >
-              <CardTitle className="flex items-center gap-2">
-                {showAddCast ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                Add Cast Member
-              </CardTitle>
-            </CardHeader>
-            {showAddCast && (
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Search for Person</Label>
-                  <PersonSearch
-                    onSelect={handleSelectCastPerson}
-                    onCreateNew={handleCreatePersonForCast}
-                    placeholder="Search for an actor..."
-                  />
-                </div>
-                {selectedCastPerson && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                    <span className="flex-1 font-medium text-blue-900">
-                      Selected: {selectedCastPerson.name.en || selectedCastPerson.name.lo || 'Unknown'}
-                    </span>
-                    <button
-                      onClick={() => setSelectedCastPerson(null)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Character Name (English)</Label>
-                    <Input
-                      value={newCastCharacterEn}
-                      onChange={(e) => setNewCastCharacterEn(e.target.value)}
-                      placeholder="e.g., John Smith"
-                    />
-                  </div>
-                  <div>
-                    <Label>Character Name (Lao)</Label>
-                    <Input
-                      value={newCastCharacterLo}
-                      onChange={(e) => setNewCastCharacterLo(e.target.value)}
-                      placeholder="ຊື່ຕົວລະຄອນ"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleSubmitCast}
-                  disabled={!selectedCastPerson || addingCast}
-                  size="sm"
-                >
-                  {addingCast ? 'Adding...' : 'Add Cast Member'}
-                </Button>
-              </CardContent>
-            )}
-          </Card>
+          <TabsContent value="media">
+            <MediaTab
+              formData={formData}
+              currentMovie={currentMovie}
+              movieId={movieId}
+              trailers={trailers}
+              fetchingImages={fetchingImages}
+              onFormChange={handleFormChange}
+              onSelectChange={handleSelectChange}
+              onTrailersChange={setTrailers}
+              onPrimaryImageChange={handlePrimaryImageChange}
+              onFetchImages={handleFetchImages}
+              onImageAdded={handleImageAdded}
+              onImageDeleted={handleImageDeleted}
+              onAddImage={handleAddImage}
+              setHasChanges={setHasChanges}
+            />
+          </TabsContent>
 
-          {/* Add Crew Member - Collapsible */}
-          <Card>
-            <CardHeader 
-              className="cursor-pointer select-none" 
-              onClick={() => setShowAddCrew(!showAddCrew)}
-            >
-              <CardTitle className="flex items-center gap-2">
-                {showAddCrew ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                Add Crew Member
-              </CardTitle>
-            </CardHeader>
-            {showAddCrew && (
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Search for Person</Label>
-                  <PersonSearch
-                    onSelect={handleSelectCrewPerson}
-                    onCreateNew={handleCreatePersonForCrew}
-                    placeholder="Search for a crew member..."
-                  />
-                </div>
-                {selectedCrewPerson && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                    <span className="flex-1 font-medium text-blue-900">
-                      Selected: {selectedCrewPerson.name.en || selectedCrewPerson.name.lo || 'Unknown'}
-                    </span>
-                    <button
-                      onClick={() => setSelectedCrewPerson(null)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Department</Label>
-                    <select
-                      value={newCrewDepartment}
-                      onChange={(e) => setNewCrewDepartment(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="Directing">Directing</option>
-                      <option value="Writing">Writing</option>
-                      <option value="Production">Production</option>
-                      <option value="Camera">Camera</option>
-                      <option value="Editing">Editing</option>
-                      <option value="Sound">Sound</option>
-                      <option value="Art">Art</option>
-                      <option value="Costume & Make-Up">Costume & Make-Up</option>
-                      <option value="Visual Effects">Visual Effects</option>
-                      <option value="Crew">Crew</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Job Title (English)</Label>
-                    <Input
-                      value={newCrewJobEn}
-                      onChange={(e) => setNewCrewJobEn(e.target.value)}
-                      placeholder="e.g., Director"
-                    />
-                  </div>
-                  <div>
-                    <Label>Job Title (Lao)</Label>
-                    <Input
-                      value={newCrewJobLo}
-                      onChange={(e) => setNewCrewJobLo(e.target.value)}
-                      placeholder="ຕຳແໜ່ງ"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleSubmitCrew}
-                  disabled={!selectedCrewPerson || addingCrew}
-                  size="sm"
-                >
-                  {addingCrew ? 'Adding...' : 'Add Crew Member'}
-                </Button>
-              </CardContent>
-            )}
-          </Card>
-
-          {/* Existing Cast & Crew */}
-          {currentMovie && (currentMovie.cast.length > 0 || currentMovie.crew.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Cast & Crew</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Cast */}
-                {currentMovie.cast.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Cast ({currentMovie.cast.length})</h3>
-                    <div className="space-y-3">
-                      {currentMovie.cast.map((member, index) => {
-                        const key = `${member.person.id}`;
-                        const isEditing = editingCast === key;
-                        const trans = castTranslations[key] || { character_en: member.character.en || '', character_lo: member.character.lo || '' };
-                        
-                        return (
-                          <div key={`cast-${member.person.id}-${index}`} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              {member.person.profile_path && (
-                                <img
-                                  src={getProfileUrl(member.person.profile_path, 'small')!}
-                                  alt={getLocalizedText(member.person.name, 'en')}
-                                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                                />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm mb-1">
-                                  {getLocalizedText(member.person.name, 'en')}
-                                </p>
-                                {!isEditing ? (
-                                  <div className="space-y-1">
-                                    <p className="text-xs text-gray-600">
-                                      <span className="font-medium">EN:</span> {trans.character_en || '(not set)'}
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                      <span className="font-medium">LO:</span> {trans.character_lo || '(not set)'}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2 mt-2">
-                                    <div>
-                                      <Label className="text-xs">Character (English)</Label>
-                                      <Input
-                                        value={trans.character_en}
-                                        onChange={(e) => {
-                                          setCastTranslations(prev => ({
-                                            ...prev,
-                                            [key]: { ...prev[key], character_en: e.target.value }
-                                          }));
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            setEditingCast(null);
-                                            saveCastCrewUpdates();
-                                          }
-                                        }}
-                                        placeholder="Character name in English"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-xs">Character (Lao)</Label>
-                                      <Input
-                                        value={trans.character_lo}
-                                        onChange={(e) => {
-                                          setCastTranslations(prev => ({
-                                            ...prev,
-                                            [key]: { ...prev[key], character_lo: e.target.value }
-                                          }));
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            setEditingCast(null);
-                                            saveCastCrewUpdates();
-                                          }
-                                        }}
-                                        placeholder="ຊື່ຕົວລະຄອນເປັນພາສາລາວ"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col md:flex-row gap-2 flex-shrink-0">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (isEditing) {
-                                      saveCastCrewUpdates();
-                                    }
-                                    setEditingCast(isEditing ? null : key);
-                                  }}
-                                >
-                                  {isEditing ? 'Done' : (
-                                    <>
-                                      <span className="hidden md:inline">Edit Role</span>
-                                      <span className="md:hidden">Role</span>
-                                    </>
-                                  )}
-                                </Button>
-                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <ExternalLink className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">View Person</span>
-                                    <span className="md:hidden">Person</span>
-                                  </Button>
-                                </Link>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleRemoveCast(member.person.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Crew */}
-                {currentMovie.crew.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Crew ({currentMovie.crew.length})</h3>
-                    <div className="space-y-3">
-                      {currentMovie.crew.map((member, index) => {
-                        const key = `${member.person.id}-${member.department}`;
-                        const isEditing = editingCrew === key;
-                        const trans = crewTranslations[key] || { job_en: member.job.en || '', job_lo: member.job.lo || '' };
-                        
-                        return (
-                          <div key={`crew-${member.person.id}-${index}`} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              {member.person.profile_path && (
-                                <img
-                                  src={getProfileUrl(member.person.profile_path, 'small')!}
-                                  alt={getLocalizedText(member.person.name, 'en')}
-                                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                                />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm mb-1">
-                                  {getLocalizedText(member.person.name, 'en')}
-                                </p>
-                                <p className="text-xs text-gray-500 mb-1">
-                                  {member.department}
-                                </p>
-                                {!isEditing ? (
-                                  <div className="space-y-1">
-                                    <p className="text-xs text-gray-600">
-                                      <span className="font-medium">EN:</span> {trans.job_en || '(not set)'}
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                      <span className="font-medium">LO:</span> {trans.job_lo || '(not set)'}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2 mt-2">
-                                    <div>
-                                      <Label className="text-xs">Job Title (English)</Label>
-                                      <Input
-                                        value={trans.job_en}
-                                        onChange={(e) => {
-                                          setCrewTranslations(prev => ({
-                                            ...prev,
-                                            [key]: { ...prev[key], job_en: e.target.value }
-                                          }));
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            setEditingCrew(null);
-                                            saveCastCrewUpdates();
-                                          }
-                                        }}
-                                        placeholder="Job title in English"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label className="text-xs">Job Title (Lao)</Label>
-                                      <Input
-                                        value={trans.job_lo}
-                                        onChange={(e) => {
-                                          setCrewTranslations(prev => ({
-                                            ...prev,
-                                            [key]: { ...prev[key], job_lo: e.target.value }
-                                          }));
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            setEditingCrew(null);
-                                            saveCastCrewUpdates();
-                                          }
-                                        }}
-                                        placeholder="ຊື່ຕຳແໜ່ງເປັນພາສາລາວ"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col md:flex-row gap-2 flex-shrink-0">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (isEditing) {
-                                      saveCastCrewUpdates();
-                                    }
-                                    setEditingCrew(isEditing ? null : key);
-                                  }}
-                                >
-                                  {isEditing ? 'Done' : (
-                                    <>
-                                      <span className="hidden md:inline">Edit Role</span>
-                                      <span className="md:hidden">Role</span>
-                                    </>
-                                  )}
-                                </Button>
-                                <Link href={`/admin/people/${member.person.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <ExternalLink className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">View Person</span>
-                                    <span className="md:hidden">Person</span>
-                                  </Button>
-                                </Link>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleRemoveCrew(member.person.id, member.department)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Production Companies Section */}
-          <Card>
-            <CardHeader 
-              className="cursor-pointer select-none" 
-              onClick={() => setShowAddProductionCompany(!showAddProductionCompany)}
-            >
-              <CardTitle className="flex items-center gap-2">
-                {showAddProductionCompany ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                Production Companies ({currentMovie?.production_companies?.length || 0})
-              </CardTitle>
-            </CardHeader>
-            {showAddProductionCompany && (
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Add Production Company</Label>
-                  <ProductionCompanySearch
-                    onSelect={handleAddProductionCompany}
-                    onCreateNew={handleCreateProductionCompany}
-                    placeholder="Search for a production company..."
-                    excludeIds={currentMovie?.production_companies?.map(c => c.id) || []}
-                  />
-                  {addingProductionCompany && (
-                    <p className="text-sm text-gray-500 mt-2">Adding...</p>
-                  )}
-                </div>
-
-                {/* Current Production Companies */}
-                {currentMovie?.production_companies && currentMovie.production_companies.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Current Production Companies</Label>
-                    <div className="space-y-2">
-                      {currentMovie.production_companies.map((company) => (
-                        <div
-                          key={company.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                              {company.logo_path ? (
-                                <img
-                                  src={`https://image.tmdb.org/t/p/w92${company.logo_path}`}
-                                  alt={typeof company.name === 'string' ? company.name : (company.name?.en || 'Company')}
-                                  className="w-8 h-8 object-contain"
-                                />
-                              ) : (
-                                <span className="text-gray-400 text-xs">🏢</span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {typeof company.name === 'string' ? company.name : (company.name?.en || company.name?.lo || 'Unknown')}
-                              </p>
-                              {company.origin_country && (
-                                <p className="text-xs text-gray-500">{company.origin_country}</p>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleRemoveProductionCompany(company.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            )}
-          </Card>
+          <TabsContent value="cast">
+            <CastCrewTab
+              currentMovie={currentMovie}
+              castTranslations={castTranslations}
+              crewTranslations={crewTranslations}
+              onCastTranslationsChange={setCastTranslations}
+              onCrewTranslationsChange={setCrewTranslations}
+              onAddCast={handleAddCast}
+              onAddCrew={handleAddCrew}
+              onRemoveCast={handleRemoveCast}
+              onRemoveCrew={handleRemoveCrew}
+              onCreatePersonForCast={handleCreatePersonForCast}
+              onCreatePersonForCrew={handleCreatePersonForCrew}
+              onAddProductionCompany={handleAddProductionCompany}
+              onCreateProductionCompany={handleCreateProductionCompany}
+              onRemoveProductionCompany={handleRemoveProductionCompany}
+              onSaveCastCrewUpdates={saveCastCrewUpdates}
+            />
           </TabsContent>
         </form>
       </Tabs>
@@ -2169,10 +685,10 @@ export default function EditMoviePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-4">
-            <Button onClick={handleCloseSuccessModal} variant="outline" className="w-full">
+            <Button onClick={() => setShowSuccessModal(false)} variant="outline" className="w-full">
               Keep Editing
             </Button>
-            <Button onClick={handleBackToMovies} className="w-full">
+            <Button onClick={() => router.push('/admin')} className="w-full">
               Back to Movies
             </Button>
           </div>
@@ -2184,14 +700,8 @@ export default function EditMoviePage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                syncChanges.length > 0 ? 'bg-blue-100' : 'bg-gray-100'
-              }`}>
-                {syncChanges.length > 0 ? (
-                  <RefreshCw className="h-6 w-6 text-blue-600" />
-                ) : (
-                  <CheckCircle className="h-6 w-6 text-gray-600" />
-                )}
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${syncChanges.length > 0 ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                {syncChanges.length > 0 ? <RefreshCw className="h-6 w-6 text-blue-600" /> : <CheckCircle className="h-6 w-6 text-gray-600" />}
               </div>
               <DialogTitle className="text-xl">
                 {syncChanges.length > 0 ? 'TMDB Sync Complete' : 'No Updates Available'}
@@ -2202,9 +712,7 @@ export default function EditMoviePage() {
                 <div className="space-y-3">
                   <p>The following fields were updated from TMDB:</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
-                    {syncChanges.map((change) => (
-                      <li key={change}>{change}</li>
-                    ))}
+                    {syncChanges.map((change) => <li key={change}>{change}</li>)}
                   </ul>
                   <p className="text-sm font-medium text-blue-600 mt-4">
                     Remember to click "Update Movie" to save these changes.
@@ -2216,12 +724,7 @@ export default function EditMoviePage() {
             </div>
           </DialogHeader>
           <div className="mt-4">
-            <Button 
-              onClick={() => setShowSyncResultModal(false)} 
-              className="w-full"
-            >
-              OK
-            </Button>
+            <Button onClick={() => setShowSyncResultModal(false)} className="w-full">OK</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -2243,7 +746,6 @@ export default function EditMoviePage() {
           </DialogHeader>
           
           <div className="mt-4 space-y-4">
-            {/* Email list with copy button */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Email Addresses</span>
@@ -2251,23 +753,12 @@ export default function EditMoviePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const emails = subscribers.map(s => s.email).join(', ');
-                    navigator.clipboard.writeText(emails);
+                    navigator.clipboard.writeText(subscribers.map(s => s.email).join(', '));
                     setCopiedEmails(true);
                     setTimeout(() => setCopiedEmails(false), 2000);
                   }}
                 >
-                  {copiedEmails ? (
-                    <>
-                      <Check className="w-4 h-4 mr-1" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 mr-1" />
-                      Copy All
-                    </>
-                  )}
+                  {copiedEmails ? <><Check className="w-4 h-4 mr-1" />Copied!</> : <><Copy className="w-4 h-4 mr-1" />Copy All</>}
                 </Button>
               </div>
               <div className="max-h-48 overflow-y-auto">
@@ -2276,9 +767,7 @@ export default function EditMoviePage() {
                     <li key={sub.id} className="flex items-center gap-2 text-sm">
                       <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <span className="text-gray-900">{sub.email}</span>
-                      {sub.displayName && (
-                        <span className="text-gray-500">({sub.displayName})</span>
-                      )}
+                      {sub.displayName && <span className="text-gray-500">({sub.displayName})</span>}
                     </li>
                   ))}
                 </ul>
@@ -2291,12 +780,7 @@ export default function EditMoviePage() {
           </div>
           
           <div className="flex flex-col gap-2 mt-4">
-            <Button
-              onClick={() => setShowSubscribersModal(false)}
-              className="w-full"
-            >
-              Got It
-            </Button>
+            <Button onClick={() => setShowSubscribersModal(false)} className="w-full">Got It</Button>
           </div>
         </DialogContent>
       </Dialog>

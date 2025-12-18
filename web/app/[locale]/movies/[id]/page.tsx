@@ -218,7 +218,8 @@ export default function MoviePage() {
   }
 
   const isAvailableOnSite = availabilityStatus === 'available' && videoSource;
-  const hasExternalPlatforms = availabilityStatus === 'external' && movie.external_platforms && movie.external_platforms.length > 0;
+  const hasExternalPlatforms = movie.external_platforms && movie.external_platforms.length > 0;
+  const isExternalOnly = availabilityStatus === 'external' && hasExternalPlatforms;
   const isComingSoon = availabilityStatus === 'coming_soon';
   const isUnavailable = availabilityStatus === 'unavailable';
 
@@ -477,8 +478,17 @@ export default function MoviePage() {
                               <span>{t('payment.recentlyExpired')}</span>
                             </div>
                           )}
+                          {/* Also available on external platforms */}
+                          {hasExternalPlatforms && (
+                            <div className="pt-4 border-t border-gray-700 mt-4">
+                              <p className="text-sm text-gray-400 mb-2">
+                                {t('movie.alsoAvailableOn')}
+                              </p>
+                              <StreamingPlatformList platforms={movie.external_platforms!} size="sm" />
+                            </div>
+                          )}
                         </>
-                      ) : hasExternalPlatforms ? (
+                      ) : isExternalOnly ? (
                         <div className="space-y-3">
                           <p className="text-sm text-gray-300">
                             {t('movie.availableOn')}
