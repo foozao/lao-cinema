@@ -10,6 +10,7 @@ import { Footer } from '@/components/footer';
 import { Search, User } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import { peopleAPI } from '@/lib/api/client';
+import { getProfileUrl } from '@/lib/images';
 
 interface MovieCredit {
   movie_id: string;
@@ -152,9 +153,7 @@ export default function PeoplePage() {
               <div className="space-y-3">
                 {searchResults.map((person) => {
                   const personName = person.name?.[locale] || person.name?.en || 'Unknown';
-                  const imageUrl = person.profile_path 
-                    ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
-                    : null;
+                  const imageUrl = getProfileUrl(person.profile_path, 'medium');
 
                   return (
                     <Link
