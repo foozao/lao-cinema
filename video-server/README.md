@@ -33,15 +33,17 @@ Server runs on **http://localhost:3002**
 localhost:3000  →  Next.js Web App
 localhost:3001  →  Fastify API
 localhost:3002  →  Video Server (this)
-                   └── Serves files from ../web/public/videos/
+                   └── Serves files from ./videos/
+                   └── Validates tokens via API
 ```
 
 ## How It Works
 
-1. Videos are stored in `web/public/videos/hls/`
+1. Videos are stored in `video-server/videos/hls/`
 2. This server serves them at `http://localhost:3002/videos/hls/`
-3. API returns URLs pointing to this server
-4. Browser loads videos cross-origin (just like production)
+3. API returns URLs pointing to this server with signed tokens
+4. Video server validates tokens by calling API (`/api/video-tokens/validate/:token`)
+5. Browser loads videos cross-origin (just like production)
 
 ## Configuration
 

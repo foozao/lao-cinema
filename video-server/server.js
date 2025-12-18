@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || '0.0.0.0';
 const VIDEOS_PATH = path.join(__dirname, 'videos');
 const PUBLIC_PATH = path.join(__dirname, 'public');
+const API_URL = process.env.API_URL || 'http://localhost:3001';
 const TOKEN_SECRET = process.env.VIDEO_TOKEN_SECRET || 'dev-secret-change-in-production';
 
 // Session duration for video access
@@ -61,39 +62,16 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-// Token validation function
-function verifyVideoToken(token) {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 2) {
-      throw new Error('Invalid token format');
-    }
-
-    const [encodedPayload, signature] = parts;
-    
-    // Verify signature
-    const hmac = crypto.createHmac('sha256', TOKEN_SECRET);
-    const payloadData = Buffer.from(encodedPayload, 'base64url').toString('utf-8');
-    hmac.update(payloadData);
-    const expectedSignature = hmac.digest('base64url');
-    
-    if (signature !== expectedSignature) {
-      throw new Error('Invalid token signature');
-    }
-    
-    // Parse and validate payload
-    const payload = JSON.parse(payloadData);
-    
-    // Check expiration
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
-      throw new Error('Token expired');
-    }
-    
-    return payload;
-  } catch (error) {
-    throw error;
+// Token validation via API (single source of truth)
+async function verifyVideoToken(token) {
+  const response = await fetch(`${API_URL}/api/video-tokens/validate/${encodeURIComponent(token)}`);
+  const result = await response.json();
+  
+  if (!result.valid) {
+    throw new Error(result.error || 'Invalid token');
   }
+  
+  return result;
 }
 
 // Register CORS - allow requests from web app with credentials (cookies)
@@ -128,14 +106,17 @@ fastify.addHook('onRequest', async (request, reply) => {
     const cookieName = `video_session_${movieDir.replace(/\//g, '_')}`;
 
     if (token) {
-      // Verify token and create session cookie
-      const payload = verifyVideoToken(token);
+      // Verify token via API and create session cookie
+      const payload = await verifyVideoToken(token);
       const tokenDir = payload.videoPath.replace(/\/[^/]+$/, ''); // Remove filename
       
       // Validate path matches token
       if (!requestedPath.startsWith(tokenDir + '/') && requestedPath !== payload.videoPath) {
-        return reply.status(403).send({
-          error: 'Token does not grant access to this video',
+        return reply.status(403).type('application/problem+json').send({
+          type: 'about:blank',
+          title: 'Forbidden',
+          status: 403,
+          detail: 'Token does not grant access to this video',
           code: 'INVALID_PATH',
         });
       }
@@ -151,8 +132,11 @@ fastify.addHook('onRequest', async (request, reply) => {
       const sessionCookie = cookies[cookieName];
       
       if (!sessionCookie || !verifySessionCookie(sessionCookie, movieDir)) {
-        return reply.status(401).send({
-          error: 'Missing video access token',
+        return reply.status(401).type('application/problem+json').send({
+          type: 'about:blank',
+          title: 'Unauthorized',
+          status: 401,
+          detail: 'Missing video access token',
           code: 'TOKEN_REQUIRED',
         });
       }
@@ -161,8 +145,11 @@ fastify.addHook('onRequest', async (request, reply) => {
       request.videoSession = { movieDir };
     }
   } catch (error) {
-    return reply.status(401).send({
-      error: error.message || 'Invalid video token',
+    return reply.status(401).type('application/problem+json').send({
+      type: 'about:blank',
+      title: 'Unauthorized',
+      status: 401,
+      detail: error.message || 'Invalid video token',
       code: 'INVALID_TOKEN',
     });
   }
