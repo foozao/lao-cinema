@@ -766,15 +766,19 @@ Get audit log entries. **Admin only.**
 
 ## Error Response Format
 
-All errors follow this format:
+All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) format:
 
 ```json
 {
-  "error": "Error Type",
-  "message": "Human-readable message",
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Human-readable message about what went wrong",
   "errors": [...]  // optional, for validation errors
 }
 ```
+
+**Content-Type**: `application/problem+json`
 
 ### Common Error Codes
 

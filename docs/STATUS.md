@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 13, 2025
+**Last Updated**: December 19, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -23,7 +23,7 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Movie edit interface (`/admin/edit/[id]`)
 - [x] People admin page (`/admin/people`)
 - [x] Admin dashboard with bilingual support
-- [x] Jest testing framework (70+ tests, 100% utility coverage)
+- [x] Vitest testing framework (339+ tests, 100% utility coverage)
 
 ### Backend (`/api`)
 - [x] Fastify REST API server
@@ -153,13 +153,13 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ### Key Libraries
 - **Frontend**: next-intl, shadcn/ui, hls.js, Lucide React
-- **Testing**: Jest, React Testing Library
+- **Testing**: Vitest, React Testing Library
 - **Backend**: Fastify plugins, Zod (planned)
 - **Database**: Drizzle ORM, pg
 
 ## 📈 Metrics
 
-- **Total Tests**: 70+
+- **Total Tests**: 339+
 - **Test Coverage**: 100% (utilities)
 - **Database Tables**: 15+ (movies, people, video_sources, rentals, etc.)
 - **API Endpoints**: 10+ (movies, people, images, health)
@@ -273,7 +273,7 @@ cd web && npm run dev
 - [x] Admin edit interface
 - [x] Database operations (CRUD)
 - [x] Bilingual content support
-- [x] Unit tests (70 tests passing)
+- [x] Unit tests (339 tests passing)
 
 ### To Test
 - [x] Video player with CDN video files
