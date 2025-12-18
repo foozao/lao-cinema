@@ -6,6 +6,7 @@ import { eq, sql, ilike, or } from 'drizzle-orm';
 import { buildPersonCredits } from '../lib/movie-builder.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
+import { buildInClause } from '../lib/query-helpers.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -37,7 +38,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         
         allPeople = await db.select()
           .from(schema.people)
-          .where(sql`${schema.people.id} IN (${sql.join(personIds.map(id => sql`${id}`), sql`, `)})`);
+          .where(buildInClause(schema.people.id, personIds));
         
         if (limitNum) {
           allPeople = allPeople.slice(0, limitNum);
@@ -51,20 +52,20 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const translations = peopleIds.length > 0
         ? await db.select()
             .from(schema.peopleTranslations)
-            .where(sql`${schema.peopleTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.peopleTranslations.personId, peopleIds))
         : [];
       
       // Get all cast and crew credits to determine departments
       const castCredits = peopleIds.length > 0
         ? await db.select()
             .from(schema.movieCast)
-            .where(sql`${schema.movieCast.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movieCast.personId, peopleIds))
         : [];
       
       const crewCredits = peopleIds.length > 0
         ? await db.select()
             .from(schema.movieCrew)
-            .where(sql`${schema.movieCrew.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movieCrew.personId, peopleIds))
         : [];
       
       // Get movie details for credits (only when searching, to show in results)
@@ -76,27 +77,27 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const movies = allMovieIds.length > 0
         ? await db.select({ id: schema.movies.id, originalTitle: schema.movies.originalTitle })
             .from(schema.movies)
-            .where(sql`${schema.movies.id} IN (${sql.join(allMovieIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movies.id, allMovieIds))
         : [];
       
       const movieTranslations = allMovieIds.length > 0
         ? await db.select()
             .from(schema.movieTranslations)
-            .where(sql`${schema.movieTranslations.movieId} IN (${sql.join(allMovieIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movieTranslations.movieId, allMovieIds))
         : [];
       
       // Get cast translations for character names
       const castTranslations = peopleIds.length > 0
         ? await db.select()
             .from(schema.movieCastTranslations)
-            .where(sql`${schema.movieCastTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movieCastTranslations.personId, peopleIds))
         : [];
       
       // Get crew translations for job titles
       const crewTranslations = peopleIds.length > 0
         ? await db.select()
             .from(schema.movieCrewTranslations)
-            .where(sql`${schema.movieCrewTranslations.personId} IN (${sql.join(peopleIds.map(id => sql`${id}`), sql`, `)})`)
+            .where(buildInClause(schema.movieCrewTranslations.personId, peopleIds))
         : [];
       
       // Build response with translations and departments
