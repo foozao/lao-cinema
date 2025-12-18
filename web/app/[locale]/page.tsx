@@ -16,6 +16,7 @@ import type { Movie, ShortPackSummary } from '@/lib/types';
 import { getRentals, type Rental } from '@/lib/api/rentals-client';
 import { shortPacksAPI } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function Home() {
   const t = useTranslations();
@@ -33,7 +34,6 @@ export default function Home() {
     try {
       setError(null);
       // Fetch featured films for homepage
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const response = await fetch(`${API_BASE_URL}/homepage/featured`);
       
       if (!response.ok) {

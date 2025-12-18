@@ -23,15 +23,7 @@ import {
   type MovieAnalytics,
   type UserMovieActivity,
 } from '@/lib/analytics';
-
-// Format seconds to human-readable duration
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${mins}m`;
-}
+import { formatDuration } from '@/lib/utils';
 
 // Format date
 function formatDate(timestamp: number): string {

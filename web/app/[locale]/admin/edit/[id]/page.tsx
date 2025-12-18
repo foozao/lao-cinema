@@ -27,6 +27,7 @@ import { ProductionCompanySearch } from '@/components/admin/production-company-s
 import { EntityHistory } from '@/components/admin/entity-history';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function EditMoviePage() {
   const router = useRouter();
@@ -135,7 +136,6 @@ export default function EditMoviePage() {
       if (wasUnavailable && nowAvailable && !subscribersChecked && isAdmin) {
         console.log('Fetching subscribers for movie:', movieId);
         try {
-          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
           const token = getRawSessionToken();
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',

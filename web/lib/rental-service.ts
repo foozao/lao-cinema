@@ -13,6 +13,7 @@ import {
   checkMovieAccess,
   type Rental 
 } from './api/rentals-client';
+import { formatDuration } from './utils';
 
 // =============================================================================
 // CONFIGURATION
@@ -21,25 +22,6 @@ import {
 export const RENTAL_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000; // 2 hours
 export const RECENTLY_EXPIRED_WINDOW_MS = 12 * 60 * 60 * 1000; // 12 hours - show "expired" notice for this long
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-/**
- * Format milliseconds as human-readable duration string
- */
-function formatDurationMs(ms: number): string {
-  if (ms <= 0) return '';
-  
-  const hours = Math.floor(ms / (60 * 60 * 1000));
-  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
 
 // =============================================================================
 // RENTAL FUNCTIONS
@@ -144,12 +126,12 @@ export async function getFormattedRemainingTime(movieId: string): Promise<string
   if (remaining <= 0) {
     const graceTime = await getRemainingGraceTime(movieId);
     if (graceTime > 0) {
-      return `Grace period: ${formatDurationMs(graceTime)}`;
+      return `Grace period: ${formatDuration(graceTime, { unit: 'milliseconds' })}`;
     }
     return 'Expired';
   }
   
-  return formatDurationMs(remaining);
+  return formatDuration(remaining, { unit: 'milliseconds' });
 }
 
 /**

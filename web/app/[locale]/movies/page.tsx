@@ -11,7 +11,7 @@ import { Footer } from '@/components/footer';
 import { Search, Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie } from '@/lib/types';
-import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
+import { API_BASE_URL, SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/config';
 
 function MoviesPageContent() {
   const t = useTranslations();
@@ -51,7 +51,6 @@ function MoviesPageContent() {
   const loadMovies = useCallback(async () => {
     try {
       setError(null);
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const response = await fetch(`${API_BASE_URL}/movies`);
       
       if (!response.ok) {

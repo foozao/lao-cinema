@@ -18,7 +18,7 @@ import { Link } from '@/i18n/routing';
 import type { ShortPack, Movie } from '@/lib/types';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
-import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/constants';
+import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/config';
 
 interface ShortInPack {
   movie: {

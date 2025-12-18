@@ -8,6 +8,7 @@ import { Plus, X, GripVertical, Save } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getAuthHeaders } from '@/lib/api/auth-headers';
+import { API_BASE_URL } from '@/lib/config';
 
 interface FeaturedMovie {
   id: string;
@@ -39,8 +40,6 @@ export default function HomepageAdminPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     loadData();

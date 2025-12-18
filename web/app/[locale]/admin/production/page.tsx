@@ -11,8 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Search, Edit, Plus, Trash2, Building2, X, ArrowUpDown, Upload, Loader2 } from 'lucide-react';
 import { productionCompaniesAPI } from '@/lib/api/client';
 import { getProductionCompanyLogoUrl } from '@/lib/images';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL } from '@/lib/config';
 
 interface ProductionCompany {
   id: number;

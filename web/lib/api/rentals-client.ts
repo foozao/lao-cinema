@@ -137,9 +137,7 @@ export async function updatePackPosition(
   rentalId: string,
   currentShortId: string
 ): Promise<void> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  
-  const response = await fetch(`${apiUrl}/rentals/${rentalId}/position`, {
+  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/position`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
