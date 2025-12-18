@@ -4,11 +4,16 @@ import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, GripVertical, Save } from 'lucide-react';
+import { Plus, Save, Film } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
 import { getAuthHeaders } from '@/lib/api/auth-headers';
 import { API_BASE_URL } from '@/lib/config';
+import { useDragAndDrop } from '@/hooks/use-drag-and-drop';
+import { DraggableItemList } from '@/components/admin/draggable-item-list';
+import { MovieSelectionModal } from '@/components/admin/movie-selection-modal';
+
+import type { Movie } from '@/lib/types';
 
 interface FeaturedMovie {
   id: string;
@@ -22,13 +27,6 @@ interface FeaturedMovie {
   };
 }
 
-interface Movie {
-  id: string;
-  title: { en: string; lo?: string };
-  poster_path?: string;
-  release_date?: string;
-}
-
 export default function HomepageAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations('admin');
@@ -38,8 +36,6 @@ export default function HomepageAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
@@ -102,91 +98,35 @@ export default function HomepageAdminPage() {
     }
   };
 
-  const saveOrder = async () => {
-    setSaving(true);
-    try {
-      const items = featured.map((f, index) => ({
-        id: f.id,
-        order: index,
-      }));
+  // Drag and drop hook
+  const dragAndDrop = useDragAndDrop({
+    items: featured,
+    onReorder: setFeatured,
+    onReorderComplete: async (reorderedFeatured) => {
+      setSaving(true);
+      try {
+        const items = reorderedFeatured.map((f, index) => ({
+          id: f.id,
+          order: index,
+        }));
 
-      const res = await fetch(`${API_BASE_URL}/homepage/featured/reorder`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ items }),
-      });
-
-      if (res.ok) {
-        alert(t('orderSaved'));
+        await fetch(`${API_BASE_URL}/homepage/featured/reorder`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ items }),
+        });
+      } catch (error) {
+        console.error('Failed to save order:', error);
+        alert('Failed to save order');
+      } finally {
+        setSaving(false);
       }
-    } catch (error) {
-      console.error('Failed to save order:', error);
-      alert('Failed to save order');
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleAddMovie = async (movie: Movie) => {
+    await addFeatured(movie.id);
   };
-
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newFeatured = [...featured];
-    const draggedItem = newFeatured[draggedIndex];
-    newFeatured.splice(draggedIndex, 1);
-    newFeatured.splice(index, 0, draggedItem);
-    
-    setFeatured(newFeatured);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
-
-  // Touch event handlers for mobile drag and drop
-  const handleTouchStart = (index: number, e: React.TouchEvent) => {
-    setDraggedIndex(index);
-    setTouchStartY(e.touches[0].clientY);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (draggedIndex === null || touchStartY === null) return;
-    
-    e.preventDefault();
-    const touchY = e.touches[0].clientY;
-    
-    // Find which element the touch is over
-    const elements = document.elementsFromPoint(e.touches[0].clientX, touchY);
-    const featuredItem = elements.find(el => el.hasAttribute('data-featured-index'));
-    
-    if (featuredItem) {
-      const overIndex = parseInt(featuredItem.getAttribute('data-featured-index') || '0');
-      
-      if (overIndex !== draggedIndex) {
-        const newFeatured = [...featured];
-        const draggedItem = newFeatured[draggedIndex];
-        newFeatured.splice(draggedIndex, 1);
-        newFeatured.splice(overIndex, 0, draggedItem);
-        
-        setFeatured(newFeatured);
-        setDraggedIndex(overIndex);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setDraggedIndex(null);
-    setTouchStartY(null);
-  };
-
-  const availableMovies = allMovies.filter(
-    movie => !featured.some(f => f.movieId === movie.id)
-  );
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50" />;
@@ -202,10 +142,6 @@ export default function HomepageAdminPage() {
             <Plus className="w-4 h-4" />
             {t('addFilm')}
           </Button>
-          <Button onClick={saveOrder} disabled={saving} className="gap-2 bg-green-600 hover:bg-green-700">
-            <Save className="w-4 h-4" />
-            {saving ? t('saving') : t('saveOrder')}
-          </Button>
         </div>
       </div>
 
@@ -213,112 +149,64 @@ export default function HomepageAdminPage() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>{t('featuredFilmsCount', { count: featured.length })}</CardTitle>
-            <p className="text-sm text-gray-600">{t('dragToReorder')}</p>
+            <div className="flex items-center justify-between">
+              <CardTitle>{t('featuredFilms')}</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            {featured.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">{t('noFeaturedFilms')}</p>
-            ) : (
-              <div className="space-y-3">
-                {featured.map((item, index) => (
-                  <div
-                    key={item.id}
-                    draggable
-                    data-featured-index={index}
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(index, e)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    className={`flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
-                      draggedIndex === index ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <GripVertical className="w-5 h-5 text-gray-400" />
-                    <span className="text-2xl font-bold text-gray-400 w-8">{index + 1}</span>
-                    {item.movie.poster_path && (
+            <DraggableItemList
+              items={featured}
+              draggedIndex={dragAndDrop.draggedIndex}
+              dataAttribute="data-featured-index"
+              onDragStart={dragAndDrop.handleDragStart}
+              onDragOver={dragAndDrop.handleDragOver}
+              onDragEnd={dragAndDrop.handleDragEnd}
+              onTouchStart={dragAndDrop.handleTouchStart}
+              onTouchMove={(e) => dragAndDrop.handleTouchMove(e, 'data-featured-index')}
+              onTouchEnd={dragAndDrop.handleTouchEnd}
+              onRemove={(item) => removeFeatured(item.id)}
+              renderItem={(item) => {
+                const posterUrl = getPosterUrl(item.movie.poster_path, 'small');
+                return (
+                  <>
+                    {posterUrl ? (
                       <img
-                        src={getPosterUrl(item.movie.poster_path, 'small') || ''}
+                        src={posterUrl}
                         alt={getLocalizedText(item.movie.title, locale)}
-                        className="w-16 h-24 object-cover rounded"
+                        className="w-16 h-24 object-cover rounded flex-shrink-0"
                       />
+                    ) : (
+                      <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                        <Film className="w-6 h-6 text-gray-400" />
+                      </div>
                     )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg">
                         {getLocalizedText(item.movie.title, locale)}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {item.movie.release_date && new Date(item.movie.release_date).getFullYear()}
+                        {item.movie.release_date || t('noReleaseDate')}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFeatured(item.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-5 h-5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  </>
+                );
+              }}
+              emptyMessage={`${t('noFeaturedFilms')}. ${t('clickAddToStart')}`}
+              showInstructions={false}
+            />
           </CardContent>
         </Card>
       </div>
 
-      {/* Add Film Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <CardTitle>{t('addFeaturedFilm')}</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setShowAddModal(false)}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-y-auto">
-              {availableMovies.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">{t('allMoviesFeatured')}</p>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {availableMovies.map((movie) => (
-                    <button
-                      key={movie.id}
-                      onClick={() => addFeatured(movie.id)}
-                      className="text-left bg-gray-50 border border-gray-200 rounded-lg overflow-hidden hover:bg-gray-100 hover:border-gray-300 transition-colors"
-                    >
-                      {movie.poster_path ? (
-                        <img
-                          src={getPosterUrl(movie.poster_path, 'small') || ''}
-                          alt={getLocalizedText(movie.title, locale)}
-                          className="w-full aspect-[2/3] object-cover"
-                        />
-                      ) : (
-                        <div className="w-full aspect-[2/3] bg-gray-200 flex items-center justify-center">
-                          <span className="text-4xl">🎬</span>
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm line-clamp-2 text-gray-900">
-                          {getLocalizedText(movie.title, locale)}
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          {movie.release_date && new Date(movie.release_date).getFullYear()}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <MovieSelectionModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        allMovies={allMovies}
+        excludeMovieIds={featured.map(f => f.movieId)}
+        onSelectMovie={handleAddMovie}
+        loading={loading}
+        title={t('addFeaturedFilm')}
+      />
     </div>
   );
 }

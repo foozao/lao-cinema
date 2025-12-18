@@ -9,16 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Save, Plus, Trash2, GripVertical, Search, Film, Clock, X 
-} from 'lucide-react';
+import { Save, Plus, Film } from 'lucide-react';
 import { shortPacksAPI, movieAPI } from '@/lib/api/client';
-import { Link } from '@/i18n/routing';
-import type { ShortPack, Movie } from '@/lib/types';
-import { getLocalizedText } from '@/lib/i18n';
+import type { Movie } from '@/lib/types';
 import { getPosterUrl } from '@/lib/images';
 import { SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/config';
+import { useDragAndDrop } from '@/hooks/use-drag-and-drop';
+import { DraggableItemList } from '@/components/admin/draggable-item-list';
+import { MovieSelectionModal } from '@/components/admin/movie-selection-modal';
 
 interface ShortInPack {
   movie: {
@@ -57,14 +55,10 @@ export default function ShortPackEditPage() {
   const [isPublished, setIsPublished] = useState(false);
   const [shorts, setShorts] = useState<ShortInPack[]>([]);
 
-  // State for adding shorts - now shows all shorts with optional filter
-  const [searchQuery, setSearchQuery] = useState('');
+  // State for adding shorts
   const [allShorts, setAllShorts] = useState<Movie[]>([]);
   const [loadingShorts, setLoadingShorts] = useState(false);
   const [showShortPicker, setShowShortPicker] = useState(false);
-  
-  // Drag and drop state
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Load pack data
   useEffect(() => {
@@ -124,13 +118,22 @@ export default function ShortPackEditPage() {
     }
   }, [showShortPicker, allShorts.length, loadAllShorts]);
 
-  // Filter shorts based on search query and exclude already added
-  const filteredShorts = allShorts.filter((m) => {
-    const existingIds = new Set(shorts.map(s => s.movie.id));
-    if (existingIds.has(m.id)) return false;
-    if (!searchQuery.trim()) return true;
-    const title = m.title?.en?.toLowerCase() || m.original_title?.toLowerCase() || '';
-    return title.includes(searchQuery.toLowerCase());
+  // Drag and drop hook
+  const dragAndDrop = useDragAndDrop({
+    items: shorts,
+    onReorder: setShorts,
+    onReorderComplete: async (reorderedShorts) => {
+      if (packId) {
+        try {
+          await shortPacksAPI.reorderShorts(
+            packId,
+            reorderedShorts.map((s, i) => ({ movie_id: s.movie.id, order: i }))
+          );
+        } catch (err) {
+          console.error('Failed to reorder shorts:', err);
+        }
+      }
+    },
   });
 
   // Add short to pack
@@ -151,6 +154,7 @@ export default function ShortPackEditPage() {
         order: shorts.length,
       };
       setShorts([...shorts, newShort]);
+      setHasChanges(true);
     } else {
       // For existing packs, call API
       try {
@@ -161,7 +165,7 @@ export default function ShortPackEditPage() {
         console.error('Failed to add short:', err);
       }
     }
-    setSearchQuery('');
+    setShowShortPicker(false);
   };
 
   // Remove short from pack
@@ -182,41 +186,6 @@ export default function ShortPackEditPage() {
     }
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newShorts = [...shorts];
-    const draggedItem = newShorts[draggedIndex];
-    newShorts.splice(draggedIndex, 1);
-    newShorts.splice(index, 0, draggedItem);
-    
-    // Update order values
-    const reordered = newShorts.map((s, i) => ({ ...s, order: i }));
-    setShorts(reordered);
-    setDraggedIndex(index);
-    setHasChanges(true);
-  };
-
-  const handleDragEnd = async () => {
-    // Save order to API if editing existing pack
-    if (packId && draggedIndex !== null) {
-      try {
-        await shortPacksAPI.reorderShorts(
-          packId,
-          shorts.map(s => ({ movie_id: s.movie.id, order: s.order }))
-        );
-      } catch (err) {
-        console.error('Failed to reorder shorts:', err);
-      }
-    }
-    setDraggedIndex(null);
-  };
 
   // Save pack
   const handleSave = async () => {
@@ -429,130 +398,53 @@ export default function ShortPackEditPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Short Film Picker */}
-            {showShortPicker && (
-              <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Filter short films..."
-                      className="pl-9"
+            <MovieSelectionModal
+              open={showShortPicker}
+              onOpenChange={setShowShortPicker}
+              allMovies={allShorts}
+              excludeMovieIds={shorts.map(s => s.movie.id)}
+              onSelectMovie={addShort}
+              loading={loadingShorts}
+              title="Add Short Film"
+              filterFn={(movie) => movie.runtime ? movie.runtime <= SHORT_FILM_THRESHOLD_MINUTES : false}
+            />
+
+            <DraggableItemList
+              items={shorts}
+              draggedIndex={dragAndDrop.draggedIndex}
+              dataAttribute="data-short-index"
+              onDragStart={dragAndDrop.handleDragStart}
+              onDragOver={dragAndDrop.handleDragOver}
+              onDragEnd={dragAndDrop.handleDragEnd}
+              onTouchStart={dragAndDrop.handleTouchStart}
+              onTouchMove={(e) => dragAndDrop.handleTouchMove(e, 'data-short-index')}
+              onTouchEnd={dragAndDrop.handleTouchEnd}
+              onRemove={(short) => removeShort(short.movie.id)}
+              renderItem={(short) => (
+                <>
+                  {short.movie.poster_path ? (
+                    <img
+                      src={getPosterUrl(short.movie.poster_path, 'small') || ''}
+                      alt={short.movie.title?.en || short.movie.original_title}
+                      className="w-16 h-24 object-cover rounded flex-shrink-0"
                     />
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setShowShortPicker(false)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {loadingShorts && (
-                  <p className="text-sm text-gray-500 text-center py-4">Loading short films...</p>
-                )}
-
-                {!loadingShorts && filteredShorts.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-96 overflow-y-auto">
-                    {filteredShorts.map((movie) => (
-                      <div
-                        key={movie.id}
-                        className="group cursor-pointer rounded-lg overflow-hidden border bg-white hover:ring-2 hover:ring-purple-500 transition-all"
-                        onClick={() => addShort(movie)}
-                      >
-                        <div className="relative aspect-[2/3]">
-                          {movie.poster_path ? (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <Film className="w-8 h-8 text-gray-400" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                            <Plus className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                        <div className="p-2">
-                          <p className="text-xs font-medium line-clamp-1">{movie.title?.en || movie.original_title}</p>
-                          <p className="text-xs text-gray-500">{movie.runtime ? `${movie.runtime}m` : ''}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {!loadingShorts && filteredShorts.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    {searchQuery ? 'No matching short films found.' : 'No short films available.'}
-                  </p>
-                )}
-
-                <p className="text-xs text-gray-400 mt-3 text-center">
-                  Short films have runtime ≤ {SHORT_FILM_THRESHOLD_MINUTES} minutes. Click a poster to add.
-                </p>
-              </div>
-            )}
-
-            {/* Shorts List */}
-            {shorts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Film className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No shorts in this pack yet</p>
-                <p className="text-sm">Click "Add Short" to add short films</p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-gray-600 mb-3">Drag to reorder</p>
-                <div className="space-y-3">
-                  {shorts.map((short, index) => (
-                    <div
-                      key={short.movie.id}
-                      draggable
-                      data-short-index={index}
-                      onDragStart={() => handleDragStart(index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDragEnd={handleDragEnd}
-                      className={`flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
-                        draggedIndex === index ? 'opacity-50' : ''
-                      }`}
-                    >
-                      <GripVertical className="w-5 h-5 text-gray-400" />
-                      <span className="text-2xl font-bold text-gray-400 w-8">{index + 1}</span>
-                      {short.movie.poster_path ? (
-                        <img
-                          src={getPosterUrl(short.movie.poster_path, 'small') || ''}
-                          alt={short.movie.title?.en || short.movie.original_title}
-                          className="w-16 h-24 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center">
-                          <Film className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-gray-900">
-                          {short.movie.title?.en || short.movie.original_title}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {short.movie.runtime ? `${short.movie.runtime} min` : 'No runtime'}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeShort(short.movie.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="w-5 h-5" />
-                      </Button>
+                  ) : (
+                    <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                      <Film className="w-6 h-6 text-gray-400" />
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-lg text-gray-900">
+                      {short.movie.title?.en || short.movie.original_title}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {short.movie.runtime ? `${short.movie.runtime} min` : 'No runtime'}
+                    </p>
+                  </div>
+                </>
+              )}
+              emptyMessage="No shorts in this pack yet. Click 'Add Short' to add short films."
+            />
           </CardContent>
         </Card>
       </div>
