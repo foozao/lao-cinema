@@ -6,6 +6,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, watchProgress } from '../db/schema.js';
@@ -28,10 +29,7 @@ export default async function userDataRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!anonymousId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Anonymous ID is required',
-      });
+      return sendBadRequest(reply, 'Anonymous ID is required');
     }
     
     try {
@@ -65,10 +63,7 @@ export default async function userDataRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to migrate user data');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to migrate user data',
-      });
+      return sendInternalError(reply, 'Failed to migrate user data');
     }
   });
   
@@ -110,10 +105,7 @@ export default async function userDataRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch user stats');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch user statistics',
-      });
+      return sendInternalError(reply, 'Failed to fetch user statistics');
     }
   });
 }

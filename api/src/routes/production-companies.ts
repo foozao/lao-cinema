@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { db, schema } from '../db/index.js';
 import { eq, sql, desc } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
@@ -136,7 +137,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         .where(eq(schema.productionCompanies.id, companyId));
       
       if (!company) {
-        return reply.status(404).send({ error: 'Production company not found' });
+        return sendNotFound(reply, 'Production company not found');
       }
       
       // Get translations
@@ -214,7 +215,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       
       // Validate English name is provided
       if (!name || !name.en) {
-        return reply.status(400).send({ error: 'English name is required' });
+        return sendBadRequest(reply, 'English name is required');
       }
       
       // Generate ID for manual entries (negative to distinguish from TMDB)
@@ -265,7 +266,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         }
       );
 
-      return reply.status(201).send({
+      return sendCreated(reply, {
         id: companyId,
         name,
         slug,
@@ -276,7 +277,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ error: 'Failed to create production company' });
+      return sendInternalError(reply, 'Failed to create production company');
     }
   });
 
@@ -303,7 +304,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         .where(eq(schema.productionCompanies.id, companyId));
       
       if (!existing) {
-        return reply.status(404).send({ error: 'Production company not found' });
+        return sendNotFound(reply, 'Production company not found');
       }
       
       // Get existing translations for change tracking
@@ -414,7 +415,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         .where(eq(schema.productionCompanies.id, companyId));
       
       if (!existing) {
-        return reply.status(404).send({ error: 'Production company not found' });
+        return sendNotFound(reply, 'Production company not found');
       }
       
       // Get name for audit log before deletion

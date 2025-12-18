@@ -1,6 +1,7 @@
 // Homepage featured films routes
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { z } from 'zod';
 import { db, schema } from '../db/index.js';
 import { eq, sql, asc } from 'drizzle-orm';
@@ -57,7 +58,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       return { movies: sortedMovies };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch featured films' });
+      sendInternalError(reply, 'Failed to fetch featured films');
     }
   });
 
@@ -104,7 +105,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       return { featured: moviesData.filter(m => m !== null) };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch featured films' });
+      sendInternalError(reply, 'Failed to fetch featured films');
     }
   });
 
@@ -123,7 +124,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!movie) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // Check if already featured
@@ -133,7 +134,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (existing.length > 0) {
-          return reply.status(400).send({ error: 'Movie is already featured' });
+          return sendBadRequest(reply, 'Movie is already featured');
         }
 
         // Add to featured
@@ -165,10 +166,10 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           }
         );
 
-        return reply.status(201).send(featured);
+        return sendCreated(reply, featured);
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to add featured film' });
+        sendInternalError(reply, 'Failed to add featured film');
       }
     }
   );
@@ -193,7 +194,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         return { success: true };
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to update order' });
+        sendInternalError(reply, 'Failed to update order');
       }
     }
   );
@@ -211,7 +212,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           .returning();
 
         if (!deleted) {
-          return reply.status(404).send({ error: 'Featured film not found' });
+          return sendNotFound(reply, 'Featured film not found');
         }
 
         // Get movie title for audit log
@@ -238,7 +239,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         return { success: true, id: deleted.id };
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to remove featured film' });
+        sendInternalError(reply, 'Failed to remove featured film');
       }
     }
   );

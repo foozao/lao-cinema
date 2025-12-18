@@ -1,5 +1,6 @@
 // Person images routes
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { db, schema } from '../db/index.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
@@ -30,10 +31,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         const validation = addPersonImageSchema.safeParse(request.body);
         
         if (!validation.success) {
-          return reply.status(400).send({
-            error: 'Invalid image data',
-            details: validation.error.errors,
-          });
+          return sendBadRequest(reply, 'Invalid image data', validation.error.errors);
         }
         
         const { filePath, width, height, aspectRatio, isPrimary } = validation.data;
@@ -72,7 +70,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         return newImage;
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ error: 'Failed to add image' });
+        return sendInternalError(reply, 'Failed to add image');
       }
     }
   );
@@ -99,7 +97,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
           );
         
         if (!image) {
-          return reply.status(404).send({ error: 'Image not found' });
+          return sendNotFound(reply, 'Image not found');
         }
         
         // Delete the database record
@@ -153,7 +151,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         return { success: true };
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ error: 'Failed to delete image' });
+        return sendInternalError(reply, 'Failed to delete image');
       }
     }
   );
@@ -174,7 +172,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!person) {
-          return reply.status(404).send({ error: 'Person not found' });
+          return sendNotFound(reply, 'Person not found');
         }
 
         // Verify image exists and belongs to this person
@@ -189,7 +187,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!image) {
-          return reply.status(404).send({ error: 'Image not found' });
+          return sendNotFound(reply, 'Image not found');
         }
 
         // Unset all primary flags for this person
@@ -226,7 +224,7 @@ export default async function personImageRoutes(fastify: FastifyInstance) {
         };
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ error: 'Failed to update primary profile photo' });
+        return sendInternalError(reply, 'Failed to update primary profile photo');
       }
     }
   );

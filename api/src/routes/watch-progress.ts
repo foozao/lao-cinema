@@ -6,6 +6,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { watchProgress, movies } from '../db/schema.js';
@@ -53,10 +54,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch watch progress');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch watch progress',
-      });
+      return sendInternalError(reply, 'Failed to fetch watch progress');
     }
   });
   
@@ -103,10 +101,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch watch progress');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch watch progress',
-      });
+      return sendInternalError(reply, 'Failed to fetch watch progress');
     }
   });
   
@@ -129,17 +124,11 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (progressSeconds === undefined || durationSeconds === undefined) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'progressSeconds and durationSeconds are required',
-      });
+      return sendBadRequest(reply, 'progressSeconds and durationSeconds are required');
     }
     
     if (progressSeconds < 0 || durationSeconds < 0) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Progress and duration must be non-negative',
-      });
+      return sendBadRequest(reply, 'Progress and duration must be non-negative');
     }
     
     try {
@@ -150,10 +139,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (!movie) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not found',
-        });
+        return sendNotFound(reply, 'Movie not found');
       }
       
       // Auto-calculate completion if > 90%
@@ -224,10 +210,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to update watch progress');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to update watch progress',
-      });
+      return sendInternalError(reply, 'Failed to update watch progress');
     }
   });
   
@@ -262,10 +245,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to delete watch progress');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to delete watch progress',
-      });
+      return sendInternalError(reply, 'Failed to delete watch progress');
     }
   });
   
@@ -284,18 +264,12 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
     
     // Must be authenticated to migrate
     if (!userId) {
-      return reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Authentication required to migrate data',
-      });
+      return sendUnauthorized(reply, 'Authentication required to migrate data');
     }
     
     // Must provide anonymous ID
     if (!bodyAnonymousId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Anonymous ID is required',
-      });
+      return sendBadRequest(reply, 'Anonymous ID is required');
     }
     
     try {
@@ -316,10 +290,7 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to migrate watch progress');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to migrate watch progress',
-      });
+      return sendInternalError(reply, 'Failed to migrate watch progress');
     }
   });
 }

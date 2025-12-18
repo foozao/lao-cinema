@@ -52,7 +52,7 @@ describe('Trailer Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Movie not found');
+      expect(body.detail).toBe('Movie not found');
     });
 
     it('should return trailers ordered by order field', async () => {
@@ -189,7 +189,7 @@ describe('Trailer Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Invalid trailer data');
+      expect(body.detail).toBe('Invalid trailer data');
     });
 
     it('should validate video trailer has required fields', async () => {

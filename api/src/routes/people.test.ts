@@ -185,7 +185,7 @@ describe('People Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toContain('English name is required');
+      expect(body.detail).toContain('English name is required');
     });
 
     it('should reject creation without name object', async () => {
@@ -265,7 +265,7 @@ describe('People Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Person not found');
+      expect(body.detail).toBe('Person not found');
     });
 
     it('should return 400 for invalid ID', async () => {
@@ -276,7 +276,7 @@ describe('People Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Invalid person ID');
+      expect(body.detail).toBe('Invalid person ID');
     });
 
     it('should include cast and crew credits', async () => {

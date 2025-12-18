@@ -1,6 +1,7 @@
 // Short Packs routes: CRUD operations for curated short film collections
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, asc, sql, and, gt, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
@@ -138,7 +139,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       return { short_packs: packsWithData };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch short packs' });
+      sendInternalError(reply, 'Failed to fetch short packs');
     }
   });
 
@@ -156,7 +157,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!pack) {
-        return reply.status(404).send({ error: 'Short pack not found' });
+        return sendNotFound(reply, 'Short pack not found');
       }
 
       // Get translations
@@ -226,7 +227,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch short pack' });
+      sendInternalError(reply, 'Failed to fetch short pack');
     }
   });
 
@@ -272,13 +273,13 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           url: `/api/short-packs/${newPack.id}`,
         });
 
-        return reply.status(201).send(JSON.parse(response.body));
+        return sendCreated(reply, JSON.parse(response.body));
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: 'Validation error', details: error.errors });
+          return sendBadRequest(reply, 'Validation error', error.errors);
         }
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to create short pack' });
+        return sendInternalError(reply, 'Failed to create short pack');
       }
     }
   );
@@ -299,7 +300,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!existingPack) {
-          return reply.status(404).send({ error: 'Short pack not found' });
+          return sendNotFound(reply, 'Short pack not found');
         }
 
         // Update pack
@@ -365,10 +366,10 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         return JSON.parse(response.body);
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: 'Validation error', details: error.errors });
+          return sendBadRequest(reply, 'Validation error', error.errors);
         }
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to update short pack' });
+        return sendInternalError(reply, 'Failed to update short pack');
       }
     }
   );
@@ -386,13 +387,13 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .returning();
 
         if (!deletedPack) {
-          return reply.status(404).send({ error: 'Short pack not found' });
+          return sendNotFound(reply, 'Short pack not found');
         }
 
         return { message: 'Short pack deleted successfully', id };
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to delete short pack' });
+        sendInternalError(reply, 'Failed to delete short pack');
       }
     }
   );
@@ -417,7 +418,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!pack) {
-          return reply.status(404).send({ error: 'Short pack not found' });
+          return sendNotFound(reply, 'Short pack not found');
         }
 
         // Check movie exists and is a short
@@ -427,13 +428,13 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!movie) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // Short films are those with runtime <= 40 minutes
         const SHORT_FILM_THRESHOLD_MINUTES = 40;
         if (!movie.runtime || movie.runtime > SHORT_FILM_THRESHOLD_MINUTES) {
-          return reply.status(400).send({ error: `Movie is not a short film. Short films must have runtime ≤ ${SHORT_FILM_THRESHOLD_MINUTES} minutes.` });
+          return sendBadRequest(reply, `Movie is not a short film. Short films must have runtime ≤ ${SHORT_FILM_THRESHOLD_MINUTES} minutes.`);
         }
 
         // Get current max order if not provided
@@ -466,10 +467,10 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         return JSON.parse(response.body);
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: 'Validation error', details: error.errors });
+          return sendBadRequest(reply, 'Validation error', error.errors);
         }
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to add short to pack' });
+        return sendInternalError(reply, 'Failed to add short to pack');
       }
     }
   );
@@ -490,7 +491,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .returning();
 
         if (!deleted) {
-          return reply.status(404).send({ error: 'Short not found in pack' });
+          return sendNotFound(reply, 'Short not found in pack');
         }
 
         // Return updated pack
@@ -502,7 +503,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         return JSON.parse(response.body);
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to remove short from pack' });
+        sendInternalError(reply, 'Failed to remove short from pack');
       }
     }
   );
@@ -523,7 +524,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!pack) {
-          return reply.status(404).send({ error: 'Short pack not found' });
+          return sendNotFound(reply, 'Short pack not found');
         }
 
         // Update order for each short
@@ -545,10 +546,10 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         return JSON.parse(response.body);
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: 'Validation error', details: error.errors });
+          return sendBadRequest(reply, 'Validation error', error.errors);
         }
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to reorder shorts' });
+        return sendInternalError(reply, 'Failed to reorder shorts');
       }
     }
   );
@@ -622,7 +623,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       return reply.send({ packs: packs.filter(Boolean) });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get packs for movie' });
+      return sendInternalError(reply, 'Failed to get packs for movie');
     }
   });
 
@@ -753,7 +754,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get pack context' });
+      return sendInternalError(reply, 'Failed to get pack context');
     }
   });
 }

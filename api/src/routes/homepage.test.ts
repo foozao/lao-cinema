@@ -175,7 +175,7 @@ describe('Homepage Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Movie not found');
+      expect(body.detail).toBe('Movie not found');
     });
 
     it('should return 400 if movie already featured', async () => {
@@ -203,7 +203,7 @@ describe('Homepage Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Movie is already featured');
+      expect(body.detail).toBe('Movie is already featured');
     });
   });
 
@@ -291,7 +291,7 @@ describe('Homepage Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Featured film not found');
+      expect(body.detail).toBe('Featured film not found');
     });
   });
 });

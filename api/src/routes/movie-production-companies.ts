@@ -1,6 +1,7 @@
 // Movie-Production Company routes: Add/remove production companies from movies
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
@@ -26,7 +27,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         .limit(1);
 
       if (!movie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Verify production company exists
@@ -36,7 +37,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         .limit(1);
 
       if (!company) {
-        return reply.status(404).send({ error: 'Production company not found' });
+        return sendNotFound(reply, 'Production company not found');
       }
 
       // Calculate order if not provided
@@ -80,7 +81,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         }
       );
 
-      return reply.status(201).send({
+      return sendCreated(reply, {
         company: {
           id: company.id,
           name: Object.keys(name).length > 0 ? name : { en: 'Unknown' },
@@ -91,7 +92,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
       });
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to add production company to movie' });
+      sendInternalError(reply, 'Failed to add production company to movie');
     }
   });
 
@@ -114,7 +115,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         .returning();
 
       if (deleted.length === 0) {
-        return reply.status(404).send({ error: 'Production company not associated with this movie' });
+        return sendNotFound(reply, 'Production company not associated with this movie');
       }
 
       // Log audit event
@@ -133,7 +134,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
       return { success: true, message: 'Production company removed from movie' };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to remove production company from movie' });
+      sendInternalError(reply, 'Failed to remove production company from movie');
     }
   });
 
@@ -153,13 +154,13 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
         .returning();
 
       if (!updated) {
-        return reply.status(404).send({ error: 'Production company not associated with this movie' });
+        return sendNotFound(reply, 'Production company not associated with this movie');
       }
 
       return { success: true, order };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to update production company order' });
+      sendInternalError(reply, 'Failed to update production company order');
     }
   });
 }

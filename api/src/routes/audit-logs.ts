@@ -8,6 +8,7 @@
 import { FastifyInstance } from 'fastify';
 import { requireAuth, requireAdmin } from '../lib/auth-middleware.js';
 import { getAuditLogs, getEntityAuditHistory, getUserAuditHistory } from '../lib/audit-service.js';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 
 export default async function auditLogRoutes(fastify: FastifyInstance) {
   // Get all audit logs (admin only)

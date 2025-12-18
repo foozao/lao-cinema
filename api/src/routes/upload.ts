@@ -1,5 +1,6 @@
 // Image upload routes
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { randomUUID } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -32,9 +33,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       const validationType = imageTypeSchema.safeParse(typeParam);
       
       if (!validationType.success) {
-        return reply.status(400).send({ 
-          error: 'Invalid image type. Allowed: poster, backdrop, logo, profile' 
-        });
+        return sendBadRequest(reply, 'Invalid image type. Allowed: poster, backdrop, logo, profile');
       }
       
       const imageType: ImageType = validationType.data;
@@ -42,15 +41,13 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       const data = await request.file();
       
       if (!data) {
-        return reply.status(400).send({ error: 'No file uploaded' });
+        return sendBadRequest(reply, 'No file uploaded');
       }
 
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       if (!allowedTypes.includes(data.mimetype)) {
-        return reply.status(400).send({ 
-          error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' 
-        });
+        return sendBadRequest(reply, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF');
       }
 
       // Generate unique filename
@@ -90,7 +87,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       return { url: publicUrl, type: imageType };
     } catch (error) {
       fastify.log.error(error);
-      return reply.status(500).send({ error: 'Failed to upload image' });
+      return sendInternalError(reply, 'Failed to upload image');
     }
   });
 }

@@ -7,6 +7,7 @@ import { db, schema } from '../db/index.js';
 import { insertCharacterTranslations } from '../lib/movie-helpers.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
+import { sendNotFound, sendInternalError } from '../lib/response-helpers.js';
 
 // Helper to get person name for audit logging
 async function getPersonName(personId: number): Promise<string> {
@@ -38,7 +39,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!movie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Verify person exists
@@ -48,7 +49,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!person) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
 
       // Get the next order number if not provided
@@ -90,7 +91,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       return { success: true, message: 'Cast member added successfully' };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to add cast member' });
+      return sendInternalError(reply, 'Failed to add cast member');
     }
   });
 
@@ -136,7 +137,7 @@ export default async function movieCastRoutes(fastify: FastifyInstance) {
       return { success: true, message: 'Cast member removed successfully' };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to remove cast member' });
+      return sendInternalError(reply, 'Failed to remove cast member');
     }
   });
 }

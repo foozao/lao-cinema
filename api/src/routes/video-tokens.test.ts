@@ -82,7 +82,7 @@ describe('Video Token Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Video source not found');
+      expect(body.detail).toBe('Video source not found');
     });
 
     it('should return 403 when no valid rental exists', async () => {
@@ -98,7 +98,7 @@ describe('Video Token Routes', () => {
 
       expect(response.statusCode).toBe(403);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('No valid rental found');
+      expect(body.detail).toBe('No valid rental found');
       expect(body.code).toBe('RENTAL_REQUIRED');
     });
 

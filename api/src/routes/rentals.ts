@@ -6,6 +6,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, and, or, gt, desc, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, movies, watchProgress, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
@@ -234,10 +235,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch rentals');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch rentals',
-      });
+      return sendInternalError(reply, 'Failed to fetch rentals');
     }
   });
   
@@ -316,10 +314,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to check access');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to check access',
-      });
+      return sendInternalError(reply, 'Failed to check access');
     }
   });
   
@@ -393,10 +388,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ err: error }, 'Failed to fetch pack rental');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch pack rental',
-      });
+      return sendInternalError(reply, 'Failed to fetch pack rental');
     }
   });
   
@@ -498,10 +490,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       return reply.send({ rental: null });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch rental');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch rental',
-      });
+      return sendInternalError(reply, 'Failed to fetch rental');
     }
   });
   
@@ -522,10 +511,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     if (!transactionId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Transaction ID is required',
-      });
+      return sendBadRequest(reply, 'Transaction ID is required');
     }
     
     try {
@@ -536,10 +522,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (!pack) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Short pack not found',
-        });
+        return sendNotFound(reply, 'Short pack not found');
       }
       
       // Check if user already has an active rental for this pack
@@ -557,9 +540,11 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (existingRental) {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'You already have an active rental for this pack',
+        return reply.status(409).type('application/problem+json').send({
+          type: 'about:blank',
+          title: 'Conflict',
+          status: 409,
+          detail: 'You already have an active rental for this pack',
           rental: existingRental,
         });
       }
@@ -591,7 +576,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         title[t.language] = t.title;
       }
       
-      return reply.status(201).send({
+      return sendCreated(reply, {
         rental: {
           id: rental.id,
           shortPackId: rental.shortPackId,
@@ -610,10 +595,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to create pack rental');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create pack rental',
-      });
+      return sendInternalError(reply, 'Failed to create pack rental');
     }
   });
   
@@ -632,18 +614,12 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     
     // Must be authenticated to migrate
     if (!userId) {
-      return reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Authentication required to migrate data',
-      });
+      return sendUnauthorized(reply, 'Authentication required to migrate data');
     }
     
     // Must provide anonymous ID
     if (!bodyAnonymousId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Anonymous ID is required',
-      });
+      return sendBadRequest(reply, 'Anonymous ID is required');
     }
     
     try {
@@ -663,10 +639,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to migrate rentals');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to migrate rentals',
-      });
+      return sendInternalError(reply, 'Failed to migrate rentals');
     }
   });
   
@@ -689,10 +662,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!transactionId) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Transaction ID is required',
-      });
+      return sendBadRequest(reply, 'Transaction ID is required');
     }
     
     try {
@@ -703,10 +673,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (!movie) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not found',
-        });
+        return sendNotFound(reply, 'Movie not found');
       }
       
       // Check per-movie rental limit (pre-alpha protection)
@@ -717,11 +684,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
           .where(eq(rentals.movieId, movieId));
         
         if (count >= MAX_RENTALS_PER_MOVIE) {
-          return reply.status(403).send({
-            error: 'Rental Limit Reached',
-            message: `This movie has reached its rental limit for testing (${MAX_RENTALS_PER_MOVIE} rentals). Please try another film.`,
-            code: 'MOVIE_RENTAL_LIMIT_REACHED',
-          });
+          return sendForbidden(reply, `This movie has reached its rental limit for testing (${MAX_RENTALS_PER_MOVIE} rentals). Please try another film.`, 'MOVIE_RENTAL_LIMIT_REACHED');
         }
       }
       
@@ -740,9 +703,11 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (existingRental) {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'You already have an active rental for this movie',
+        return reply.status(409).type('application/problem+json').send({
+          type: 'about:blank',
+          title: 'Conflict',
+          status: 409,
+          detail: 'You already have an active rental for this movie',
           rental: existingRental,
         });
       }
@@ -763,7 +728,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         paymentMethod,
       }).returning();
       
-      return reply.status(201).send({
+      return sendCreated(reply, {
         rental: {
           id: rental.id,
           movieId: rental.movieId,
@@ -777,10 +742,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to create rental');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create rental',
-      });
+      return sendInternalError(reply, 'Failed to create rental');
     }
   });
   
@@ -813,10 +775,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (!rental) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Rental not found or expired',
-        });
+        return sendNotFound(reply, 'Rental not found or expired');
       }
       
       // Update the current short position
@@ -827,10 +786,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true });
     } catch (error) {
       request.log.error({ error }, 'Failed to update pack position');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to update pack position',
-      });
+      return sendInternalError(reply, 'Failed to update pack position');
     }
   });
 }

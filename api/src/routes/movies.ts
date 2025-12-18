@@ -15,6 +15,7 @@ import movieUpdateRoutes from './movie-update.js';
 import movieCastRoutes from './movie-cast.js';
 import movieCrewRoutes from './movie-crew.js';
 import movieImageRoutes from './movie-images.js';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 
 export default async function movieRoutes(fastify: FastifyInstance) {
   // Register all movie routes from sub-modules

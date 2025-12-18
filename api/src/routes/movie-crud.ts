@@ -2,6 +2,7 @@
 // Split from movies.ts for better maintainability
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
@@ -42,7 +43,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       return { movies: moviesWithData };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch movies' });
+      sendInternalError(reply, 'Failed to fetch movies');
     }
   });
 
@@ -61,7 +62,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!movie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Build complete movie object using shared builder
@@ -77,7 +78,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       return movieData;
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch movie' });
+      sendInternalError(reply, 'Failed to fetch movie');
     }
   });
 
@@ -177,10 +178,10 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
           }
         );
         
-        return reply.status(201).send(createdMovie);
+        return sendCreated(reply, createdMovie);
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to create movie' });
+        sendInternalError(reply, 'Failed to create movie');
       }
     }
   );
@@ -202,7 +203,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         .returning();
 
       if (!deletedMovie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Log audit event with details
@@ -225,7 +226,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       return { message: 'Movie deleted successfully', id };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to delete movie' });
+      sendInternalError(reply, 'Failed to delete movie');
     }
   });
 

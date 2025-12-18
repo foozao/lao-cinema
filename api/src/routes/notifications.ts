@@ -5,6 +5,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { movieNotifications, movies, movieTranslations, users } from '../db/schema.js';
@@ -30,10 +31,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         .then(rows => rows[0]);
       
       if (!movie) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not found',
-        });
+        return sendNotFound(reply, 'Movie not found');
       }
       
       // Check if already subscribed
@@ -60,17 +58,14 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         movieId,
       }).returning();
       
-      return reply.status(201).send({
+      return sendCreated(reply, {
         success: true,
         message: 'Notification request created',
         notification,
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to create notification request');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create notification request',
-      });
+      return sendInternalError(reply, 'Failed to create notification request');
     }
   });
 
@@ -91,10 +86,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         .returning();
       
       if (deleted.length === 0) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Notification request not found',
-        });
+        return sendNotFound(reply, 'Notification request not found');
       }
       
       return reply.send({
@@ -103,10 +95,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to cancel notification request');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to cancel notification request',
-      });
+      return sendInternalError(reply, 'Failed to cancel notification request');
     }
   });
 
@@ -134,10 +123,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to check notification status');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to check notification status',
-      });
+      return sendInternalError(reply, 'Failed to check notification status');
     }
   });
 
@@ -198,10 +184,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch notifications');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch notifications',
-      });
+      return sendInternalError(reply, 'Failed to fetch notifications');
     }
   });
 
@@ -243,10 +226,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch notification subscribers');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch notification subscribers',
-      });
+      return sendInternalError(reply, 'Failed to fetch notification subscribers');
     }
   });
 
@@ -273,10 +253,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to mark subscribers as notified');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to mark subscribers as notified',
-      });
+      return sendInternalError(reply, 'Failed to mark subscribers as notified');
     }
   });
 }

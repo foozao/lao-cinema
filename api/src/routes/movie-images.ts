@@ -2,6 +2,7 @@
 // Split from movies.ts for better maintainability
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '../db/index.js';
@@ -33,10 +34,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         const validation = addImageSchema.safeParse(request.body);
         
         if (!validation.success) {
-          return reply.status(400).send({ 
-            error: 'Invalid request body',
-            details: validation.error.errors,
-          });
+          return sendBadRequest(reply, 'Invalid request body', validation.error.errors);
         }
         
         const imageData = validation.data;
@@ -48,7 +46,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!movie) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // If this image is set as primary, unset other primary images of the same type
@@ -102,13 +100,13 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           }
         );
 
-        return reply.status(201).send({ 
+        return sendCreated(reply, { 
           success: true,
           image: newImage,
         });
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to add image' });
+        sendInternalError(reply, 'Failed to add image');
       }
     }
   );
@@ -132,7 +130,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!movie) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // Verify image exists and belongs to this movie
@@ -142,11 +140,11 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!image) {
-          return reply.status(404).send({ error: 'Image not found' });
+          return sendNotFound(reply, 'Image not found');
         }
 
         if (image.type !== type) {
-          return reply.status(400).send({ error: 'Image type mismatch' });
+          return sendBadRequest(reply, 'Image type mismatch');
         }
 
         // Unset all primary flags for this type
@@ -190,7 +188,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to update primary image' });
+        sendInternalError(reply, 'Failed to update primary image');
       }
     }
   );
@@ -212,7 +210,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!movie) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // Verify image exists and belongs to this movie
@@ -222,7 +220,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (!image) {
-          return reply.status(404).send({ error: 'Image not found' });
+          return sendNotFound(reply, 'Image not found');
         }
 
         // Delete the database record
@@ -273,7 +271,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to delete image' });
+        sendInternalError(reply, 'Failed to delete image');
       }
     }
   );

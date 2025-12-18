@@ -235,7 +235,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.message).toContain('Transaction ID is required');
+        expect(body.detail).toContain('Transaction ID is required');
       });
 
       it('should reject rental for non-existent movie', async () => {
@@ -252,7 +252,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(404);
         const body = JSON.parse(response.body);
-        expect(body.message).toContain('Movie not found');
+        expect(body.detail).toContain('Movie not found');
       });
 
       it('should reject duplicate active rental', async () => {
@@ -281,7 +281,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(409);
         const body = JSON.parse(response.body);
-        expect(body.message).toContain('already have an active rental');
+        expect(body.detail).toContain('already have an active rental');
       });
 
       it('should allow rental after previous one expires', async () => {
@@ -510,7 +510,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.message).toContain('Anonymous ID is required');
+        expect(body.detail).toContain('Anonymous ID is required');
       });
 
       it('should handle migration with no matching rentals', async () => {

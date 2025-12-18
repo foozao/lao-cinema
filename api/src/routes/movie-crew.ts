@@ -2,6 +2,7 @@
 // Split from movies.ts for better maintainability
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { insertJobTranslations } from '../lib/movie-helpers.js';
@@ -38,7 +39,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!movie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Verify person exists
@@ -48,7 +49,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!person) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
 
       // Insert crew record
@@ -81,7 +82,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       return { success: true, message: 'Crew member added successfully' };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to add crew member' });
+      sendInternalError(reply, 'Failed to add crew member');
     }
   });
 
@@ -142,7 +143,7 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
       return { success: true, message: 'Crew member removed successfully' };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to remove crew member' });
+      sendInternalError(reply, 'Failed to remove crew member');
     }
   });
 }

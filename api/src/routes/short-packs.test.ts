@@ -253,7 +253,7 @@ describe('Short Packs API', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toContain('not a short film');
+      expect(body.detail).toContain('not a short film');
     });
   });
 

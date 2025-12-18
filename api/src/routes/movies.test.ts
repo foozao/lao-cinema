@@ -141,7 +141,7 @@ describe('Movie Routes', () => {
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Movie not found');
+      expect(body.detail).toBe('Movie not found');
     });
   });
 
@@ -528,7 +528,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(404);
         const body = JSON.parse(response.body);
-        expect(body.error).toBe('Movie not found');
+        expect(body.detail).toBe('Movie not found');
       });
 
       it('should return 404 for non-existent image', async () => {
@@ -549,7 +549,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(404);
         const body = JSON.parse(response.body);
-        expect(body.error).toBe('Image not found');
+        expect(body.detail).toBe('Image not found');
       });
 
       it('should return 400 for type mismatch', async () => {
@@ -574,7 +574,7 @@ describe('Movie Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.error).toBe('Image type mismatch');
+        expect(body.detail).toBe('Image type mismatch');
       });
     });
 

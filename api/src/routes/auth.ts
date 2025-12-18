@@ -6,6 +6,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { 
   createUser, 
   authenticateUser, 
@@ -53,35 +54,23 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!email || !password) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Email and password are required',
-      });
+      return sendBadRequest(reply, 'Email and password are required');
     }
     
     if (!isValidEmail(email)) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid email format',
-      });
+      return sendBadRequest(reply, 'Invalid email format');
     }
     
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid password',
-        errors: passwordValidation.errors,
-      });
+      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors,
+      );
     }
     
     // Check if user already exists
     const existingUser = await findUserByEmail(email);
     if (existingUser) {
-      return reply.status(409).send({
-        error: 'Conflict',
-        message: 'User with this email already exists',
-      });
+      return sendConflict(reply, 'User with this email already exists');
     }
     
     try {
@@ -100,7 +89,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       );
       
       // Return user and session
-      return reply.status(201).send({
+      return sendCreated(reply, {
         user: {
           id: user.id,
           email: user.email,
@@ -118,10 +107,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Registration failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create user',
-      });
+      return sendInternalError(reply, 'Failed to create user');
     }
   });
   
@@ -141,10 +127,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!email || !password) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Email and password are required',
-      });
+      return sendBadRequest(reply, 'Email and password are required');
     }
     
     try {
@@ -152,10 +135,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const user = await authenticateUser(email, password);
       
       if (!user) {
-        return reply.status(401).send({
-          error: 'Unauthorized',
-          message: 'Invalid email or password',
-        });
+        return sendUnauthorized(reply, 'Invalid email or password');
       }
       
       // Create session
@@ -184,10 +164,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Login failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Login failed',
-      });
+      return sendInternalError(reply, 'Login failed');
     }
   });
   
@@ -204,10 +181,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     const token = authHeader?.substring(7);
     
     if (!token) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'No session token provided',
-      });
+      return sendBadRequest(reply, 'No session token provided');
     }
     
     try {
@@ -219,10 +193,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Logout failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Logout failed',
-      });
+      return sendInternalError(reply, 'Logout failed');
     }
   });
   
@@ -240,10 +211,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Logout all failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Logout failed',
-      });
+      return sendInternalError(reply, 'Logout failed');
     }
   });
   
@@ -307,10 +275,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Profile update failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to update profile',
-      });
+      return sendInternalError(reply, 'Failed to update profile');
     }
   });
   
@@ -326,19 +291,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!currentPassword || !newPassword) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Current password and new password are required',
-      });
+      return sendBadRequest(reply, 'Current password and new password are required');
     }
     
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.valid) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid new password',
-        errors: passwordValidation.errors,
-      });
+      return sendBadRequest(reply, 'Invalid new password', passwordValidation.errors,
+      );
     }
     
     try {
@@ -346,19 +305,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const user = await findUserById(request.userId!);
       
       if (!user || !user.passwordHash) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'Cannot change password for OAuth-only accounts',
-        });
+        return sendBadRequest(reply, 'Cannot change password for OAuth-only accounts');
       }
       
       const isValid = await verifyPassword(currentPassword, user.passwordHash);
       
       if (!isValid) {
-        return reply.status(401).send({
-          error: 'Unauthorized',
-          message: 'Current password is incorrect',
-        });
+        return sendUnauthorized(reply, 'Current password is incorrect');
       }
       
       // Update password
@@ -370,10 +323,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Password change failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to change password',
-      });
+      return sendInternalError(reply, 'Failed to change password');
     }
   });
   
@@ -390,17 +340,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!newEmail || !password) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'New email and password are required',
-      });
+      return sendBadRequest(reply, 'New email and password are required');
     }
     
     if (!isValidEmail(newEmail)) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid email format',
-      });
+      return sendBadRequest(reply, 'Invalid email format');
     }
     
     try {
@@ -408,36 +352,24 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const user = await findUserById(request.userId!);
       
       if (!user || !user.passwordHash) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'Cannot change email for OAuth-only accounts',
-        });
+        return sendBadRequest(reply, 'Cannot change email for OAuth-only accounts');
       }
       
       const isValid = await verifyPassword(password, user.passwordHash);
       
       if (!isValid) {
-        return reply.status(401).send({
-          error: 'Unauthorized',
-          message: 'Password is incorrect',
-        });
+        return sendUnauthorized(reply, 'Password is incorrect');
       }
       
       // Check if new email is same as current
       if (user.email.toLowerCase() === newEmail.toLowerCase()) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'New email must be different from current email',
-        });
+        return sendBadRequest(reply, 'New email must be different from current email');
       }
       
       // Check if email is already in use
       const existingUser = await findUserByEmail(newEmail);
       if (existingUser) {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'Email is already in use',
-        });
+        return sendConflict(reply, 'Email is already in use');
       }
       
       // Update email (this also resets emailVerified to false)
@@ -459,10 +391,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Email change failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to change email',
-      });
+      return sendInternalError(reply, 'Failed to change email');
     }
   });
   
@@ -477,20 +406,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Verify password before deletion
     if (!password) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Password is required to delete account',
-      });
+      return sendBadRequest(reply, 'Password is required to delete account');
     }
     
     try {
       const user = await findUserById(request.userId!);
       
       if (!user) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'User not found',
-        });
+        return sendNotFound(reply, 'User not found');
       }
       
       // For OAuth-only users, skip password check
@@ -498,10 +421,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const isValid = await verifyPassword(password, user.passwordHash);
         
         if (!isValid) {
-          return reply.status(401).send({
-            error: 'Unauthorized',
-            message: 'Password is incorrect',
-          });
+          return sendUnauthorized(reply, 'Password is incorrect');
         }
       }
       
@@ -514,10 +434,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Account deletion failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to delete account',
-      });
+      return sendInternalError(reply, 'Failed to delete account');
     }
   });
   
@@ -537,17 +454,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!email) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Email is required',
-      });
+      return sendBadRequest(reply, 'Email is required');
     }
     
     if (!isValidEmail(email)) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid email format',
-      });
+      return sendBadRequest(reply, 'Invalid email format');
     }
     
     try {
@@ -587,10 +498,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Password reset request failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to process password reset request',
-      });
+      return sendInternalError(reply, 'Failed to process password reset request');
     }
   });
   
@@ -606,19 +514,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Validate input
     if (!token || !newPassword) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Token and new password are required',
-      });
+      return sendBadRequest(reply, 'Token and new password are required');
     }
     
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.valid) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Invalid password',
-        errors: passwordValidation.errors,
-      });
+      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors,
+      );
     }
     
     try {
@@ -626,10 +528,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const resetTokenData = await findValidPasswordResetToken(token);
       
       if (!resetTokenData) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'Invalid or expired reset token. Please request a new password reset.',
-        });
+        return sendBadRequest(reply, 'Invalid or expired reset token. Please request a new password reset.');
       }
       
       // Update the user's password
@@ -649,10 +548,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Password reset failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to reset password',
-      });
+      return sendInternalError(reply, 'Failed to reset password');
     }
   });
   
@@ -664,10 +560,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     const { token } = request.query as { token: string };
     
     if (!token) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Token is required',
-      });
+      return sendBadRequest(reply, 'Token is required');
     }
     
     try {
@@ -678,10 +571,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Token verification failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to verify token',
-      });
+      return sendInternalError(reply, 'Failed to verify token');
     }
   });
 
@@ -699,10 +589,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     
     // Check if already verified
     if (user.emailVerified) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Email is already verified',
-      });
+      return sendBadRequest(reply, 'Email is already verified');
     }
     
     try {
@@ -718,10 +605,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       
       if (!emailResult.success) {
         request.log.error({ error: emailResult.error }, 'Failed to send verification email');
-        return reply.status(500).send({
-          error: 'Internal Server Error',
-          message: 'Failed to send verification email',
-        });
+        return sendInternalError(reply, 'Failed to send verification email');
       }
       
       return reply.send({
@@ -730,10 +614,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to send verification email');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to send verification email',
-      });
+      return sendInternalError(reply, 'Failed to send verification email');
     }
   });
 
@@ -745,10 +626,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     const { token } = request.body as { token: string };
     
     if (!token) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Token is required',
-      });
+      return sendBadRequest(reply, 'Token is required');
     }
     
     try {
@@ -756,10 +634,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const tokenData = await findValidEmailVerificationToken(token);
       
       if (!tokenData) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'Invalid or expired verification link',
-        });
+        return sendBadRequest(reply, 'Invalid or expired verification link');
       }
       
       // Verify email
@@ -777,10 +652,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Email verification failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to verify email',
-      });
+      return sendInternalError(reply, 'Failed to verify email');
     }
   });
 
@@ -792,10 +664,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     const { token } = request.query as { token: string };
     
     if (!token) {
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Token is required',
-      });
+      return sendBadRequest(reply, 'Token is required');
     }
     
     try {
@@ -806,10 +675,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Token verification failed');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to verify token',
-      });
+      return sendInternalError(reply, 'Failed to verify token');
     }
   });
 }

@@ -9,6 +9,7 @@ import { eq, and, inArray, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { userWatchlist, movies, movieTranslations } from '../db/schema.js';
 import { requireAuth } from '../lib/auth-middleware.js';
+import { sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 
 export default async function watchlistRoutes(fastify: FastifyInstance) {
   
@@ -29,10 +30,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
         .then(rows => rows[0]);
       
       if (!movie) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not found',
-        });
+        return sendNotFound(reply, 'Movie not found');
       }
       
       // Check if already in watchlist
@@ -59,17 +57,14 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
         movieId,
       }).returning();
       
-      return reply.status(201).send({
+      return sendCreated(reply, {
         success: true,
         message: 'Added to watchlist',
         item,
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to add to watchlist');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to add to watchlist',
-      });
+      return sendInternalError(reply, 'Failed to add to watchlist');
     }
   });
 
@@ -90,10 +85,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
         .returning();
       
       if (deleted.length === 0) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Movie not in watchlist',
-        });
+        return sendNotFound(reply, 'Movie not in watchlist');
       }
       
       return reply.send({
@@ -102,10 +94,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to remove from watchlist');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to remove from watchlist',
-      });
+      return sendInternalError(reply, 'Failed to remove from watchlist');
     }
   });
 
@@ -133,10 +122,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to check watchlist status');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to check watchlist status',
-      });
+      return sendInternalError(reply, 'Failed to check watchlist status');
     }
   });
 
@@ -210,10 +196,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to fetch watchlist');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to fetch watchlist',
-      });
+      return sendInternalError(reply, 'Failed to fetch watchlist');
     }
   });
 
@@ -234,10 +217,7 @@ export default async function watchlistRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       request.log.error({ error }, 'Failed to get watchlist count');
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to get watchlist count',
-      });
+      return sendInternalError(reply, 'Failed to get watchlist count');
     }
   });
 }

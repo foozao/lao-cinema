@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { trailers, movies } from '../db/schema.js';
@@ -62,7 +63,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
     // Verify movie exists
     const [movie] = await db.select().from(movies).where(eq(movies.id, movieId)).limit(1);
     if (!movie) {
-      return reply.status(404).send({ error: 'Movie not found' });
+      return sendNotFound(reply, 'Movie not found');
     }
 
     const movieTrailers = await db
@@ -84,16 +85,13 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
       // Verify movie exists
       const [movie] = await db.select().from(movies).where(eq(movies.id, movieId)).limit(1);
       if (!movie) {
-        return reply.status(404).send({ error: 'Movie not found' });
+        return sendNotFound(reply, 'Movie not found');
       }
 
       // Validate request body
       const validation = createTrailerSchema.safeParse(request.body);
       if (!validation.success) {
-        return reply.status(400).send({
-          error: 'Invalid trailer data',
-          details: validation.error.issues,
-        });
+        return sendBadRequest(reply, 'Invalid trailer data', validation.error.issues);
       }
 
       const data = validation.data;
@@ -136,7 +134,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
         }
       );
 
-      return reply.status(201).send(newTrailer);
+      return sendCreated(reply, newTrailer);
     }
   );
 
@@ -155,16 +153,13 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!existingTrailer) {
-        return reply.status(404).send({ error: 'Trailer not found' });
+        return sendNotFound(reply, 'Trailer not found');
       }
 
       // Validate request body
       const validation = updateTrailerSchema.safeParse(request.body);
       if (!validation.success) {
-        return reply.status(400).send({
-          error: 'Invalid update data',
-          details: validation.error.issues,
-        });
+        return sendBadRequest(reply, 'Invalid update data', validation.error.issues);
       }
 
       const data = validation.data;
@@ -219,7 +214,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
         .returning();
 
       if (!deletedTrailer) {
-        return reply.status(404).send({ error: 'Trailer not found' });
+        return sendNotFound(reply, 'Trailer not found');
       }
 
       // Log audit event
@@ -251,7 +246,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
       const { trailer_ids } = request.body as { trailer_ids: string[] };
 
       if (!Array.isArray(trailer_ids)) {
-        return reply.status(400).send({ error: 'trailer_ids must be an array' });
+        return sendBadRequest(reply, 'trailer_ids must be an array');
       }
 
       // Update order for each trailer

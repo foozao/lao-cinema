@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { rentals, movies, videoSources, shortPackItems } from '../db/schema.js';
@@ -39,9 +40,7 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!videoSource) {
-        return reply.status(404).send({
-          error: 'Video source not found',
-        });
+        return sendNotFound(reply, 'Video source not found');
       }
 
       // 2. Check rental validity (direct rental OR pack rental)
@@ -88,17 +87,11 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
             .limit(1);
 
           if (!packRental) {
-            return reply.status(403).send({
-              error: 'No valid rental found',
-              code: 'RENTAL_REQUIRED',
-            });
+            return sendForbidden(reply, 'No valid rental found', 'RENTAL_REQUIRED');
           }
         } else {
           // No pack rental found either
-          return reply.status(403).send({
-            error: 'No valid rental found',
-            code: 'RENTAL_REQUIRED',
-          });
+          return sendForbidden(reply, 'No valid rental found', 'RENTAL_REQUIRED');
         }
       }
 
@@ -145,6 +138,7 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
         videoPath: payload.videoPath,
       });
     } catch (error) {
+      // Special format for token validation - includes valid: false
       return reply.status(401).send({
         valid: false,
         error: error instanceof Error ? error.message : 'Invalid token',

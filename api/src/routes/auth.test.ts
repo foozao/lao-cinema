@@ -87,7 +87,7 @@ describe('Auth Routes', () => {
       
       expect(response.statusCode).toBe(409);
       const body = JSON.parse(response.body);
-      expect(body.message).toContain('already exists');
+      expect(body.detail).toContain('already exists');
     });
     
     it('should reject invalid email format', async () => {
@@ -115,7 +115,7 @@ describe('Auth Routes', () => {
       
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.message).toContain('Invalid password');
+      expect(body.detail).toContain('Invalid password');
     });
   });
   
@@ -166,7 +166,7 @@ describe('Auth Routes', () => {
       
       expect(response.statusCode).toBe(401);
       const body = JSON.parse(response.body);
-      expect(body.message).toContain('Invalid');
+      expect(body.detail).toContain('Invalid');
     });
     
     it('should reject non-existent email', async () => {

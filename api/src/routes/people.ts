@@ -1,6 +1,7 @@
 // People routes
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { db, schema } from '../db/index.js';
 import { eq, sql, ilike, or } from 'drizzle-orm';
 import { buildPersonCredits } from '../lib/movie-builder.js';
@@ -218,7 +219,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       return { people: peopleWithTranslations };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch people' });
+      sendInternalError(reply, 'Failed to fetch people');
     }
   });
 
@@ -238,7 +239,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const { name, nicknames, biography, known_for_department, birthday, place_of_birth, profile_path } = request.body;
 
       if (!name?.en) {
-        return reply.status(400).send({ error: 'English name is required' });
+        return sendBadRequest(reply, 'English name is required');
       }
 
       // Generate a unique ID for manually created people
@@ -292,7 +293,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to create person' });
+      sendInternalError(reply, 'Failed to create person');
     }
   });
 
@@ -303,7 +304,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const personId = parseInt(id);
       
       if (isNaN(personId)) {
-        return reply.status(400).send({ error: 'Invalid person ID' });
+        return sendBadRequest(reply, 'Invalid person ID');
       }
       
       // Get person
@@ -313,7 +314,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!person) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
 
       // Get translations
@@ -363,7 +364,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to fetch person' });
+      sendInternalError(reply, 'Failed to fetch person');
     }
   });
 
@@ -378,11 +379,11 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const { sourceId, targetId } = request.body;
 
       if (!sourceId || !targetId) {
-        return reply.status(400).send({ error: 'Both sourceId and targetId are required' });
+        return sendBadRequest(reply, 'Both sourceId and targetId are required');
       }
 
       if (sourceId === targetId) {
-        return reply.status(400).send({ error: 'Cannot merge a person with themselves' });
+        return sendBadRequest(reply, 'Cannot merge a person with themselves');
       }
 
       // Verify both people exist
@@ -397,11 +398,11 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!sourcePerson) {
-        return reply.status(404).send({ error: 'Source person not found' });
+        return sendNotFound(reply, 'Source person not found');
       }
 
       if (!targetPerson) {
-        return reply.status(404).send({ error: 'Target person not found' });
+        return sendNotFound(reply, 'Target person not found');
       }
 
       // 1. Merge translations (add missing translations from source to target)
@@ -533,7 +534,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to merge people' });
+      sendInternalError(reply, 'Failed to merge people');
     }
   });
 
@@ -556,7 +557,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const personId = parseInt(id);
       
       if (isNaN(personId)) {
-        return reply.status(400).send({ error: 'Invalid person ID' });
+        return sendBadRequest(reply, 'Invalid person ID');
       }
 
       const updates = request.body;
@@ -568,7 +569,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .limit(1);
       
       if (!existingPerson) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
       
       const existingTrans = await db.select()
@@ -664,7 +665,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (updatedPerson.length === 0) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
 
       const translations = await db.select()
@@ -732,7 +733,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to update person' });
+      sendInternalError(reply, 'Failed to update person');
     }
   });
 
@@ -743,7 +744,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       const personId = parseInt(id);
       
       if (isNaN(personId)) {
-        return reply.status(400).send({ error: 'Invalid person ID' });
+        return sendBadRequest(reply, 'Invalid person ID');
       }
 
       // Check if person exists
@@ -753,7 +754,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .limit(1);
 
       if (!person) {
-        return reply.status(404).send({ error: 'Person not found' });
+        return sendNotFound(reply, 'Person not found');
       }
 
       // Get person name for audit log before deleting
@@ -776,7 +777,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      reply.status(500).send({ error: 'Failed to delete person' });
+      sendInternalError(reply, 'Failed to delete person');
     }
   });
 }

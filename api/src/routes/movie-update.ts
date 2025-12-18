@@ -2,6 +2,7 @@
 // Split from movies.ts for better maintainability
 
 import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
@@ -39,7 +40,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           .limit(1);
 
         if (existing.length === 0) {
-          return reply.status(404).send({ error: 'Movie not found' });
+          return sendNotFound(reply, 'Movie not found');
         }
 
         // Fetch current translations for change tracking
@@ -160,7 +161,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         return reply.status(200).send(updatedMovie);
       } catch (error) {
         fastify.log.error(error);
-        reply.status(500).send({ error: 'Failed to update movie' });
+        sendInternalError(reply, 'Failed to update movie');
       }
     }
   );
