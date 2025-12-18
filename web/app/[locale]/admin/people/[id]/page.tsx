@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SaveSuccessModal } from '@/components/admin/save-success-modal';
 import { Save, CheckCircle, Merge, Trash2, Plus, X } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getProfileUrl } from '@/lib/images';
@@ -574,29 +575,15 @@ export default function EditPersonPage() {
       </div>
 
       {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <DialogTitle className="text-xl">Person Updated Successfully!</DialogTitle>
-            </div>
-            <DialogDescription>
-              Your changes have been saved. The person data has been refreshed with the latest updates.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 mt-4">
-            <Button onClick={handleCloseSuccessModal} variant="outline" className="w-full">
-              Keep Editing
-            </Button>
-            <Button onClick={handleBackToList} className="w-full">
-              Back to People
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SaveSuccessModal
+        open={showSuccessModal}
+        onOpenChange={setShowSuccessModal}
+        title="Person Updated Successfully!"
+        description="Your changes have been saved. The person data has been refreshed with the latest updates."
+        onKeepEditing={handleCloseSuccessModal}
+        onBackToList={handleBackToList}
+        backToListLabel="Back to People"
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

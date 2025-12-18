@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { DashboardCard } from '@/components/admin/dashboard-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Users, Download, ArrowRight, Home, BarChart3, RefreshCw, Building2, ClipboardList, Package } from 'lucide-react';
+import { Film, Users, Plus, Building2, Home, Package, BarChart3, ClipboardList, Download, RefreshCw } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -133,190 +134,75 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Homepage Card */}
-        <Link href="/admin/homepage">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <Home className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('homepage')}</CardTitle>
-                    <CardDescription>{t('customizeFeatured')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                {t('selectHomepageFilms')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/homepage"
+          icon={Home}
+          color="green"
+          title={t('homepage')}
+          description={t('customizeFeatured')}
+          content={t('selectHomepageFilms')}
+        />
 
-        {/* Movies Card */}
-        <Link href="/admin/movies">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Film className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('movies')}</CardTitle>
-                    <CardDescription>{t('manageMovieCatalog')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {stats.loading ? '...' : stats.moviesCount}
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('totalMoviesInDatabase')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/movies"
+          icon={Film}
+          color="blue"
+          title={t('movies')}
+          description={t('manageMovieCatalog')}
+          stat={stats.moviesCount}
+          statLabel={t('totalMoviesInDatabase')}
+          loading={stats.loading}
+        />
 
-        {/* People Card */}
-        <Link href="/admin/people">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <Users className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('people')}</CardTitle>
-                    <CardDescription>{t('manageCastAndCrew')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {stats.loading ? '...' : stats.peopleCount}
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('totalPeopleInDatabase')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/people"
+          icon={Users}
+          color="purple"
+          title={t('people')}
+          description={t('manageCastAndCrew')}
+          stat={stats.peopleCount}
+          statLabel={t('totalPeopleInDatabase')}
+          loading={stats.loading}
+        />
 
-        {/* Analytics Card */}
-        <Link href="/admin/analytics">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-orange-100 rounded-lg">
-                    <BarChart3 className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('analytics')}</CardTitle>
-                    <CardDescription>{t('viewAnalytics')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                {t('analyticsDescription')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/analytics"
+          icon={BarChart3}
+          color="orange"
+          title={t('analytics')}
+          description={t('viewAnalytics')}
+          content={t('analyticsDescription')}
+        />
 
-        {/* Short Packs Card */}
-        <Link href="/admin/short-packs">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-pink-100 rounded-lg">
-                    <Package className="w-6 h-6 text-pink-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('shortPacks')}</CardTitle>
-                    <CardDescription>{t('curateShortFilms')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                {t('shortPacksDescription')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/short-packs"
+          icon={Package}
+          color="pink"
+          title={t('shortPacks')}
+          description={t('curateShortFilms')}
+          content={t('shortPacksDescription')}
+        />
 
-        {/* Production Companies Card */}
-        <Link href="/admin/production">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-teal-100 rounded-lg">
-                    <Building2 className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <div>
-                    <CardTitle>{t('productionCompanies')}</CardTitle>
-                    <CardDescription>{t('manageStudios')}</CardDescription>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {stats.loading ? '...' : stats.companiesCount}
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('totalCompaniesInDatabase')}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <DashboardCard
+          href="/admin/production"
+          icon={Building2}
+          color="teal"
+          title={t('productionCompanies')}
+          description={t('manageStudios')}
+          stat={stats.companiesCount}
+          statLabel={t('totalCompaniesInDatabase')}
+          loading={stats.loading}
+        />
 
-        {/* Audit Logs Card (Admin Only) */}
         {user?.role === 'admin' && (
-          <Link href="/admin/audit-logs">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gray-100 rounded-lg">
-                      <ClipboardList className="w-6 h-6 text-gray-600" />
-                    </div>
-                    <div>
-                      <CardTitle>{t('auditLogs')}</CardTitle>
-                      <CardDescription>{t('trackChanges')}</CardDescription>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  {t('auditLogsDescription')}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+          <DashboardCard
+            href="/admin/audit-logs"
+            icon={ClipboardList}
+            color="gray"
+            title={t('auditLogs')}
+            description={t('trackChanges')}
+            content={t('auditLogsDescription')}
+          />
         )}
       </div>
 

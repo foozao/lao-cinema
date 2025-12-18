@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SaveSuccessModal } from '@/components/admin/save-success-modal';
 import { Save, RefreshCw, AlertCircle, CheckCircle, Bell, Mail, Copy, Check } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { useTranslations } from 'next-intl';
@@ -671,29 +672,15 @@ export default function EditMoviePage() {
       <EntityHistory entityType="movie" entityId={movieId} />
 
       {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <DialogTitle className="text-xl">Movie Updated Successfully!</DialogTitle>
-            </div>
-            <DialogDescription>
-              Your changes have been saved. The movie data has been refreshed with the latest updates.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 mt-4">
-            <Button onClick={() => setShowSuccessModal(false)} variant="outline" className="w-full">
-              Keep Editing
-            </Button>
-            <Button onClick={() => router.push('/admin')} className="w-full">
-              Back to Movies
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SaveSuccessModal
+        open={showSuccessModal}
+        onOpenChange={setShowSuccessModal}
+        title="Movie Updated Successfully!"
+        description="Your changes have been saved. The movie data has been refreshed with the latest updates."
+        onKeepEditing={() => setShowSuccessModal(false)}
+        onBackToList={() => router.push('/admin')}
+        backToListLabel="Back to Movies"
+      />
 
       {/* Sync Result Modal */}
       <Dialog open={showSyncResultModal} onOpenChange={setShowSyncResultModal}>
