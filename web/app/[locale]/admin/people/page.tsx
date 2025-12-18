@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, Edit, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, ArrowUpDown, Plus } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
-import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl } from '@/lib/images';
+import { useAdminList } from '@/hooks/use-admin-list';
 
 type DepartmentFilter = 'all' | 'Acting' | 'Directing' | 'Writing' | 'Production' | 'other';
 type SortOrder = 'asc' | 'desc';
@@ -17,79 +15,52 @@ type SortOrder = 'asc' | 'desc';
 export default function PeopleAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations('admin');
-  const [people, setPeople] = useState<any[]>([]);
-  const [filteredPeople, setFilteredPeople] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>('all');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
-  useEffect(() => {
-    const loadPeople = async () => {
-      try {
-        const response = await peopleAPI.getAll();
-        // Sort people alphabetically by English name
-        const sortedPeople = [...response.people].sort((a, b) => {
-          const nameA = (a.name?.en || '').toLowerCase();
-          const nameB = (b.name?.en || '').toLowerCase();
-          return nameA.localeCompare(nameB);
-        });
-        setPeople(sortedPeople);
-        setFilteredPeople(sortedPeople);
-      } catch (error) {
-        console.error('Failed to load people:', error);
-      } finally {
-        setLoading(false);
+  
+  const { 
+    items: people,
+    filteredItems: filteredPeople, 
+    loading, 
+    searchQuery, 
+    setSearchQuery, 
+    filters,
+    setFilter 
+  } = useAdminList<any>({
+    fetchFn: peopleAPI.getAll,
+    dataKey: 'people',
+    searchFields: (person) => {
+      const nicknamesEn = person.nicknames?.en || [];
+      const nicknamesLo = person.nicknames?.lo || [];
+      return [
+        person.name?.en || '',
+        person.name?.lo || '',
+        ...nicknamesEn,
+        ...nicknamesLo,
+      ];
+    },
+    filterFn: (person, filters) => {
+      const departmentFilter = filters.department || 'all';
+      if (departmentFilter === 'all') return true;
+      
+      const departments = person.departments || [];
+      if (departmentFilter === 'other') {
+        return departments.some((dept: string) => !['Acting', 'Directing', 'Writing', 'Production'].includes(dept));
       }
-    };
-
-    loadPeople();
-  }, []);
-
-
-  // Filter and sort people based on search, department, and sort order
-  useEffect(() => {
-    let filtered = [...people];
-
-    // Apply department filter
-    if (departmentFilter !== 'all') {
-      filtered = filtered.filter((person) => {
-        const departments = person.departments || [];
-        if (departmentFilter === 'other') {
-          // Check if person has any department that's not in the main categories
-          return departments.some((dept: string) => !['Acting', 'Directing', 'Writing', 'Production'].includes(dept));
-        }
-        // Check if the selected department is in the person's departments array
-        return departments.includes(departmentFilter);
-      });
-    }
-
-    // Apply search filter (name and nicknames)
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((person) => {
-        const nameEn = person.name?.en?.toLowerCase() || '';
-        const nameLo = person.name?.lo?.toLowerCase() || '';
-        const nicknamesEn = person.nicknames?.en || [];
-        const nicknamesLo = person.nicknames?.lo || [];
-        const allNicknames = [...nicknamesEn, ...nicknamesLo].map((n: string) => n.toLowerCase());
-        
-        return nameEn.includes(query) || 
-               nameLo.includes(query) ||
-               allNicknames.some((nickname: string) => nickname.includes(query));
-      });
-    }
-
-    // Apply sort order
-    filtered.sort((a, b) => {
+      return departments.includes(departmentFilter);
+    },
+    sortFn: (a, b, sortBy) => {
       const nameA = (a.name?.en || '').toLowerCase();
       const nameB = (b.name?.en || '').toLowerCase();
       const comparison = nameA.localeCompare(nameB);
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    setFilteredPeople(filtered);
-  }, [searchQuery, people, departmentFilter, sortOrder]);
+      return sortBy === 'desc' ? -comparison : comparison;
+    },
+    initialSort: 'asc',
+  });
+  
+  const departmentFilter = (filters.department || 'all') as DepartmentFilter;
+  const sortOrder = (filters.sort || 'asc') as SortOrder;
+  
+  const setDepartmentFilter = (dept: DepartmentFilter) => setFilter('department', dept);
+  const setSortOrder = (order: SortOrder) => setFilter('sort', order);
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50" />;

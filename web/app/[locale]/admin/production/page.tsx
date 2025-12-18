@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Search, Edit, Plus, Trash2, Building2, X, ArrowUpDown, Upload, Loader2 
 import { productionCompaniesAPI } from '@/lib/api/client';
 import { getProductionCompanyLogoUrl } from '@/lib/images';
 import { API_BASE_URL } from '@/lib/config';
+import { useAdminList } from '@/hooks/use-admin-list';
 
 interface ProductionCompany {
   id: number;
@@ -32,11 +33,46 @@ type SortOption = 'movies-desc' | 'movies-asc' | 'name-asc' | 'name-desc';
 export default function ProductionCompaniesAdminPage() {
   const locale = useLocale() as 'en' | 'lo';
   const t = useTranslations('admin');
-  const [companies, setCompanies] = useState<ProductionCompany[]>([]);
-  const [filteredCompanies, setFilteredCompanies] = useState<ProductionCompany[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('movies-desc');
+  
+  const { 
+    filteredItems: filteredCompanies, 
+    loading, 
+    searchQuery, 
+    setSearchQuery, 
+    sortBy, 
+    setSortBy,
+    reload: loadCompanies 
+  } = useAdminList<ProductionCompany>({
+    fetchFn: productionCompaniesAPI.getAll,
+    dataKey: 'companies',
+    searchFields: (company) => {
+      const nameEn = typeof company.name === 'string' ? company.name : company.name?.en || '';
+      const nameLo = typeof company.name === 'string' ? '' : company.name?.lo || '';
+      return [nameEn, nameLo];
+    },
+    sortFn: (a, b, sort) => {
+      const aMovieCount = a.movies?.length || 0;
+      const bMovieCount = b.movies?.length || 0;
+      const aName = typeof a.name === 'string' ? a.name : a.name?.en || '';
+      const bName = typeof b.name === 'string' ? b.name : b.name?.en || '';
+      
+      switch (sort) {
+        case 'movies-desc':
+          if (bMovieCount !== aMovieCount) return bMovieCount - aMovieCount;
+          return aName.localeCompare(bName);
+        case 'movies-asc':
+          if (aMovieCount !== bMovieCount) return aMovieCount - bMovieCount;
+          return aName.localeCompare(bName);
+        case 'name-asc':
+          return aName.localeCompare(bName);
+        case 'name-desc':
+          return bName.localeCompare(aName);
+        default:
+          return 0;
+      }
+    },
+    initialSort: 'movies-desc',
+  });
   
   // Edit modal state
   const [editingCompany, setEditingCompany] = useState<ProductionCompany | null>(null);
@@ -90,67 +126,6 @@ export default function ProductionCompaniesAdminPage() {
     }
   };
 
-  useEffect(() => {
-    loadCompanies();
-  }, []);
-
-  const loadCompanies = async () => {
-    try {
-      const response = await productionCompaniesAPI.getAll();
-      setCompanies(response.companies);
-      setFilteredCompanies(response.companies);
-    } catch (error) {
-      console.error('Failed to load companies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter and sort companies
-  useEffect(() => {
-    let result = companies;
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((company) => {
-        const nameEn = typeof company.name === 'string' ? company.name : company.name?.en || '';
-        const nameLo = typeof company.name === 'string' ? '' : company.name?.lo || '';
-        return nameEn.toLowerCase().includes(query) || nameLo.toLowerCase().includes(query);
-      });
-    }
-    
-    // Apply sorting
-    result = [...result].sort((a, b) => {
-      const aMovieCount = a.movies?.length || 0;
-      const bMovieCount = b.movies?.length || 0;
-      const aName = typeof a.name === 'string' ? a.name : a.name?.en || '';
-      const bName = typeof b.name === 'string' ? b.name : b.name?.en || '';
-      
-      switch (sortBy) {
-        case 'movies-desc':
-          // Sort by movie count descending, then alphabetically
-          if (bMovieCount !== aMovieCount) {
-            return bMovieCount - aMovieCount;
-          }
-          return aName.localeCompare(bName);
-        case 'movies-asc':
-          // Sort by movie count ascending, then alphabetically
-          if (aMovieCount !== bMovieCount) {
-            return aMovieCount - bMovieCount;
-          }
-          return aName.localeCompare(bName);
-        case 'name-asc':
-          return aName.localeCompare(bName);
-        case 'name-desc':
-          return bName.localeCompare(aName);
-        default:
-          return 0;
-      }
-    });
-    
-    setFilteredCompanies(result);
-  }, [searchQuery, companies, sortBy]);
 
   const getCompanyName = (company: ProductionCompany) => {
     if (typeof company.name === 'string') return company.name;
@@ -259,9 +234,9 @@ export default function ProductionCompaniesAdminPage() {
               className="pl-10"
             />
           </div>
-          {searchQuery && (
+          {searchQuery && filteredCompanies.length > 0 && (
             <p className="text-sm text-gray-600 mt-2">
-              {t('showingOfCompanies', { shown: filteredCompanies.length, total: companies.length })}
+              {t('showingResults', { count: filteredCompanies.length })}
             </p>
           )}
         </div>

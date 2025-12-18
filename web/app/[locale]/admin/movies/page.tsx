@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Download, Search, ArrowUpDown } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import { getPosterUrl } from '@/lib/images';
+import { useAdminList } from '@/hooks/use-admin-list';
 import type { Movie } from '@/lib/types';
 
 type SortOption = 'title-asc' | 'title-desc' | 'date-asc' | 'date-desc';
@@ -17,43 +17,16 @@ type SortOption = 'title-asc' | 'title-desc' | 'date-asc' | 'date-desc';
 export default function MoviesAdminPage() {
   const t = useTranslations('admin');
   const tCrew = useTranslations('crew');
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('title-asc');
   
-  useEffect(() => {
-    const loadMovies = async () => {
-      try {
-        const response = await movieAPI.getAll();
-        setMovies(response.movies);
-      } catch (error) {
-        console.error('Failed to load movies:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMovies();
-  }, []);
-
-  // Filter and sort movies
-  const filteredMovies = useMemo(() => {
-    let result = [...movies];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((movie) => {
-        const titleEn = getLocalizedText(movie.title, 'en').toLowerCase();
-        const titleLo = getLocalizedText(movie.title, 'lo').toLowerCase();
-        return titleEn.includes(query) || titleLo.includes(query);
-      });
-    }
-    
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (sortBy) {
+  const { filteredItems: filteredMovies, loading, searchQuery, setSearchQuery, sortBy, setSortBy } = useAdminList<Movie>({
+    fetchFn: movieAPI.getAll,
+    dataKey: 'movies',
+    searchFields: (movie) => [
+      getLocalizedText(movie.title, 'en'),
+      getLocalizedText(movie.title, 'lo'),
+    ],
+    sortFn: (a, b, sort) => {
+      switch (sort) {
         case 'title-asc':
           return getLocalizedText(a.title, 'en').localeCompare(getLocalizedText(b.title, 'en'));
         case 'title-desc':
@@ -65,10 +38,9 @@ export default function MoviesAdminPage() {
         default:
           return 0;
       }
-    });
-    
-    return result;
-  }, [movies, searchQuery, sortBy]);
+    },
+    initialSort: 'title-asc',
+  });
 
   // Helper to get director(s) from crew
   const getDirectors = (movie: Movie): string => {
