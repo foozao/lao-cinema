@@ -111,7 +111,13 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
 
       // 5. Return signed URL
       const videoBaseUrl = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
-      const signedUrl = `${videoBaseUrl}/videos/${videoPath}?token=${token}`;
+      
+      // For local development, add /videos/ prefix
+      // For cloud storage (GCS), the base URL already includes the bucket path
+      const isCloudStorage = videoBaseUrl.includes('storage.googleapis.com');
+      const signedUrl = isCloudStorage
+        ? `${videoBaseUrl}/${videoPath}?token=${token}`
+        : `${videoBaseUrl}/videos/${videoPath}?token=${token}`;
 
       return reply.send({
         url: signedUrl,

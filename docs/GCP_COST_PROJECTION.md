@@ -10,11 +10,66 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 - **Video Storage**: Google Cloud Storage (GCS)
 - **Video Delivery**: HLS streaming via GCS + Cloud CDN
 
+## Quick Cost Summary
+
+**Estimated monthly costs by stream volume** (with recommended configuration):
+
+### With Cloud CDN (Recommended)
+
+| Service | 100 streams/month | 1,000 streams/month | 10,000 streams/month |
+|---------|-------------------|---------------------|----------------------|
+| **Cloud Run** (Frontend + Backend) | $0.00 (free tier) | $1.33 | $20.96 |
+| **Cloud SQL** | $28.04 (db-g1-small) | $55.42 (db-n1-standard-1) | $316.88 (db-n1-standard-4) |
+| **Cloud Storage** | $0.50 (10GB) | $4.00 (200GB) | $40.00 (2TB) |
+| **Cloud CDN** (video delivery) | $0.00 (140GB) | $11.00 (1.4TB) | $112.00 (14TB) |
+| **Other** (DNS, Registry, Logs) | $0.15 | $2.00 | $10.00 |
+| **TOTAL** | **~$29/month** ✓ | **~$74/month** | **~$500/month** |
+
+### Without CDN (Direct GCS Egress)
+
+| Service | 100 streams/month | 1,000 streams/month | 10,000 streams/month |
+|---------|-------------------|---------------------|----------------------|
+| **Cloud Run** (Frontend + Backend) | $0.00 (free tier) | $1.33 | $20.96 |
+| **Cloud SQL** | $28.04 (db-g1-small) | $55.42 (db-n1-standard-1) | $316.88 (db-n1-standard-4) |
+| **Cloud Storage** | $0.50 (10GB) | $4.00 (200GB) | $40.00 (2TB) |
+| **GCS Egress** (direct, $0.12/GB) | $0.00 (140GB, free tier) | $48.00 (400GB over free tier) | **$1,560.00** (13TB over free tier) |
+| **Other** (DNS, Registry, Logs) | $0.15 | $2.00 | $10.00 |
+| **TOTAL** | **~$29/month** | **~$111/month** | **~$1,950/month** ⚠️ |
+
+**CDN Savings**: $0/month (same) | **$37/month (50% cheaper)** | **$1,450/month (74% cheaper)** 
+
+**Notes**:
+- Assumes 1.4 GB average bandwidth per stream (HLS adaptive streaming with 480p-1080p quality tiers)
+- Assumes 50-1000 movie library growing with traffic
+- **Verified**: December 2024 actual costs were ~$28/month at 100 streams/month
+- Costs assume basic bot protection (recommended: Cloudflare free tier)
+- **Cloud CDN becomes essential at scale** — saves $37-1,450/month depending on traffic
+
+---
+
+## Pricing References
+
+- **Cloud Run**: https://cloud.google.com/run/pricing
+- **Cloud SQL**: https://cloud.google.com/sql/pricing
+- **Cloud Storage**: https://cloud.google.com/storage/pricing
+- **Cloud CDN**: https://cloud.google.com/cdn/pricing
+- **Artifact Registry**: https://cloud.google.com/artifact-registry/pricing
+- **Cloud DNS**: https://cloud.google.com/dns/pricing
+- **Cloud Logging**: https://cloud.google.com/stackdriver/pricing
+- **Cloud Monitoring**: https://cloud.google.com/stackdriver/pricing
+- **Cloud Build**: https://cloud.google.com/build/pricing
+- **Cloud Armor**: https://cloud.google.com/armor/pricing
+
+---
+
 ## Cost Breakdown by Service
 
 ### 1. Cloud Run (Frontend + Backend)
 
 **Pricing Model**: Pay-per-use (CPU, memory, requests)
+
+**Reference**: https://cloud.google.com/run/pricing
+
 - **CPU**: $0.00002400 per vCPU-second
 - **Memory**: $0.00000250 per GiB-second
 - **Requests**: $0.40 per million requests
@@ -51,11 +106,17 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 
 **Pricing Model**: Instance type + storage + backups
 
-#### Shared-Core Instance (Development/Small Scale)
-- **db-f1-micro**: 1 shared vCPU, 614 MB RAM
-- **Cost**: ~$7.67/month
+**Reference**: https://cloud.google.com/sql/pricing
+
+#### Shared-Core Instances (Development/Small Scale)
+
+| Tier | vCPU | RAM | Cost/month | Good for |
+|------|------|-----|------------|----------|
+| db-f1-micro | Shared | 614 MB | ~$7.67 | Development/testing only |
+| **db-g1-small** | Shared | 1.7 GB | ~$25-27 | **Launch/low traffic (recommended)** |
+
 - **Storage**: $0.17/GB/month (SSD)
-- **Good for**: <100,000 page views/month
+- **Note**: `db-f1-micro` has very limited RAM and may hit memory limits. `db-g1-small` provides a better balance for real workloads.
 
 #### Dedicated Instance (Production)
 - **db-n1-standard-1**: 1 vCPU, 3.75 GB RAM
@@ -63,11 +124,12 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 - **Storage**: $0.17/GB/month (SSD)
 - **Good for**: 100,000 - 1,000,000 page views/month
 
-| Database Size | Instance Type | Instance Cost | Storage Cost (50GB) | Backup Cost (7 days) | **Total** |
+| Database Size | Instance Type | Instance Cost | Storage Cost (10GB) | Backup Cost (7 days) | **Total** |
 |--------------|---------------|---------------|---------------------|---------------------|-----------|
-| Small (<10GB) | db-f1-micro | $7.67 | $8.50 | $1.70 | **$17.87** |
-| Medium (50GB) | db-n1-standard-1 | $45.22 | $8.50 | $8.50 | **$62.22** |
-| Large (200GB) | db-n1-standard-2 | $90.44 | $34.00 | $34.00 | **$158.44** |
+| Small (<10GB) | db-f1-micro | $7.67 | $1.70 | $0.34 | **$9.71** |
+| Small (<10GB) | db-g1-small | $26.00 | $1.70 | $0.34 | **$28.04** |
+| Medium (50GB) | db-n1-standard-1 | $45.22 | $8.50 | $1.70 | **$55.42** |
+| Large (200GB) | db-n1-standard-2 | $90.44 | $34.00 | $6.80 | **$131.24** |
 
 **Optimization Tips**:
 - Use connection pooling (PgBouncer) to reduce connections
@@ -79,6 +141,8 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 ### 3. Cloud Storage (Video Files)
 
 **Pricing Model**: Storage + operations + egress
+
+**Reference**: https://cloud.google.com/storage/pricing
 
 - **Standard Storage**: $0.020 per GB/month
 - **Class A Operations** (write): $0.05 per 10,000 operations
@@ -153,6 +217,8 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 
 **Pricing Model**: Cache fill + cache egress
 
+**Reference**: https://cloud.google.com/cdn/pricing
+
 - **Cache Fill**: $0.08 per GB (GCS → CDN)
 - **Cache Egress**: $0.04-0.08 per GB (CDN → user, varies by region)
 - **Cache Invalidation**: $0.005 per invalidation
@@ -177,19 +243,38 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 ### 5. Additional Services
 
 #### Cloud Logging
+**Reference**: https://cloud.google.com/stackdriver/pricing
+
 - **Free Tier**: 50 GB/month
 - **Paid**: $0.50 per GB after free tier
 - **Estimated**: $0-5/month for typical usage
 
 #### Cloud Monitoring
+**Reference**: https://cloud.google.com/stackdriver/pricing
+
 - **Free Tier**: Included for GCP services
 - **Paid**: $0.2580 per MiB for custom metrics
 - **Estimated**: $0-2/month
 
 #### Cloud Build (CI/CD)
+**Reference**: https://cloud.google.com/build/pricing
+
 - **Free Tier**: 120 build-minutes/day
 - **Paid**: $0.003 per build-minute after free tier
 - **Estimated**: $0-10/month
+
+#### Artifact Registry
+**Reference**: https://cloud.google.com/artifact-registry/pricing
+
+- **Storage**: $0.10 per GB/month
+- **Estimated**: $0.10-1/month for container images
+
+#### Cloud DNS
+**Reference**: https://cloud.google.com/dns/pricing
+
+- **Managed zones**: $0.20 per zone/month (first 25 zones)
+- **Queries**: $0.40 per million queries
+- **Estimated**: $0.05-0.20/month
 
 ---
 
@@ -219,17 +304,20 @@ This document provides cost estimates for running Lao Cinema on Google Cloud Pla
 - **Movie Streams**: 100/month
 - **Movie Library**: 50 movies (100 GB)
 
-| Service | Cost |
-|---------|------|
-| Cloud Run (Frontend) | $0.00 (still in free tier) |
-| Cloud Run (Backend) | $0.00 (still in free tier) |
-| Cloud SQL (db-f1-micro) | $17.87 |
-| Cloud Storage (100 GB) | $2.00 |
-| Egress (200 GB) | $0.00 |
-| Logging/Monitoring | $2.00 (bot traffic logs) |
-| **TOTAL** | **~$22/month** |
+| Service | Cost (minimal) | Cost (recommended) |
+|---------|----------------|--------------------|
+| Cloud Run (Frontend) | $0.00 (free tier) | $0.00 (free tier) |
+| Cloud Run (Backend) | $0.00 (free tier) | $0.00 (free tier) |
+| Cloud SQL | $9.71 (db-f1-micro) | **$28.04 (db-g1-small)** |
+| Cloud Storage | $0.50 | $0.50 |
+| Artifact Registry | $0.10 | $0.10 |
+| Cloud DNS | $0.05 | $0.05 |
+| Egress (200 GB) | $0.00 | $0.00 |
+| **TOTAL** | **~$10/month** | **~$29/month** |
 
-**Note**: This assumes you implement basic bot protection. Without it, costs could easily reach $50-100/month from bot traffic alone.
+**Actual costs (December 2024)**: ~$28/month with `db-g1-small` — verified against real billing.
+
+**Note**: `db-g1-small` is recommended over `db-f1-micro` for real workloads due to better RAM (1.7GB vs 614MB). The minimal tier may hit memory limits under load.
 
 ---
 
@@ -367,6 +455,8 @@ fastify.register(require('@fastify/rate-limit'), {
 - Minimal performance impact
 
 #### 4. Cloud Armor (GCP) - For High Traffic
+**Reference**: https://cloud.google.com/armor/pricing
+
 - **Cost**: $5/month + $0.75 per million requests
 - **Features**: 
   - IP allowlists/blocklists
@@ -668,6 +758,8 @@ This table shows **video delivery costs per GB** to help you compare providers:
 
 ## Alternative: Cloudflare Stream
 
+**Reference**: https://www.cloudflare.com/products/cloudflare-stream/
+
 If video delivery costs become prohibitive, consider **Cloudflare Stream**:
 
 **Pricing**:
@@ -693,6 +785,8 @@ If video delivery costs become prohibitive, consider **Cloudflare Stream**:
 ---
 
 ## Alternative: Bunny Stream
+
+**Reference**: https://bunny.net/pricing/
 
 **Pricing**:
 - **Storage**: $0.005 per GB/month

@@ -220,6 +220,7 @@ else
         --update-env-vars="DB_USER=laocinema" \
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
+        --update-env-vars="VIDEO_SERVER_URL=https://storage.googleapis.com/lao-cinema-videos" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
         --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:-}" \
         --update-env-vars="NODE_ENV=production" \

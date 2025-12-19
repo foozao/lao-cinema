@@ -28,22 +28,43 @@ echo ""
 
 # Connect to Cloud SQL and run the update
 gcloud sql connect $INSTANCE_NAME --user=$DB_USER --database=$DB_NAME <<EOF
--- Update Last Dance video sources
-UPDATE video_sources 
-SET url = 'last-dance'
-WHERE movie_id = '3e5f236f-1a1b-40d4-aba8-729a8033d3bb';
+-- Show video sources that need updating
+SELECT 
+    vs.id,
+    mt.title,
+    vs.url as current_url
+FROM video_sources vs
+JOIN movies m ON vs.movie_id = m.id
+JOIN movie_translations mt ON m.id = mt.movie_id
+WHERE (
+    vs.url LIKE 'http://%' 
+    OR vs.url LIKE 'https://%'
+)
+AND mt.language = 'en'
+ORDER BY mt.title;
 
--- Update The Signal video sources (if exists)
+-- Update all video sources that have full URLs (http/https)
+-- Extract just the slug from URLs like:
+--   http://localhost:3002/videos/hls/chanthaly/master.m3u8 -> chanthaly
+--   https://storage.googleapis.com/bucket/hls/movie-name/master.m3u8 -> movie-name
 UPDATE video_sources 
-SET url = 'the-signal'
-WHERE movie_id IN (
-    SELECT m.id 
-    FROM movies m
-    JOIN movie_translations mt ON m.id = mt.movie_id
-    WHERE mt.title ILIKE '%signal%'
+SET url = 
+    CASE
+        -- Extract slug from localhost URLs: http://localhost:3002/videos/hls/SLUG/...
+        WHEN url LIKE '%/videos/hls/%' THEN 
+            split_part(split_part(url, '/videos/hls/', 2), '/', 1)
+        -- Extract slug from GCS URLs: https://storage.googleapis.com/bucket/hls/SLUG/...
+        WHEN url LIKE '%/hls/%' THEN 
+            split_part(split_part(url, '/hls/', 2), '/', 1)
+        -- If no recognizable pattern, keep as-is
+        ELSE url
+    END
+WHERE (
+    url LIKE 'http://%' 
+    OR url LIKE 'https://%'
 );
 
--- Verify updates
+-- Show all video sources after update
 SELECT 
     vs.id,
     vs.movie_id,
@@ -54,8 +75,8 @@ SELECT
 FROM video_sources vs
 JOIN movies m ON vs.movie_id = m.id
 JOIN movie_translations mt ON m.id = mt.movie_id
-WHERE vs.url IN ('last-dance', 'the-signal')
-  AND mt.language = 'en';
+WHERE mt.language = 'en'
+ORDER BY mt.title, vs.quality;
 EOF
 
 echo ""
