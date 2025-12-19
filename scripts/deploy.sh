@@ -182,6 +182,8 @@ else
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
+        --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:?Error: SENTRY_API_DSN not set}" \
+        --update-env-vars="NODE_ENV=production" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \
         --cpu=1 \
@@ -203,7 +205,9 @@ log_info "Deploying Web service..."
 cat > scripts/.env.web.yaml.tmp <<EOF
 NEXT_PUBLIC_API_URL: "$API_URL"
 NEXT_PUBLIC_VIDEO_BASE_URL: "https://storage.googleapis.com/lao-cinema-videos/hls"
+NEXT_PUBLIC_SENTRY_DSN: "${SENTRY_WEB_DSN:?Error: SENTRY_WEB_DSN not set}"
 AUTH_USERS: "admin:uCQkoNT_DsUTo6:admin,test:LaoCinema5050:viewer"
+NODE_ENV: "production"
 EOF
 
 gcloud run deploy lao-cinema-web \
