@@ -8,6 +8,8 @@ import { AuthProvider } from '@/lib/auth';
 import { ProgressBarProvider } from '@/components/progress-bar';
 import "../globals.css";
 
+const BUILD_TIMESTAMP = new Date().toISOString();
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -68,6 +70,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
+        <meta name="build-time" content={BUILD_TIMESTAMP} />
         {/* Google Cast SDK */}
         <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" async></script>
       </head>

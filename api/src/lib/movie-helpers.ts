@@ -2,7 +2,7 @@
 // Reduces code duplication across movie CRUD, cast, crew, and image routes
 
 import { eq, sql } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 type Language = 'en' | 'lo';
 
@@ -34,7 +34,7 @@ export function buildTranslations<T>(
  * Insert translations for a movie (title, overview, tagline)
  */
 export async function insertMovieTranslations(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   movieId: string,
   title: { en: string; lo?: string },
@@ -72,7 +72,7 @@ export async function insertMovieTranslations(
  * Insert person translations (name, biography)
  */
 export async function insertPersonTranslations(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   personId: number,
   name: { en: string; lo?: string },
@@ -94,7 +94,7 @@ export async function insertPersonTranslations(
  * Insert genre translations
  */
 export async function insertGenreTranslations(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   genreId: number,
   name: { en: string; lo?: string }
@@ -114,7 +114,7 @@ export async function insertGenreTranslations(
  * Insert character translations for cast
  */
 export async function insertCharacterTranslations(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   movieId: string,
   personId: number,
@@ -136,7 +136,7 @@ export async function insertCharacterTranslations(
  * Insert job translations for crew
  */
 export async function insertJobTranslations(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   movieId: string,
   personId: number,
@@ -174,7 +174,7 @@ interface PersonData {
  * Otherwise returns the original ID
  */
 export async function resolvePersonId(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   tmdbId: number
 ): Promise<number> {
@@ -192,7 +192,7 @@ export async function resolvePersonId(
  * Returns the canonical person ID (may differ from input if person was merged)
  */
 export async function ensurePersonExists(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   person: PersonData,
   defaultDepartment: string = 'Acting'
@@ -275,7 +275,7 @@ export function mapImageToDbValue(movieId: string, img: ImageInput): Record<stri
  * Insert images for a movie
  */
 export async function insertMovieImages(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   movieId: string,
   images: ImageInput[]
@@ -433,7 +433,7 @@ interface CrewMemberInput {
  * Resolves person aliases if person was merged
  */
 export async function insertCastMembers(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   cast: CastMemberInput[],
   movieId: string
@@ -471,7 +471,7 @@ export async function insertCastMembers(
  * Resolves person aliases if person was merged
  */
 export async function insertCrewMembers(
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   crew: CrewMemberInput[],
   movieId: string

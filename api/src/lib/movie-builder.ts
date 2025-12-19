@@ -2,7 +2,7 @@
 // This ensures consistency across all movie-related endpoints
 
 import { eq, sql } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 /**
  * Builds a complete movie object with all relations (translations, cast, crew, etc.)
@@ -10,7 +10,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
  */
 export async function buildMovieWithRelations(
   movie: any,
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any,
   options: {
     includeCast?: boolean;
@@ -405,7 +405,7 @@ export async function buildMovieWithRelations(
  */
 export async function buildPersonCredits(
   personId: number,
-  db: NodePgDatabase<any>,
+  db: PostgresJsDatabase<any>,
   schema: any
 ) {
   // Fetch all cast and crew credits for this person

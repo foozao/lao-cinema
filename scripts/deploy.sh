@@ -4,8 +4,16 @@
 
 set -e  # Exit on error
 
-# Load environment variables from .env if it exists
+# Load environment variables from .env files
 [[ -f "$(dirname "$0")/../.env" ]] && source "$(dirname "$0")/../.env"
+
+# Safely extract Sentry DSN from env files (avoid sourcing files with unquoted spaces)
+if [[ -f "$(dirname "$0")/../web/.env.local" ]]; then
+    SENTRY_WEB_DSN="${SENTRY_WEB_DSN:-$(grep -E '^NEXT_PUBLIC_SENTRY_DSN=' "$(dirname "$0")/../web/.env.local" | cut -d'=' -f2- | tr -d '"' | tr -d "'")}"
+fi
+if [[ -f "$(dirname "$0")/../api/.env" ]]; then
+    SENTRY_API_DSN="${SENTRY_API_DSN:-$(grep -E '^SENTRY_DSN=' "$(dirname "$0")/../api/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")}"
+fi
 
 # ========================================
 # CONFIGURATION - UPDATE THESE VALUES
@@ -18,6 +26,28 @@ export CONNECTION_NAME=""  # Will be fetched automatically if empty
 # Custom domain configuration (leave empty to use Cloud Run URLs)
 export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
 export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
+
+# Parse command line arguments
+DEPLOY_API=true
+DEPLOY_WEB=true
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --api)
+            DEPLOY_WEB=false
+            shift
+            ;;
+        --web)
+            DEPLOY_API=false
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--api|--web]"
+            exit 1
+            ;;
+    esac
+done
 
 # Colors for output
 RED='\033[0;31m'
@@ -109,42 +139,50 @@ else
 fi
 
 # Build API (build from root to include /db directory)
-log_info "Building API image..."
-docker build --platform linux/amd64 -f api/Dockerfile -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest .
-if [ $? -ne 0 ]; then
-    log_error "Failed to build API image"
-    exit 1
+if [ "$DEPLOY_API" = true ]; then
+    log_info "Building API image..."
+    docker build --platform linux/amd64 -f api/Dockerfile -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest .
+    if [ $? -ne 0 ]; then
+        log_error "Failed to build API image"
+        exit 1
+    fi
 fi
 
 # Build Web (pass API URL as build arg, force clean build)
-# Use custom API domain if configured, otherwise use Cloud Run URL
-WEB_API_URL="${CUSTOM_API_DOMAIN:-$API_URL}/api"
-log_info "Building Web image with API_URL=$WEB_API_URL..."
-cd web
-docker build --no-cache --platform linux/amd64 \
-    --build-arg NEXT_PUBLIC_API_URL=$WEB_API_URL \
-    -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest .
-if [ $? -ne 0 ]; then
-    log_error "Failed to build Web image"
-    exit 1
+if [ "$DEPLOY_WEB" = true ]; then
+    # Use custom API domain if configured, otherwise use Cloud Run URL
+    WEB_API_URL="${CUSTOM_API_DOMAIN:-$API_URL}/api"
+    log_info "Building Web image with API_URL=$WEB_API_URL..."
+    cd web
+    docker build --no-cache --platform linux/amd64 \
+        --build-arg NEXT_PUBLIC_API_URL=$WEB_API_URL \
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest .
+    if [ $? -ne 0 ]; then
+        log_error "Failed to build Web image"
+        exit 1
+    fi
+    cd ..
 fi
-cd ..
 
 # ========================================
 # PUSH IMAGES TO ARTIFACT REGISTRY
 # ========================================
 log_info "Pushing images to Artifact Registry..."
 
-docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest
-if [ $? -ne 0 ]; then
-    log_error "Failed to push API image"
-    exit 1
+if [ "$DEPLOY_API" = true ]; then
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest
+    if [ $? -ne 0 ]; then
+        log_error "Failed to push API image"
+        exit 1
+    fi
 fi
 
-docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
-if [ $? -ne 0 ]; then
-    log_error "Failed to push Web image"
-    exit 1
+if [ "$DEPLOY_WEB" = true ]; then
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
+    if [ $? -ne 0 ]; then
+        log_error "Failed to push Web image"
+        exit 1
+    fi
 fi
 
 # ========================================
@@ -153,6 +191,7 @@ fi
 log_info "Deploying to Cloud Run..."
 
 # Deploy API
+if [ "$DEPLOY_API" = true ]; then
 log_info "Deploying API service..."
 if [ -z "$CONNECTION_NAME" ]; then
     log_warn "Deploying API without Cloud SQL connection. Set CONNECTION_NAME if you need database access."
@@ -182,7 +221,7 @@ else
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
-        --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:?Error: SENTRY_API_DSN not set}" \
+        --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:-}" \
         --update-env-vars="NODE_ENV=production" \
         --add-cloudsql-instances=$CONNECTION_NAME \
         --memory=512Mi \
@@ -190,14 +229,21 @@ else
         --min-instances=0 \
         --max-instances=10
 fi
+log_info "API deployed successfully"
+else
+    log_info "Skipping API deployment (--web flag)"
+fi
 
-# Get API URL
+# Get API URL (needed for web deployment)
 API_URL=$(gcloud run services describe lao-cinema-api \
     --region=$REGION \
     --format='value(status.url)')
-log_info "API deployed at: $API_URL"
+if [ "$DEPLOY_API" = true ]; then
+    log_info "API deployed at: $API_URL"
+fi
 
 # Deploy Web
+if [ "$DEPLOY_WEB" = true ]; then
 log_info "Deploying Web service..."
 # AUTH_USERS format: "username:password:role,username2:password2:role2"
 # Roles: admin (full access) or viewer (no admin pages)
@@ -205,7 +251,7 @@ log_info "Deploying Web service..."
 cat > scripts/.env.web.yaml.tmp <<EOF
 NEXT_PUBLIC_API_URL: "$API_URL"
 NEXT_PUBLIC_VIDEO_BASE_URL: "https://storage.googleapis.com/lao-cinema-videos/hls"
-NEXT_PUBLIC_SENTRY_DSN: "${SENTRY_WEB_DSN:?Error: SENTRY_WEB_DSN not set}"
+NEXT_PUBLIC_SENTRY_DSN: "${SENTRY_WEB_DSN:-}"
 AUTH_USERS: "admin:uCQkoNT_DsUTo6:admin,test:LaoCinema5050:viewer"
 NODE_ENV: "production"
 EOF
@@ -229,17 +275,27 @@ rm -f scripts/.env.web.yaml.tmp
 WEB_URL=$(gcloud run services describe lao-cinema-web \
     --region=$REGION \
     --format='value(status.url)')
+log_info "Web deployed at: $WEB_URL"
+else
+    log_info "Skipping Web deployment (--api flag)"
+    # Still need WEB_URL for summary
+    WEB_URL=$(gcloud run services describe lao-cinema-web \
+        --region=$REGION \
+        --format='value(status.url)' 2>/dev/null || echo "not deployed")
+fi
 
 # ========================================
 # UPDATE API CORS
 # ========================================
-log_info "Updating API CORS configuration..."
-# Use custom domain if configured, otherwise use Cloud Run URL
-CORS_ORIGIN="${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-gcloud run services update lao-cinema-api \
-    --region=$REGION \
-    --update-env-vars="CORS_ORIGIN=$CORS_ORIGIN" \
-    --quiet
+if [ "$DEPLOY_WEB" = true ]; then
+    log_info "Updating API CORS configuration..."
+    # Use custom domain if configured, otherwise use Cloud Run URL
+    CORS_ORIGIN="${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+    gcloud run services update lao-cinema-api \
+        --region=$REGION \
+        --update-env-vars="CORS_ORIGIN=$CORS_ORIGIN" \
+        --quiet
+fi
 
 # ========================================
 # DEPLOYMENT COMPLETE
