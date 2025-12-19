@@ -2,18 +2,15 @@
  * Video playback e2e tests
  * 
  * Tests video player functionality, controls, and watch progress tracking.
- * 
- * TODO: These tests are skipped pending video source setup and HLS streaming configuration
  */
 
 import { test, expect } from './fixtures/base';
 import { seedTestMovie, seedTestUser, addVideoSource } from './helpers/db';
 import { loginUser } from './helpers/auth';
 
-test.describe.skip('Video Playback', () => {
+test.describe('Video Playback', () => {
   test('should load video player on watch page', async ({ page }) => {
     const movie = await seedTestMovie({
-      id: 200,
       titleEn: 'Player Test Movie',
     });
     await addVideoSource(movie.id, {
@@ -21,24 +18,28 @@ test.describe.skip('Video Playback', () => {
     });
 
     await page.goto(`/en/movies/${movie.id}`);
-    await page.click('button:has-text("Rent")');
-    await page.click('button:has-text("Credit Card"), button:has-text("Confirm")');
-    await page.click('button:has-text("Watch Now")');
+    await page.click('button:has-text("Rent to Watch")');
+    await page.click('button:has-text("Emulate QR Payment")');
+    
+    // Payment automatically redirects to watch page
+    await page.waitForURL(new RegExp(`/en/movies/${movie.id}/watch`), { timeout: 10000 });
     
     await expect(page.locator('video, [data-testid="video-player"]')).toBeVisible();
   });
 
-  test('should show video controls', async ({ page }) => {
+  // TODO: Fix - video player container selectors don't match current implementation
+  test.skip('should show video controls', async ({ page }) => {
     const movie = await seedTestMovie({
-      id: 201,
       titleEn: 'Controls Test Movie',
     });
     await addVideoSource(movie.id);
 
     await page.goto(`/en/movies/${movie.id}`);
-    await page.click('button:has-text("Rent")');
-    await page.click('button:has-text("Credit Card"), button:has-text("Confirm")');
-    await page.click('button:has-text("Watch Now")');
+    await page.click('button:has-text("Rent to Watch")');
+    await page.click('button:has-text("Emulate QR Payment")');
+    
+    // Payment automatically redirects to watch page
+    await page.waitForURL(new RegExp(`/en/movies/${movie.id}/watch`), { timeout: 10000 });
     
     const videoContainer = page.locator('[data-testid="video-player"], .video-player');
     await videoContainer.hover();
@@ -48,33 +49,35 @@ test.describe.skip('Video Playback', () => {
     await expect(page.locator('[aria-label*="Fullscreen"]')).toBeVisible();
   });
 
-  test('should track watch progress for anonymous users', async ({ page }) => {
+  // TODO: Fix - Continue Watching section not showing progress
+  test.skip('should track watch progress for anonymous users', async ({ page }) => {
     const movie = await seedTestMovie({
-      id: 202,
       titleEn: 'Progress Test Movie',
       runtime: 120,
     });
     await addVideoSource(movie.id);
 
     await page.goto(`/en/movies/${movie.id}`);
-    await page.click('button:has-text("Rent")');
-    await page.click('button:has-text("Credit Card"), button:has-text("Confirm")');
+    await page.click('button:has-text("Rent to Watch")');
+    await page.click('button:has-text("Emulate QR Payment")');
+    await page.waitForTimeout(2000);
     
     await page.goto('/en');
     
     await expect(page.locator('text=Continue Watching, text=Progress Test Movie')).toBeVisible();
   });
 
-  test('should resume from last watch position', async ({ page }) => {
+  // TODO: Fix - Watch progress not being saved/resumed properly
+  test.skip('should resume from last watch position', async ({ page }) => {
     const movie = await seedTestMovie({
-      id: 203,
       titleEn: 'Resume Test Movie',
     });
     await addVideoSource(movie.id);
 
     await page.goto(`/en/movies/${movie.id}`);
-    await page.click('button:has-text("Rent")');
-    await page.click('button:has-text("Credit Card"), button:has-text("Confirm")');
+    await page.click('button:has-text("Rent to Watch")');
+    await page.click('button:has-text("Emulate QR Payment")');
+    await page.waitForTimeout(2000);
     await page.click('button:has-text("Watch Now")');
     
     await page.waitForTimeout(3000);
@@ -86,16 +89,17 @@ test.describe.skip('Video Playback', () => {
     await expect(page).toHaveURL(new RegExp(`/en/movies/${movie.id}/watch`));
   });
 
-  test('should sync watch progress after login', async ({ page }) => {
+  // TODO: Fix - Watch progress not syncing across login
+  test.skip('should sync watch progress after login', async ({ page }) => {
     const movie = await seedTestMovie({
-      id: 204,
       titleEn: 'Progress Sync Movie',
     });
     await addVideoSource(movie.id);
 
     await page.goto(`/en/movies/${movie.id}`);
-    await page.click('button:has-text("Rent")');
-    await page.click('button:has-text("Credit Card"), button:has-text("Confirm")');
+    await page.click('button:has-text("Rent to Watch")');
+    await page.click('button:has-text("Emulate QR Payment")');
+    await page.waitForTimeout(2000);
     await page.click('button:has-text("Watch Now")');
     
     await page.waitForTimeout(2000);
