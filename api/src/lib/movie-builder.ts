@@ -56,6 +56,12 @@ export async function buildMovieWithRelations(
     .from(schema.videoSources)
     .where(eq(schema.videoSources.movieId, movie.id));
 
+  // Fetch subtitle tracks
+  const subtitleTracks = await db.select()
+    .from(schema.subtitleTracks)
+    .where(eq(schema.subtitleTracks.movieId, movie.id))
+    .orderBy(schema.subtitleTracks.language);
+
   // Fetch external platforms
   const externalPlatforms = await db.select()
     .from(schema.movieExternalPlatforms)
@@ -121,6 +127,14 @@ export async function buildMovieWithRelations(
         aspect_ratio: vs.aspectRatio,
       };
     }),
+    subtitle_tracks: subtitleTracks.map(st => ({
+      id: st.id,
+      language: st.language,
+      label: st.label,
+      url: st.url,
+      is_default: st.isDefault,
+      kind: st.kind,
+    })),
     external_platforms: externalPlatforms.map(ep => ({
       platform: ep.platform,
       url: ep.url,

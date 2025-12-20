@@ -365,6 +365,11 @@ export default function EditMoviePage() {
     }
   };
 
+  const handleSubtitleUpdate = async () => {
+    const updatedMovie = await movieAPI.getById(movieId);
+    setCurrentMovie(updatedMovie);
+  };
+
   // Cast/Crew handlers
   const saveCastCrewUpdates = async () => {
     if (!currentMovie) return;
@@ -642,6 +647,7 @@ export default function EditMoviePage() {
               onImageAdded={handleImageAdded}
               onImageDeleted={handleImageDeleted}
               onAddImage={handleAddImage}
+              onSubtitleUpdate={handleSubtitleUpdate}
               setHasChanges={setHasChanges}
             />
           </TabsContent>

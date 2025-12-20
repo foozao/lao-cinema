@@ -218,6 +218,14 @@ export default function WatchPage() {
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
           constrainToViewport={true}
           aspectRatio={videoSource?.aspect_ratio}
+          subtitles={movie.subtitle_tracks?.map(track => ({
+            id: track.id,
+            language: track.language,
+            label: track.label,
+            url: track.url,
+            isDefault: track.is_default,
+            kind: track.kind,
+          }))}
           onInfoClick={() => setShowInfo(true)}
           onEnded={() => setVideoEnded(true)}
           nextVideoTitle={nextVideoTitle || undefined}

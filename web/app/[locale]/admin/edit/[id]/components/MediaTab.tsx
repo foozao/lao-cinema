@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw } from 'lucide-react';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { ImageUploader } from '@/components/admin/image-uploader';
+import { SubtitleManager } from '@/components/admin/subtitle-manager';
 import type { Movie, Trailer } from '@/lib/types';
 import type { MovieFormData } from './types';
 
@@ -25,6 +26,7 @@ interface MediaTabProps {
   onImageAdded: () => Promise<void>;
   onImageDeleted: (imageId: string) => Promise<void>;
   onAddImage: (type: 'poster' | 'backdrop', url: string) => Promise<void>;
+  onSubtitleUpdate: () => Promise<void>;
   setHasChanges: (value: boolean) => void;
 }
 
@@ -42,6 +44,7 @@ export function MediaTab({
   onImageAdded,
   onImageDeleted,
   onAddImage,
+  onSubtitleUpdate,
   setHasChanges,
 }: MediaTabProps) {
   const handleRemoveTrailer = (index: number) => {
@@ -162,6 +165,20 @@ export function MediaTab({
               Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Subtitle Tracks */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Subtitle Tracks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SubtitleManager
+            movieId={movieId}
+            subtitles={currentMovie?.subtitle_tracks || []}
+            onUpdate={onSubtitleUpdate}
+          />
         </CardContent>
       </Card>
 

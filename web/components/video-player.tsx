@@ -13,6 +13,15 @@ import {
   CastErrorNotification
 } from './video';
 
+export interface SubtitleTrack {
+  id: string;
+  language: string;
+  label: string;
+  url: string;
+  isDefault: boolean;
+  kind: 'subtitles' | 'captions' | 'descriptions';
+}
+
 interface VideoPlayerProps {
   src: string;
   poster?: string;
@@ -24,6 +33,7 @@ interface VideoPlayerProps {
   movieDuration?: number;
   constrainToViewport?: boolean;
   aspectRatio?: string;
+  subtitles?: SubtitleTrack[];
   onInfoClick?: () => void;
   onEnded?: () => void;
   nextVideoTitle?: string;
@@ -45,6 +55,7 @@ export function VideoPlayer({
   movieTitle,
   movieDuration,
   constrainToViewport = false,
+  subtitles = [],
   onInfoClick,
   onEnded,
   nextVideoTitle,
@@ -317,6 +328,16 @@ export function VideoPlayer({
           x-webkit-airplay="allow"
           controlsList="nodownload"
         >
+          {subtitles.map((track) => (
+            <track
+              key={track.id}
+              kind={track.kind}
+              src={track.url}
+              srcLang={track.language}
+              label={track.label}
+              default={track.isDefault}
+            />
+          ))}
           Your browser does not support the video tag.
         </video>
 

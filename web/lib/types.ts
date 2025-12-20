@@ -89,6 +89,9 @@ export interface Movie {
   // Video sources (custom for streaming)
   video_sources: VideoSource[];
   
+  // Subtitle tracks (WebVTT files)
+  subtitle_tracks?: SubtitleTrack[];
+  
   // Images (multiple posters/backdrops from TMDB)
   images?: MovieImage[];
   
@@ -120,10 +123,18 @@ export interface VideoSource {
   format: 'hls' | 'mp4';
   url: string;
   size_bytes?: number;
-  // Video dimensions (from transcoding metadata)
   width?: number;
   height?: number;
-  aspect_ratio?: '16:9' | '4:3' | '2.35:1' | '2.39:1' | '1.85:1' | '21:9' | 'mixed' | string;
+  aspect_ratio?: string; // e.g., '16:9', '2.35:1', 'mixed'
+}
+
+export interface SubtitleTrack {
+  id: string;
+  language: string; // ISO 639-1 code (en, lo, th, etc.)
+  label: string; // Display name (e.g., 'English', 'ລາວ', 'ไทย')
+  url: string; // URL to .vtt file
+  is_default: boolean; // Default subtitle track
+  kind: 'subtitles' | 'captions' | 'descriptions';
 }
 
 export interface MovieImage {

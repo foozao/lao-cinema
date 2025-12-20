@@ -222,6 +222,19 @@ export const videoSources = pgTable('video_sources', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Subtitle tracks table - WebVTT subtitle files for movies
+export const subtitleTracks = pgTable('subtitle_tracks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  language: text('language').notNull(), // ISO 639-1 code (en, lo, th, etc.)
+  label: text('label').notNull(), // Display name (e.g., 'English', 'ລາວ', 'ไทย')
+  url: text('url').notNull(), // URL to .vtt file
+  isDefault: boolean('is_default').default(false).notNull(), // Default subtitle track
+  kind: text('kind').default('subtitles').notNull(), // 'subtitles', 'captions', 'descriptions'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Trailers table - supports both YouTube and self-hosted video trailers
 export const trailers = pgTable('trailers', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -331,6 +344,9 @@ export type NewMovieCrewTranslation = typeof movieCrewTranslations.$inferInsert;
 
 export type VideoSource = typeof videoSources.$inferSelect;
 export type NewVideoSource = typeof videoSources.$inferInsert;
+
+export type SubtitleTrack = typeof subtitleTracks.$inferSelect;
+export type NewSubtitleTrack = typeof subtitleTracks.$inferInsert;
 
 export type HomepageFeatured = typeof homepageFeatured.$inferSelect;
 export type NewHomepageFeatured = typeof homepageFeatured.$inferInsert;
