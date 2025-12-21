@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 import { useTranslations } from 'next-intl';
+import { getSignedVideoUrl } from '@/lib/api/video-tokens-client';
 
 export interface VideoError {
-  type: 'network' | 'fatal' | 'media';
+  type: 'network' | 'fatal' | 'media' | 'auth';
   message: string;
+  isRefreshing?: boolean;
 }
 
 interface UseHlsPlayerOptions {
@@ -14,6 +16,10 @@ interface UseHlsPlayerOptions {
   autoPlay?: boolean;
   savedPosition?: number | null;
   onManifestParsed?: () => void;
+  // For automatic token refresh on 401 errors
+  movieId?: string;
+  videoSourceId?: string;
+  onTokenRefreshed?: (newUrl: string) => void;
 }
 
 interface UseHlsPlayerReturn {
@@ -33,13 +39,48 @@ export function useHlsPlayer({
   autoPlay = false,
   savedPosition = null,
   onManifestParsed,
+  movieId,
+  videoSourceId,
+  onTokenRefreshed,
 }: UseHlsPlayerOptions): UseHlsPlayerReturn {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<VideoError | null>(null);
+  const isRefreshingToken = useRef(false);
+  const currentPosition = useRef<number>(0);
   
   const t = useTranslations('video');
+
+  // Refresh token and reload video
+  const refreshToken = useCallback(async () => {
+    if (!movieId || !videoSourceId || isRefreshingToken.current) {
+      return false;
+    }
+    
+    isRefreshingToken.current = true;
+    setError({ type: 'auth', message: t('refreshingSession'), isRefreshing: true });
+    
+    try {
+      // Save current position before reloading
+      if (videoRef.current) {
+        currentPosition.current = videoRef.current.currentTime;
+      }
+      
+      const { url } = await getSignedVideoUrl(movieId, videoSourceId);
+      
+      // Notify parent of new URL
+      onTokenRefreshed?.(url);
+      
+      isRefreshingToken.current = false;
+      return true;
+    } catch (err) {
+      console.error('Failed to refresh video token:', err);
+      isRefreshingToken.current = false;
+      setError({ type: 'auth', message: t('sessionExpired') });
+      return false;
+    }
+  }, [movieId, videoSourceId, onTokenRefreshed, t]);
 
   const initializeVideo = useCallback(() => {
     const video = videoRef.current;
@@ -47,19 +88,28 @@ export function useHlsPlayer({
 
     setError(null);
 
-    // HLS stream
-    if (src.endsWith('.m3u8')) {
+    // HLS stream - check pathname, not full URL (which may have query params)
+    const isHlsStream = src.includes('.m3u8');
+    
+    if (isHlsStream) {
       if (Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
-          manifestLoadingMaxRetry: 3,
-          manifestLoadingRetryDelay: 1000,
-          levelLoadingMaxRetry: 3,
-          fragLoadingMaxRetry: 3,
+          manifestLoadingMaxRetry: 1, // Reduce retries to fail faster on 401
+          manifestLoadingRetryDelay: 500,
+          levelLoadingMaxRetry: 1,
+          fragLoadingMaxRetry: 1,
           // Enable credentials (cookies) for signed URL sessions
           xhrSetup: (xhr) => {
             xhr.withCredentials = true;
+            
+            // Detect 401 errors before HLS processes them - triggers automatic token refresh
+            xhr.addEventListener('loadend', () => {
+              if (xhr.status === 401 && !isRefreshingToken.current) {
+                refreshToken();
+              }
+            });
           },
         });
         
@@ -80,6 +130,12 @@ export function useHlsPlayer({
         });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
+          // Skip logging for 401 errors - handled by XHR detection
+          const httpStatus = (data.response as any)?.code;
+          if (httpStatus === 401 || isRefreshingToken.current) {
+            return; // Token refresh in progress via XHR detection
+          }
+          
           console.error('HLS error:', data);
           
           if (data.fatal) {
@@ -162,7 +218,7 @@ export function useHlsPlayer({
         video.removeEventListener('error', handleError);
       };
     }
-  }, [src, autoPlay, savedPosition, onManifestParsed, t]);
+  }, [src, autoPlay, savedPosition, onManifestParsed, t, refreshToken]);
 
   const retryLoad = useCallback(() => {
     setError(null);

@@ -42,6 +42,7 @@ export default function WatchPage() {
   const [inGracePeriod, setInGracePeriod] = useState(false);
   const [graceTimeRemaining, setGraceTimeRemaining] = useState('');
   const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
+  const [currentVideoSourceId, setCurrentVideoSourceId] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoEnded, setVideoEnded] = useState(false);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
@@ -66,6 +67,12 @@ export default function WatchPage() {
 
   const handleDismissBackToPack = useCallback(() => {
     setShowBackToPack(false);
+  }, []);
+
+  // Handle token refresh from video player (when token expires during playback)
+  const handleTokenRefreshed = useCallback((newUrl: string) => {
+    console.log('Token refreshed, updating video URL');
+    setSignedVideoUrl(newUrl);
   }, []);
   
   // First, load the movie to get its UUID
@@ -122,6 +129,7 @@ export default function WatchPage() {
         // Fetch signed video URL from API
         const { url } = await getSignedVideoUrl(movie.id, videoSource.id);
         setSignedVideoUrl(url);
+        setCurrentVideoSourceId(videoSource.id);
         
         setRentalChecked(true);
         setLoading(false);
@@ -214,6 +222,7 @@ export default function WatchPage() {
           autoPlay={true}
           videoId={movie.id}
           movieId={movie.id}
+          videoSourceId={currentVideoSourceId || videoSource?.id}
           movieTitle={title}
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
           constrainToViewport={true}
@@ -226,6 +235,7 @@ export default function WatchPage() {
             isDefault: track.is_default,
             kind: track.kind,
           }))}
+          onTokenRefreshed={handleTokenRefreshed}
           onInfoClick={() => setShowInfo(true)}
           onEnded={() => setVideoEnded(true)}
           nextVideoTitle={nextVideoTitle || undefined}

@@ -5,9 +5,12 @@ const crypto = require('crypto');
 // Configuration
 const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || '0.0.0.0';
-const VIDEOS_PATH = path.join(__dirname, 'videos');
-const PUBLIC_PATH = path.join(__dirname, 'public');
+const VIDEOS_PATH = process.env.VIDEOS_PATH || path.join(__dirname, 'videos');
+const PUBLIC_PATH = process.env.PUBLIC_PATH || path.join(__dirname, 'public');
 const API_URL = process.env.API_URL || 'http://localhost:3001';
+const CORS_ORIGINS = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',') 
+  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 const TOKEN_SECRET = process.env.VIDEO_TOKEN_SECRET || 'dev-secret-change-in-production';
 
 // Session duration for video access
@@ -64,7 +67,7 @@ function parseCookies(cookieHeader) {
 
 // Token validation via API (single source of truth)
 async function verifyVideoToken(token) {
-  const response = await fetch(`${API_URL}/api/video-tokens/validate/${encodeURIComponent(token)}`);
+  const response = await fetch(`${API_URL}/api/video-tokens/validate?token=${encodeURIComponent(token)}`);
   const result = await response.json();
   
   if (!result.valid) {
@@ -76,7 +79,7 @@ async function verifyVideoToken(token) {
 
 // Register CORS - allow requests from web app with credentials (cookies)
 fastify.register(require('@fastify/cors'), {
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: CORS_ORIGINS,
   methods: ['GET', 'HEAD', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Range', 'Authorization'],
   exposedHeaders: ['Content-Length', 'Content-Range', 'Accept-Ranges', 'Set-Cookie'],

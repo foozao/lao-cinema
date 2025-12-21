@@ -127,11 +127,19 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
   );
 
   /**
-   * GET /api/video-tokens/validate/:token
+   * GET /api/video-tokens/validate?token=...
    * Validate a video token (used by video server)
+   * Using query param instead of path param because token contains '.' which breaks Fastify routing
    */
-  fastify.get('/video-tokens/validate/:token', async (request, reply) => {
-    const { token } = request.params as { token: string };
+  fastify.get('/video-tokens/validate', async (request, reply) => {
+    const { token } = request.query as { token: string };
+    
+    if (!token) {
+      return reply.status(400).send({
+        valid: false,
+        error: 'Token is required',
+      });
+    }
 
     try {
       const { verifyVideoToken } = await import('../lib/video-token.js');

@@ -26,24 +26,43 @@ export CONNECTION_NAME=""  # Will be fetched automatically if empty
 # Custom domain configuration (leave empty to use Cloud Run URLs)
 export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
 export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
+export CUSTOM_VIDEO_DOMAIN="https://stream-preview.laocinema.com"
+
+# GCS bucket for video files
+export VIDEO_BUCKET="lao-cinema-videos"
 
 # Parse command line arguments
 DEPLOY_API=true
 DEPLOY_WEB=true
+DEPLOY_VIDEO=false  # Video server is opt-in
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --api)
             DEPLOY_WEB=false
+            DEPLOY_VIDEO=false
             shift
             ;;
         --web)
             DEPLOY_API=false
+            DEPLOY_VIDEO=false
+            shift
+            ;;
+        --video)
+            DEPLOY_API=false
+            DEPLOY_WEB=false
+            DEPLOY_VIDEO=true
+            shift
+            ;;
+        --all)
+            DEPLOY_API=true
+            DEPLOY_WEB=true
+            DEPLOY_VIDEO=true
             shift
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--api|--web]"
+            echo "Usage: $0 [--api|--web|--video|--all]"
             exit 1
             ;;
     esac
@@ -164,6 +183,19 @@ if [ "$DEPLOY_WEB" = true ]; then
     cd ..
 fi
 
+# Build Video Server
+if [ "$DEPLOY_VIDEO" = true ]; then
+    log_info "Building Video Server image..."
+    cd video-server
+    docker build --platform linux/amd64 \
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest .
+    if [ $? -ne 0 ]; then
+        log_error "Failed to build Video Server image"
+        exit 1
+    fi
+    cd ..
+fi
+
 # ========================================
 # PUSH IMAGES TO ARTIFACT REGISTRY
 # ========================================
@@ -181,6 +213,14 @@ if [ "$DEPLOY_WEB" = true ]; then
     docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
     if [ $? -ne 0 ]; then
         log_error "Failed to push Web image"
+        exit 1
+    fi
+fi
+
+if [ "$DEPLOY_VIDEO" = true ]; then
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest
+    if [ $? -ne 0 ]; then
+        log_error "Failed to push Video Server image"
         exit 1
     fi
 fi
@@ -220,7 +260,8 @@ else
         --update-env-vars="DB_USER=laocinema" \
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
-        --update-env-vars="VIDEO_SERVER_URL=https://storage.googleapis.com/lao-cinema-videos" \
+        --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream-preview.laocinema.com}" \
+        --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
         --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:-}" \
         --update-env-vars="NODE_ENV=production" \
@@ -285,6 +326,43 @@ else
         --format='value(status.url)' 2>/dev/null || echo "not deployed")
 fi
 
+# Deploy Video Server
+if [ "$DEPLOY_VIDEO" = true ]; then
+    log_info "Deploying Video Server service..."
+    
+    # Get the API URL for token validation (use internal Cloud Run URL for low latency)
+    VIDEO_API_URL="$API_URL"
+    
+    gcloud run deploy lao-cinema-video \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest \
+        --region=$REGION \
+        --platform=managed \
+        --allow-unauthenticated \
+        --port=8080 \
+        --execution-environment=gen2 \
+        --add-volume=name=video-bucket,type=cloud-storage,bucket=$VIDEO_BUCKET \
+        --add-volume-mount=volume=video-bucket,mount-path=/mnt/gcs \
+        --update-env-vars="VIDEOS_PATH=/mnt/gcs" \
+        --update-env-vars="PUBLIC_PATH=/mnt/gcs" \
+        --update-env-vars="API_URL=$VIDEO_API_URL" \
+        --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
+        --update-env-vars="CORS_ORIGINS=${CUSTOM_WEB_DOMAIN:-https://preview.laocinema.com}" \
+        --memory=512Mi \
+        --cpu=1 \
+        --min-instances=0 \
+        --max-instances=10
+
+    # Get Video Server URL
+    VIDEO_URL=$(gcloud run services describe lao-cinema-video \
+        --region=$REGION \
+        --format='value(status.url)')
+    log_info "Video Server deployed at: $VIDEO_URL"
+else
+    VIDEO_URL=$(gcloud run services describe lao-cinema-video \
+        --region=$REGION \
+        --format='value(status.url)' 2>/dev/null || echo "not deployed")
+fi
+
 # ========================================
 # UPDATE API CORS
 # ========================================
@@ -306,8 +384,9 @@ log_info "========================================="
 log_info "Deployment completed successfully! 🚀"
 log_info "========================================="
 echo ""
-log_info "Preview Site:  ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-log_info "Preview API:   ${CUSTOM_API_DOMAIN:-$API_URL}"
+log_info "Preview Site:   ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+log_info "Preview API:    ${CUSTOM_API_DOMAIN:-$API_URL}"
+log_info "Video Server:   ${CUSTOM_VIDEO_DOMAIN:-$VIDEO_URL}"
 echo ""
 log_info "Cloud Run URLs (internal):"
 log_info "  Web: $WEB_URL"

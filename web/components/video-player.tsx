@@ -29,11 +29,13 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   videoId?: string;
   movieId?: string;
+  videoSourceId?: string;
   movieTitle?: string;
   movieDuration?: number;
   constrainToViewport?: boolean;
   aspectRatio?: string;
   subtitles?: SubtitleTrack[];
+  onTokenRefreshed?: (newUrl: string) => void;
   onInfoClick?: () => void;
   onEnded?: () => void;
   nextVideoTitle?: string;
@@ -52,10 +54,12 @@ export function VideoPlayer({
   autoPlay = false, 
   videoId,
   movieId,
+  videoSourceId,
   movieTitle,
   movieDuration,
   constrainToViewport = false,
   subtitles = [],
+  onTokenRefreshed,
   onInfoClick,
   onEnded,
   nextVideoTitle,
@@ -91,6 +95,9 @@ export function VideoPlayer({
     src,
     autoPlay,
     savedPosition,
+    movieId,
+    videoSourceId,
+    onTokenRefreshed,
   });
 
   // Analytics tracking

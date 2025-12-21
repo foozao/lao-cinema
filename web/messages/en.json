@@ -148,6 +148,8 @@
     "mediaError": "Media playback error. Attempting to recover...",
     "genericError": "An error occurred while loading the video.",
     "unableToLoad": "Unable to load video. Please check your connection and try again.",
+    "refreshingSession": "Refreshing session...",
+    "sessionExpired": "Your session has expired. Please reload the page.",
     "tryAgain": "Try Again",
     "continueWatching": "Continue Watching?",
     "youWereAt": "You were at {time}. Would you like to continue from where you left off?",
