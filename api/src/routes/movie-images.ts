@@ -106,7 +106,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to add image');
+        return sendInternalError(reply, 'Failed to add image');
       }
     }
   );
@@ -188,7 +188,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to update primary image');
+        return sendInternalError(reply, 'Failed to update primary image');
       }
     }
   );
@@ -271,7 +271,7 @@ export default async function movieImageRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to delete image');
+        return sendInternalError(reply, 'Failed to delete image');
       }
     }
   );

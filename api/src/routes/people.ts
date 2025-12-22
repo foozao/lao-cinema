@@ -219,7 +219,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       return { people: peopleWithTranslations };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch people');
+      return sendInternalError(reply, 'Failed to fetch people');
     }
   });
 
@@ -293,7 +293,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to create person');
+      return sendInternalError(reply, 'Failed to create person');
     }
   });
 
@@ -364,7 +364,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch person');
+      return sendInternalError(reply, 'Failed to fetch person');
     }
   });
 
@@ -534,7 +534,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to merge people');
+      return sendInternalError(reply, 'Failed to merge people');
     }
   });
 
@@ -733,7 +733,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to update person');
+      return sendInternalError(reply, 'Failed to update person');
     }
   });
 

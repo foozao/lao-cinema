@@ -22,13 +22,13 @@ export async function buildMovieWithRelations(
   } = {}
 ) {
   const {
-    includeCast = true,
-    includeCrew = true,
-    includeGenres = true,
-    includeImages = false,
-    castLimit,
-    crewLimit,
-  } = options;
+      includeCast = true,
+      includeCrew = true,
+      includeGenres = true,
+      includeImages = false,
+      castLimit,
+      crewLimit,
+    } = options;
   
   // Apply defaults only if not explicitly provided (including undefined)
   const finalCastLimit = 'castLimit' in options ? castLimit : 3;
@@ -56,11 +56,13 @@ export async function buildMovieWithRelations(
     .from(schema.videoSources)
     .where(eq(schema.videoSources.movieId, movie.id));
 
-  // Fetch subtitle tracks
-  const subtitleTracks = await db.select()
-    .from(schema.subtitleTracks)
-    .where(eq(schema.subtitleTracks.movieId, movie.id))
-    .orderBy(schema.subtitleTracks.language);
+  // Fetch subtitle tracks (if table exists in schema)
+  const subtitleTracks = schema.subtitleTracks 
+    ? await db.select()
+        .from(schema.subtitleTracks)
+        .where(eq(schema.subtitleTracks.movieId, movie.id))
+        .orderBy(schema.subtitleTracks.language)
+    : [];
 
   // Fetch external platforms
   const externalPlatforms = await db.select()

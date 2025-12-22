@@ -43,7 +43,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       return { movies: moviesWithData };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch movies');
+      return sendInternalError(reply, 'Failed to fetch movies');
     }
   });
 
@@ -77,8 +77,8 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
 
       return movieData;
     } catch (error) {
-      fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch movie');
+      fastify.log.error({ error, movieId: id }, 'Failed to fetch movie');
+      return sendInternalError(reply, 'Failed to fetch movie');
     }
   });
 
@@ -159,6 +159,11 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
           url: `/api/movies/${newMovie.id}`,
         });
         
+        if (response.statusCode !== 200) {
+          fastify.log.error({ statusCode: response.statusCode, body: response.body }, 'Failed to fetch created movie');
+          return sendInternalError(reply, 'Failed to fetch created movie details');
+        }
+        
         const createdMovie = JSON.parse(response.body);
         
         // Log audit event with details
@@ -181,7 +186,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         return sendCreated(reply, createdMovie);
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to create movie');
+        return sendInternalError(reply, 'Failed to create movie');
       }
     }
   );
@@ -226,7 +231,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
       return { message: 'Movie deleted successfully', id };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to delete movie');
+      return sendInternalError(reply, 'Failed to delete movie');
     }
   });
 

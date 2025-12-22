@@ -160,7 +160,7 @@ export default async function movieProductionCompaniesRoutes(fastify: FastifyIns
       return { success: true, order };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to update production company order');
+      return sendInternalError(reply, 'Failed to update production company order');
     }
   });
 }

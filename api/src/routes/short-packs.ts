@@ -139,7 +139,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       return { short_packs: packsWithData };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch short packs');
+      return sendInternalError(reply, 'Failed to fetch short packs');
     }
   });
 
@@ -201,7 +201,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       const validShorts = shorts.filter(Boolean);
       const totalRuntime = validShorts.reduce((sum, s) => sum + (s?.movie.runtime || 0), 0);
 
-      return {
+      const packData = {
         id: pack.id,
         slug: pack.slug,
         title: {
@@ -225,9 +225,11 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         created_at: pack.createdAt.toISOString(),
         updated_at: pack.updatedAt.toISOString(),
       };
+
+      return packData;
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch short pack');
+      return sendInternalError(reply, 'Failed to fetch short pack');
     }
   });
 
@@ -390,10 +392,10 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           return sendNotFound(reply, 'Short pack not found');
         }
 
-        return { message: 'Short pack deleted successfully', id };
+        return { success: true, message: 'Short pack deleted successfully' };
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to delete short pack');
+        return sendInternalError(reply, 'Failed to delete short pack');
       }
     }
   );
@@ -499,11 +501,16 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           method: 'GET',
           url: `/api/short-packs/${id}`,
         });
+        
+        if (response.statusCode !== 200) {
+          fastify.log.error({ statusCode: response.statusCode }, 'Failed to fetch updated pack');
+          return sendInternalError(reply, 'Failed to fetch updated pack details');
+        }
 
         return JSON.parse(response.body);
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to remove short from pack');
+        return sendInternalError(reply, 'Failed to remove short from pack');
       }
     }
   );

@@ -161,7 +161,7 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         return reply.status(200).send(updatedMovie);
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to update movie');
+        return sendInternalError(reply, 'Failed to update movie');
       }
     }
   );

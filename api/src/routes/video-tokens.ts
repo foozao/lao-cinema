@@ -159,4 +159,28 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
       });
     }
   });
+
+  /**
+   * GET /api/video-tokens/validate/:token
+   * Path param version for compatibility with tests
+   */
+  fastify.get<{ Params: { token: string } }>('/video-tokens/validate/:token', async (request, reply) => {
+    const { token } = request.params;
+
+    try {
+      const { verifyVideoToken } = await import('../lib/video-token.js');
+      const payload = verifyVideoToken(token);
+
+      return reply.send({
+        valid: true,
+        movieId: payload.movieId,
+        videoPath: payload.videoPath,
+      });
+    } catch (error) {
+      return reply.status(401).send({
+        valid: false,
+        error: error instanceof Error ? error.message : 'Invalid token',
+      });
+    }
+  });
 }

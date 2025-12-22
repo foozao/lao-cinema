@@ -58,7 +58,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       return { movies: sortedMovies };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch featured films');
+      return sendInternalError(reply, 'Failed to fetch featured films');
     }
   });
 
@@ -105,7 +105,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       return { featured: moviesData.filter(m => m !== null) };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to fetch featured films');
+      return sendInternalError(reply, 'Failed to fetch featured films');
     }
   });
 
@@ -169,7 +169,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         return sendCreated(reply, featured);
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to add featured film');
+        return sendInternalError(reply, 'Failed to add featured film');
       }
     }
   );
@@ -194,7 +194,7 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         return { success: true };
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to update order');
+        return sendInternalError(reply, 'Failed to update order');
       }
     }
   );
@@ -236,10 +236,10 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           }
         );
 
-        return { success: true, id: deleted.id };
+        return { success: true, deleted: deleted };
       } catch (error) {
         fastify.log.error(error);
-        sendInternalError(reply, 'Failed to remove featured film');
+        return sendInternalError(reply, 'Failed to remove featured film');
       }
     }
   );

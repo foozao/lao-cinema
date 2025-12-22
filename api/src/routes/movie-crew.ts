@@ -79,10 +79,10 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
         }
       );
 
-      return { success: true, message: 'Crew member added successfully' };
+      return sendCreated(reply, { success: true, crew: { person_id, department, job } });
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to add crew member');
+      return sendInternalError(reply, 'Failed to add crew member');
     }
   });
 
@@ -140,10 +140,10 @@ export default async function movieCrewRoutes(fastify: FastifyInstance) {
         }
       );
 
-      return { success: true, message: 'Crew member removed successfully' };
+      return { success: true, deleted: true };
     } catch (error) {
       fastify.log.error(error);
-      sendInternalError(reply, 'Failed to remove crew member');
+      return sendInternalError(reply, 'Failed to remove crew member');
     }
   });
 }

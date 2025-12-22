@@ -28,6 +28,11 @@ describe('Trailer Routes', () => {
       headers: editorAuth.headers,
       payload: movieData,
     });
+    
+    if (createResponse.statusCode !== 201) {
+      throw new Error(`Failed to create test movie: ${createResponse.statusCode}`);
+    }
+    
     const created = JSON.parse(createResponse.body);
     movieId = created.id;
   });
