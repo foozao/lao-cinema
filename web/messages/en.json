@@ -239,7 +239,7 @@
   },
   "payment": {
     "title": "Rent Movie",
-    "description": "Scan the QR code to rent \"{movie}\" for 24 hours",
+    "description": "Rent \"{movie}\" for 24 hours",
     "descriptionRequired": "To watch \"{movie}\", you'll need to rent it first. Rentals last 24 hours.",
     "descriptionExpired": "Your rental of \"{movie}\" has expired. Rent again to continue watching.",
     "scanInstructions": "Scan with your banking app to complete payment",

@@ -116,17 +116,18 @@ export function PaymentModal({
         <div className="flex flex-col items-center py-6 space-y-6">
           {/* Account Creation Prompt for Anonymous Users */}
           {isAnonymous && (
-            <div className="w-full bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-blue-700/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 text-blue-300">
-                <UserPlus className="w-5 h-5" />
-                <h3 className="font-semibold">Create an Account</h3>
-              </div>
+            <div className="w-full bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-blue-700/50 rounded-lg p-4 space-y-4">
+              <Link href="/profile">
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Create Free Account
+                </Button>
+              </Link>
               
-              <p className="text-sm text-gray-300">
-                Sign up to unlock these benefits:
-              </p>
-              
-              <ul className="space-y-2 text-sm text-gray-300">
+              <ul className="space-y-2 text-sm text-gray-300 mt-6">
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                   <span>Watch on multiple devices</span>
@@ -137,24 +138,9 @@ export function PaymentModal({
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <span>View rental history and manage subscriptions</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <span>Get personalized recommendations</span>
+                  <span>View rental history</span>
                 </li>
               </ul>
-              
-              <Link href="/profile">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-blue-500 text-blue-300 hover:bg-blue-900/50"
-                  onClick={() => onOpenChange(false)}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Create Free Account
-                </Button>
-              </Link>
               
               <p className="text-xs text-gray-400 text-center">
                 Or continue as guest below
@@ -166,9 +152,10 @@ export function PaymentModal({
           <div className="bg-white p-4 rounded-lg">
             <QRCodeSVG
               value={qrCodeUrl}
-              size={200}
+              size={160}
               level="H"
               includeMargin={false}
+              className="w-32 h-32 sm:w-40 sm:h-40"
             />
           </div>
 
