@@ -23,7 +23,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
         : 'text-gray-900 dark:text-white font-bold cursor-default';
     }
     return variant === 'dark'
-      ? 'text-gray-300 hover:text-white'
+      ? 'text-gray-200 hover:text-white'
       : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white';
   };
 
@@ -34,7 +34,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
     children: React.ReactNode;
   }) => {
     const isActive = activePage === page;
-    const className = `inline-flex items-center gap-2 text-sm transition-colors whitespace-nowrap ${getTextClass(page)}`;
+    const className = `inline-flex items-center gap-2 text-base transition-colors whitespace-nowrap ${getTextClass(page)}`;
     
     if (isActive) {
       return (

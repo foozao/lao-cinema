@@ -151,9 +151,18 @@ export default function Home() {
           <section className={`transition-all duration-700 ease-out delay-100 ${
             contentReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <h2 className="text-3xl font-bold text-white mb-6">
-              {t('home.featured')}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-3xl font-bold text-white">
+                {t('home.featured')}
+              </h2>
+              <Link 
+                href="/movies" 
+                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-purple-300 bg-purple-950/50 hover:bg-purple-900/50 border border-purple-800/50 hover:border-purple-700 rounded-md transition-all"
+              >
+                {t('home.viewAll')}
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
 
             {/* Movie Grid */}
             {loading ? (
@@ -184,13 +193,13 @@ export default function Home() {
             <section className={`mt-12 transition-all duration-700 ease-out delay-200 ${
               contentReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             }`}>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3 mb-6">
                 <h2 className="text-3xl font-bold text-white">
                   {t('shortPacks.featuredPacks')}
                 </h2>
                 <Link 
                   href="/short-packs" 
-                  className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-purple-300 bg-purple-950/50 hover:bg-purple-900/50 border border-purple-800/50 hover:border-purple-700 rounded-md transition-all"
                 >
                   {t('home.viewAll')}
                   <ChevronRight className="w-4 h-4" />
