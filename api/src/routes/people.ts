@@ -9,6 +9,7 @@ import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
 import { buildInClause } from '../lib/query-helpers.js';
 import { buildPersonLocalizedTexts, buildLocalizedText, localizedWithFallback, localizedOrUndefined } from '../lib/translation-helpers.js';
+import { mergePeople, isMergeError } from '../lib/people-merge-service.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -358,156 +359,24 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         return sendBadRequest(reply, 'Both sourceId and targetId are required');
       }
 
-      if (sourceId === targetId) {
-        return sendBadRequest(reply, 'Cannot merge a person with themselves');
-      }
+      const result = await mergePeople(sourceId, targetId);
 
-      // Verify both people exist
-      const [sourcePerson] = await db.select()
-        .from(schema.people)
-        .where(eq(schema.people.id, sourceId))
-        .limit(1);
-
-      const [targetPerson] = await db.select()
-        .from(schema.people)
-        .where(eq(schema.people.id, targetId))
-        .limit(1);
-
-      if (!sourcePerson) {
-        return sendNotFound(reply, 'Source person not found');
-      }
-
-      if (!targetPerson) {
-        return sendNotFound(reply, 'Target person not found');
-      }
-
-      // 1. Merge translations (add missing translations from source to target)
-      const sourceTranslations = await db.select()
-        .from(schema.peopleTranslations)
-        .where(eq(schema.peopleTranslations.personId, sourceId));
-
-      const targetTranslations = await db.select()
-        .from(schema.peopleTranslations)
-        .where(eq(schema.peopleTranslations.personId, targetId));
-
-      const targetLanguages = new Set(targetTranslations.map(t => t.language));
-
-      for (const sourceTrans of sourceTranslations) {
-        if (!targetLanguages.has(sourceTrans.language)) {
-          // Add missing translation to target
-          await db.insert(schema.peopleTranslations).values({
-            personId: targetId,
-            language: sourceTrans.language,
-            name: sourceTrans.name,
-            biography: sourceTrans.biography,
-          });
+      if (isMergeError(result)) {
+        switch (result.code) {
+          case 'SAME_PERSON':
+            return sendBadRequest(reply, result.message);
+          case 'SOURCE_NOT_FOUND':
+          case 'TARGET_NOT_FOUND':
+            return sendNotFound(reply, result.message);
+          default:
+            return sendInternalError(reply, result.message);
         }
       }
-
-      // 2. Migrate cast credits from source to target
-      const sourceCastCredits = await db.select()
-        .from(schema.movieCast)
-        .where(eq(schema.movieCast.personId, sourceId));
-
-      for (const credit of sourceCastCredits) {
-        // Check if target already has this cast credit
-        const [existingCredit] = await db.select()
-          .from(schema.movieCast)
-          .where(sql`${schema.movieCast.movieId} = ${credit.movieId} AND ${schema.movieCast.personId} = ${targetId}`)
-          .limit(1);
-
-        if (!existingCredit) {
-          // Update cast credit to point to target person
-          await db.update(schema.movieCast)
-            .set({ personId: targetId })
-            .where(sql`${schema.movieCast.movieId} = ${credit.movieId} AND ${schema.movieCast.personId} = ${sourceId}`);
-
-          // Migrate cast character translations
-          const castTranslations = await db.select()
-            .from(schema.movieCastTranslations)
-            .where(sql`${schema.movieCastTranslations.movieId} = ${credit.movieId} AND ${schema.movieCastTranslations.personId} = ${sourceId}`);
-
-          for (const trans of castTranslations) {
-            // Check if translation already exists for target
-            const [existingTrans] = await db.select()
-              .from(schema.movieCastTranslations)
-              .where(sql`${schema.movieCastTranslations.movieId} = ${credit.movieId} AND ${schema.movieCastTranslations.personId} = ${targetId} AND ${schema.movieCastTranslations.language} = ${trans.language}`)
-              .limit(1);
-
-            if (!existingTrans) {
-              await db.update(schema.movieCastTranslations)
-                .set({ personId: targetId })
-                .where(sql`${schema.movieCastTranslations.movieId} = ${credit.movieId} AND ${schema.movieCastTranslations.personId} = ${sourceId} AND ${schema.movieCastTranslations.language} = ${trans.language}`);
-            }
-          }
-        } else {
-          // Target already has this credit, just delete source's translations
-          await db.delete(schema.movieCastTranslations)
-            .where(sql`${schema.movieCastTranslations.movieId} = ${credit.movieId} AND ${schema.movieCastTranslations.personId} = ${sourceId}`);
-        }
-      }
-
-      // 3. Migrate crew credits from source to target
-      const sourceCrewCredits = await db.select()
-        .from(schema.movieCrew)
-        .where(eq(schema.movieCrew.personId, sourceId));
-
-      for (const credit of sourceCrewCredits) {
-        // Check if target already has this crew credit
-        const [existingCredit] = await db.select()
-          .from(schema.movieCrew)
-          .where(sql`${schema.movieCrew.movieId} = ${credit.movieId} AND ${schema.movieCrew.personId} = ${targetId} AND ${schema.movieCrew.department} = ${credit.department}`)
-          .limit(1);
-
-        if (!existingCredit) {
-          // Update crew credit to point to target person
-          await db.update(schema.movieCrew)
-            .set({ personId: targetId })
-            .where(sql`${schema.movieCrew.movieId} = ${credit.movieId} AND ${schema.movieCrew.personId} = ${sourceId} AND ${schema.movieCrew.department} = ${credit.department}`);
-
-          // Migrate crew job translations
-          const crewTranslations = await db.select()
-            .from(schema.movieCrewTranslations)
-            .where(sql`${schema.movieCrewTranslations.movieId} = ${credit.movieId} AND ${schema.movieCrewTranslations.personId} = ${sourceId} AND ${schema.movieCrewTranslations.department} = ${credit.department}`);
-
-          for (const trans of crewTranslations) {
-            // Check if translation already exists for target
-            const [existingTrans] = await db.select()
-              .from(schema.movieCrewTranslations)
-              .where(sql`${schema.movieCrewTranslations.movieId} = ${credit.movieId} AND ${schema.movieCrewTranslations.personId} = ${targetId} AND ${schema.movieCrewTranslations.department} = ${credit.department} AND ${schema.movieCrewTranslations.language} = ${trans.language}`)
-              .limit(1);
-
-            if (!existingTrans) {
-              await db.update(schema.movieCrewTranslations)
-                .set({ personId: targetId })
-                .where(sql`${schema.movieCrewTranslations.movieId} = ${credit.movieId} AND ${schema.movieCrewTranslations.personId} = ${sourceId} AND ${schema.movieCrewTranslations.department} = ${credit.department} AND ${schema.movieCrewTranslations.language} = ${trans.language}`);
-            }
-          }
-        } else {
-          // Target already has this credit, just delete source's translations
-          await db.delete(schema.movieCrewTranslations)
-            .where(sql`${schema.movieCrewTranslations.movieId} = ${credit.movieId} AND ${schema.movieCrewTranslations.personId} = ${sourceId} AND ${schema.movieCrewTranslations.department} = ${credit.department}`);
-        }
-      }
-
-      // 4. Create alias to track the merge (prevents TMDB from recreating the duplicate)
-      await db.insert(schema.personAliases).values({
-        tmdbId: sourceId,
-        canonicalPersonId: targetId,
-      });
-
-      // 5. Delete source person (CASCADE will handle remaining translations and credits)
-      await db.delete(schema.people)
-        .where(eq(schema.people.id, sourceId));
 
       // Log audit event
       await logAuditFromRequest(request, 'merge_people', 'person', String(targetId), `Merged ${sourceId} into ${targetId}`);
 
-      return {
-        success: true,
-        message: `Successfully merged person ${sourceId} into ${targetId}`,
-        targetId,
-      };
+      return result;
     } catch (error) {
       fastify.log.error(error);
       return sendInternalError(reply, 'Failed to merge people');
