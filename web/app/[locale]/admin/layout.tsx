@@ -4,6 +4,7 @@ import { Film } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { AdminBreadcrumbWrapper } from '@/components/admin/admin-breadcrumb-wrapper';
 import { RequireEditor } from '@/components/admin/require-editor';
+import { AdminUserMenu } from '@/components/admin/admin-user-menu';
 
 export default function AdminLayout({
   children,
@@ -16,7 +17,7 @@ export default function AdminLayout({
     <RequireEditor>
       <div className="min-h-screen bg-gray-50">
         {/* Admin Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <Link href="/admin" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -25,7 +26,10 @@ export default function AdminLayout({
                   {t('home.title')} {t('admin.dashboard')}
                 </h1>
               </Link>
-              <LanguageSwitcher />
+              <div className="flex items-center gap-4">
+                <AdminUserMenu />
+                <LanguageSwitcher />
+              </div>
             </div>
           </div>
         </header>
