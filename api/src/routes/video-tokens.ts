@@ -2,10 +2,11 @@ import { FastifyInstance } from 'fastify';
 import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { rentals, movies, videoSources, shortPackItems } from '../db/schema.js';
-import { eq, and, gte, inArray } from 'drizzle-orm';
+import { videoSources } from '../db/schema.js';
+import { eq, and } from 'drizzle-orm';
 import { generateVideoToken } from '../lib/video-token.js';
 import { requireAuthOrAnonymous } from '../lib/auth-middleware.js';
+import { checkMovieAccess } from '../lib/rental-access.js';
 
 const requestSchema = z.object({
   movieId: z.string().uuid(),
@@ -44,55 +45,10 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
       }
 
       // 2. Check rental validity (direct rental OR pack rental)
-      const now = new Date();
-      const userClause = userId
-        ? eq(rentals.userId, userId)
-        : eq(rentals.anonymousId, anonymousId!);
-
-      // Check for direct movie rental
-      const [directRental] = await db
-        .select()
-        .from(rentals)
-        .where(
-          and(
-            eq(rentals.movieId, movieId),
-            gte(rentals.expiresAt, now),
-            userClause
-          )
-        )
-        .limit(1);
-
-      if (directRental) {
-        // Valid direct rental found
-      } else {
-        // Check for pack rental that includes this movie
-        const packItems = await db
-          .select({ packId: shortPackItems.packId })
-          .from(shortPackItems)
-          .where(eq(shortPackItems.movieId, movieId));
-
-        if (packItems.length > 0) {
-          const packIds = packItems.map(p => p.packId);
-
-          const [packRental] = await db
-            .select()
-            .from(rentals)
-            .where(
-              and(
-                inArray(rentals.shortPackId, packIds),
-                gte(rentals.expiresAt, now),
-                userClause
-              )
-            )
-            .limit(1);
-
-          if (!packRental) {
-            return sendForbidden(reply, 'No valid rental found', 'RENTAL_REQUIRED');
-          }
-        } else {
-          // No pack rental found either
-          return sendForbidden(reply, 'No valid rental found', 'RENTAL_REQUIRED');
-        }
+      const accessResult = await checkMovieAccess(movieId, { userId, anonymousId });
+      
+      if (!accessResult.hasAccess) {
+        return sendForbidden(reply, 'No valid rental found', 'RENTAL_REQUIRED');
       }
 
       // 3. Construct video path

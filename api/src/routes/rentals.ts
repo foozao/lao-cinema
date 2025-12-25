@@ -16,6 +16,7 @@ import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS } from '../config.js';
 import * as schema from '../db/schema.js';
 import { buildLocalizedText, localizedOrUndefined } from '../lib/translation-helpers.js';
+import { checkMovieAccess } from '../lib/rental-access.js';
 
 export default async function rentalRoutes(fastify: FastifyInstance) {
   
@@ -247,61 +248,18 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
     const { userId, anonymousId } = getUserContext(request);
     
     try {
-      const userClause = buildDualModeWhereClause(request, rentals);
+      const result = await checkMovieAccess(movieId, { userId, anonymousId });
       
-      // Check for direct movie rental
-      const [directRental] = await db.select()
-        .from(rentals)
-        .where(
-          and(
-            eq(rentals.movieId, movieId),
-            userClause,
-            gt(rentals.expiresAt, new Date())
-          )
-        )
-        .limit(1);
-      
-      if (directRental) {
+      if (result.hasAccess && result.rental) {
         return reply.send({
           hasAccess: true,
-          accessType: 'movie',
+          accessType: result.accessType,
           rental: {
-            id: directRental.id,
-            expiresAt: directRental.expiresAt,
+            id: result.rental.id,
+            shortPackId: result.rental.shortPackId || undefined,
+            expiresAt: result.rental.expiresAt,
           },
         });
-      }
-      
-      // Check for pack rental that includes this movie
-      const packItems = await db.select({ packId: shortPackItems.packId })
-        .from(shortPackItems)
-        .where(eq(shortPackItems.movieId, movieId));
-      
-      if (packItems.length > 0) {
-        const packIds = packItems.map(p => p.packId);
-        
-        const [packRental] = await db.select()
-          .from(rentals)
-          .where(
-            and(
-              inArray(rentals.shortPackId, packIds),
-              userClause,
-              gt(rentals.expiresAt, new Date())
-            )
-          )
-          .limit(1);
-        
-        if (packRental) {
-          return reply.send({
-            hasAccess: true,
-            accessType: 'pack',
-            rental: {
-              id: packRental.id,
-              shortPackId: packRental.shortPackId,
-              expiresAt: packRental.expiresAt,
-            },
-          });
-        }
       }
       
       return reply.send({
