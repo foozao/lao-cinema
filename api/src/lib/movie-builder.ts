@@ -310,26 +310,33 @@ export async function buildMovieWithRelations(
     const genreIds = movieGenres.map((mg: any) => mg.genreId);
 
     if (genreIds.length > 0) {
+      // Only fetch visible genres
       const genres = await db.select()
         .from(schema.genres)
-        .where(sql`${schema.genres.id} IN (${sql.join(genreIds.map((id: any) => sql`${id}`), sql`, `)})`);
+        .where(sql`${schema.genres.id} IN (${sql.join(genreIds.map((id: any) => sql`${id}`), sql`, `)}) AND ${schema.genres.isVisible} = true`);
 
-      const genreTranslations = await db.select()
-        .from(schema.genreTranslations)
-        .where(sql`${schema.genreTranslations.genreId} IN (${sql.join(genreIds.map((id: any) => sql`${id}`), sql`, `)})`);
+      const visibleGenreIds = genres.map((g: any) => g.id);
+      
+      if (visibleGenreIds.length === 0) {
+        movieData.genres = [];
+      } else {
+        const genreTranslations = await db.select()
+          .from(schema.genreTranslations)
+          .where(sql`${schema.genreTranslations.genreId} IN (${sql.join(visibleGenreIds.map((id: any) => sql`${id}`), sql`, `)})`);
 
-      movieData.genres = genres.map((genre: any) => {
-        const genreTrans = genreTranslations.filter((gt: any) => gt.genreId === genre.id);
-        const genreName: any = {};
-        for (const trans of genreTrans) {
-          genreName[trans.language] = trans.name;
-        }
+        movieData.genres = genres.map((genre: any) => {
+          const genreTrans = genreTranslations.filter((gt: any) => gt.genreId === genre.id);
+          const genreName: any = {};
+          for (const trans of genreTrans) {
+            genreName[trans.language] = trans.name;
+          }
 
-        return {
-          id: genre.id,
-          name: Object.keys(genreName).length > 0 ? genreName : { en: 'Unknown' },
-        };
-      });
+          return {
+            id: genre.id,
+            name: Object.keys(genreName).length > 0 ? genreName : { en: 'Unknown' },
+          };
+        });
+      }
     } else {
       movieData.genres = [];
     }

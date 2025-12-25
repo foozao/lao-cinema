@@ -90,6 +90,7 @@ export const movieImages = pgTable('movie_images', {
 // Genres table
 export const genres = pgTable('genres', {
   id: integer('id').primaryKey(),
+  isVisible: boolean('is_visible').default(true).notNull(), // Control which genres show in UI
 });
 
 // Genre translations table

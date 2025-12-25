@@ -16,6 +16,8 @@ import notificationRoutes from '../routes/notifications.js';
 import shortPackRoutes from '../routes/short-packs.js';
 import trailersRoutes from '../routes/trailers.js';
 import videoTokenRoutes from '../routes/video-tokens.js';
+import genreRoutes from '../routes/genres.js';
+import movieGenresRoutes from '../routes/movie-genres.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -32,6 +34,8 @@ interface BuildOptions {
   includeTrailers?: boolean;
   includeVideoTokens?: boolean;
   includeUserData?: boolean;
+  includeGenres?: boolean;
+  includeMovieGenres?: boolean;
 }
 
 /**
@@ -126,6 +130,22 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(userDataRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeGenres) {
+    // Genres routes require admin auth
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(genreRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeMovieGenres) {
+    // Movie genres routes require editor/admin auth
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(movieGenresRoutes, { prefix: '/api' });
   }
 
   return app;

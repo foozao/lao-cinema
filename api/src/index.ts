@@ -21,6 +21,7 @@ import notificationRoutes from './routes/notifications.js';
 import videoTokenRoutes from './routes/video-tokens.js';
 import shortPackRoutes from './routes/short-packs.js';
 import watchlistRoutes from './routes/watchlist.js';
+import genreRoutes from './routes/genres.js';
 import testErrorRoutes from './routes/test-error.js';
 
 // Initialize Sentry error monitoring (must be before Fastify setup)
@@ -66,6 +67,7 @@ await fastify.register(notificationRoutes, { prefix: '/api' });
 await fastify.register(videoTokenRoutes, { prefix: '/api' });
 await fastify.register(shortPackRoutes, { prefix: '/api' });
 await fastify.register(watchlistRoutes, { prefix: '/api' });
+await fastify.register(genreRoutes, { prefix: '/api' });
 await fastify.register(testErrorRoutes, { prefix: '/api' });
 
 // Start server

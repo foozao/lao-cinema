@@ -29,6 +29,9 @@ interface CastCrewTabProps {
   onAddProductionCompany: (company: { id: number; name: { en?: string; lo?: string } }) => Promise<void>;
   onCreateProductionCompany: (name: string) => Promise<void>;
   onRemoveProductionCompany: (companyId: number) => Promise<void>;
+  onAddGenre: (genreId: number) => Promise<void>;
+  onRemoveGenre: (genreId: number) => Promise<void>;
+  availableGenres: Array<{ id: number; name: { en?: string; lo?: string }; isVisible: boolean }>;
   onSaveCastCrewUpdates: () => Promise<void>;
 }
 
@@ -47,12 +50,16 @@ export function CastCrewTab({
   onAddProductionCompany,
   onCreateProductionCompany,
   onRemoveProductionCompany,
+  onAddGenre,
+  onRemoveGenre,
+  availableGenres,
   onSaveCastCrewUpdates,
 }: CastCrewTabProps) {
   // Local state for add cast/crew forms
   const [showAddCast, setShowAddCast] = useState(false);
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [showAddProductionCompany, setShowAddProductionCompany] = useState(false);
+  const [showAddGenre, setShowAddGenre] = useState(false);
   
   const [selectedCastPerson, setSelectedCastPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
   const [selectedCrewPerson, setSelectedCrewPerson] = useState<{ id: number; name: { en?: string; lo?: string } } | null>(null);
@@ -66,6 +73,8 @@ export function CastCrewTab({
   const [addingCast, setAddingCast] = useState(false);
   const [addingCrew, setAddingCrew] = useState(false);
   const [addingProductionCompany, setAddingProductionCompany] = useState(false);
+  const [addingGenre, setAddingGenre] = useState(false);
+  const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null);
   
   const [editingCast, setEditingCast] = useState<string | null>(null);
   const [editingCrew, setEditingCrew] = useState<string | null>(null);
@@ -141,6 +150,17 @@ export function CastCrewTab({
       alert('Failed to create production company');
     } finally {
       setAddingProductionCompany(false);
+    }
+  };
+
+  const handleAddGenre = async () => {
+    if (!selectedGenreId) return;
+    setAddingGenre(true);
+    try {
+      await onAddGenre(selectedGenreId);
+      setSelectedGenreId(null);
+    } finally {
+      setAddingGenre(false);
     }
   };
 
@@ -627,6 +647,78 @@ export function CastCrewTab({
                         onClick={() => onRemoveProductionCompany(company.id)}
                       >
                         <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Genres Section */}
+      <Card>
+        <CardHeader 
+          className="cursor-pointer select-none" 
+          onClick={() => setShowAddGenre(!showAddGenre)}
+        >
+          <CardTitle className="flex items-center gap-2">
+            {showAddGenre ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            Genres ({currentMovie?.genres?.length || 0})
+          </CardTitle>
+        </CardHeader>
+        {showAddGenre && (
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Add Genre</Label>
+              <div className="flex gap-2">
+                <select
+                  value={selectedGenreId || ''}
+                  onChange={(e) => setSelectedGenreId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="flex-1 border rounded-md px-3 py-2"
+                  disabled={addingGenre}
+                >
+                  <option value="">Select a genre...</option>
+                  {availableGenres
+                    .filter(genre => !currentMovie?.genres?.some(g => g.id === genre.id))
+                    .map(genre => (
+                      <option key={genre.id} value={genre.id}>
+                        {genre.name.en || genre.name.lo || 'Unknown'} {!genre.isVisible && '(Hidden)'}
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  type="button"
+                  onClick={handleAddGenre}
+                  disabled={!selectedGenreId || addingGenre}
+                >
+                  {addingGenre ? 'Adding...' : 'Add'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Current Genres */}
+            {currentMovie?.genres && currentMovie.genres.length > 0 && (
+              <div className="space-y-2">
+                <Label>Current Genres</Label>
+                <div className="flex flex-wrap gap-2">
+                  {currentMovie.genres.map((genre) => (
+                    <div
+                      key={genre.id}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border"
+                    >
+                      <span className="text-sm">
+                        {getLocalizedText(genre.name, 'en')}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => onRemoveGenre(genre.id)}
+                      >
+                        <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}

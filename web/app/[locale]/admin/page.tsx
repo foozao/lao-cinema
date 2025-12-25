@@ -6,7 +6,7 @@ import { Link } from '@/i18n/routing';
 import { DashboardCard } from '@/components/admin/dashboard-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Users, Plus, Building2, Home, Package, BarChart3, ClipboardList, Download, RefreshCw } from 'lucide-react';
+import { Film, Users, Plus, Building2, Home, Package, BarChart3, ClipboardList, Download, RefreshCw, Tags } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -195,14 +195,24 @@ export default function AdminPage() {
         />
 
         {user?.role === 'admin' && (
-          <DashboardCard
-            href="/admin/audit-logs"
-            icon={ClipboardList}
-            color="gray"
-            title={t('auditLogs')}
-            description={t('trackChanges')}
-            content={t('auditLogsDescription')}
-          />
+          <>
+            <DashboardCard
+              href="/admin/genres"
+              icon={Tags}
+              color="purple"
+              title={t('manageGenres')}
+              description={t('genresDescription')}
+            />
+
+            <DashboardCard
+              href="/admin/audit-logs"
+              icon={ClipboardList}
+              color="gray"
+              title={t('auditLogs')}
+              description={t('trackChanges')}
+              content={t('auditLogsDescription')}
+            />
+          </>
         )}
       </div>
 

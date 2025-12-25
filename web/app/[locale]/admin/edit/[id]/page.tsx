@@ -15,6 +15,7 @@ import type { Movie, Trailer, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { getRawSessionToken } from '@/lib/auth/api-client';
+import { getAuthHeaders } from '@/lib/api/auth-headers';
 import { useAuth } from '@/lib/auth';
 import { EntityHistory } from '@/components/admin/entity-history';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
@@ -55,6 +56,9 @@ export default function EditMoviePage() {
   const [trailers, setTrailers] = useState<Trailer[]>([]);
   const [externalPlatforms, setExternalPlatforms] = useState<ExternalPlatform[]>([]);
   const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('auto');
+  
+  // Genre state
+  const [availableGenres, setAvailableGenres] = useState<Array<{ id: number; name: { en?: string; lo?: string }; isVisible: boolean }>>([]);
   
   // Sync state
   const [syncing, setSyncing] = useState(false);
@@ -104,9 +108,12 @@ export default function EditMoviePage() {
         setCrewTranslations(crewTrans);
         setOriginalCrewTranslations({...crewTrans});
         
-        const initialPlatforms = movie.external_platforms || [];
-        setExternalPlatforms(initialPlatforms);
-        setOriginalExternalPlatforms([...initialPlatforms]);
+        const externalPlatformsFromMovie = movie.external_platforms || [];
+        setExternalPlatforms(externalPlatformsFromMovie);
+        setOriginalExternalPlatforms(externalPlatformsFromMovie);
+        
+        // Load available genres
+        loadAvailableGenres();
         
         const initialStatus = (movie.availability_status || 'auto') as AvailabilityStatus;
         setAvailabilityStatus(initialStatus);
@@ -123,6 +130,21 @@ export default function EditMoviePage() {
 
     loadMovie();
   }, [movieId]);
+  
+  // Load available genres
+  const loadAvailableGenres = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/genres`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableGenres(data.genres || []);
+      }
+    } catch (error) {
+      console.error('Failed to load genres:', error);
+    }
+  };
 
   // Change detection
   useEffect(() => {
@@ -461,10 +483,49 @@ export default function EditMoviePage() {
   };
 
   const handleRemoveProductionCompany = async (companyId: number) => {
-    if (!confirm('Remove this production company?')) return;
     await movieProductionCompaniesAPI.remove(movieId, companyId);
     const updatedMovie = await movieAPI.getById(movieId);
     setCurrentMovie(updatedMovie);
+  };
+
+  // Genre management handlers
+  const handleAddGenre = async (genreId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/genres`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ genreId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to add genre');
+      }
+      
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (error) {
+      console.error('Failed to add genre:', error);
+      alert('Failed to add genre');
+    }
+  };
+  
+  const handleRemoveGenre = async (genreId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/genres/${genreId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove genre');
+      }
+      
+      const updatedMovie = await movieAPI.getById(movieId);
+      setCurrentMovie(updatedMovie);
+    } catch (error) {
+      console.error('Failed to remove genre:', error);
+      alert('Failed to remove genre');
+    }
   };
 
   // Form submission
@@ -668,6 +729,9 @@ export default function EditMoviePage() {
               onAddProductionCompany={handleAddProductionCompany}
               onCreateProductionCompany={handleCreateProductionCompany}
               onRemoveProductionCompany={handleRemoveProductionCompany}
+              onAddGenre={handleAddGenre}
+              onRemoveGenre={handleRemoveGenre}
+              availableGenres={availableGenres}
               onSaveCastCrewUpdates={saveCastCrewUpdates}
             />
           </TabsContent>

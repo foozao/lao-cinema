@@ -147,6 +147,12 @@ export function AdminBreadcrumbs() {
             href: '/admin/audit-logs',
             isLast: true,
           });
+        } else if (parts[1] === 'genres') {
+          breadcrumbs.push({
+            label: t('manageGenres'),
+            href: '/admin/genres',
+            isLast: true,
+          });
         } else if (parts[1] === 'short-packs') {
           if (parts.length === 2) {
             breadcrumbs.push({

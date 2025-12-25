@@ -193,7 +193,7 @@ function MoviesPageContent() {
   const genreMap = new Map<number, Genre>();
   
   movies.forEach(movie => {
-    movie.genres.forEach(genre => {
+    movie.genres?.forEach(genre => {
       if (!genreMap.has(genre.id)) {
         genreMap.set(genre.id, genre);
         allGenres.push(genre);
