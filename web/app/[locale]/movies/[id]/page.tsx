@@ -16,8 +16,8 @@ import { Calendar, Clock, Star, Play, Ban, Sparkles, AlertCircle, Package } from
 import { movieAPI, shortPacksAPI } from '@/lib/api/client';
 import { PaymentModal, type PaymentReason } from '@/components/payment-modal';
 import { StreamingPlatformList } from '@/components/streaming-platform-badge';
-import { isRentalValid, purchaseRental, getFormattedRemainingTime, getRecentlyExpiredRental } from '@/lib/rental-service';
-import { getRentalStatus } from '@/lib/api/rentals-client';
+import { isRentalValid, purchaseRental, getFormattedRemainingTime } from '@/lib/rental-service';
+import { useRentalStatus } from '@/hooks/use-rental-status';
 import { ShareButton } from '@/components/share-button';
 import { getMoviePath } from '@/lib/movie-url';
 import { useAuth } from '@/lib/auth';
@@ -35,16 +35,10 @@ export default function MoviePage() {
   const t = useTranslations();
   const tGenres = useTranslations('genres');
   const id = params.id as string;
-  const { isLoading: authLoading } = useAuth();
-  
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentReason, setPaymentReason] = useState<PaymentReason>('default');
-  const [hasValidRental, setHasValidRental] = useState(false);
-  const [remainingTime, setRemainingTime] = useState('');
-  const [recentlyExpired, setRecentlyExpired] = useState<{ expiredAt: Date } | null>(null);
-  const [rentalPackName, setRentalPackName] = useState<string | null>(null);
   const [moviePacks, setMoviePacks] = useState<Array<{
     id: string;
     slug?: string;
@@ -53,6 +47,15 @@ export default function MoviePage() {
     short_count: number;
   }>>([]);
   const [showFullOverview, setShowFullOverview] = useState(false);
+  
+  // Use rental status hook
+  const { 
+    hasValidRental, 
+    remainingTime, 
+    recentlyExpired, 
+    rentalPackName,
+    refresh: refreshRentalStatus 
+  } = useRentalStatus(movie?.id || null, moviePacks);
 
   // Check for rental query param (redirect from watch page)
   useEffect(() => {
@@ -91,48 +94,6 @@ export default function MoviePage() {
     loadMovie();
   }, [id]);
 
-  // Check rental validity on mount and periodically
-  useEffect(() => {
-    // Wait for auth and movie to initialize before checking rental
-    if (authLoading || !movie) return;
-    
-    const checkRental = async () => {
-      // Use the actual movie UUID, not the URL slug
-      const valid = await isRentalValid(movie.id);
-      setHasValidRental(valid);
-      if (valid) {
-        const time = await getFormattedRemainingTime(movie.id);
-        setRemainingTime(time);
-        setRecentlyExpired(null);
-        
-        // Check if this is a pack rental and get pack name
-        try {
-          const rentalStatus = await getRentalStatus(movie.id);
-          if (rentalStatus.rental && rentalStatus.rental.shortPackId && moviePacks.length > 0) {
-            const pack = moviePacks.find(p => p.id === rentalStatus.rental!.shortPackId);
-            if (pack) {
-              setRentalPackName(getLocalizedText(pack.title, locale));
-            }
-          } else {
-            setRentalPackName(null);
-          }
-        } catch (err) {
-          console.error('Failed to check rental pack:', err);
-        }
-      } else {
-        // Check if rental recently expired
-        const expired = await getRecentlyExpiredRental(movie.id);
-        setRecentlyExpired(expired);
-        setRentalPackName(null);
-      }
-    };
-
-    checkRental();
-    // Check every minute to update remaining time
-    const interval = setInterval(checkRental, 60000);
-    return () => clearInterval(interval);
-  }, [movie, authLoading, moviePacks, locale]);
-
   const handleWatchNowClick = async () => {
     if (!movie) return;
     
@@ -159,9 +120,7 @@ export default function MoviePage() {
         'demo'
       );
       
-      setHasValidRental(true);
-      const time = await getFormattedRemainingTime(movie.id);
-      setRemainingTime(time);
+      await refreshRentalStatus();
       setShowPaymentModal(false);
       
       // Navigate to watch page
