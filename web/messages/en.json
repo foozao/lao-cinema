@@ -806,10 +806,13 @@
     "continueWatching": {
       "title": "Continue Watching",
       "subtitle": "Pick up where you left off",
+      "backToProfile": "Back to Profile",
       "noProgress": "No Movies in Progress",
       "noProgressDesc": "Start watching a movie and it will appear here so you can continue later.",
       "browseMovies": "Browse Movies",
       "lastWatched": "Last watched",
+      "remove": "Remove",
+      "removing": "Removing...",
       "justNow": "just now",
       "hoursAgo": "{hours}h ago",
       "yesterday": "yesterday",
