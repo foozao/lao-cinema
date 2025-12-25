@@ -49,9 +49,8 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
 
   // Get movie by ID or slug
   fastify.get<{ Params: { id: string } }>('/movies/:id', async (request, reply) => {
+    const { id } = request.params;
     try {
-      const { id } = request.params;
-      
       // Check if id is a UUID or a slug
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       

@@ -32,9 +32,34 @@ export CUSTOM_VIDEO_DOMAIN="https://stream-preview.laocinema.com"
 export VIDEO_BUCKET="lao-cinema-videos"
 
 # Parse command line arguments
-DEPLOY_API=true
-DEPLOY_WEB=true
-DEPLOY_VIDEO=false  # Video server is opt-in
+DEPLOY_API=false
+DEPLOY_WEB=false
+DEPLOY_VIDEO=false
+DB_UPDATE=false     # Push schema changes to Cloud SQL
+DB_WIPE=false       # Replace Cloud SQL with local database
+
+# Show help if no arguments provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Deployment options:"
+    echo "  --api           Deploy only API service"
+    echo "  --web           Deploy only Web service"
+    echo "  --video         Deploy only Video server"
+    echo "  --all           Deploy all services (API + Web + Video)"
+    echo ""
+    echo "Database options:"
+    echo "  --db-update     Push schema changes to Cloud SQL (drizzle-kit push)"
+    echo "  --db-wipe       Replace Cloud SQL with local database (DESTRUCTIVE)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --all                # Deploy all services"
+    echo "  $0 --api --web          # Deploy API + Web only"
+    echo "  $0 --all --db-update    # Deploy all + update schema"
+    echo "  $0 --all --db-wipe      # Deploy all + replace Cloud DB with local"
+    echo "  $0 --api --db-update    # Deploy API only + update schema"
+    exit 0
+fi
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -60,9 +85,37 @@ while [[ $# -gt 0 ]]; do
             DEPLOY_VIDEO=true
             shift
             ;;
+        --db-update)
+            DB_UPDATE=true
+            shift
+            ;;
+        --db-wipe)
+            DB_WIPE=true
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Deployment options:"
+            echo "  --api           Deploy only API service"
+            echo "  --web           Deploy only Web service"
+            echo "  --video         Deploy only Video server"
+            echo "  --all           Deploy all services (default: API + Web)"
+            echo ""
+            echo "Database options:"
+            echo "  --db-update     Push schema changes to Cloud SQL (drizzle-kit push)"
+            echo "  --db-wipe       Replace Cloud SQL with local database (DESTRUCTIVE)"
+            echo ""
+            echo "Examples:"
+            echo "  $0                      # Deploy API + Web"
+            echo "  $0 --db-update          # Deploy + update schema"
+            echo "  $0 --db-wipe            # Deploy + replace Cloud DB with local"
+            echo "  $0 --api --db-update    # Deploy API only + update schema"
+            exit 0
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--api|--web|--video|--all]"
+            echo "Usage: $0 [--api|--web|--video|--all] [--db-update|--db-wipe] [--help]"
             exit 1
             ;;
     esac
@@ -377,6 +430,74 @@ if [ "$DEPLOY_WEB" = true ]; then
 fi
 
 # ========================================
+# DATABASE OPERATIONS
+# ========================================
+
+# Check if both flags are set (not allowed)
+if [ "$DB_UPDATE" = true ] && [ "$DB_WIPE" = true ]; then
+    log_error "Cannot use --db-update and --db-wipe together"
+    exit 1
+fi
+
+# Update database schema
+if [ "$DB_UPDATE" = true ]; then
+    log_info "========================================="
+    log_info "Updating Cloud SQL schema..."
+    log_info "========================================="
+    
+    # Check if cloud-sql-proxy is available
+    if ! command -v cloud-sql-proxy &> /dev/null; then
+        log_error "cloud-sql-proxy not found. Install it first:"
+        log_error "  curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64"
+        log_error "  chmod +x cloud-sql-proxy"
+        exit 1
+    fi
+    
+    # Start Cloud SQL proxy
+    log_info "Starting Cloud SQL proxy..."
+    ./cloud-sql-proxy $CONNECTION_NAME --port=5433 &
+    PROXY_PID=$!
+    sleep 3
+    
+    if ! kill -0 $PROXY_PID 2>/dev/null; then
+        log_error "Cloud SQL proxy failed to start"
+        exit 1
+    fi
+    log_info "✓ Cloud SQL proxy started (PID: $PROXY_PID)"
+    
+    # Push schema changes
+    log_info "Pushing schema changes to Cloud SQL..."
+    cd db
+    DATABASE_URL="postgresql://${CLOUD_DB_USER:-laocinema}:${CLOUD_DB_PASS}@127.0.0.1:5433/${CLOUD_DB_NAME:-laocinema}" npm run db:push
+    cd ..
+    
+    # Stop proxy
+    log_info "Stopping Cloud SQL proxy..."
+    kill $PROXY_PID 2>/dev/null
+    
+    log_info "✓ Schema updated successfully"
+fi
+
+# Wipe and restore database
+if [ "$DB_WIPE" = true ]; then
+    log_warn "========================================="
+    log_warn "⚠️  DATABASE WIPE - DESTRUCTIVE OPERATION"
+    log_warn "========================================="
+    log_warn "This will REPLACE Cloud SQL database with your local database"
+    log_warn "All data in Cloud SQL will be LOST"
+    echo ""
+    read -p "Type 'yes' to continue: " confirm
+    
+    if [ "$confirm" != "yes" ]; then
+        log_info "Database wipe cancelled"
+    else
+        log_info "Running database sync script..."
+        ./scripts/sync-db-to-cloud.sh
+        log_info "✓ Database wiped and restored from local"
+    fi
+fi
+
+# ========================================
 # DEPLOYMENT COMPLETE
 # ========================================
 echo ""
@@ -393,7 +514,9 @@ log_info "  Web: $WEB_URL"
 log_info "  API: $API_URL"
 echo ""
 log_info "Next steps:"
-log_info "1. If schema changed: cd db && npm run db:push (see DEPLOYMENT.md)"
+if [ "$DB_UPDATE" = false ] && [ "$DB_WIPE" = false ]; then
+    log_info "1. If schema changed: ./scripts/deploy.sh --db-update"
+fi
 log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
 log_info "3. Check logs: gcloud run services logs read lao-cinema-api --region=$REGION"
 echo ""
