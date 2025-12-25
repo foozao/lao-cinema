@@ -10,11 +10,14 @@ import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
 import { Search, Film } from 'lucide-react';
 import { APIError } from '@/components/api-error';
-import type { Movie } from '@/lib/types';
+import type { Movie, Genre } from '@/lib/types';
 import { API_BASE_URL, SHORT_FILM_THRESHOLD_MINUTES } from '@/lib/config';
+import { getLocalizedText } from '@/lib/i18n';
+import { getGenreKey } from '@/lib/genres';
 
 function MoviesPageContent() {
   const t = useTranslations();
+  const tGenres = useTranslations('genres');
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +30,7 @@ function MoviesPageContent() {
   const [filterType, setFilterType] = useState<'all' | 'feature' | 'short'>('all');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc'>('date-desc');
   const [showUnavailable, setShowUnavailable] = useState(false);
+  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   
   // Initialize state from URL params
@@ -35,6 +39,7 @@ function MoviesPageContent() {
     const filter = searchParams.get('filter') as 'all' | 'feature' | 'short' | null;
     const sort = searchParams.get('sort') as 'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc' | null;
     const unavailable = searchParams.get('unavailable') === 'true';
+    const genre = searchParams.get('genre');
     
     setSearchQuery(query);
     if (filter && ['all', 'feature', 'short'].includes(filter)) {
@@ -44,6 +49,7 @@ function MoviesPageContent() {
       setSortBy(sort);
     }
     setShowUnavailable(unavailable);
+    setSelectedGenre(genre ? parseInt(genre, 10) : null);
     setIsInitialized(true);
   }, [searchParams]);
 
@@ -101,12 +107,16 @@ function MoviesPageContent() {
       params.set('unavailable', 'true');
     }
     
+    if (selectedGenre !== null) {
+      params.set('genre', selectedGenre.toString());
+    }
+    
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '';
     
     // Use replace to avoid adding to history stack
     router.replace(`/${locale}/movies${newUrl}`, { scroll: false });
-  }, [searchQuery, filterType, sortBy, showUnavailable, router, locale, isInitialized]);
+  }, [searchQuery, filterType, sortBy, showUnavailable, selectedGenre, router, locale, isInitialized]);
 
   // Helper function to get match type for a movie
   const getMatchType = (movie: Movie, query: string): 'title' | 'cast' | 'crew' | null => {
@@ -178,11 +188,37 @@ function MoviesPageContent() {
     }
   };
 
+  // Extract unique genres from all movies
+  const allGenres: Genre[] = [];
+  const genreMap = new Map<number, Genre>();
+  
+  movies.forEach(movie => {
+    movie.genres.forEach(genre => {
+      if (!genreMap.has(genre.id)) {
+        genreMap.set(genre.id, genre);
+        allGenres.push(genre);
+      }
+    });
+  });
+  
+  // Sort genres alphabetically by localized name
+  const sortedGenres = allGenres.sort((a, b) => {
+    const nameA = getLocalizedText(a.name, locale as 'en' | 'lo');
+    const nameB = getLocalizedText(b.name, locale as 'en' | 'lo');
+    return nameA.localeCompare(nameB, locale);
+  });
+
   const filteredMovies = sortMovies(movies.filter((movie) => {
     // Filter by search query
     if (searchQuery) {
       const matchType = getMatchType(movie, searchQuery);
       if (!matchType) return false;
+    }
+    
+    // Filter by genre
+    if (selectedGenre !== null) {
+      const hasGenre = movie.genres.some(g => g.id === selectedGenre);
+      if (!hasGenre) return false;
     }
     
     // Filter by film type (feature vs short)
@@ -226,6 +262,41 @@ function MoviesPageContent() {
 
           {/* Search Bar and Filters */}
           <div className="flex flex-col gap-4">
+            {/* Genre Chips - Horizontal Scrollable */}
+            {sortedGenres.length > 0 && (
+              <div className="-mx-4 px-4">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                  <button
+                    onClick={() => setSelectedGenre(null)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                      selectedGenre === null
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`}
+                  >
+                    {t('movies.all')}
+                  </button>
+                  {sortedGenres.map((genre) => {
+                    const genreName = getLocalizedText(genre.name, 'en');
+                    const genreKey = getGenreKey(genreName);
+                    return (
+                      <button
+                        key={genre.id}
+                        onClick={() => setSelectedGenre(genre.id)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                          selectedGenre === genre.id
+                            ? 'bg-red-600 text-white'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                        }`}
+                      >
+                        {tGenres(genreKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
             {/* Search, Filters, and Sort - Horizontal Row */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="relative flex-1 max-w-md">

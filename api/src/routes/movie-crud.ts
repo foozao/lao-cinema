@@ -35,7 +35,7 @@ export default async function movieCrudRoutes(fastify: FastifyInstance) {
         allMovies.map(movie => buildMovieWithRelations(movie, db, schema, {
           includeCast: true,
           includeCrew: true,
-          includeGenres: false, // Not needed for list view
+          includeGenres: true, // Needed for genre filtering
           castLimit: 3, // Limit for performance
         }))
       );

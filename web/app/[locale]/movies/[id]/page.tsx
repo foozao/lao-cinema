@@ -307,9 +307,11 @@ export default function MoviePage() {
                           const genreName = getLocalizedText(genre.name, 'en');
                           const genreKey = getGenreKey(genreName);
                           return (
-                            <Badge key={genre.id} variant="secondary" className="text-xs px-2 py-0.5">
-                              {tGenres(genreKey)}
-                            </Badge>
+                            <Link key={genre.id} href={`/movies?genre=${genre.id}`}>
+                              <Badge variant="secondary" className="text-xs px-2 py-0.5 cursor-pointer hover:bg-gray-600 transition-colors">
+                                {tGenres(genreKey)}
+                              </Badge>
+                            </Link>
                           );
                         })}
                       </div>
@@ -361,9 +363,11 @@ export default function MoviePage() {
                         const genreName = getLocalizedText(genre.name, 'en');
                         const genreKey = getGenreKey(genreName);
                         return (
-                          <Badge key={genre.id} variant="secondary" className="text-sm">
-                            {tGenres(genreKey)}
-                          </Badge>
+                          <Link key={genre.id} href={`/movies?genre=${genre.id}`}>
+                            <Badge variant="secondary" className="text-sm cursor-pointer hover:bg-gray-600 transition-colors">
+                              {tGenres(genreKey)}
+                            </Badge>
+                          </Link>
                         );
                       })}
                     </div>
