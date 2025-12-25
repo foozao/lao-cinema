@@ -25,6 +25,11 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
   // Get featured films for homepage
   fastify.get('/homepage/featured', async (request, reply) => {
     try {
+      // Get homepage settings
+      const [settings] = await db.select()
+        .from(schema.homepageSettings)
+        .limit(1);
+      
       // Get featured film IDs in order
       const featured = await db.select()
         .from(schema.homepageFeatured)
@@ -50,10 +55,17 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         }))
       );
 
-      // Sort by featured order
-      const sortedMovies = featured.map(f => {
-        return moviesWithData.find(m => m.id === f.movieId);
-      }).filter(m => m !== undefined);
+      // Sort by featured order or randomize
+      let sortedMovies;
+      if (settings?.randomizeFeatured) {
+        // Randomize the order
+        sortedMovies = moviesWithData.sort(() => Math.random() - 0.5);
+      } else {
+        // Use the defined order
+        sortedMovies = featured.map(f => {
+          return moviesWithData.find(m => m.id === f.movieId);
+        }).filter(m => m !== undefined);
+      }
 
       return { movies: sortedMovies };
     } catch (error) {
@@ -240,6 +252,63 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       } catch (error) {
         fastify.log.error(error);
         return sendInternalError(reply, 'Failed to remove featured film');
+      }
+    }
+  );
+
+  // Get homepage settings
+  fastify.get('/homepage/settings', async (request, reply) => {
+    try {
+      let [settings] = await db.select()
+        .from(schema.homepageSettings)
+        .limit(1);
+      
+      // Create default settings if none exist
+      if (!settings) {
+        [settings] = await db.insert(schema.homepageSettings)
+          .values({ id: 1, randomizeFeatured: false })
+          .returning();
+      }
+
+      return { settings };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to fetch homepage settings');
+    }
+  });
+
+  // Update homepage settings
+  fastify.patch(
+    '/homepage/settings',
+    { preHandler: [requireEditorOrAdmin] },
+    async (request, reply) => {
+      try {
+        const { randomizeFeatured } = request.body as { randomizeFeatured: boolean };
+
+        if (typeof randomizeFeatured !== 'boolean') {
+          return sendBadRequest(reply, 'randomizeFeatured must be a boolean');
+        }
+
+        // Ensure settings row exists
+        let [settings] = await db.select()
+          .from(schema.homepageSettings)
+          .limit(1);
+        
+        if (!settings) {
+          [settings] = await db.insert(schema.homepageSettings)
+            .values({ id: 1, randomizeFeatured })
+            .returning();
+        } else {
+          [settings] = await db.update(schema.homepageSettings)
+            .set({ randomizeFeatured, updatedAt: new Date() })
+            .where(eq(schema.homepageSettings.id, 1))
+            .returning();
+        }
+
+        return { settings };
+      } catch (error) {
+        fastify.log.error(error);
+        return sendInternalError(reply, 'Failed to update homepage settings');
       }
     }
   );

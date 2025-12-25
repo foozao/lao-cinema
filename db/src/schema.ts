@@ -275,6 +275,13 @@ export const homepageFeatured = pgTable('homepage_featured', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Homepage settings table
+export const homepageSettings = pgTable('homepage_settings', {
+  id: integer('id').primaryKey().default(1), // Single row table
+  randomizeFeatured: boolean('randomize_featured').default(false).notNull(), // Randomize featured films order
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // External platforms table - tracks where films are available externally (e.g., Netflix)
 export const movieExternalPlatforms = pgTable('movie_external_platforms', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -591,3 +598,6 @@ export type NewMovieNotification = typeof movieNotifications.$inferInsert;
 
 export type UserWatchlistItem = typeof userWatchlist.$inferSelect;
 export type NewUserWatchlistItem = typeof userWatchlist.$inferInsert;
+
+export type HomepageSettings = typeof homepageSettings.$inferSelect;
+export type NewHomepageSettings = typeof homepageSettings.$inferInsert;

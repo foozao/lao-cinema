@@ -36,6 +36,8 @@ export default function HomepageAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [randomizeFeatured, setRandomizeFeatured] = useState(false);
+  const [updatingSettings, setUpdatingSettings] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -52,6 +54,11 @@ export default function HomepageAdminPage() {
       const moviesRes = await fetch(`${API_BASE_URL}/movies`);
       const moviesData = await moviesRes.json();
       setAllMovies(moviesData.movies || []);
+
+      // Load homepage settings
+      const settingsRes = await fetch(`${API_BASE_URL}/homepage/settings`);
+      const settingsData = await settingsRes.json();
+      setRandomizeFeatured(settingsData.settings?.randomizeFeatured || false);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -128,6 +135,29 @@ export default function HomepageAdminPage() {
     await addFeatured(movie.id);
   };
 
+  const toggleRandomize = async () => {
+    setUpdatingSettings(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/homepage/settings`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ randomizeFeatured: !randomizeFeatured }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRandomizeFeatured(data.settings.randomizeFeatured);
+      } else {
+        alert('Failed to update settings');
+      }
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      alert('Failed to update settings');
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-gray-50" />;
   }
@@ -146,7 +176,37 @@ export default function HomepageAdminPage() {
       </div>
 
       {/* Main Content */}
-      <div>
+      <div className="space-y-6">
+        {/* Settings Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('randomizeFeatured')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">
+                  {t('randomizeFeaturedDescription')}
+                </p>
+              </div>
+              <button
+                onClick={toggleRandomize}
+                disabled={updatingSettings}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                  randomizeFeatured ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    randomizeFeatured ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Featured Films Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
