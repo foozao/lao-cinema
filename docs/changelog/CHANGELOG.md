@@ -181,7 +181,7 @@
 
 ---
 
-## 2024-11-16 - Backend, Database & Admin Features
+## 2025-11-16 - Backend, Database & Admin Features
 
 ### Added
 
@@ -252,7 +252,7 @@
 - `NEXT_STEPS.md` - Current status and roadmap
 - `AGENTS.md` - Updated project structure
 
-## 2024-11-14 - Multi-Language System Refactor
+## 2025-11-14 - Multi-Language System Refactor
 
 ### Changed
 

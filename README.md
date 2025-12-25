@@ -58,11 +58,10 @@ docker-compose up -d
 - **[docs/architecture/CAST_CREW.md](docs/architecture/CAST_CREW.md)** - Cast & crew feature guide
 
 ### Setup & Configuration
-- **[docs/setup/DATABASE_SETUP.md](docs/setup/DATABASE_SETUP.md)** - Database configuration
-- **[docs/setup/BACKEND_SETUP.md](docs/setup/BACKEND_SETUP.md)** - API server setup
+- **[docs/setup/BACKEND_SETUP.md](docs/setup/BACKEND_SETUP.md)** - Backend and database setup
 - **[docs/setup/TMDB_SETUP.md](docs/setup/TMDB_SETUP.md)** - TMDB integration
-- **[docs/setup/DEPLOYMENT.md](docs/setup/DEPLOYMENT.md)** - Deployment guide
-- **[docs/setup/DEPLOYMENT_WORKFLOWS.md](docs/setup/DEPLOYMENT_WORKFLOWS.md)** - Deployment workflows and strategies
+- **[docs/setup/DEPLOYMENT_GUIDE.md](docs/setup/DEPLOYMENT_GUIDE.md)** - Deployment guide
+- **[docs/setup/ENV_REFERENCE.md](docs/setup/ENV_REFERENCE.md)** - Environment variables reference
 - **[docs/setup/DATABASE_SYNC.md](docs/setup/DATABASE_SYNC.md)** - Database synchronization
 - **[docs/setup/PASSWORD_PROTECTION.md](docs/setup/PASSWORD_PROTECTION.md)** - Authentication setup
 - **[docs/setup/VIDEO_ENV_COMPLETE.md](docs/setup/VIDEO_ENV_COMPLETE.md)** - Video URL environment setup
@@ -110,7 +109,7 @@ cd api
 npm test
 ```
 
-70+ unit tests covering core functionality.
+1095+ unit tests covering core functionality.
 
 ## 📄 License
 

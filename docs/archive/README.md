@@ -15,6 +15,14 @@ All information from these files has been consolidated into the main [CHANGELOG.
 **System Migrations (December 2025)**:
 - `MIGRATION_SUMMARY.md` - Database-first rental system migration
 
+**Refactoring Documentation (December 2025)**:
+- `REFACTOR_ADMIN_EDIT_PAGE_PLAN.md` - Admin edit page refactoring plan
+- `REFACTOR_ADMIN_EDIT_PAGE_PHASE1.md` - Phase 1 implementation details
+- `REFACTOR_ADMIN_EDIT_TESTS.md` - Test improvements for admin edit
+- `REFACTOR_AUTH_HEADERS_DUPLICATION.md` - Auth headers deduplication
+- `REFACTOR_CAST_CREW_DUPLICATION.md` - Cast/crew code deduplication
+- `REFACTOR_PERSON_CREDITS_QUERY.md` - Person credits query optimization
+
 ## Why Archived?
 
 These files contain valuable technical details but were cluttering the root directory. The key information has been extracted and added to:

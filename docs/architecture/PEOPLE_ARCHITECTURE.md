@@ -338,18 +338,13 @@ function PersonCard({ person, role, locale }: PersonCardProps) {
 
 ## Migration
 
-See `PEOPLE_MIGRATION.md` for:
-- Migration steps
-- Data migration strategies
-- Rollback procedures
-- Testing checklist
+The migration to this architecture was completed in November 2024. See the archived documentation for historical details.
 
 ## Related Documentation
 
 - `CAST_CREW.md` - Implementation details
-- `PEOPLE_MIGRATION.md` - Migration guide
 - `LANGUAGE_SYSTEM.md` - Bilingual system
-- `DATABASE_SETUP.md` - Database configuration
+- `../setup/BACKEND_SETUP.md` - Backend and database configuration
 - `/db/src/schema.ts` - Full schema definition
 - `/web/lib/types.ts` - TypeScript types
 - `/web/lib/tmdb/` - TMDB integration

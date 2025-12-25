@@ -2,14 +2,14 @@
 
 ## Overview
 
-**Updated Architecture (Nov 2024)**: Migrated to people-centric design with separate `people` table.
+**Current Architecture**: People-centric design with separate `people` table (implemented November 2024, updated December 2025).
 
 Cast and crew are now stored as:
 1. **People** - Actors, directors, crew members (stored once)
 2. **Movie-Person Relationships** - Links between movies and people
 3. **Role-Specific Data** - Character names, job titles (per movie)
 
-See `PEOPLE_MIGRATION.md` for migration details.
+See `PEOPLE_ARCHITECTURE.md` for full architectural details.
 
 ## What's Included
 

@@ -385,8 +385,9 @@ const userRentals = await db.select()
 | 0016 | Additional schema refinements |
 | 0017-0018 | Add person nicknames, trailers table |
 | 0019-0020 | Audit logs and person aliases |
+| 0021-0029 | Watchlist, person images, short packs, additional refinements |
 
-**Total migrations**: 22 (0000-0020)
+**Total migrations**: 33 (0000-0029)
 
 Run migrations:
 ```bash

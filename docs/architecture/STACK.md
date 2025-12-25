@@ -16,7 +16,7 @@ This document defines the technology stack for the Lao Cinema streaming platform
 - Rental system with database persistence (dual-mode: userId OR anonymousId)
 - Watch progress with cross-device sync
 - Video analytics framework
-- Testing framework (70+ tests)
+- Testing framework (1095+ tests)
 - Docker Compose development environment
 - GCP Cloud Run deployment
 - Production companies with TMDB sync
@@ -229,7 +229,7 @@ Option C — Self-hosted NGINX HLS (later stage)
 	•	hls.js (video player) ✅
 	•	next-intl (internationalization) ✅
 	•	Lucide React (icons) ✅
-	•	Jest + React Testing Library ✅
+	•	Vitest + React Testing Library ✅
 
 7.3 Mobile (Future)
 	•	React Native (Expo)

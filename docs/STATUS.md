@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 19, 2025
+**Last Updated**: December 26, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -23,7 +23,7 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Movie edit interface (`/admin/edit/[id]`)
 - [x] People admin page (`/admin/people`)
 - [x] Admin dashboard with bilingual support
-- [x] Vitest testing framework (339+ tests, 100% utility coverage)
+- [x] Vitest testing framework (1095+ tests, 100% utility coverage)
 
 ### Backend (`/api`)
 - [x] Fastify REST API server
@@ -159,7 +159,7 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 📈 Metrics
 
-- **Total Tests**: 339+
+- **Total Tests**: 1095+
 - **Test Coverage**: 100% (utilities)
 - **Database Tables**: 15+ (movies, people, video_sources, rentals, etc.)
 - **API Endpoints**: 10+ (movies, people, images, health)
@@ -273,7 +273,7 @@ cd web && npm run dev
 - [x] Admin edit interface
 - [x] Database operations (CRUD)
 - [x] Bilingual content support
-- [x] Unit tests (339 tests passing)
+- [x] Unit tests (1095 tests passing)
 
 ### To Test
 - [x] Video player with CDN video files
@@ -322,10 +322,9 @@ npm run db:studio    # Open Drizzle Studio
 ## 📖 Documentation
 
 ### Setup Guides
-- [docs/setup/BACKEND_SETUP.md](setup/BACKEND_SETUP.md) - Backend configuration
-- [docs/setup/DATABASE_SETUP.md](setup/DATABASE_SETUP.md) - Database setup
+- [docs/setup/BACKEND_SETUP.md](setup/BACKEND_SETUP.md) - Backend and database setup
 - [docs/setup/TMDB_SETUP.md](setup/TMDB_SETUP.md) - TMDB integration
-- [docs/setup/DEPLOYMENT.md](setup/DEPLOYMENT.md) - Deployment guide
+- [docs/setup/DEPLOYMENT_GUIDE.md](setup/DEPLOYMENT_GUIDE.md) - Deployment guide
 - [web/I18N_SETUP.md](../web/I18N_SETUP.md) - Internationalization
 
 ### Architecture
@@ -340,14 +339,14 @@ npm run db:studio    # Open Drizzle Studio
 - [docs/features/ADMIN_I18N.md](features/ADMIN_I18N.md) - Admin internationalization
 - [docs/features/MULTI_POSTER_IMPLEMENTATION.md](features/MULTI_POSTER_IMPLEMENTATION.md) - Multiple poster support
 - [docs/features/POSTER_UI_GUIDE.md](features/POSTER_UI_GUIDE.md) - Poster UI guide
-- [docs/features/SELF_HOSTED_VIDEO.md](features/SELF_HOSTED_VIDEO.md) - Self-hosting analysis
+- [docs/features/VIDEO_SECURITY.md](features/VIDEO_SECURITY.md) - Video security implementation
 - [docs/features/BACKEND_IMAGE_API.md](features/BACKEND_IMAGE_API.md) - Image API endpoints
 - [docs/features/SAFE_SYNC_STRATEGY.md](features/SAFE_SYNC_STRATEGY.md) - Data sync strategy
 
 ### Development
 - [AGENTS.md](../AGENTS.md) - AI agent guidelines
 - [docs/changelog/CHANGELOG.md](changelog/CHANGELOG.md) - Change history
-- [docs/changelog/TEST_SUMMARY.md](changelog/TEST_SUMMARY.md) - Testing summary
+- [api/TESTING.md](../api/TESTING.md) - Testing guide
 
 ## 🐛 Known Issues
 
