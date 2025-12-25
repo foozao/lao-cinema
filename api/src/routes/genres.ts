@@ -1,5 +1,6 @@
 // Genre management routes
 import { FastifyInstance } from 'fastify';
+import { buildLocalizedText, localizedWithFallback } from '../lib/translation-helpers.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
@@ -59,10 +60,7 @@ export default async function genreRoutes(fastify: FastifyInstance) {
         .from(schema.genreTranslations)
         .where(eq(schema.genreTranslations.genreId, nextId));
       
-      const name: any = {};
-      for (const trans of genreTranslations) {
-        name[trans.language] = trans.name;
-      }
+      const name = buildLocalizedText(genreTranslations, 'name');
       
       return {
         genre: {

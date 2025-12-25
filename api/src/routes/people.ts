@@ -8,6 +8,7 @@ import { buildPersonCredits } from '../lib/movie-builder.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
 import { buildInClause } from '../lib/query-helpers.js';
+import { buildPersonLocalizedTexts, buildLocalizedText, localizedWithFallback, localizedOrUndefined } from '../lib/translation-helpers.js';
 
 export default async function peopleRoutes(fastify: FastifyInstance) {
   // Get all people (with optional search)
@@ -104,20 +105,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
       // Build response with translations and departments
       const peopleWithTranslations = allPeople.map(person => {
         const personTranslations = translations.filter(t => t.personId === person.id);
-        
-        const name: any = {};
-        const biography: any = {};
-        const nicknames: any = {};
-        
-        for (const trans of personTranslations) {
-          name[trans.language] = trans.name;
-          if (trans.biography) {
-            biography[trans.language] = trans.biography;
-          }
-          if (trans.nicknames && trans.nicknames.length > 0) {
-            nicknames[trans.language] = trans.nicknames;
-          }
-        }
+        const { name, biography, nicknames } = buildPersonLocalizedTexts(personTranslations);
         
         // Collect all unique departments this person has worked in
         const departments = new Set<string>();
@@ -323,19 +311,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .where(eq(schema.peopleTranslations.personId, personId));
 
       // Build localized text objects
-      const name: any = {};
-      const biography: any = {};
-      const nicknames: any = {};
-      
-      for (const trans of translations) {
-        name[trans.language] = trans.name;
-        if (trans.biography) {
-          biography[trans.language] = trans.biography;
-        }
-        if (trans.nicknames && trans.nicknames.length > 0) {
-          nicknames[trans.language] = trans.nicknames;
-        }
-      }
+      const { name, biography, nicknames } = buildPersonLocalizedTexts(translations);
 
       // Get cast and crew credits using optimized batch queries
       const { cast, crew } = await buildPersonCredits(personId, db, schema);
@@ -672,19 +648,7 @@ export default async function peopleRoutes(fastify: FastifyInstance) {
         .from(schema.peopleTranslations)
         .where(eq(schema.peopleTranslations.personId, personId));
 
-      const name: any = {};
-      const biography: any = {};
-      const nicknames: any = {};
-
-      for (const trans of translations) {
-        name[trans.language] = trans.name;
-        if (trans.biography) {
-          biography[trans.language] = trans.biography;
-        }
-        if (trans.nicknames && trans.nicknames.length > 0) {
-          nicknames[trans.language] = trans.nicknames;
-        }
-      }
+      const { name, biography, nicknames } = buildPersonLocalizedTexts(translations);
 
       const person = updatedPerson[0];
       

@@ -4,6 +4,7 @@ import { db, schema } from '../db/index.js';
 import { eq, sql, desc } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest, createChangesObject } from '../lib/audit-service.js';
+import { buildLocalizedText } from '../lib/translation-helpers.js';
 
 export async function productionCompaniesRoutes(fastify: FastifyInstance) {
   // Get all production companies
@@ -169,10 +170,7 @@ export async function productionCompaniesRoutes(fastify: FastifyInstance) {
         
         movies = movieData.map(movie => {
           const trans = movieTranslations.filter(t => t.movieId === movie.id);
-          const title: Record<string, string> = {};
-          for (const t of trans) {
-            title[t.language] = t.title;
-          }
+          const title = buildLocalizedText(trans, 'title');
           return {
             id: movie.id,
             title,

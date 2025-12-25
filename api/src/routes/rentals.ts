@@ -15,6 +15,7 @@ import { buildDualModeWhereClause } from '../lib/auth-helpers.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS } from '../config.js';
 import * as schema from '../db/schema.js';
+import { buildLocalizedText, localizedOrUndefined } from '../lib/translation-helpers.js';
 
 export default async function rentalRoutes(fastify: FastifyInstance) {
   
@@ -112,14 +113,8 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
                 .from(shortPackTranslations)
                 .where(eq(shortPackTranslations.packId, rental.shortPackId));
               
-              const title: Record<string, string> = {};
-              const description: Record<string, string> = {};
-              for (const trans of packTranslations) {
-                title[trans.language] = trans.title;
-                if (trans.description) {
-                  description[trans.language] = trans.description;
-                }
-              }
+              const title = buildLocalizedText(packTranslations, 'title');
+              const description = buildLocalizedText(packTranslations, 'description');
               
               // Get shorts posters for montage
               const packItems = await db.select({
@@ -571,10 +566,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         .from(shortPackTranslations)
         .where(eq(shortPackTranslations.packId, packId));
       
-      const title: Record<string, string> = {};
-      for (const t of translations) {
-        title[t.language] = t.title;
-      }
+      const title = buildLocalizedText(translations, 'title');
       
       return sendCreated(reply, {
         rental: {
