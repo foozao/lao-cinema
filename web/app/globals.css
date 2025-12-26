@@ -4,6 +4,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Custom Responsive Breakpoints - Easy to tweak as needed */
+  /* < 500px: Mobile compact grid */
+  /* 500-799px: Tablet single column */
+  /* 800-1279px: Desktop 2 columns */
+  /* 1280px+: Wide desktop 3 columns */
+  --breakpoint-xs: 500px;
+  --breakpoint-md: 800px;
+  --breakpoint-xl: 1280px;
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

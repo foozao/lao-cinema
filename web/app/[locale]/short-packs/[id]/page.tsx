@@ -346,7 +346,7 @@ export default function ShortPackDetailPage() {
           {t('included')} ({pack.short_count})
         </h2>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {pack.shorts?.map((item) => (
             <MovieCard key={item.movie.id} movie={item.movie} />
           ))}

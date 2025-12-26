@@ -38,6 +38,16 @@ jest.mock('@/components/movie-card', () => ({
   ),
 }));
 
+jest.mock('@/components/animated-movie-grid', () => ({
+  AnimatedMovieGrid: ({ movies }: { movies: any[] }) => (
+    <div data-testid="animated-movie-grid">
+      {movies.map((movie: any) => (
+        <div key={movie.id} data-testid={`movie-card-${movie.id}`}>{movie.title.en}</div>
+      ))}
+    </div>
+  ),
+}));
+
 jest.mock('@/components/api-error', () => ({
   APIError: ({ onRetry, type }: { onRetry: () => void; type: string }) => (
     <div data-testid="api-error" data-type={type}>

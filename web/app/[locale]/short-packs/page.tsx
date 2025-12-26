@@ -52,7 +52,7 @@ export default function ShortPacksPage() {
       <SubHeader variant="dark" activePage="shorts" />
       
       <div className="flex-1">
-        <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto px-3 py-8 max-w-[1600px]">
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
@@ -74,7 +74,7 @@ export default function ShortPacksPage() {
               <p className="text-gray-400">{t('empty')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {packs.map((pack) => (
                 <ShortPackCard key={pack.id} pack={pack} />
               ))}

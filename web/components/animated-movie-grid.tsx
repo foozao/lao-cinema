@@ -44,7 +44,7 @@ export function AnimatedMovieGrid({ movies, staggerDelay = 100 }: AnimatedMovieG
   return (
     <div 
       ref={gridRef}
-      className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+      className="grid grid-cols-2 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 lg:gap-4"
     >
       {movies.map((movie, index) => (
         <div

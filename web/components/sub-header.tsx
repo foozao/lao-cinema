@@ -55,7 +55,7 @@ export function SubHeader({ variant = 'light', activePage }: SubHeaderProps) {
 
   return (
     <nav className={`border-b sticky top-16 z-40 ${bgClass}`}>
-      <div className="container mx-auto px-4 py-2">
+      <div className="mx-auto px-3 py-2 max-w-[1600px]">
         <div className="flex items-center gap-4 md:gap-6 overflow-x-auto scrollbar-hide">
           <NavLink page="movies" href="/movies" icon={Film}>
             <span className="hidden md:inline">{t('nav.browse')} </span>

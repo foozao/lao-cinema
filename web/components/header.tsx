@@ -27,7 +27,7 @@ export function Header({ variant = 'light', fullWidth = false, minimal = false }
 
   return (
     <header className={`border-b backdrop-blur-sm sticky top-0 z-50 h-16 ${bgClass} ${textClass}`}>
-      <div className={fullWidth ? "px-4 h-full flex items-center" : "container mx-auto px-4 h-full flex items-center"}>
+      <div className={fullWidth ? "px-3 h-full flex items-center" : "mx-auto px-3 h-full flex items-center max-w-[1600px]"}>
         <div className="flex items-center justify-between w-full">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Film className={`w-8 h-8 ${logoClass}`} />

@@ -130,7 +130,7 @@ export default function Home() {
         <SubHeader variant="dark" />
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8 flex-grow">
+        <main className="mx-auto px-3 py-8 flex-grow max-w-[1600px]">
           {/* My Rentals Section */}
           {!rentalsLoading && rentals.length > 0 && (
             <section className={`mb-12 transition-all duration-700 ease-out ${

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
-import { MovieCard } from '@/components/movie-card';
+import { AnimatedMovieGrid } from '@/components/animated-movie-grid';
 import { Header } from '@/components/header';
 import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
@@ -253,7 +253,7 @@ function MoviesPageContent() {
       <SubHeader variant="dark" activePage="movies" />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 flex-grow">
+      <main className="w-full mx-auto px-3 py-8 flex-grow max-w-[1600px]">
         {/* Page Header */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-4">
@@ -391,11 +391,7 @@ function MoviesPageContent() {
               )}
 
               {/* Movies Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredMovies.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
-                ))}
-              </div>
+              <AnimatedMovieGrid movies={filteredMovies} />
             </>
           ) : searchQuery ? (
             <div className="text-center py-20">
@@ -419,7 +415,7 @@ function MoviesPageContent() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

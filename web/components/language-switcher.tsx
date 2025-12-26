@@ -35,16 +35,16 @@ export function LanguageSwitcher({ variant = 'light' }: LanguageSwitcherProps) {
       aria-label={t('switchLanguage')}
       data-testid="language-toggle"
     >
-      {/* Mobile: Show only the inactive language */}
-      <span className={`md:hidden font-medium ${locale === 'en' ? 'text-lg leading-none' : ''} ${textColor}`}>
+      {/* Mobile (<640px): Show only the inactive language */}
+      <span className={`sm:hidden font-medium ${locale === 'en' ? 'text-lg leading-none' : ''} ${textColor}`}>
         {switchToLabel}
       </span>
-      {/* Desktop: Show both languages */}
-      <span className={`hidden md:inline font-medium text-lg leading-none ${textColor}`}>
+      {/* Tablet+ (640px+): Show both languages */}
+      <span className={`hidden sm:inline font-medium text-lg leading-none ${textColor}`}>
         ລາວ
       </span>
-      <span className={`hidden md:inline ${separatorColor}`}>/</span>
-      <span className={`hidden md:inline font-medium ${textColor}`}>
+      <span className={`hidden sm:inline ${separatorColor}`}>/</span>
+      <span className={`hidden sm:inline font-medium ${textColor}`}>
         English
       </span>
     </Button>

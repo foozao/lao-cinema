@@ -103,7 +103,8 @@ describe('MovieCard', () => {
       const movie = createTestMovie();
       render(<MovieCard movie={movie} />);
       
-      expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      // Title appears in both mobile overlay and desktop view
+      expect(screen.getAllByText('Test Movie')).toHaveLength(2);
     });
 
     it('should render movie poster when available', () => {
@@ -127,7 +128,8 @@ describe('MovieCard', () => {
       const movie = createTestMovie();
       render(<MovieCard movie={movie} />);
       
-      expect(screen.getByText('2024')).toBeInTheDocument();
+      // Year appears in both mobile and desktop views
+      expect(screen.getAllByText('2024')).toHaveLength(2);
     });
 
     it('should render runtime', () => {
@@ -170,8 +172,8 @@ describe('MovieCard', () => {
       const movie = createTestMovie({ genres: [] });
       render(<MovieCard movie={movie} />);
       
-      // Should not crash
-      expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      // Should not crash (title appears in both views)
+      expect(screen.getAllByText('Test Movie')).toHaveLength(2);
     });
   });
 
@@ -198,7 +200,8 @@ describe('MovieCard', () => {
       render(<MovieCard movie={movie} />);
       
       expect(screen.getByText('Director:')).toBeInTheDocument();
-      expect(screen.getByText('John Director')).toBeInTheDocument();
+      // Director name appears in both mobile overlay and desktop view
+      expect(screen.getAllByText('John Director')).toHaveLength(2);
     });
 
     it('should render writer', () => {
@@ -308,8 +311,8 @@ describe('MovieCard', () => {
       const movie = createTestMovie({ release_date: undefined });
       render(<MovieCard movie={movie} />);
       
-      // Should not crash and should render title
-      expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      // Should not crash and should render title (appears in both mobile and desktop views)
+      expect(screen.getAllByText('Test Movie')).toHaveLength(2);
       expect(screen.queryByText('2024')).not.toBeInTheDocument();
     });
 
@@ -317,9 +320,67 @@ describe('MovieCard', () => {
       const movie = createTestMovie({ runtime: undefined });
       render(<MovieCard movie={movie} />);
       
-      // Should not crash
-      expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      // Should not crash (title appears in both mobile and desktop views)
+      expect(screen.getAllByText('Test Movie')).toHaveLength(2);
       expect(screen.queryByText('min')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Responsive Layout', () => {
+    it('should render mobile compact view with title overlay', () => {
+      const movie = createTestMovie();
+      render(<MovieCard movie={movie} />);
+      
+      // Mobile overlay should exist (hidden on sm+ via CSS)
+      // The overlay contains title, year/runtime, and director
+      const mobileOverlay = document.querySelector('.sm\\:hidden');
+      expect(mobileOverlay).toBeInTheDocument();
+      
+      // Should have title in overlay
+      expect(mobileOverlay?.textContent).toContain('Test Movie');
+    });
+
+    it('should render desktop detailed view', () => {
+      const movie = createTestMovie();
+      render(<MovieCard movie={movie} />);
+      
+      // Desktop content area should exist (hidden on mobile, visible on sm+ via CSS)
+      const desktopContent = document.querySelector('.hidden.sm\\:flex');
+      expect(desktopContent).toBeInTheDocument();
+    });
+
+    it('should have correct responsive classes for layout switching', () => {
+      const movie = createTestMovie();
+      const { container } = render(<MovieCard movie={movie} />);
+      
+      // Card should have responsive border classes
+      const card = container.querySelector('[class*="sm:border-2"]');
+      expect(card).toBeInTheDocument();
+      
+      // Layout container should switch from column to row at sm breakpoint
+      const layoutContainer = container.querySelector('.flex-col.sm\\:flex-row');
+      expect(layoutContainer).toBeInTheDocument();
+    });
+
+    it('should show director name in mobile overlay', () => {
+      const movie = createTestMovie();
+      render(<MovieCard movie={movie} />);
+      
+      // Mobile overlay should contain director name
+      const mobileOverlay = document.querySelector('.sm\\:hidden');
+      expect(mobileOverlay?.textContent).toContain('John Director');
+    });
+
+    it('should have poster with correct responsive sizing', () => {
+      const movie = createTestMovie();
+      const { container } = render(<MovieCard movie={movie} />);
+      
+      // Poster container should have responsive width classes
+      const posterContainer = container.querySelector('.w-full.sm\\:w-48');
+      expect(posterContainer).toBeInTheDocument();
+      
+      // Should have aspect ratio on mobile
+      expect(posterContainer?.className).toContain('aspect-[2/3]');
     });
   });
 });
