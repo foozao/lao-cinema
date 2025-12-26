@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import MoviesPage from '../page';
@@ -118,12 +118,16 @@ describe('MoviesPage', () => {
   ];
 
   // Helper function to render component with Suspense
-  const renderMoviesPage = () => {
-    return render(
-      <Suspense fallback={<div>Loading...</div>}>
-        <MoviesPage />
-      </Suspense>
-    );
+  const renderMoviesPage = async () => {
+    let result;
+    await act(async () => {
+      result = render(
+        <Suspense fallback={<div>Loading...</div>}>
+          <MoviesPage />
+        </Suspense>
+      );
+    });
+    return result!;
   };
 
   beforeEach(() => {
@@ -168,7 +172,7 @@ describe('MoviesPage', () => {
 
   describe('Initial Load', () => {
     it('renders header and footer', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('header')).toBeInTheDocument();
@@ -177,7 +181,7 @@ describe('MoviesPage', () => {
     });
 
     it('fetches and displays movies', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -189,14 +193,16 @@ describe('MoviesPage', () => {
 
   describe('Search Functionality', () => {
     it('filters movies by title', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
-      fireEvent.change(searchInput, { target: { value: 'Signal' } });
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Signal' } });
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -210,7 +216,7 @@ describe('MoviesPage', () => {
 
   describe('Filter Functionality', () => {
     it('filters to show all movies by default', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -220,14 +226,16 @@ describe('MoviesPage', () => {
     });
 
     it('filters to show only feature films', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const featureButton = screen.getByText('movies.feature');
-      fireEvent.click(featureButton);
+      await act(async () => {
+        fireEvent.click(featureButton);
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument(); // 90 min
@@ -237,14 +245,16 @@ describe('MoviesPage', () => {
     });
 
     it('filters to show only short films', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const shortButton = screen.getByText('movies.short');
-      fireEvent.click(shortButton);
+      await act(async () => {
+        fireEvent.click(shortButton);
+      });
 
       await waitFor(() => {
         expect(screen.queryByTestId('movie-card-1')).not.toBeInTheDocument(); // 90 min
@@ -263,7 +273,7 @@ describe('MoviesPage', () => {
         return null;
       });
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
@@ -272,14 +282,16 @@ describe('MoviesPage', () => {
     });
 
     it('updates URL when search query changes', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
-      fireEvent.change(searchInput, { target: { value: 'test' } });
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+      });
 
       await waitFor(() => {
         expect(mockRouter.replace).toHaveBeenCalledWith(
@@ -290,14 +302,16 @@ describe('MoviesPage', () => {
     });
 
     it('updates URL when filter changes', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const featureButton = screen.getByText('movies.feature');
-      fireEvent.click(featureButton);
+      await act(async () => {
+        fireEvent.click(featureButton);
+      });
 
       await waitFor(() => {
         expect(mockRouter.replace).toHaveBeenCalledWith(
@@ -313,7 +327,7 @@ describe('MoviesPage', () => {
         return null;
       });
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText('admin.searchMovies') as HTMLInputElement;
@@ -321,7 +335,9 @@ describe('MoviesPage', () => {
       });
 
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
-      fireEvent.change(searchInput, { target: { value: '' } });
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '' } });
+      });
 
       await waitFor(() => {
         expect(mockRouter.replace).toHaveBeenCalledWith(
@@ -339,7 +355,7 @@ describe('MoviesPage', () => {
         json: async () => ({ movies: [] }),
       });
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByText('home.noFilms')).toBeInTheDocument();
@@ -347,14 +363,16 @@ describe('MoviesPage', () => {
     });
 
     it('shows no results message when search returns nothing', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
       });
 
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
-      fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+      });
 
       await waitFor(() => {
         expect(screen.getByText('admin.noMoviesFound')).toBeInTheDocument();
@@ -368,7 +386,7 @@ describe('MoviesPage', () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
@@ -385,7 +403,7 @@ describe('MoviesPage', () => {
         json: async () => ({ error: 'Server error' }),
       });
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
@@ -402,14 +420,16 @@ describe('MoviesPage', () => {
           json: async () => ({ movies: mockMovies }),
         });
 
-      renderMoviesPage();
+      await renderMoviesPage();
       
       await waitFor(() => {
         expect(screen.getByTestId('api-error')).toBeInTheDocument();
       });
 
       // Click retry button
-      fireEvent.click(screen.getByText('Retry'));
+      await act(async () => {
+        fireEvent.click(screen.getByText('Retry'));
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('movie-card-1')).toBeInTheDocument();
@@ -421,14 +441,14 @@ describe('MoviesPage', () => {
 
   describe('Accessibility', () => {
     it('has accessible search input', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       const searchInput = screen.getByPlaceholderText('admin.searchMovies');
       expect(searchInput).toHaveAttribute('type', 'text');
     });
 
     it('has accessible filter buttons', async () => {
-      renderMoviesPage();
+      await renderMoviesPage();
       
       const allButton = screen.getByText('movies.all');
       const featureButton = screen.getByText('movies.feature');
