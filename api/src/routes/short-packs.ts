@@ -8,6 +8,7 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { requireEditor, requireEditorOrAdmin, requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
+import { buildPackSummary, buildPackDetail, getPackTranslations, getPackShortCount } from '../lib/short-pack-helpers.js';
 
 // Zod schemas for validation
 const LocalizedTextSchema = z.object({
@@ -55,85 +56,7 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
 
       // Build response with translations and short counts
       const packsWithData = await Promise.all(
-        packs.map(async (pack) => {
-          // Get translations
-          const translations = await db.select()
-            .from(schema.shortPackTranslations)
-            .where(eq(schema.shortPackTranslations.packId, pack.id));
-
-          const titleEn = translations.find(t => t.language === 'en');
-          const titleLo = translations.find(t => t.language === 'lo');
-
-          // Get short count, total runtime, and posters
-          const items = await db.select({
-            movieId: schema.shortPackItems.movieId,
-            runtime: schema.movies.runtime,
-            posterPath: schema.movies.posterPath,
-            order: schema.shortPackItems.order,
-          })
-            .from(schema.shortPackItems)
-            .innerJoin(schema.movies, eq(schema.shortPackItems.movieId, schema.movies.id))
-            .where(eq(schema.shortPackItems.packId, pack.id))
-            .orderBy(asc(schema.shortPackItems.order));
-
-          const totalRuntime = items.reduce((sum, item) => sum + (item.runtime || 0), 0);
-          const shortPosters = items
-            .map(item => item.posterPath)
-            .filter((p): p is string => p !== null)
-            .slice(0, 4); // Max 4 posters for collage
-
-          // Get unique directors from all shorts in pack
-          const directors: { en: string; lo?: string }[] = [];
-          for (const item of items) {
-            const crewMembers = await db.select({
-              personId: schema.movieCrewTranslations.personId,
-            })
-              .from(schema.movieCrewTranslations)
-              .where(
-                and(
-                  eq(schema.movieCrewTranslations.movieId, item.movieId),
-                  eq(schema.movieCrewTranslations.language, 'en'),
-                  eq(schema.movieCrewTranslations.job, 'Director')
-                )
-              );
-            
-            for (const crew of crewMembers) {
-              const personTranslations = await db.select()
-                .from(schema.peopleTranslations)
-                .where(eq(schema.peopleTranslations.personId, crew.personId));
-              
-              const nameEn = personTranslations.find(t => t.language === 'en')?.name || '';
-              const nameLo = personTranslations.find(t => t.language === 'lo')?.name;
-              
-              // Check if director already added
-              if (nameEn && !directors.some(d => d.en === nameEn)) {
-                directors.push({ en: nameEn, lo: nameLo || undefined });
-              }
-            }
-          }
-
-          return {
-            id: pack.id,
-            slug: pack.slug,
-            title: {
-              en: titleEn?.title || '',
-              lo: titleLo?.title,
-            },
-            tagline: {
-              en: titleEn?.tagline || undefined,
-              lo: titleLo?.tagline || undefined,
-            },
-            poster_path: pack.posterPath,
-            backdrop_path: pack.backdropPath,
-            is_published: pack.isPublished,
-            short_count: items.length,
-            total_runtime: totalRuntime,
-            short_posters: shortPosters,
-            directors: directors,
-            created_at: pack.createdAt.toISOString(),
-            updated_at: pack.updatedAt.toISOString(),
-          };
-        })
+        packs.map(pack => buildPackSummary(pack))
       );
 
       return { short_packs: packsWithData };
@@ -160,72 +83,8 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Short pack not found');
       }
 
-      // Get translations
-      const translations = await db.select()
-        .from(schema.shortPackTranslations)
-        .where(eq(schema.shortPackTranslations.packId, pack.id));
-
-      const titleEn = translations.find(t => t.language === 'en');
-      const titleLo = translations.find(t => t.language === 'lo');
-
-      // Get shorts in this pack with full movie data
-      const packItems = await db.select()
-        .from(schema.shortPackItems)
-        .where(eq(schema.shortPackItems.packId, pack.id))
-        .orderBy(asc(schema.shortPackItems.order));
-
-      // Build full movie data for each short (including cast, crew, video_sources for MovieCard)
-      const shorts = await Promise.all(
-        packItems.map(async (item) => {
-          const [movie] = await db.select()
-            .from(schema.movies)
-            .where(eq(schema.movies.id, item.movieId))
-            .limit(1);
-
-          if (!movie) return null;
-
-          // Use buildMovieWithRelations for full movie data
-          const fullMovie = await buildMovieWithRelations(movie, db, schema, {
-            includeCast: true,
-            includeCrew: true,
-            includeGenres: true,
-          });
-
-          return {
-            movie: fullMovie,
-            order: item.order,
-          };
-        })
-      );
-
-      const validShorts = shorts.filter(Boolean);
-      const totalRuntime = validShorts.reduce((sum, s) => sum + (s?.movie.runtime || 0), 0);
-
-      const packData = {
-        id: pack.id,
-        slug: pack.slug,
-        title: {
-          en: titleEn?.title || '',
-          lo: titleLo?.title,
-        },
-        description: {
-          en: titleEn?.description || undefined,
-          lo: titleLo?.description || undefined,
-        },
-        tagline: {
-          en: titleEn?.tagline || undefined,
-          lo: titleLo?.tagline || undefined,
-        },
-        poster_path: pack.posterPath,
-        backdrop_path: pack.backdropPath,
-        is_published: pack.isPublished,
-        shorts: validShorts,
-        total_runtime: totalRuntime,
-        short_count: validShorts.length,
-        created_at: pack.createdAt.toISOString(),
-        updated_at: pack.updatedAt.toISOString(),
-      };
-
+      // Build full pack detail with movie data
+      const packData = await buildPackDetail(pack);
       return packData;
     } catch (error) {
       fastify.log.error(error);
@@ -602,27 +461,15 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
 
           if (!pack) return null;
 
-          const translations = await db.select()
-            .from(schema.shortPackTranslations)
-            .where(eq(schema.shortPackTranslations.packId, pack.id));
-
-          const titleEn = translations.find(t => t.language === 'en');
-          const titleLo = translations.find(t => t.language === 'lo');
-
-          // Get short count
-          const [countResult] = await db.select({ count: sql<number>`count(*)::int` })
-            .from(schema.shortPackItems)
-            .where(eq(schema.shortPackItems.packId, pack.id));
+          const translations = await getPackTranslations(pack.id);
+          const shortCount = await getPackShortCount(pack.id);
 
           return {
             id: pack.id,
             slug: pack.slug,
-            title: {
-              en: titleEn?.title || '',
-              lo: titleLo?.title,
-            },
+            title: translations.title,
             poster_path: pack.posterPath,
-            short_count: countResult?.count || 0,
+            short_count: shortCount,
           };
         })
       );

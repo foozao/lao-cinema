@@ -17,6 +17,7 @@ import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS
 import * as schema from '../db/schema.js';
 import { buildLocalizedText, localizedOrUndefined } from '../lib/translation-helpers.js';
 import { checkMovieAccess } from '../lib/rental-access.js';
+import { buildRentalPackResponse, calculatePackWatchProgress } from '../lib/rental-helpers.js';
 
 export default async function rentalRoutes(fastify: FastifyInstance) {
   
@@ -110,44 +111,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
             
             // Build pack with translations if this is a pack rental
             if (rental.pack && rental.shortPackId) {
-              const packTranslations = await db.select()
-                .from(shortPackTranslations)
-                .where(eq(shortPackTranslations.packId, rental.shortPackId));
-              
-              const title = buildLocalizedText(packTranslations, 'title');
-              const description = buildLocalizedText(packTranslations, 'description');
-              
-              // Get shorts posters for montage
-              const packItems = await db.select({
-                movieId: shortPackItems.movieId,
-                order: shortPackItems.order,
-                posterPath: movies.posterPath,
-                runtime: movies.runtime,
-              })
-              .from(shortPackItems)
-              .leftJoin(movies, eq(shortPackItems.movieId, movies.id))
-              .where(eq(shortPackItems.packId, rental.shortPackId))
-              .orderBy(shortPackItems.order)
-              .limit(4);
-              
-              const shortPosters = packItems
-                .map(item => item.posterPath)
-                .filter(Boolean);
-              
-              const totalRuntime = packItems.reduce((sum, item) => sum + (item.runtime || 0), 0);
-              
-              completePack = {
-                id: rental.pack.id,
-                slug: rental.pack.slug,
-                posterPath: rental.pack.posterPath || (rental.pack as any).poster_path,
-                backdropPath: rental.pack.backdropPath || (rental.pack as any).backdrop_path,
-                isPublished: rental.pack.isPublished,
-                short_posters: shortPosters,
-                short_count: packItems.length,
-                total_runtime: totalRuntime,
-                title,
-                description: Object.keys(description).length > 0 ? description : undefined,
-              };
+              completePack = await buildRentalPackResponse(rental.pack, rental.shortPackId);
             }
           } catch (err) {
             request.log.error({ err, movieId: rental.movieId }, 'Failed to build relations');
@@ -157,51 +121,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
           let packWatchProgress = null;
           if (rental.shortPackId && completePack) {
             try {
-              // Get all shorts in the pack
-              const allPackItems = await db.select({
-                movieId: shortPackItems.movieId,
-                runtime: movies.runtime,
-              })
-              .from(shortPackItems)
-              .leftJoin(movies, eq(shortPackItems.movieId, movies.id))
-              .where(eq(shortPackItems.packId, rental.shortPackId));
-              
-              const shortIds = allPackItems.map(item => item.movieId).filter(Boolean) as string[];
-              
-              if (shortIds.length > 0) {
-                // Get watch progress for all shorts in pack
-                const progressRecords = await db.select()
-                  .from(watchProgress)
-                  .where(and(
-                    inArray(watchProgress.movieId, shortIds),
-                    userId 
-                      ? eq(watchProgress.userId, userId)
-                      : eq(watchProgress.anonymousId, anonymousId!)
-                  ));
-                
-                // Calculate total watched seconds and total duration
-                let totalWatchedSeconds = 0;
-                let totalDurationSeconds = 0;
-                
-                for (const item of allPackItems) {
-                  const runtime = item.runtime || 0;
-                  const durationSeconds = runtime * 60; // runtime is in minutes
-                  totalDurationSeconds += durationSeconds;
-                  
-                  const progress = progressRecords.find(p => p.movieId === item.movieId);
-                  if (progress) {
-                    totalWatchedSeconds += progress.progressSeconds;
-                  }
-                }
-                
-                if (totalDurationSeconds > 0) {
-                  packWatchProgress = {
-                    progressSeconds: totalWatchedSeconds,
-                    durationSeconds: totalDurationSeconds,
-                    completed: totalWatchedSeconds >= totalDurationSeconds * 0.9,
-                  };
-                }
-              }
+              packWatchProgress = await calculatePackWatchProgress(rental.shortPackId, userId ?? null, anonymousId ?? null);
             } catch (err) {
               request.log.error({ err, packId: rental.shortPackId }, 'Failed to calculate pack watch progress');
             }
