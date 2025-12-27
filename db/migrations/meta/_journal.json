@@ -253,6 +253,13 @@
       "when": 1766831528608,
       "tag": "0035_add_always_show_subtitles",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1766835236174,
+      "tag": "0036_wakeful_purifiers",
+      "breakpoints": true
     }
   ]
 }

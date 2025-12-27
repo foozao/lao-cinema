@@ -17,6 +17,7 @@ export const auditActionEnum = pgEnum('audit_action', [
   'add_crew', 'remove_crew', 'update_crew',
   'add_image', 'remove_image', 'set_primary_image',
   'add_video', 'remove_video', 'update_video',
+  'add_subtitle', 'remove_subtitle', 'update_subtitle',
   'add_genre', 'remove_genre',
   'add_production_company', 'remove_production_company',
   'add_platform', 'remove_platform', 'update_platform',

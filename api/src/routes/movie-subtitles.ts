@@ -4,6 +4,7 @@ import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { sendBadRequest, sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 
@@ -73,6 +74,15 @@ export default async function movieSubtitleRoutes(fastify: FastifyInstance) {
         })
         .returning();
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'add_subtitle',
+        'movie',
+        id,
+        `${label} (${language})`
+      );
+      
       return sendCreated(reply, track);
     } catch (error) {
       console.error('Error adding subtitle track:', error);
@@ -120,6 +130,15 @@ export default async function movieSubtitleRoutes(fastify: FastifyInstance) {
       if (!track) {
         return sendNotFound(reply, 'Subtitle track not found');
       }
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update_subtitle',
+        'movie',
+        id,
+        `${track.label} (${track.language})`
+      );
       
       return reply.send(track);
     } catch (error) {
@@ -194,6 +213,15 @@ export default async function movieSubtitleRoutes(fastify: FastifyInstance) {
           eq(schema.subtitleTracks.id, trackId),
           eq(schema.subtitleTracks.movieId, id)
         ));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'remove_subtitle',
+        'movie',
+        id,
+        `${track.label} (${track.language})`
+      );
       
       return reply.status(204).send();
     } catch (error) {

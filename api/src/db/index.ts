@@ -30,7 +30,10 @@ if (INSTANCE_CONNECTION_NAME) {
     throw new Error(`${requiredVar} environment variable is required`);
   }
   
-  client = postgres(DATABASE_URL);
+  client = postgres(DATABASE_URL, {
+    // Suppress NOTICE messages in test environment (e.g., "truncate cascades to table...")
+    onnotice: process.env.NODE_ENV === 'test' ? () => {} : undefined,
+  });
 }
 
 // Create drizzle instance

@@ -53,6 +53,10 @@ jest.mock('@/lib/video', () => ({
     isCasting: false,
     toggleCasting: jest.fn(),
   })),
+  useSubtitlePreference: jest.fn(() => ({
+    activeSubtitleId: null,
+    setActiveSubtitle: jest.fn(),
+  })),
 }));
 
 // Mock the Google Cast hook
