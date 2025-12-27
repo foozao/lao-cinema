@@ -34,6 +34,7 @@ import {
   verifyPassword,
 } from '../lib/auth-utils.js';
 import { requireAuth } from '../lib/auth-middleware.js';
+import { checkRateLimit, recordAttempt, resetRateLimit, RATE_LIMITS } from '../lib/rate-limiter.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
   
@@ -130,13 +131,30 @@ export default async function authRoutes(fastify: FastifyInstance) {
       return sendBadRequest(reply, 'Email and password are required');
     }
     
+    // Check rate limit
+    const ipAddress = request.ip;
+    const rateLimitCheck = checkRateLimit('login', ipAddress, RATE_LIMITS.LOGIN);
+    
+    if (!rateLimitCheck.allowed) {
+      return reply.code(429).send({
+        error: 'Too many login attempts. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimitCheck.retryAfter,
+      });
+    }
+    
     try {
       // Authenticate user
       const user = await authenticateUser(email, password);
       
       if (!user) {
+        // Record failed attempt
+        recordAttempt('login', ipAddress, RATE_LIMITS.LOGIN);
         return sendUnauthorized(reply, 'Invalid email or password');
       }
+      
+      // Reset rate limit on successful login
+      resetRateLimit('login', ipAddress);
       
       // Create session
       const session = await createSession(
@@ -468,6 +486,21 @@ export default async function authRoutes(fastify: FastifyInstance) {
     if (!isValidEmail(email)) {
       return sendBadRequest(reply, 'Invalid email format');
     }
+    
+    // Check rate limit
+    const ipAddress = request.ip;
+    const rateLimitCheck = checkRateLimit('forgot-password', ipAddress, RATE_LIMITS.FORGOT_PASSWORD);
+    
+    if (!rateLimitCheck.allowed) {
+      return reply.code(429).send({
+        error: 'Too many password reset requests. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimitCheck.retryAfter,
+      });
+    }
+    
+    // Record attempt (do this early to prevent enumeration via timing)
+    recordAttempt('forgot-password', ipAddress, RATE_LIMITS.FORGOT_PASSWORD);
     
     try {
       // Find user by email
