@@ -12,7 +12,17 @@ Possible Future Changes:
 * maybe articles/reviews linked to the movie/person
 
 * award listings for movie/person
-  - in progress
+  - ✅ mostly complete (backend + API done, need to add to people/movie pages)
+
+* ✅ production companies frontend - COMPLETE
+  - company detail pages, movie associations, TMDB sync
+
+* ✅ trailers frontend - COMPLETE
+  - YouTube + self-hosted trailers on movie detail pages
+
+* ✅ watchlist feature - COMPLETE
+  - backend API, frontend UI (add/remove, watchlist page)
+  - TODO: add watchlist section to homepage for logged-in users
 
 * tracking time on featured, and views/rentals at that time
 
@@ -266,12 +276,27 @@ fastify.get<{
 
 ---
 
-## Subtitle/Caption Support (.srt/.vtt files)
+## Subtitle/Caption Support (.srt/.vtt files) ✅ COMPLETE
 
 ### Feature Overview
-Add support for subtitle files (.srt format) with user-controlled toggle to show/hide captions during video playback.
+Support for subtitle files with user-controlled toggle to show/hide captions during video playback.
 
-### Complexity: ⭐⭐⭐ Medium (4-6 hours)
+### Status: ✅ Implemented (December 2025)
+
+**What's Implemented:**
+- Database: `subtitle_tracks` table with language, label, URL, isDefault, kind fields
+- API: Full CRUD endpoints (`GET/POST/PUT/DELETE /api/movies/:id/subtitles`)
+- Upload: File upload endpoint with automatic SRT → VTT conversion
+- Admin UI: `SubtitleManager` component with file upload button
+- Player: Native `<track>` elements for subtitle display
+- Tests: 14 comprehensive tests for all CRUD operations
+
+**Files:**
+- `db/migrations/0027_lethal_jasper_sitwell.sql` - Schema
+- `api/src/routes/movie-subtitles.ts` - API routes
+- `api/src/routes/upload.ts` - File upload with SRT conversion
+- `web/components/admin/subtitle-manager.tsx` - Admin UI
+- `web/components/video-player.tsx` - Player integration
 
 **Why Medium Complexity**:
 - ✅ HTML5 `<video>` has native `<track>` support (no external libraries needed for playback)

@@ -225,6 +225,7 @@ export default function WatchPage() {
           videoSourceId={currentVideoSourceId || videoSource?.id}
           movieTitle={title}
           movieDuration={movie.runtime ? movie.runtime * 60 : undefined}
+          movieLanguage={movie.original_language}
           constrainToViewport={true}
           aspectRatio={videoSource?.aspect_ratio}
           subtitles={movie.subtitle_tracks?.map(track => ({
@@ -235,6 +236,8 @@ export default function WatchPage() {
             isDefault: track.is_default,
             kind: track.kind,
           }))}
+          hasBurnedSubtitles={videoSource?.has_burned_subtitles}
+          burnedSubtitlesLanguage={videoSource?.burned_subtitles_language}
           onTokenRefreshed={handleTokenRefreshed}
           onInfoClick={() => setShowInfo(true)}
           onEnded={() => setVideoEnded(true)}

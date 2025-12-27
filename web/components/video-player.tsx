@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useVideoAnalytics } from '@/lib/analytics';
-import { useHlsPlayer, useContinueWatching, useVideoKeyboard } from '@/lib/video';
+import { useHlsPlayer, useContinueWatching, useVideoKeyboard, useSubtitlePreference } from '@/lib/video';
 import { useGoogleCast } from '@/lib/video/use-google-cast';
 import { 
   VideoControls, 
@@ -32,9 +32,12 @@ interface VideoPlayerProps {
   videoSourceId?: string;
   movieTitle?: string;
   movieDuration?: number;
+  movieLanguage?: string;
   constrainToViewport?: boolean;
   aspectRatio?: string;
   subtitles?: SubtitleTrack[];
+  hasBurnedSubtitles?: boolean;
+  burnedSubtitlesLanguage?: string;
   onTokenRefreshed?: (newUrl: string) => void;
   onInfoClick?: () => void;
   onEnded?: () => void;
@@ -57,8 +60,11 @@ export function VideoPlayer({
   videoSourceId,
   movieTitle,
   movieDuration,
+  movieLanguage,
   constrainToViewport = false,
   subtitles = [],
+  hasBurnedSubtitles = false,
+  burnedSubtitlesLanguage,
   onTokenRefreshed,
   onInfoClick,
   onEnded,
@@ -106,6 +112,18 @@ export function VideoPlayer({
     movieTitle: movieTitle || title || 'Unknown Movie',
     duration: movieDuration || duration || 0,
     source: 'watch_page',
+  });
+
+  // Smart subtitle preference
+  const {
+    activeSubtitleId,
+    setActiveSubtitle,
+  } = useSubtitlePreference({
+    subtitles,
+    movieLanguage,
+    hasBurnedSubtitles,
+    burnedSubtitlesLanguage,
+    videoRef,
   });
 
   // Toggle functions
@@ -334,6 +352,8 @@ export function VideoPlayer({
           webkit-playsinline="true"
           x-webkit-airplay="allow"
           controlsList="nodownload"
+          crossOrigin="anonymous"
+          data-has-burned-subtitles={hasBurnedSubtitles ? "true" : undefined}
         >
           {subtitles.map((track) => (
             <track
@@ -446,7 +466,12 @@ export function VideoPlayer({
           onInfoClick={onInfoClick}
           isCastAvailable={isCastAvailable}
           isCasting={isCasting}
+          hasBurnedSubtitles={hasBurnedSubtitles}
+          burnedSubtitlesLanguage={burnedSubtitlesLanguage}
           onToggleCast={toggleCasting}
+          subtitles={subtitles}
+          activeSubtitleId={activeSubtitleId}
+          onSubtitleChange={setActiveSubtitle}
         />
       </div>
     </div>

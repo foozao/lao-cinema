@@ -243,6 +243,8 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
       if (vs.width !== undefined) vsData.width = vs.width;
       if (vs.height !== undefined) vsData.height = vs.height;
       if (vs.aspect_ratio !== undefined) vsData.aspectRatio = vs.aspect_ratio;
+      if (vs.has_burned_subtitles !== undefined) vsData.hasBurnedSubtitles = vs.has_burned_subtitles;
+      if (vs.burned_subtitles_language !== undefined) vsData.burnedSubtitlesLanguage = vs.burned_subtitles_language;
 
       if (existingVS.length > 0) {
         // Update existing video source

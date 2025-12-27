@@ -127,16 +127,22 @@ export async function buildMovieWithRelations(
         width: vs.width,
         height: vs.height,
         aspect_ratio: vs.aspectRatio,
+        has_burned_subtitles: vs.hasBurnedSubtitles,
+        burned_subtitles_language: vs.burnedSubtitlesLanguage,
       };
     }),
-    subtitle_tracks: subtitleTracks.map(st => ({
-      id: st.id,
-      language: st.language,
-      label: st.label,
-      url: st.url,
-      is_default: st.isDefault,
-      kind: st.kind,
-    })),
+    subtitle_tracks: subtitleTracks.map(st => {
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+      return {
+        id: st.id,
+        language: st.language,
+        label: st.label,
+        url: `${apiBaseUrl}/api/subtitles/${st.id}`, // Dynamic API endpoint for positioning
+        is_default: st.isDefault,
+        kind: st.kind,
+        line_position: st.linePosition,
+      };
+    }),
     external_platforms: externalPlatforms.map(ep => ({
       platform: ep.platform,
       url: ep.url,

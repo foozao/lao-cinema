@@ -1,0 +1,1 @@
+ALTER TABLE "subtitle_tracks" ADD COLUMN "line_position" integer DEFAULT 85 NOT NULL;

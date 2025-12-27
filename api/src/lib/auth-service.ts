@@ -87,6 +87,8 @@ export async function updateUser(userId: string, data: {
   displayName?: string;
   profileImageUrl?: string;
   timezone?: string;
+  preferredSubtitleLanguage?: string | null;
+  alwaysShowSubtitles?: boolean;
 }): Promise<User> {
   const [user] = await db.update(users)
     .set({

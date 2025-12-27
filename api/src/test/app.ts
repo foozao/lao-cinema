@@ -19,6 +19,7 @@ import videoTokenRoutes from '../routes/video-tokens.js';
 import genreRoutes from '../routes/genres.js';
 import movieGenresRoutes from '../routes/movie-genres.js';
 import awardsRoutes from '../routes/awards.js';
+import movieSubtitleRoutes from '../routes/movie-subtitles.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -38,6 +39,7 @@ interface BuildOptions {
   includeGenres?: boolean;
   includeMovieGenres?: boolean;
   includeAwards?: boolean;
+  includeSubtitles?: boolean;
 }
 
 /**
@@ -156,6 +158,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(awardsRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeSubtitles) {
+    // Subtitle routes require editor/admin auth
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(movieSubtitleRoutes);
   }
 
   return app;

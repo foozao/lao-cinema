@@ -202,6 +202,25 @@ fastify.register(require('@fastify/static'), {
   decorateReply: false,
 });
 
+// Serve subtitle files (.vtt)
+fastify.register(require('@fastify/static'), {
+  root: path.join(PUBLIC_PATH, 'subtitles'),
+  prefix: '/subtitles/',
+  decorateReply: false,
+  setHeaders: (res, filepath) => {
+    // Enable CORS for subtitle files (required for <track> elements)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Set correct content type for VTT
+    if (filepath.endsWith('.vtt')) {
+      res.setHeader('Content-Type', 'text/vtt');
+    }
+    
+    // Cache subtitles for a day
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  },
+});
+
 // Health check
 fastify.get('/health', async () => {
   return { status: 'ok', service: 'video-server' };

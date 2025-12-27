@@ -738,6 +738,27 @@
           "australia": "Australia Eastern (GMT+10/+11)"
         }
       },
+      "subtitle": {
+        "title": "Subtitle Preference",
+        "description": "Set your preferred subtitle language for automatic selection",
+        "label": "Preferred Language",
+        "help": "Subtitles will automatically be enabled in this language when available. If the movie has burned-in subtitles in your language, external subtitles will be turned off.",
+        "alwaysShow": "Always show subtitles, even when movie is in my preferred language",
+        "alwaysShowHelp": "This is automatically enabled if you turn on subtitles for movies already in your preferred language, but you can adjust it anytime",
+        "successMessage": "Subtitle preference updated!",
+        "options": {
+          "none": "No preference (manual selection)",
+          "english": "English",
+          "lao": "Lao (ລາວ)",
+          "thai": "Thai (ไทย)",
+          "chinese": "Chinese (中文)",
+          "japanese": "Japanese (日本語)",
+          "korean": "Korean (한국어)",
+          "vietnamese": "Vietnamese (Tiếng Việt)",
+          "french": "French (Français)",
+          "spanish": "Spanish (Español)"
+        }
+      },
       "password": {
         "title": "Change Password",
         "description": "Update your password to keep your account secure",

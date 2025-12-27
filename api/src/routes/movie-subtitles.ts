@@ -4,6 +4,8 @@ import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { sendBadRequest, sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 const subtitleTrackSchema = z.object({
   language: z.string().min(2).max(10),
@@ -11,6 +13,7 @@ const subtitleTrackSchema = z.object({
   url: z.string().url(),
   isDefault: z.boolean().optional().default(false),
   kind: z.enum(['subtitles', 'captions', 'descriptions']).optional().default('subtitles'),
+  linePosition: z.number().int().min(0).max(100).optional().default(85),
 });
 
 export default async function movieSubtitleRoutes(fastify: FastifyInstance) {
@@ -132,17 +135,65 @@ export default async function movieSubtitleRoutes(fastify: FastifyInstance) {
     const { id, trackId } = request.params as { id: string; trackId: string };
     
     try {
-      const [deleted] = await db
-        .delete(schema.subtitleTracks)
+      // First, fetch the track to get the file URL
+      const [track] = await db
+        .select()
+        .from(schema.subtitleTracks)
         .where(and(
           eq(schema.subtitleTracks.id, trackId),
           eq(schema.subtitleTracks.movieId, id)
         ))
-        .returning();
+        .limit(1);
       
-      if (!deleted) {
+      if (!track) {
         return sendNotFound(reply, 'Subtitle track not found');
       }
+      
+      // Delete the physical file
+      try {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const url = track.url;
+        
+        if (isProduction && url.includes('storage.googleapis.com')) {
+          // Production: Delete from GCS
+          const { Storage } = await import('@google-cloud/storage');
+          const storage = new Storage();
+          
+          // Extract path from URL: https://storage.googleapis.com/bucket/subtitles/movieId/filename.vtt
+          const urlParts = url.split('/');
+          const bucketName = urlParts[3]; // bucket name
+          const filePath = urlParts.slice(4).join('/'); // subtitles/movieId/filename.vtt
+          
+          const bucket = storage.bucket(bucketName);
+          const file = bucket.file(filePath);
+          
+          await file.delete({ ignoreNotFound: true });
+          fastify.log.info(`Deleted subtitle file from GCS: ${filePath}`);
+        } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
+          // Development: Delete from local filesystem
+          // URL format: http://localhost:3002/subtitles/movieId/filename.vtt
+          const urlParts = url.split('/subtitles/');
+          if (urlParts.length === 2) {
+            const relativePath = urlParts[1]; // movieId/filename.vtt
+            const videoServerDir = process.env.VIDEO_SERVER_PATH || join(process.cwd(), '../video-server/public');
+            const filePath = join(videoServerDir, 'subtitles', relativePath);
+            
+            await unlink(filePath);
+            fastify.log.info(`Deleted subtitle file from local storage: ${filePath}`);
+          }
+        }
+      } catch (fileError) {
+        // Log but don't fail the request if file deletion fails
+        fastify.log.warn({ error: fileError }, 'Failed to delete subtitle file, continuing with DB deletion');
+      }
+      
+      // Delete the database record
+      await db
+        .delete(schema.subtitleTracks)
+        .where(and(
+          eq(schema.subtitleTracks.id, trackId),
+          eq(schema.subtitleTracks.movieId, id)
+        ));
       
       return reply.status(204).send();
     } catch (error) {

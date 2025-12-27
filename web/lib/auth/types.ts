@@ -10,6 +10,8 @@ export interface User {
   displayName?: string;
   profileImageUrl?: string;
   timezone?: string; // IANA timezone, e.g., 'Asia/Vientiane'
+  preferredSubtitleLanguage?: string | null; // ISO 639-1 code (en, lo, th, etc.)
+  alwaysShowSubtitles?: boolean; // Show subtitles even if movie is in preferred language
   role: 'user' | 'editor' | 'admin';
   emailVerified: boolean;
   createdAt: string;
@@ -41,6 +43,8 @@ export interface UpdateProfileData {
   displayName?: string;
   profileImageUrl?: string;
   timezone?: string; // IANA timezone, e.g., 'Asia/Vientiane'
+  preferredSubtitleLanguage?: string | null; // ISO 639-1 code (en, lo, th, etc.)
+  alwaysShowSubtitles?: boolean; // Show subtitles even if movie is in preferred language
 }
 
 export interface ChangePasswordData {

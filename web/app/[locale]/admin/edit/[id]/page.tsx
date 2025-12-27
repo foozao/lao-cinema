@@ -584,6 +584,8 @@ export default function EditMoviePage() {
           format: formData.video_format as 'hls' | 'mp4',
           quality: formData.video_quality as any,
           aspect_ratio: formData.video_aspect_ratio || undefined,
+          has_burned_subtitles: formData.has_burned_subtitles === true || formData.has_burned_subtitles === 'true',
+          burned_subtitles_language: formData.burned_subtitles_language || undefined,
         }] : [],
         cast: updatedCast,
         crew: updatedCrew,
@@ -597,15 +599,24 @@ export default function EditMoviePage() {
       
       const updatedMovie = await movieAPI.getById(movieId);
       setCurrentMovie(updatedMovie);
-      setTrailers(updatedMovie.trailers || []);
       
-      // Reset originals
-      setOriginalFormData({...formData});
-      setOriginalCastTranslations({...castTranslations});
-      setOriginalCrewTranslations({...crewTranslations});
+      // Reload form data from updated movie to ensure type consistency
+      const updatedFormData = loadFormDataFromMovie(updatedMovie);
+      setFormData(updatedFormData);
+      setOriginalFormData(updatedFormData);
+      
+      // Reload translations from updated movie
+      const updatedCastTrans = buildCastTranslations(updatedMovie);
+      const updatedCrewTrans = buildCrewTranslations(updatedMovie);
+      setCastTranslations(updatedCastTrans);
+      setCrewTranslations(updatedCrewTrans);
+      setOriginalCastTranslations(updatedCastTrans);
+      setOriginalCrewTranslations(updatedCrewTrans);
+      
+      setTrailers(updatedMovie.trailers || []);
+      setOriginalTrailers(updatedMovie.trailers || []);
       setOriginalExternalPlatforms([...externalPlatforms]);
       setOriginalAvailabilityStatus(availabilityStatus);
-      setOriginalTrailers([...trailers]);
       setSubscribersChecked(false);
       
       setShowSuccessModal(true);

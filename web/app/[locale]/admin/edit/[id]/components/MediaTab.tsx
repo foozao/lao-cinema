@@ -165,6 +165,60 @@ export function MediaTab({
               Setting this helps optimize the video player display. Use &quot;16:9&quot; for standard widescreen content.
             </p>
           </div>
+
+          {/* Burned-in Subtitles */}
+          <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="has_burned_subtitles"
+                name="has_burned_subtitles"
+                checked={formData.has_burned_subtitles === true || formData.has_burned_subtitles === 'true'}
+                onChange={(e) => {
+                  onSelectChange('has_burned_subtitles', e.target.checked.toString());
+                  if (!e.target.checked) {
+                    onSelectChange('burned_subtitles_language', '');
+                  }
+                }}
+                className="w-4 h-4 mt-1"
+              />
+              <div className="flex-1">
+                <Label htmlFor="has_burned_subtitles" className="cursor-pointer font-medium">
+                  Video has burned-in (hardcoded) subtitles
+                </Label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Check this if subtitles are permanently embedded in the video file itself.
+                  You can still upload additional SRT/VTT subtitle files below.
+                </p>
+                
+                {formData.has_burned_subtitles && (
+                  <div className="mt-3">
+                    <Label htmlFor="burned_subtitles_language" className="text-sm">
+                      Burned-in subtitle language
+                    </Label>
+                    <select
+                      id="burned_subtitles_language"
+                      name="burned_subtitles_language"
+                      value={formData.burned_subtitles_language || ''}
+                      onChange={(e) => onSelectChange('burned_subtitles_language', e.target.value)}
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-white"
+                    >
+                      <option value="">Select language...</option>
+                      <option value="lo">LO - Lao (ລາວ)</option>
+                      <option value="en">EN - English</option>
+                      <option value="th">TH - Thai (ไทย)</option>
+                      <option value="zh">ZH - Chinese (中文)</option>
+                      <option value="ja">JA - Japanese (日本語)</option>
+                      <option value="ko">KO - Korean (한국어)</option>
+                      <option value="vi">VI - Vietnamese (Tiếng Việt)</option>
+                      <option value="fr">FR - French (Français)</option>
+                      <option value="es">ES - Spanish (Español)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -177,6 +231,7 @@ export function MediaTab({
           <SubtitleManager
             movieId={movieId}
             subtitles={currentMovie?.subtitle_tracks || []}
+            hasBurnedSubtitles={currentMovie?.video_sources?.[0]?.has_burned_subtitles || false}
             onUpdate={onSubtitleUpdate}
           />
         </CardContent>

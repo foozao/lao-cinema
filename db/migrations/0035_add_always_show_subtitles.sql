@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "always_show_subtitles" boolean DEFAULT false NOT NULL;

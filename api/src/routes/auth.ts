@@ -231,6 +231,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
         displayName: request.user!.displayName,
         profileImageUrl: request.user!.profileImageUrl,
         timezone: request.user!.timezone,
+        preferredSubtitleLanguage: request.user!.preferredSubtitleLanguage,
+        alwaysShowSubtitles: request.user!.alwaysShowSubtitles,
         role: request.user!.role,
         emailVerified: request.user!.emailVerified,
         createdAt: request.user!.createdAt,
@@ -248,10 +250,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
    * Update current user profile
    */
   fastify.patch('/auth/me', { preHandler: requireAuth }, async (request, reply) => {
-    const { displayName, profileImageUrl, timezone } = request.body as {
+    const { displayName, profileImageUrl, timezone, preferredSubtitleLanguage, alwaysShowSubtitles } = request.body as {
       displayName?: string;
       profileImageUrl?: string;
       timezone?: string;
+      preferredSubtitleLanguage?: string | null;
+      alwaysShowSubtitles?: boolean;
     };
     
     try {
@@ -259,6 +263,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
         displayName,
         profileImageUrl,
         timezone,
+        preferredSubtitleLanguage,
+        alwaysShowSubtitles,
       });
       
       return reply.send({
@@ -268,6 +274,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
           displayName: user.displayName,
           profileImageUrl: user.profileImageUrl,
           timezone: user.timezone,
+          preferredSubtitleLanguage: user.preferredSubtitleLanguage,
+          alwaysShowSubtitles: user.alwaysShowSubtitles,
           role: user.role,
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,

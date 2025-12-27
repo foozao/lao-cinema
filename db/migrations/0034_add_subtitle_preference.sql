@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "preferred_subtitle_language" text;

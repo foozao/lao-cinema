@@ -225,6 +225,34 @@
       "when": 1766817499832,
       "tag": "0031_even_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1766825365649,
+      "tag": "0032_oval_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1766827324836,
+      "tag": "0033_modern_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1766830091161,
+      "tag": "0034_add_subtitle_preference",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1766831528608,
+      "tag": "0035_add_always_show_subtitles",
+      "breakpoints": true
     }
   ]
 }

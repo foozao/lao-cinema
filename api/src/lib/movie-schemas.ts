@@ -77,6 +77,8 @@ export const VideoSourceSchema = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
   aspect_ratio: z.string().optional(),
+  has_burned_subtitles: z.boolean().optional(),
+  burned_subtitles_language: z.string().optional(),
 });
 
 export const PersonSchema = z.object({

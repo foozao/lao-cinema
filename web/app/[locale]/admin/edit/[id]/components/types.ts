@@ -34,6 +34,8 @@ export interface MovieFormData {
   video_quality: string;
   video_format: string;
   video_aspect_ratio: string;
+  has_burned_subtitles: boolean | string; // Can be boolean or string from form handlers
+  burned_subtitles_language: string;
 }
 
 export interface CastTranslations {
@@ -77,6 +79,8 @@ export const initialFormData: MovieFormData = {
   video_quality: 'original',
   video_format: 'mp4',
   video_aspect_ratio: '',
+  has_burned_subtitles: false,
+  burned_subtitles_language: '',
 };
 
 export function loadFormDataFromMovie(movie: Movie): MovieFormData {
@@ -105,6 +109,8 @@ export function loadFormDataFromMovie(movie: Movie): MovieFormData {
     video_quality: movie.video_sources[0]?.quality || 'original',
     video_format: movie.video_sources[0]?.format || 'mp4',
     video_aspect_ratio: movie.video_sources[0]?.aspect_ratio || '',
+    has_burned_subtitles: movie.video_sources[0]?.has_burned_subtitles || false,
+    burned_subtitles_language: movie.video_sources[0]?.burned_subtitles_language || '',
   };
 }
 

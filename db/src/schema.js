@@ -222,6 +222,10 @@ const videoSources = pgTable("video_sources", {
   height: integer("height"),
   aspectRatio: text("aspect_ratio"),
   // e.g., '16:9', '2.35:1', 'mixed'
+  // Burned-in (hardcoded) subtitles - permanently part of video file
+  hasBurnedSubtitles: boolean("has_burned_subtitles").default(false).notNull(),
+  burnedSubtitlesLanguage: text("burned_subtitles_language"),
+  // ISO 639-1 code (e.g., 'en', 'lo', 'th')
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 const subtitleTracks = pgTable("subtitle_tracks", {
@@ -237,6 +241,8 @@ const subtitleTracks = pgTable("subtitle_tracks", {
   // Default subtitle track
   kind: text("kind").default("subtitles").notNull(),
   // 'subtitles', 'captions', 'descriptions'
+  linePosition: integer("line_position").default(85).notNull(),
+  // VTT line position (0-100%, default 85 = bottom)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -331,6 +337,10 @@ const users = pgTable("users", {
   profileImageUrl: text("profile_image_url"),
   timezone: text("timezone").default("Asia/Vientiane"),
   // IANA timezone
+  preferredSubtitleLanguage: text("preferred_subtitle_language"),
+  // ISO 639-1 code (en, lo, th, etc.)
+  alwaysShowSubtitles: boolean("always_show_subtitles").default(false).notNull(),
+  // Show subtitles even if movie is in preferred language
   role: userRoleEnum("role").default("user").notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -582,6 +592,8 @@ const awardNominationTranslations = pgTable("award_nomination_translations", {
   // Custom work title if different from movie title
   notes: text("notes"),
   // Additional notes about the nomination
+  recognitionType: text("recognition_type"),
+  // E.g., "Special Mention", "Honorable Mention", etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => ({

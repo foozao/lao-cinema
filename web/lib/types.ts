@@ -126,15 +126,18 @@ export interface VideoSource {
   width?: number;
   height?: number;
   aspect_ratio?: string; // e.g., '16:9', '2.35:1', 'mixed'
+  has_burned_subtitles?: boolean; // Subtitles permanently embedded in video
+  burned_subtitles_language?: string; // ISO 639-1 code (e.g., 'en', 'lo', 'th')
 }
 
 export interface SubtitleTrack {
   id: string;
   language: string; // ISO 639-1 code (en, lo, th, etc.)
-  label: string; // Display name (e.g., 'English', 'ລາວ', 'ไทย')
+  label: string; // Display name (e.g., 'English', 'ລາວ', 'ไທย')
   url: string; // URL to .vtt file
   is_default: boolean; // Default subtitle track
   kind: 'subtitles' | 'captions' | 'descriptions';
+  line_position?: number; // VTT line position (0-100%, default 85 = bottom)
 }
 
 export interface MovieImage {

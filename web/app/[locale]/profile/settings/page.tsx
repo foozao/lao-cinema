@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfilePageLayout } from '@/components/profile-page-layout';
 import { API_BASE_URL } from '@/lib/config';
+import { SUBTITLE_LANGUAGE_OPTIONS } from '@/lib/config/subtitle-languages';
 
 // Common timezone options - labelKey maps to translation keys
 const TIMEZONE_OPTIONS = [
@@ -43,6 +44,12 @@ export default function SettingsPage() {
   const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
   const [timezoneSuccess, setTimezoneSuccess] = useState(false);
   
+  // Subtitle preference state
+  const [subtitleLanguage, setSubtitleLanguage] = useState('');
+  const [alwaysShowSubtitles, setAlwaysShowSubtitles] = useState(false);
+  const [isUpdatingSubtitle, setIsUpdatingSubtitle] = useState(false);
+  const [subtitleSuccess, setSubtitleSuccess] = useState(false);
+  
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -74,6 +81,8 @@ export default function SettingsPage() {
     if (user) {
       setDisplayName(user.displayName || '');
       setTimezone(user.timezone || 'Asia/Vientiane');
+      setSubtitleLanguage(user.preferredSubtitleLanguage || '');
+      setAlwaysShowSubtitles(user.alwaysShowSubtitles || false);
     }
   }, [user]);
   
@@ -140,6 +149,44 @@ export default function SettingsPage() {
       setTimezone(user?.timezone || 'Asia/Vientiane');
     } finally {
       setIsUpdatingTimezone(false);
+    }
+  };
+  
+  const handleSubtitleLanguageChange = async (newLanguage: string) => {
+    setSubtitleLanguage(newLanguage);
+    setIsUpdatingSubtitle(true);
+    setSubtitleSuccess(false);
+    
+    try {
+      await authApi.updateProfile({ preferredSubtitleLanguage: newLanguage || null });
+      await refreshUser();
+      setSubtitleSuccess(true);
+      setTimeout(() => setSubtitleSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to update subtitle preference:', err);
+      // Revert on error
+      setSubtitleLanguage(user?.preferredSubtitleLanguage || '');
+    } finally {
+      setIsUpdatingSubtitle(false);
+    }
+  };
+  
+  const handleAlwaysShowSubtitlesChange = async (checked: boolean) => {
+    setAlwaysShowSubtitles(checked);
+    setIsUpdatingSubtitle(true);
+    setSubtitleSuccess(false);
+    
+    try {
+      await authApi.updateProfile({ alwaysShowSubtitles: checked });
+      await refreshUser();
+      setSubtitleSuccess(true);
+      setTimeout(() => setSubtitleSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to update subtitle preference:', err);
+      // Revert on error
+      setAlwaysShowSubtitles(user?.alwaysShowSubtitles || false);
+    } finally {
+      setIsUpdatingSubtitle(false);
     }
   };
   
@@ -505,6 +552,70 @@ export default function SettingsPage() {
               {t('timezone.help')}
             </p>
           </div>
+        </div>
+        
+        {/* Subtitle Preference */}
+        <div className="bg-gray-900 rounded-lg shadow-sm p-6 mb-6 border border-gray-700">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-purple-900/50 rounded-lg">
+              <svg className="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-white">{t('subtitle.title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {t('subtitle.description')}
+              </p>
+            </div>
+          </div>
+          
+          {subtitleSuccess && (
+            <div className="rounded-md bg-green-50 p-4 mb-4">
+              <p className="text-sm text-green-800">{t('subtitle.successMessage')}</p>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="subtitleLanguage" className="text-gray-200">{t('subtitle.label')}</Label>
+            <select
+              id="subtitleLanguage"
+              value={subtitleLanguage}
+              onChange={(e) => handleSubtitleLanguageChange(e.target.value)}
+              disabled={isUpdatingSubtitle}
+              className="w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-700 disabled:cursor-not-allowed"
+            >
+              {SUBTITLE_LANGUAGE_OPTIONS.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {t(`subtitle.options.${lang.labelKey}`)}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400">
+              {t('subtitle.help')}
+            </p>
+          </div>
+          
+          {/* Always Show Subtitles checkbox */}
+          {subtitleLanguage && (
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={alwaysShowSubtitles}
+                  onChange={(e) => handleAlwaysShowSubtitlesChange(e.target.checked)}
+                  disabled={isUpdatingSubtitle}
+                  className="mt-1 w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-offset-gray-800 focus:ring-2 disabled:opacity-50"
+                />
+                <div className="flex-1">
+                  <span className="text-sm text-gray-200">{t('subtitle.alwaysShow')}</span>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {t('subtitle.alwaysShowHelp')}
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
         </div>
         
         {/* Change Password */}
