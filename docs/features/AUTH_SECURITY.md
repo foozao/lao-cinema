@@ -344,15 +344,15 @@ fastify.register(helmet, {
 - [ ] Geographic login restrictions
 - [ ] Role-based access control (RBAC) expansion
 
-### Security Infrastructure (On Hold)
+### Security Infrastructure
 
-**HSTS Headers:**
-- Implement Strict-Transport-Security headers
-- Use `@fastify/helmet` package
-- Force HTTPS in browsers (1 year max-age)
-- Include subdomains and preload list
+**HSTS Headers:** ✅ **Implemented**
+- Strict-Transport-Security headers via `@fastify/helmet`
+- Production only (disabled in development for localhost)
+- 1 year max-age with includeSubDomains and preload
+- Additional headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy
 
-**HttpOnly Cookies (instead of localStorage):**
+**HttpOnly Cookies (On Hold):**
 - Current: Session tokens in localStorage + Bearer auth
 - Future: HttpOnly cookies with Secure and SameSite flags
 - Benefits: XSS protection, automatic CSRF prevention

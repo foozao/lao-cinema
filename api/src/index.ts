@@ -5,6 +5,7 @@ import 'dotenv/config';
 import { initSentry } from './lib/sentry.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import movieRoutes from './routes/movies.js';
 import peopleRoutes from './routes/people.js';
 import personImageRoutes from './routes/person-images.js';
@@ -34,6 +35,27 @@ const fastify = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
   },
+});
+
+// Register security headers
+const isProduction = process.env.NODE_ENV === 'production';
+
+await fastify.register(helmet, {
+  // HSTS - only enable in production to allow localhost development
+  hsts: isProduction ? {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  } : false,
+  
+  // Content Security Policy - disabled for now, configure as needed
+  contentSecurityPolicy: false,
+  
+  // Other security headers (enabled in all environments)
+  xFrameOptions: { action: 'deny' },
+  xContentTypeOptions: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
 });
 
 // Register CORS
