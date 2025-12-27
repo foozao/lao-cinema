@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { awardsAPI } from '@/lib/api/client';
 import { useLocale } from 'next-intl';
 import { getLocalizedText } from '@/lib/i18n';
+import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { getProfileUrl, getPosterUrl } from '@/lib/images';
 import { Trophy, Calendar, Globe, ExternalLink, ChevronRight, User, Film, Award } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -51,6 +52,7 @@ interface Nomination {
     title: { en?: string; lo?: string };
     poster_path?: string;
   } | null;
+  recognition_type?: { en?: string; lo?: string };
   is_winner: boolean;
 }
 
@@ -60,10 +62,12 @@ export default function DevAwardsPage() {
   const [selectedShow, setSelectedShow] = useState<AwardShow | null>(null);
   const [selectedEdition, setSelectedEdition] = useState<AwardEdition | null>(null);
   const [editions, setEditions] = useState<{ id: string; year: number; edition_number?: number }[]>([]);
+  const [winners, setWinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadShows();
+    loadWinners();
   }, []);
 
   const loadShows = async () => {
@@ -71,15 +75,19 @@ export default function DevAwardsPage() {
       setLoading(true);
       const response = await awardsAPI.getShows();
       setShows(response.shows);
-      
-      // Auto-select first show if available
-      if (response.shows.length > 0) {
-        await selectShow(response.shows[0]);
-      }
     } catch (error) {
       console.error('Failed to load shows:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWinners = async () => {
+    try {
+      const response = await awardsAPI.getWinners();
+      setWinners(response.winners);
+    } catch (error) {
+      console.error('Failed to load winners:', error);
     }
   };
 
@@ -155,28 +163,80 @@ export default function DevAwardsPage() {
                   <Award className="w-5 h-5" />
                   Award Shows
                 </h2>
-                <div className="space-y-2">
-                  {shows.map((show) => (
-                    <button
-                      key={show.id}
-                      onClick={() => selectShow(show)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedShow?.id === show.id
-                          ? 'bg-yellow-500/20 border border-yellow-500/50'
-                          : 'bg-gray-700/50 hover:bg-gray-700'
-                      }`}
-                    >
-                      <div className="font-medium">
-                        {getLocalizedText(show.name as { en: string; lo?: string }, locale)}
-                      </div>
-                      {(show.city || show.country) && (
-                        <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                          <Globe className="w-3 h-3" />
-                          {[show.city, show.country].filter(Boolean).join(', ')}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                <div className="space-y-4">
+                  {/* Lao Awards */}
+                  {(() => {
+                    const laoShows = shows.filter(s => s.country === 'LA');
+                    const internationalShows = shows.filter(s => s.country !== 'LA');
+                    
+                    return (
+                      <>
+                        {laoShows.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold text-yellow-500 uppercase tracking-wider px-1">
+                              Lao Awards
+                            </div>
+                            {laoShows.map((show) => (
+                              <button
+                                key={show.id}
+                                onClick={() => selectShow(show)}
+                                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                                  selectedShow?.id === show.id
+                                    ? 'bg-yellow-500/20 border border-yellow-500/50'
+                                    : 'bg-gray-700/50 hover:bg-gray-700'
+                                }`}
+                              >
+                                <div className="font-medium">
+                                  {getLocalizedText(show.name as { en: string; lo?: string }, locale)}
+                                </div>
+                                {(show.city || show.country) && (
+                                  <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                    <Globe className="w-3 h-3" />
+                                    {getAwardShowLocation(show.city, show.country)}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Separator */}
+                        {laoShows.length > 0 && internationalShows.length > 0 && (
+                          <div className="border-t border-gray-700/50" />
+                        )}
+                        
+                        {/* International Awards */}
+                        {internationalShows.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
+                              International Awards
+                            </div>
+                            {internationalShows.map((show) => (
+                              <button
+                                key={show.id}
+                                onClick={() => selectShow(show)}
+                                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                                  selectedShow?.id === show.id
+                                    ? 'bg-yellow-500/20 border border-yellow-500/50'
+                                    : 'bg-gray-700/50 hover:bg-gray-700'
+                                }`}
+                              >
+                                <div className="font-medium">
+                                  {getLocalizedText(show.name as { en: string; lo?: string }, locale)}
+                                </div>
+                                {(show.city || show.country) && (
+                                  <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                    <Globe className="w-3 h-3" />
+                                    {getAwardShowLocation(show.city, show.country)}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -237,10 +297,109 @@ export default function DevAwardsPage() {
             {/* Main Content - Awards */}
             <div className="lg:col-span-3">
               {!selectedEdition ? (
-                <div className="bg-gray-800/30 rounded-xl p-12 text-center">
-                  <Trophy className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-                  <h2 className="text-xl font-semibold text-gray-400">Select an Edition</h2>
-                  <p className="text-gray-500 mt-2">Choose an award show and edition to view nominations and winners.</p>
+                <div className="space-y-6">
+                  <div className="bg-gray-800/30 rounded-xl p-6 text-center">
+                    <h2 className="text-xl font-semibold text-gray-300 flex items-center justify-center gap-3">
+                      <Trophy className="w-6 h-6 text-yellow-500" />
+                      Select an Award Show
+                    </h2>
+                    <p className="text-gray-500 mt-2">Choose an award show and edition from the left to view all nominations and winners.</p>
+                  </div>
+                  
+                  {/* Winners and Nominees Showcase */}
+                  {winners.length > 0 && (
+                    <div className="bg-gray-800/30 rounded-xl p-6">
+                      <h3 className="text-base font-medium text-gray-400 mb-4">
+                        Featured award winners and nominees from recent editions
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {winners.slice(0, 8).map((winner) => {
+                          // Determine the link destination
+                          let href = '';
+                          if (winner.nominee?.type === 'person' && winner.nominee.id) {
+                            href = `/people/${winner.nominee.id}`;
+                          } else if (winner.nominee?.type === 'movie' && winner.nominee.id) {
+                            href = `/movies/${winner.nominee.id}`;
+                          }
+                          
+                          return (
+                            <Link
+                              key={winner.id}
+                              href={href}
+                              className="bg-gray-700/30 rounded-lg p-4 hover:bg-gray-700/50 transition-colors block"
+                            >
+                              <div className="flex items-center gap-3">
+                              {/* Image */}
+                              {winner.nominee?.type === 'person' && winner.nominee.profile_path ? (
+                                <img
+                                  src={getProfileUrl(winner.nominee.profile_path, 'small')!}
+                                  alt=""
+                                  className="w-12 h-12 rounded-full object-cover ring-2 ring-yellow-500"
+                                />
+                              ) : winner.nominee?.type === 'movie' && winner.nominee.poster_path ? (
+                                <img
+                                  src={getPosterUrl(winner.nominee.poster_path, 'small')!}
+                                  alt=""
+                                  className="w-9 h-12 rounded object-cover ring-2 ring-yellow-500"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center ring-2 ring-yellow-500">
+                                  {winner.nominee?.type === 'person' ? (
+                                    <User className="w-5 h-5 text-gray-500" />
+                                  ) : (
+                                    <Film className="w-5 h-5 text-gray-500" />
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="font-medium text-sm text-yellow-400 truncate">
+                                    {winner.nominee?.type === 'person'
+                                      ? getLocalizedText((winner.nominee.name || { en: 'Unknown' }) as { en: string; lo?: string }, locale)
+                                      : getLocalizedText((winner.nominee?.title || { en: 'Unknown' }) as { en: string; lo?: string }, locale)}
+                                  </div>
+                                  {/* Status Badge */}
+                                  {winner.is_winner ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-yellow-500/20 text-yellow-300 uppercase tracking-wide">
+                                      <Trophy className="w-2.5 h-2.5" />
+                                      Winner
+                                    </span>
+                                  ) : winner.recognition_type && (getLocalizedText(winner.recognition_type as { en: string; lo?: string }, locale)) ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-300 uppercase tracking-wide">
+                                      {getLocalizedText(winner.recognition_type as { en: string; lo?: string }, locale)}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-500/20 text-gray-400 uppercase tracking-wide">
+                                      Nominee
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 truncate">
+                                  {getLocalizedText((winner.category?.name || { en: '' }) as { en: string; lo?: string }, locale)}
+                                </div>
+                                <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                  {winner.show && (
+                                    <>
+                                      {getLocalizedText((winner.show.name || { en: '' }) as { en: string; lo?: string }, locale)}
+                                      {winner.edition?.year && ` ${winner.edition.year}`}
+                                    </>
+                                  )}
+                                </div>
+                                {winner.for_movie && (
+                                  <div className="text-xs text-gray-500 truncate">
+                                    for "{getLocalizedText(winner.for_movie.title as { en: string; lo?: string }, locale)}"
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-8">
@@ -330,7 +489,7 @@ export default function DevAwardsPage() {
 
                                     {/* Info */}
                                     <div className="flex-1">
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-3 flex-wrap">
                                         <span className={`font-medium ${nom.is_winner ? 'text-yellow-400' : ''}`}>
                                           {nom.nominee?.type === 'person'
                                             ? getLocalizedText((nom.nominee.name || { en: 'Unknown' }) as { en: string; lo?: string }, locale)
@@ -340,6 +499,11 @@ export default function DevAwardsPage() {
                                           <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
                                             <Trophy className="w-3 h-3" />
                                             WINNER
+                                          </span>
+                                        )}
+                                        {!nom.is_winner && nom.recognition_type && (
+                                          <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                                            {getLocalizedText(nom.recognition_type as { en: string; lo?: string }, locale)}
                                           </span>
                                         )}
                                       </div>

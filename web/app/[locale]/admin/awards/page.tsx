@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { awardsAPI } from '@/lib/api/client';
+import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { Plus, Pencil, Trash2, ChevronRight, Trophy, Calendar, Globe, ExternalLink } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
@@ -309,7 +310,7 @@ export default function AdminAwardsPage() {
                       {(show.city || show.country) && (
                         <span className="flex items-center gap-1">
                           <Globe className="w-4 h-4" />
-                          {[show.city, show.country].filter(Boolean).join(', ')}
+                          {getAwardShowLocation(show.city, show.country)}
                         </span>
                       )}
                       <span className="flex items-center gap-1">

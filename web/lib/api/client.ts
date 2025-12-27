@@ -523,6 +523,7 @@ export const awardsAPI = {
     for_movie_id?: string;
     work_title?: { en?: string; lo?: string };
     notes?: { en?: string; lo?: string };
+    recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
   }) => fetchAPI<any>('/awards/nominations', {
@@ -537,6 +538,7 @@ export const awardsAPI = {
     for_movie_id?: string;
     work_title?: { en?: string; lo?: string };
     notes?: { en?: string; lo?: string };
+    recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
   }) => fetchAPI<any>(`/awards/nominations/${id}`, {
@@ -554,4 +556,7 @@ export const awardsAPI = {
     method: 'POST',
     body: JSON.stringify({ nomination_id }),
   }),
+  
+  // Get all winners across all awards (for showcase)
+  getWinners: () => fetchAPI<{ winners: any[] }>('/awards/winners'),
 };

@@ -61,6 +61,7 @@ interface Nomination {
     title: { en?: string; lo?: string };
     poster_path?: string;
   } | null;
+  recognition_type?: { en?: string; lo?: string };
   is_winner: boolean;
   sort_order: number;
 }
@@ -114,10 +115,13 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
 
   // Nomination form
   const [addingNominationTo, setAddingNominationTo] = useState<string | null>(null);
+  const [editingNomination, setEditingNomination] = useState<Nomination | null>(null);
   const [nominationForm, setNominationForm] = useState({
     person: null as { id: number; name: { en?: string; lo?: string } } | null,
     movie_id: '',
     for_movie_id: '',
+    recognition_type_en: '',
+    recognition_type_lo: '',
     is_winner: false,
   });
 
@@ -314,9 +318,27 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       person: null,
       movie_id: '',
       for_movie_id: '',
+      recognition_type_en: '',
+      recognition_type_lo: '',
       is_winner: false,
     });
     setAddingNominationTo(null);
+    setEditingNomination(null);
+  };
+
+  const handleEditNomination = (nomination: Nomination, categoryId: string) => {
+    setEditingNomination(nomination);
+    setAddingNominationTo(categoryId);
+    setNominationForm({
+      person: nomination.nominee?.type === 'person' && nomination.nominee.id
+        ? { id: nomination.nominee.id as number, name: nomination.nominee.name || {} }
+        : null,
+      movie_id: nomination.nominee?.type === 'movie' ? String(nomination.nominee.id) : '',
+      for_movie_id: nomination.for_movie?.id || '',
+      recognition_type_en: nomination.recognition_type?.en || '',
+      recognition_type_lo: nomination.recognition_type?.lo || '',
+      is_winner: nomination.is_winner,
+    });
   };
 
   const handleSubmitNomination = async (categoryId: string, nomineeType: 'person' | 'movie') => {
@@ -324,21 +346,38 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
 
     try {
       setSaving(true);
-      const data = {
-        edition_id: selectedEdition.id,
-        category_id: categoryId,
-        person_id: nomineeType === 'person' && nominationForm.person ? nominationForm.person.id : undefined,
-        movie_id: nomineeType === 'movie' && nominationForm.movie_id ? nominationForm.movie_id : undefined,
-        for_movie_id: nominationForm.for_movie_id || undefined,
-        is_winner: nominationForm.is_winner,
-      };
-
-      await awardsAPI.createNomination(data);
+      
+      const recognitionType = nominationForm.recognition_type_en || nominationForm.recognition_type_lo
+        ? { en: nominationForm.recognition_type_en || undefined, lo: nominationForm.recognition_type_lo || undefined }
+        : undefined;
+      
+      if (editingNomination) {
+        const updateData = {
+          person_id: nomineeType === 'person' && nominationForm.person ? nominationForm.person.id : undefined,
+          movie_id: nomineeType === 'movie' && nominationForm.movie_id ? nominationForm.movie_id : undefined,
+          for_movie_id: nominationForm.for_movie_id || undefined,
+          recognition_type: recognitionType,
+          is_winner: nominationForm.is_winner,
+        };
+        await awardsAPI.updateNomination(editingNomination.id, updateData);
+      } else {
+        const data = {
+          edition_id: selectedEdition.id,
+          category_id: categoryId,
+          person_id: nomineeType === 'person' && nominationForm.person ? nominationForm.person.id : undefined,
+          movie_id: nomineeType === 'movie' && nominationForm.movie_id ? nominationForm.movie_id : undefined,
+          for_movie_id: nominationForm.for_movie_id || undefined,
+          recognition_type: recognitionType,
+          is_winner: nominationForm.is_winner,
+        };
+        await awardsAPI.createNomination(data);
+      }
+      
       await loadEdition(selectedEdition.id);
       resetNominationForm();
     } catch (error) {
-      console.error('Failed to create nomination:', error);
-      alert('Failed to create nomination');
+      console.error(`Failed to ${editingNomination ? 'update' : 'create'} nomination:`, error);
+      alert(`Failed to ${editingNomination ? 'update' : 'create'} nomination`);
     } finally {
       setSaving(false);
     }
@@ -698,9 +737,15 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                         </Button>
                       </div>
 
-                      {/* Add nomination form */}
+                      {/* Add/Edit nomination form */}
                       {addingNominationTo === category.id && (
-                        <div className="p-4 bg-blue-50 border-b space-y-3">
+                        <div className={`p-4 border-b space-y-3 ${editingNomination ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                          {editingNomination && (
+                            <div className="flex items-center gap-2 text-sm font-medium text-amber-700 mb-2">
+                              <Pencil className="w-4 h-4" />
+                              Editing Nomination
+                            </div>
+                          )}
                           {category.nominee_type === 'person' ? (
                             <>
                               <div>
@@ -759,6 +804,24 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                               </select>
                             </div>
                           )}
+                          <div>
+                            <Label className="text-sm">Recognition Type (optional)</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                value={nominationForm.recognition_type_en}
+                                onChange={(e) => setNominationForm({ ...nominationForm, recognition_type_en: e.target.value })}
+                                placeholder="e.g., Special Mention"
+                                className="h-9"
+                              />
+                              <Input
+                                value={nominationForm.recognition_type_lo}
+                                onChange={(e) => setNominationForm({ ...nominationForm, recognition_type_lo: e.target.value })}
+                                placeholder="ພາສາລາວ"
+                                className="h-9"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">For non-winner recognitions like &quot;Special Mention&quot;, &quot;Honorable Mention&quot;, etc.</p>
+                          </div>
                           <div className="flex items-center gap-4">
                             <label className="flex items-center gap-2">
                               <input
@@ -776,9 +839,9 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                 saving ||
                                 (category.nominee_type === 'person' && !nominationForm.person) ||
                                 (category.nominee_type === 'movie' && !nominationForm.movie_id)
-                              }
+              }
                             >
-                              {saving ? 'Adding...' : 'Add Nomination'}
+                              {saving ? (editingNomination ? 'Updating...' : 'Adding...') : (editingNomination ? 'Update Nomination' : 'Add Nomination')}
                             </Button>
                           </div>
                         </div>
@@ -823,7 +886,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
 
                               {/* Nominee info */}
                               <div className="flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-medium">
                                     {nom.nominee?.type === 'person'
                                       ? (nom.nominee.name?.en || nom.nominee.name?.lo)
@@ -833,6 +896,11 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                     <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                                       <Trophy className="w-3 h-3" />
                                       Winner
+                                    </span>
+                                  )}
+                                  {!nom.is_winner && nom.recognition_type?.en && (
+                                    <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                                      {nom.recognition_type.en}
                                     </span>
                                   )}
                                 </div>
@@ -856,6 +924,15 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                     <Trophy className="w-4 h-4" />
                                   </Button>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleEditNomination(nom, category.id)}
+                                  title="Edit nomination"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"

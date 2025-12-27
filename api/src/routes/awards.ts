@@ -393,6 +393,7 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
               for_movie: forMovie,
               work_title: buildLocalizedText(nomTrans, 'workTitle'),
               notes: buildLocalizedText(nomTrans, 'notes'),
+              recognition_type: buildLocalizedText(nomTrans, 'recognitionType'),
               is_winner: nom.isWinner,
               sort_order: nom.sortOrder,
             };
@@ -731,12 +732,13 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       for_movie_id?: string;
       work_title?: { en?: string; lo?: string };
       notes?: { en?: string; lo?: string };
+      recognition_type?: { en?: string; lo?: string };
       is_winner?: boolean;
       sort_order?: number;
     };
   }>('/awards/nominations', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
-      const { edition_id, category_id, person_id, movie_id, for_movie_id, work_title, notes, is_winner, sort_order } = request.body;
+      const { edition_id, category_id, person_id, movie_id, for_movie_id, work_title, notes, recognition_type, is_winner, sort_order } = request.body;
       
       if (!edition_id || !category_id) {
         return sendBadRequest(reply, 'edition_id and category_id are required');
@@ -768,21 +770,23 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       }).returning();
       
       // Insert translations if provided
-      if (work_title?.en || notes?.en) {
+      if (work_title?.en || notes?.en || recognition_type?.en) {
         await db.insert(schema.awardNominationTranslations).values({
           nominationId: newNomination.id,
           language: 'en',
           workTitle: work_title?.en || null,
           notes: notes?.en || null,
+          recognitionType: recognition_type?.en || null,
         });
       }
       
-      if (work_title?.lo || notes?.lo) {
+      if (work_title?.lo || notes?.lo || recognition_type?.lo) {
         await db.insert(schema.awardNominationTranslations).values({
           nominationId: newNomination.id,
           language: 'lo',
           workTitle: work_title?.lo || null,
           notes: notes?.lo || null,
+          recognitionType: recognition_type?.lo || null,
         });
       }
       
@@ -813,6 +817,7 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       for_movie_id?: string;
       work_title?: { en?: string; lo?: string };
       notes?: { en?: string; lo?: string };
+      recognition_type?: { en?: string; lo?: string };
       is_winner?: boolean;
       sort_order?: number;
     };
@@ -836,12 +841,13 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       await db.update(schema.awardNominations).set(nominationUpdates).where(eq(schema.awardNominations.id, id));
       
       // Update translations
-      if (updates.work_title || updates.notes) {
+      if (updates.work_title || updates.notes || updates.recognition_type) {
         for (const lang of ['en', 'lo'] as const) {
           const workTitleVal = updates.work_title?.[lang];
           const notesVal = updates.notes?.[lang];
+          const recognitionTypeVal = updates.recognition_type?.[lang];
           
-          if (workTitleVal !== undefined || notesVal !== undefined) {
+          if (workTitleVal !== undefined || notesVal !== undefined || recognitionTypeVal !== undefined) {
             const [existing] = await db.select().from(schema.awardNominationTranslations)
               .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)))
               .limit(1);
@@ -850,14 +856,16 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
               const transUpdates: any = { updatedAt: new Date() };
               if (workTitleVal !== undefined) transUpdates.workTitle = workTitleVal || null;
               if (notesVal !== undefined) transUpdates.notes = notesVal || null;
+              if (recognitionTypeVal !== undefined) transUpdates.recognitionType = recognitionTypeVal || null;
               await db.update(schema.awardNominationTranslations).set(transUpdates)
                 .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)));
-            } else if (workTitleVal || notesVal) {
+            } else if (workTitleVal || notesVal || recognitionTypeVal) {
               await db.insert(schema.awardNominationTranslations).values({
                 nominationId: id,
                 language: lang,
                 workTitle: workTitleVal || null,
                 notes: notesVal || null,
+                recognitionType: recognitionTypeVal || null,
               });
             }
           }
@@ -887,6 +895,119 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
     } catch (error) {
       fastify.log.error(error);
       return sendInternalError(reply, 'Failed to delete nomination');
+    }
+  });
+
+  // Get all winners and nominees across all awards (for showcase)
+  fastify.get('/awards/winners', async (request, reply) => {
+    try {
+      // Get all nominations (winners and nominees) with related data
+      const winners = await db.select()
+        .from(schema.awardNominations)
+        .orderBy(desc(schema.awardNominations.createdAt))
+        .limit(100);
+      
+      if (winners.length === 0) {
+        return { winners: [] };
+      }
+      
+      // Get all related data
+      const editionIds = [...new Set(winners.map(w => w.editionId))];
+      const categoryIds = [...new Set(winners.map(w => w.categoryId))];
+      const personIds = [...new Set(winners.filter(w => w.personId).map(w => w.personId!))];
+      const movieIds = [...new Set(winners.map(w => w.movieId).filter(Boolean).concat(winners.map(w => w.forMovieId).filter(Boolean)))] as string[];
+      
+      const editions = await db.select().from(schema.awardEditions).where(buildInClause(schema.awardEditions.id, editionIds));
+      const categories = await db.select().from(schema.awardCategories).where(buildInClause(schema.awardCategories.id, categoryIds));
+      const categoryTrans = await db.select().from(schema.awardCategoryTranslations).where(buildInClause(schema.awardCategoryTranslations.categoryId, categoryIds));
+      const nominationTrans = await db.select().from(schema.awardNominationTranslations).where(buildInClause(schema.awardNominationTranslations.nominationId, winners.map(w => w.id)));
+      
+      const people = personIds.length > 0 
+        ? await db.select().from(schema.people).where(buildInClause(schema.people.id, personIds))
+        : [];
+      const peopleTrans = personIds.length > 0 
+        ? await db.select().from(schema.peopleTranslations).where(buildInClause(schema.peopleTranslations.personId, personIds))
+        : [];
+      const movies = movieIds.length > 0 
+        ? await db.select().from(schema.movies).where(buildInClause(schema.movies.id, movieIds))
+        : [];
+      const movieTrans = movieIds.length > 0 
+        ? await db.select().from(schema.movieTranslations).where(buildInClause(schema.movieTranslations.movieId, movieIds))
+        : [];
+      
+      // Get show data
+      const showIds = [...new Set(editions.map(e => e.showId))];
+      const shows = await db.select().from(schema.awardShows).where(buildInClause(schema.awardShows.id, showIds));
+      const showTrans = await db.select().from(schema.awardShowTranslations).where(buildInClause(schema.awardShowTranslations.showId, showIds));
+      
+      // Format response
+      const formattedWinners = winners.map(winner => {
+        const edition = editions.find(e => e.id === winner.editionId);
+        const show = edition ? shows.find(s => s.id === edition.showId) : null;
+        const category = categories.find(c => c.id === winner.categoryId);
+        const catTrans = categoryTrans.filter(t => t.categoryId === winner.categoryId);
+        const nomTrans = nominationTrans.filter(t => t.nominationId === winner.id);
+        
+        let nominee = null;
+        if (winner.personId) {
+          const person = people.find(p => p.id === winner.personId);
+          const pTrans = peopleTrans.filter(t => t.personId === winner.personId);
+          nominee = person ? {
+            type: 'person',
+            id: person.id,
+            name: buildLocalizedText(pTrans, 'name'),
+            profile_path: person.profilePath,
+          } : null;
+        } else if (winner.movieId) {
+          const movie = movies.find(m => m.id === winner.movieId);
+          const mTrans = movieTrans.filter(t => t.movieId === winner.movieId);
+          nominee = movie ? {
+            type: 'movie',
+            id: movie.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: movie.posterPath,
+          } : null;
+        }
+        
+        let forMovie = null;
+        if (winner.forMovieId) {
+          const movie = movies.find(m => m.id === winner.forMovieId);
+          const mTrans = movieTrans.filter(t => t.movieId === winner.forMovieId);
+          forMovie = movie ? {
+            id: movie.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: movie.posterPath,
+          } : null;
+        }
+        
+        return {
+          id: winner.id,
+          nominee,
+          for_movie: forMovie,
+          is_winner: winner.isWinner,
+          recognition_type: buildLocalizedText(nomTrans, 'recognitionType'),
+          show: show ? {
+            id: show.id,
+            name: buildLocalizedText(showTrans.filter(t => t.showId === show.id), 'name'),
+            country: show.country,
+          } : null,
+          edition: edition ? {
+            id: edition.id,
+            year: edition.year,
+            edition_number: edition.editionNumber,
+          } : null,
+          category: category ? {
+            id: category.id,
+            name: buildLocalizedText(catTrans, 'name'),
+            nominee_type: category.nomineeType,
+          } : null,
+        };
+      });
+      
+      return { winners: formattedWinners };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to fetch winners');
     }
   });
 

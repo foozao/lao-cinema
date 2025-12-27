@@ -1,0 +1,1 @@
+ALTER TABLE "award_nomination_translations" ADD COLUMN "recognition_type" text;

@@ -704,6 +704,7 @@ export const awardNominationTranslations = pgTable('award_nomination_translation
   language: languageEnum('language').notNull(),
   workTitle: text('work_title'), // Custom work title if different from movie title
   notes: text('notes'), // Additional notes about the nomination
+  recognitionType: text('recognition_type'), // E.g., "Special Mention", "Honorable Mention", etc.
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
