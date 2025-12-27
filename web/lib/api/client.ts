@@ -393,3 +393,165 @@ export const shortPacksAPI = {
       body: JSON.stringify({ shorts }),
     }),
 };
+
+// Awards API methods
+export const awardsAPI = {
+  // ==========================================================================
+  // SHOWS
+  // ==========================================================================
+  
+  // Get all award shows
+  getShows: () => fetchAPI<{ shows: any[] }>('/awards/shows'),
+  
+  // Get single award show with editions and categories
+  getShow: (id: string) => fetchAPI<any>(`/awards/shows/${id}`),
+  
+  // Create award show
+  createShow: (data: {
+    slug?: string;
+    name: { en: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    country?: string;
+    city?: string;
+    website_url?: string;
+    logo_path?: string;
+  }) => fetchAPI<any>('/awards/shows', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update award show
+  updateShow: (id: string, data: {
+    slug?: string;
+    name?: { en?: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    country?: string;
+    city?: string;
+    website_url?: string;
+    logo_path?: string;
+  }) => fetchAPI<any>(`/awards/shows/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete award show
+  deleteShow: (id: string) => fetchAPI<{ success: boolean }>(`/awards/shows/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // ==========================================================================
+  // EDITIONS
+  // ==========================================================================
+  
+  // Get edition with full nominations
+  getEdition: (id: string) => fetchAPI<any>(`/awards/editions/${id}`),
+  
+  // Create edition
+  createEdition: (data: {
+    show_id: string;
+    year: number;
+    edition_number?: number;
+    name?: { en?: string; lo?: string };
+    theme?: { en?: string; lo?: string };
+    start_date?: string;
+    end_date?: string;
+  }) => fetchAPI<any>('/awards/editions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update edition
+  updateEdition: (id: string, data: {
+    year?: number;
+    edition_number?: number;
+    name?: { en?: string; lo?: string };
+    theme?: { en?: string; lo?: string };
+    start_date?: string;
+    end_date?: string;
+  }) => fetchAPI<any>(`/awards/editions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete edition
+  deleteEdition: (id: string) => fetchAPI<{ success: boolean }>(`/awards/editions/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // ==========================================================================
+  // CATEGORIES
+  // ==========================================================================
+  
+  // Create category
+  createCategory: (data: {
+    show_id: string;
+    name: { en: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    nominee_type: 'person' | 'movie';
+    sort_order?: number;
+  }) => fetchAPI<any>('/awards/categories', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update category
+  updateCategory: (id: string, data: {
+    name?: { en?: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    nominee_type?: 'person' | 'movie';
+    sort_order?: number;
+  }) => fetchAPI<any>(`/awards/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete category
+  deleteCategory: (id: string) => fetchAPI<{ success: boolean }>(`/awards/categories/${id}`, {
+    method: 'DELETE',
+  }),
+
+  // ==========================================================================
+  // NOMINATIONS
+  // ==========================================================================
+  
+  // Create nomination
+  createNomination: (data: {
+    edition_id: string;
+    category_id: string;
+    person_id?: number;
+    movie_id?: string;
+    for_movie_id?: string;
+    work_title?: { en?: string; lo?: string };
+    notes?: { en?: string; lo?: string };
+    is_winner?: boolean;
+    sort_order?: number;
+  }) => fetchAPI<any>('/awards/nominations', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update nomination
+  updateNomination: (id: string, data: {
+    person_id?: number;
+    movie_id?: string;
+    for_movie_id?: string;
+    work_title?: { en?: string; lo?: string };
+    notes?: { en?: string; lo?: string };
+    is_winner?: boolean;
+    sort_order?: number;
+  }) => fetchAPI<any>(`/awards/nominations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete nomination
+  deleteNomination: (id: string) => fetchAPI<{ success: boolean }>(`/awards/nominations/${id}`, {
+    method: 'DELETE',
+  }),
+  
+  // Set winner for a category
+  setWinner: (nomination_id: string) => fetchAPI<{ success: boolean }>('/awards/nominations/set-winner', {
+    method: 'POST',
+    body: JSON.stringify({ nomination_id }),
+  }),
+};

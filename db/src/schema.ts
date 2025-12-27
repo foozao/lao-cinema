@@ -601,3 +601,132 @@ export type NewUserWatchlistItem = typeof userWatchlist.$inferInsert;
 
 export type HomepageSettings = typeof homepageSettings.$inferSelect;
 export type NewHomepageSettings = typeof homepageSettings.$inferInsert;
+
+// =============================================================================
+// AWARDS SYSTEM
+// =============================================================================
+
+// Award nomination type enum - what kind of nomination this is
+export const awardNomineeTypeEnum = pgEnum('award_nominee_type', ['person', 'movie']);
+
+// Award shows table - The award ceremony/festival (e.g., "Luang Prabang Film Festival")
+export const awardShows = pgTable('award_shows', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  slug: text('slug').unique(), // Vanity URL (e.g., 'lpff')
+  country: text('country'), // ISO 3166-1 country code
+  city: text('city'),
+  websiteUrl: text('website_url'),
+  logoPath: text('logo_path'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Award show translations table
+export const awardShowTranslations = pgTable('award_show_translations', {
+  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.showId, table.language] }),
+}));
+
+// Award editions table - A specific year/edition of the show (e.g., "2024 LPFF")
+export const awardEditions = pgTable('award_editions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
+  year: integer('year').notNull(), // The year of this edition
+  editionNumber: integer('edition_number'), // Optional edition number (e.g., "14th Annual")
+  startDate: text('start_date'), // ISO date string
+  endDate: text('end_date'), // ISO date string
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Award edition translations table
+export const awardEditionTranslations = pgTable('award_edition_translations', {
+  editionId: uuid('edition_id').references(() => awardEditions.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name'), // Optional override name (e.g., "Special Anniversary Edition")
+  theme: text('theme'), // Optional theme for this edition
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.editionId, table.language] }),
+}));
+
+// Award categories table - Types of awards (e.g., "Best Director", "Best Actor")
+export const awardCategories = pgTable('award_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
+  nomineeType: awardNomineeTypeEnum('nominee_type').notNull(), // 'person' or 'movie'
+  sortOrder: integer('sort_order').default(0), // Display order
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Award category translations table
+export const awardCategoryTranslations = pgTable('award_category_translations', {
+  categoryId: uuid('category_id').references(() => awardCategories.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.categoryId, table.language] }),
+}));
+
+// Award nominations table - The actual nominations and winners
+export const awardNominations = pgTable('award_nominations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  editionId: uuid('edition_id').references(() => awardEditions.id, { onDelete: 'cascade' }).notNull(),
+  categoryId: uuid('category_id').references(() => awardCategories.id, { onDelete: 'cascade' }).notNull(),
+  
+  // The nominee - either a person OR a movie (based on category's nomineeType)
+  personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }), // Nullable
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }), // Nullable
+  
+  // For person nominations, optionally link to the movie they're nominated for
+  forMovieId: uuid('for_movie_id').references(() => movies.id, { onDelete: 'set null' }),
+  
+  isWinner: boolean('is_winner').default(false).notNull(),
+  sortOrder: integer('sort_order').default(0), // Display order within category
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Award nomination translations table - For custom nomination notes/work titles
+export const awardNominationTranslations = pgTable('award_nomination_translations', {
+  nominationId: uuid('nomination_id').references(() => awardNominations.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  workTitle: text('work_title'), // Custom work title if different from movie title
+  notes: text('notes'), // Additional notes about the nomination
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.nominationId, table.language] }),
+}));
+
+// Types for TypeScript
+export type AwardShow = typeof awardShows.$inferSelect;
+export type NewAwardShow = typeof awardShows.$inferInsert;
+export type AwardShowTranslation = typeof awardShowTranslations.$inferSelect;
+export type NewAwardShowTranslation = typeof awardShowTranslations.$inferInsert;
+
+export type AwardEdition = typeof awardEditions.$inferSelect;
+export type NewAwardEdition = typeof awardEditions.$inferInsert;
+export type AwardEditionTranslation = typeof awardEditionTranslations.$inferSelect;
+export type NewAwardEditionTranslation = typeof awardEditionTranslations.$inferInsert;
+
+export type AwardCategory = typeof awardCategories.$inferSelect;
+export type NewAwardCategory = typeof awardCategories.$inferInsert;
+export type AwardCategoryTranslation = typeof awardCategoryTranslations.$inferSelect;
+export type NewAwardCategoryTranslation = typeof awardCategoryTranslations.$inferInsert;
+
+export type AwardNomination = typeof awardNominations.$inferSelect;
+export type NewAwardNomination = typeof awardNominations.$inferInsert;
+export type AwardNominationTranslation = typeof awardNominationTranslations.$inferSelect;
+export type NewAwardNominationTranslation = typeof awardNominationTranslations.$inferInsert;

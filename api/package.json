@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "pretest": "npm run build --workspace=lao-cinema-db",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",

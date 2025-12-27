@@ -23,6 +23,7 @@ import shortPackRoutes from './routes/short-packs.js';
 import watchlistRoutes from './routes/watchlist.js';
 import genreRoutes from './routes/genres.js';
 import testErrorRoutes from './routes/test-error.js';
+import awardsRoutes from './routes/awards.js';
 
 // Initialize Sentry error monitoring (must be before Fastify setup)
 initSentry();
@@ -69,6 +70,7 @@ await fastify.register(shortPackRoutes, { prefix: '/api' });
 await fastify.register(watchlistRoutes, { prefix: '/api' });
 await fastify.register(genreRoutes, { prefix: '/api' });
 await fastify.register(testErrorRoutes, { prefix: '/api' });
+await fastify.register(awardsRoutes, { prefix: '/api' });
 
 // Start server
 const start = async () => {

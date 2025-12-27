@@ -4,6 +4,7 @@
   "description": "Database schema and migrations for Lao Cinema",
   "type": "module",
   "scripts": {
+    "build": "esbuild src/schema.ts --outfile=src/schema.js --format=esm --platform=node",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:migrate:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL tsx src/migrate.ts",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^20.17.10",
     "drizzle-kit": "^0.30.1",
+    "esbuild": "^0.24.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

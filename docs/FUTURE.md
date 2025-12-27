@@ -1,12 +1,9 @@
 
 Possible Future Changes:
 
-* remove the "email verified" requirement for notifications
-  - reduce friction for user (especially after they just created an account)
+* removed the "email verified" requirement for notifications
   - can we get bounce info from Brevo?
   - if so, assume it's correct
-
-* add change e-mail functionality
 
 * some info on Lao cinema history
   - maybe a chronology
@@ -15,6 +12,7 @@ Possible Future Changes:
 * maybe articles/reviews linked to the movie/person
 
 * award listings for movie/person
+  - in progress
 
 * tracking time on featured, and views/rentals at that time
 

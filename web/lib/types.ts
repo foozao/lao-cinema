@@ -272,6 +272,87 @@ export interface ShortPackSummary {
   directors?: LocalizedText[]; // Directors from all shorts in pack
 }
 
+// =============================================================================
+// AWARDS SYSTEM
+// =============================================================================
+
+export type AwardNomineeType = 'person' | 'movie';
+
+// Award show/ceremony (e.g., "Luang Prabang Film Festival")
+export interface AwardShow {
+  id: string;
+  slug?: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  country?: string;
+  city?: string;
+  website_url?: string;
+  logo_path?: string;
+  edition_count?: number;
+  editions?: AwardEdition[];
+  categories?: AwardCategory[];
+  created_at: string;
+  updated_at: string;
+}
+
+// Edition/year of an award show (e.g., "2024 LPFF")
+export interface AwardEdition {
+  id: string;
+  show?: {
+    id: string;
+    slug?: string;
+    name: LocalizedText;
+  };
+  year: number;
+  edition_number?: number;
+  name?: LocalizedText;
+  theme?: LocalizedText;
+  start_date?: string;
+  end_date?: string;
+  categories?: AwardCategoryWithNominations[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Award category (e.g., "Best Director")
+export interface AwardCategory {
+  id: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  nominee_type: AwardNomineeType;
+  sort_order: number;
+}
+
+// Category with its nominations (for edition detail view)
+export interface AwardCategoryWithNominations extends AwardCategory {
+  nominations: AwardNomination[];
+}
+
+// Nominee can be either a person or a movie
+export interface AwardNominee {
+  type: 'person' | 'movie';
+  id: number | string;
+  name?: LocalizedText; // For person
+  title?: LocalizedText; // For movie
+  profile_path?: string; // For person
+  poster_path?: string; // For movie
+}
+
+// Award nomination
+export interface AwardNomination {
+  id: string;
+  nominee: AwardNominee | null;
+  for_movie?: {
+    id: string;
+    title: LocalizedText;
+    poster_path?: string;
+  } | null;
+  work_title?: LocalizedText;
+  notes?: LocalizedText;
+  is_winner: boolean;
+  sort_order: number;
+}
+
 // For future TMDB API integration
 export interface TMDBMovie {
   id: number;

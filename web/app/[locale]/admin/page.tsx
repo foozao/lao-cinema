@@ -6,7 +6,7 @@ import { Link } from '@/i18n/routing';
 import { DashboardCard } from '@/components/admin/dashboard-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Users, Plus, Building2, Home, Package, BarChart3, ClipboardList, Download, RefreshCw, Tags } from 'lucide-react';
+import { Film, Users, Plus, Building2, Home, Package, BarChart3, ClipboardList, Download, RefreshCw, Tags, Trophy } from 'lucide-react';
 import { movieAPI, peopleAPI, productionCompaniesAPI } from '@/lib/api/client';
 import { syncSingleMovieFromTMDB } from './actions';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -192,6 +192,15 @@ export default function AdminPage() {
           stat={stats.companiesCount}
           statLabel={t('totalCompaniesInDatabase')}
           loading={stats.loading}
+        />
+
+        <DashboardCard
+          href="/admin/awards"
+          icon={Trophy}
+          color="orange"
+          title={t('awards')}
+          description={t('manageAwards')}
+          content={t('awardsDescription')}
         />
 
         {user?.role === 'admin' && (

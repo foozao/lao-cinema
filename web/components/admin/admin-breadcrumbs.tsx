@@ -202,6 +202,40 @@ export function AdminBreadcrumbs() {
               }
             }
           }
+        } else if (parts[1] === 'awards') {
+          if (parts.length === 2) {
+            breadcrumbs.push({
+              label: t('awards'),
+              href: '/admin/awards',
+              isLast: true,
+            });
+          } else if (parts.length === 3) {
+            // Award show detail page
+            const showId = parts[2];
+            try {
+              const { awardsAPI } = await import('@/lib/api/client');
+              const show = await awardsAPI.getShow(showId);
+              breadcrumbs.push(
+                {
+                  label: t('awards'),
+                  href: '/admin/awards',
+                  isLast: false,
+                },
+                {
+                  label: getLocalizedText(show.name, 'en'),
+                  href: `/admin/awards/${showId}`,
+                  isLast: true,
+                }
+              );
+            } catch (error) {
+              console.error('Failed to load award show:', error);
+              breadcrumbs.push({
+                label: t('awards'),
+                href: '/admin/awards',
+                isLast: true,
+              });
+            }
+          }
         }
 
         setSegments(breadcrumbs);
