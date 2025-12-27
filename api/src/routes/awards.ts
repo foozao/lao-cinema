@@ -6,6 +6,7 @@ import { db, schema } from '../db/index.js';
 import { eq, sql, and, desc, asc } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { buildInClause } from '../lib/query-helpers.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 // Helper to build localized text from translations
 function buildLocalizedText(translations: Array<{ language: string; [key: string]: any }>, field: string): { en?: string; lo?: string } {
@@ -174,6 +175,21 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         });
       }
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'settings',
+        newShow.id,
+        name.en,
+        {
+          show_id: { before: null, after: newShow.id },
+          name_en: { before: null, after: name.en },
+          name_lo: { before: null, after: name.lo || null },
+          country: { before: null, after: country || null },
+        }
+      );
+      
       return sendCreated(reply, {
         id: newShow.id,
         slug: newShow.slug,
@@ -251,6 +267,18 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         }
       }
       
+      // Log audit event
+      const translations = await db.select().from(schema.awardShowTranslations)
+        .where(eq(schema.awardShowTranslations.showId, id));
+      const showName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        id,
+        showName
+      );
+      
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
@@ -268,7 +296,25 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Award show not found');
       }
       
+      // Get show name for audit log before deletion
+      const translations = await db.select().from(schema.awardShowTranslations)
+        .where(eq(schema.awardShowTranslations.showId, id));
+      const showName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      
       await db.delete(schema.awardShows).where(eq(schema.awardShows.id, id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'settings',
+        id,
+        showName,
+        {
+          show_id: { before: id, after: null },
+          name: { before: showName, after: null },
+        }
+      );
       
       return { success: true, id };
     } catch (error) {
@@ -476,6 +522,20 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         });
       }
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'settings',
+        newEdition.id,
+        `${show.slug || 'Award'} ${year}`,
+        {
+          edition_id: { before: null, after: newEdition.id },
+          show_id: { before: null, after: show_id },
+          year: { before: null, after: year },
+        }
+      );
+      
       return sendCreated(reply, {
         id: newEdition.id,
         show_id: newEdition.showId,
@@ -550,6 +610,15 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         }
       }
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        id,
+        `Edition ${existing.year}`
+      );
+      
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
@@ -568,6 +637,19 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       }
       
       await db.delete(schema.awardEditions).where(eq(schema.awardEditions.id, id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'settings',
+        id,
+        `Edition ${existing.year}`,
+        {
+          edition_id: { before: id, after: null },
+          year: { before: existing.year, after: null },
+        }
+      );
       
       return { success: true, id };
     } catch (error) {
@@ -623,6 +705,20 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
           description: description?.lo || null,
         });
       }
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'settings',
+        newCategory.id,
+        name.en,
+        {
+          category_id: { before: null, after: newCategory.id },
+          name_en: { before: null, after: name.en },
+          nominee_type: { before: null, after: nominee_type },
+        }
+      );
       
       return sendCreated(reply, {
         id: newCategory.id,
@@ -692,6 +788,18 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         }
       }
       
+      // Log audit event
+      const translations = await db.select().from(schema.awardCategoryTranslations)
+        .where(eq(schema.awardCategoryTranslations.categoryId, id));
+      const categoryName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        id,
+        categoryName
+      );
+      
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
@@ -709,7 +817,25 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Award category not found');
       }
       
+      // Get category name for audit log before deletion
+      const translations = await db.select().from(schema.awardCategoryTranslations)
+        .where(eq(schema.awardCategoryTranslations.categoryId, id));
+      const categoryName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      
       await db.delete(schema.awardCategories).where(eq(schema.awardCategories.id, id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'settings',
+        id,
+        categoryName,
+        {
+          category_id: { before: id, after: null },
+          name: { before: categoryName, after: null },
+        }
+      );
       
       return { success: true, id };
     } catch (error) {
@@ -789,6 +915,21 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
           recognitionType: recognition_type?.lo || null,
         });
       }
+      
+      // Log audit event
+      const nomineeDesc = person_id ? `Person #${person_id}` : movie_id ? `Movie ${movie_id}` : 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'create',
+        'settings',
+        newNomination.id,
+        nomineeDesc,
+        {
+          nomination_id: { before: null, after: newNomination.id },
+          edition_id: { before: null, after: edition_id },
+          category_id: { before: null, after: category_id },
+        }
+      );
       
       return sendCreated(reply, {
         id: newNomination.id,
@@ -872,6 +1013,15 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
         }
       }
       
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        id,
+        `Nomination ${id}`
+      );
+      
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
@@ -890,6 +1040,18 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       }
       
       await db.delete(schema.awardNominations).where(eq(schema.awardNominations.id, id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'settings',
+        id,
+        `Nomination ${id}`,
+        {
+          nomination_id: { before: id, after: null },
+        }
+      );
       
       return { success: true, id };
     } catch (error) {
@@ -1041,6 +1203,18 @@ export default async function awardsRoutes(fastify: FastifyInstance) {
       await db.update(schema.awardNominations)
         .set({ isWinner: true, updatedAt: new Date() })
         .where(eq(schema.awardNominations.id, nomination_id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        nomination_id,
+        `Set winner for nomination ${nomination_id}`,
+        {
+          is_winner: { before: false, after: true },
+        }
+      );
       
       return { success: true, nomination_id };
     } catch (error) {

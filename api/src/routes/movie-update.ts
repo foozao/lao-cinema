@@ -48,6 +48,17 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           .from(schema.movieTranslations)
           .where(eq(schema.movieTranslations.movieId, id));
         
+        // Fetch existing nested entities for change tracking
+        const existingSubtitles = await db.select()
+          .from(schema.subtitleTracks)
+          .where(eq(schema.subtitleTracks.movieId, id));
+        const existingVideoSources = await db.select()
+          .from(schema.videoSources)
+          .where(eq(schema.videoSources.movieId, id));
+        const existingPlatforms = await db.select()
+          .from(schema.movieExternalPlatforms)
+          .where(eq(schema.movieExternalPlatforms.movieId, id));
+        
         // Build "before" state for change tracking
         const beforeState: Record<string, any> = {
           release_date: existing[0].releaseDate,
@@ -55,6 +66,15 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           original_language: existing[0].originalLanguage,
           adult: existing[0].adult,
           slug: existing[0].slug,
+          title_en: existingTranslations.find(t => t.language === 'en')?.title || null,
+          title_lo: existingTranslations.find(t => t.language === 'lo')?.title || null,
+          overview_en: existingTranslations.find(t => t.language === 'en')?.overview || null,
+          overview_lo: existingTranslations.find(t => t.language === 'lo')?.overview || null,
+          tagline_en: existingTranslations.find(t => t.language === 'en')?.tagline || null,
+          tagline_lo: existingTranslations.find(t => t.language === 'lo')?.tagline || null,
+          subtitle_count: existingSubtitles.length,
+          video_source_count: existingVideoSources.length,
+          platform_count: existingPlatforms.length,
         };
         
         // Add translation fields to before state
@@ -122,6 +142,17 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           await updateProductionCompanies(id, production_companies);
         }
 
+        // Fetch updated nested entities for change tracking
+        const updatedSubtitles = await db.select()
+          .from(schema.subtitleTracks)
+          .where(eq(schema.subtitleTracks.movieId, id));
+        const updatedVideoSources = await db.select()
+          .from(schema.videoSources)
+          .where(eq(schema.videoSources.movieId, id));
+        const updatedPlatforms = await db.select()
+          .from(schema.movieExternalPlatforms)
+          .where(eq(schema.movieExternalPlatforms.movieId, id));
+        
         // Fetch and return the complete updated movie
         const response = await fastify.inject({
           method: 'GET',
@@ -143,10 +174,82 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
           overview_lo: overview?.lo ?? beforeState.overview_lo,
           tagline_en: tagline?.en ?? beforeState.tagline_en,
           tagline_lo: tagline?.lo ?? beforeState.tagline_lo,
+          subtitle_count: updatedSubtitles.length,
+          video_source_count: updatedVideoSources.length,
+          platform_count: updatedPlatforms.length,
         };
         
         // Create changes object (only includes changed fields)
         const changes = createChangesObject(beforeState, afterState);
+        
+        // Add details about subtitle changes
+        if (updatedSubtitles.length !== existingSubtitles.length) {
+          const addedSubtitles = updatedSubtitles.filter(
+            s => !existingSubtitles.some(es => es.id === s.id)
+          );
+          const removedSubtitles = existingSubtitles.filter(
+            s => !updatedSubtitles.some(us => us.id === s.id)
+          );
+          
+          if (addedSubtitles.length > 0) {
+            changes.subtitles_added = {
+              before: null,
+              after: addedSubtitles.map(s => `${s.label} (${s.language})`).join(', ')
+            };
+          }
+          if (removedSubtitles.length > 0) {
+            changes.subtitles_removed = {
+              before: removedSubtitles.map(s => `${s.label} (${s.language})`).join(', '),
+              after: null
+            };
+          }
+        }
+        
+        // Add details about video source changes
+        if (updatedVideoSources.length !== existingVideoSources.length) {
+          const addedSources = updatedVideoSources.filter(
+            s => !existingVideoSources.some(es => es.id === s.id)
+          );
+          const removedSources = existingVideoSources.filter(
+            s => !updatedVideoSources.some(us => us.id === s.id)
+          );
+          
+          if (addedSources.length > 0) {
+            changes.video_sources_added = {
+              before: null,
+              after: addedSources.map(s => `${s.quality} (${s.format})`).join(', ')
+            };
+          }
+          if (removedSources.length > 0) {
+            changes.video_sources_removed = {
+              before: removedSources.map(s => `${s.quality} (${s.format})`).join(', '),
+              after: null
+            };
+          }
+        }
+        
+        // Add details about platform changes
+        if (updatedPlatforms.length !== existingPlatforms.length) {
+          const addedPlatforms = updatedPlatforms.filter(
+            p => !existingPlatforms.some(ep => ep.id === p.id)
+          );
+          const removedPlatforms = existingPlatforms.filter(
+            p => !updatedPlatforms.some(up => up.id === p.id)
+          );
+          
+          if (addedPlatforms.length > 0) {
+            changes.platforms_added = {
+              before: null,
+              after: addedPlatforms.map(p => p.platform).join(', ')
+            };
+          }
+          if (removedPlatforms.length > 0) {
+            changes.platforms_removed = {
+              before: removedPlatforms.map(p => p.platform).join(', '),
+              after: null
+            };
+          }
+        }
         
         // Log audit event with changes
         await logAuditFromRequest(
@@ -251,6 +354,19 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
         await db.update(schema.videoSources)
           .set(vsData)
           .where(eq(schema.videoSources.movieId, movieId));
+      } else {
+        // Create new video source if it doesn't exist
+        await db.insert(schema.videoSources).values({
+          movieId,
+          quality: vs.quality || 'original',
+          format: vs.format || 'mp4',
+          url: vs.url || '',
+          width: vs.width || null,
+          height: vs.height || null,
+          aspectRatio: vs.aspect_ratio || null,
+          hasBurnedSubtitles: vs.has_burned_subtitles || false,
+          burnedSubtitlesLanguage: vs.burned_subtitles_language || null,
+        });
       }
     }
   }

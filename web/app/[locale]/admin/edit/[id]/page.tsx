@@ -578,9 +578,9 @@ export default function EditMoviePage() {
         poster_path: formData.poster_path || undefined,
         backdrop_path: formData.backdrop_path || undefined,
         trailers: trailers.length > 0 ? trailers : undefined,
-        video_sources: formData.video_url ? [{
+        video_sources: (formData.video_url || formData.has_burned_subtitles || formData.video_aspect_ratio) ? [{
           id: '1',
-          url: formData.video_url,
+          url: formData.video_url || '',
           format: formData.video_format as 'hls' | 'mp4',
           quality: formData.video_quality as any,
           aspect_ratio: formData.video_aspect_ratio || undefined,

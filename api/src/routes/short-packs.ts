@@ -9,6 +9,7 @@ import * as schema from '../db/schema.js';
 import { requireEditor, requireEditorOrAdmin, requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
 import { buildPackSummary, buildPackDetail, getPackTranslations, getPackShortCount } from '../lib/short-pack-helpers.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 // Zod schemas for validation
 const LocalizedTextSchema = z.object({
@@ -134,6 +135,20 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           url: `/api/short-packs/${newPack.id}`,
         });
 
+        // Log audit event
+        await logAuditFromRequest(
+          request,
+          'create',
+          'settings',
+          newPack.id,
+          data.title.en,
+          {
+            pack_id: { before: null, after: newPack.id },
+            title_en: { before: null, after: data.title.en },
+            is_published: { before: null, after: data.is_published },
+          }
+        );
+
         return sendCreated(reply, JSON.parse(response.body));
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -224,6 +239,18 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           url: `/api/short-packs/${id}`,
         });
 
+        // Log audit event
+        const translations = await db.select().from(schema.shortPackTranslations)
+          .where(eq(schema.shortPackTranslations.packId, id));
+        const packTitle = translations.find(t => t.language === 'en')?.title || 'Unknown';
+        await logAuditFromRequest(
+          request,
+          'update',
+          'settings',
+          id,
+          packTitle
+        );
+
         return JSON.parse(response.body);
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -243,6 +270,11 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
       try {
         const { id } = request.params;
 
+        // Get pack title for audit log before deletion
+        const translations = await db.select().from(schema.shortPackTranslations)
+          .where(eq(schema.shortPackTranslations.packId, id));
+        const packTitle = translations.find(t => t.language === 'en')?.title || 'Unknown';
+
         const [deletedPack] = await db.delete(schema.shortPacks)
           .where(eq(schema.shortPacks.id, id))
           .returning();
@@ -250,6 +282,19 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         if (!deletedPack) {
           return sendNotFound(reply, 'Short pack not found');
         }
+
+        // Log audit event
+        await logAuditFromRequest(
+          request,
+          'delete',
+          'settings',
+          id,
+          packTitle,
+          {
+            pack_id: { before: id, after: null },
+            title: { before: packTitle, after: null },
+          }
+        );
 
         return { success: true, message: 'Short pack deleted successfully' };
       } catch (error) {
@@ -325,6 +370,22 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           url: `/api/short-packs/${id}`,
         });
 
+        // Log audit event
+        const translations = await db.select().from(schema.shortPackTranslations)
+          .where(eq(schema.shortPackTranslations.packId, id));
+        const packTitle = translations.find(t => t.language === 'en')?.title || 'Unknown';
+        await logAuditFromRequest(
+          request,
+          'update',
+          'settings',
+          id,
+          `${packTitle}: added movie ${data.movie_id}`,
+          {
+            movie_id: { before: null, after: data.movie_id },
+            order: { before: null, after: order },
+          }
+        );
+
         return JSON.parse(response.body);
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -354,6 +415,21 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
         if (!deleted) {
           return sendNotFound(reply, 'Short not found in pack');
         }
+
+        // Log audit event
+        const translations = await db.select().from(schema.shortPackTranslations)
+          .where(eq(schema.shortPackTranslations.packId, id));
+        const packTitle = translations.find(t => t.language === 'en')?.title || 'Unknown';
+        await logAuditFromRequest(
+          request,
+          'update',
+          'settings',
+          id,
+          `${packTitle}: removed movie ${movieId}`,
+          {
+            movie_id: { before: movieId, after: null },
+          }
+        );
 
         // Return updated pack
         const response = await fastify.inject({
@@ -408,6 +484,18 @@ export default async function shortPackRoutes(fastify: FastifyInstance) {
           method: 'GET',
           url: `/api/short-packs/${id}`,
         });
+
+        // Log audit event
+        const translations = await db.select().from(schema.shortPackTranslations)
+          .where(eq(schema.shortPackTranslations.packId, id));
+        const packTitle = translations.find(t => t.language === 'en')?.title || 'Unknown';
+        await logAuditFromRequest(
+          request,
+          'update',
+          'settings',
+          id,
+          `${packTitle}: reordered shorts`
+        );
 
         return JSON.parse(response.body);
       } catch (error) {

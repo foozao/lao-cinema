@@ -6,6 +6,7 @@ import * as schema from '../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { optionalAuth, requireAdmin } from '../lib/auth-middleware.js';
 import { sendBadRequest, sendNotFound, sendInternalError } from '../lib/response-helpers.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
 
 export default async function genreRoutes(fastify: FastifyInstance) {
   
@@ -61,6 +62,21 @@ export default async function genreRoutes(fastify: FastifyInstance) {
         .where(eq(schema.genreTranslations.genreId, nextId));
       
       const name = buildLocalizedText(genreTranslations, 'name');
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'create',
+        'genre',
+        String(nextId),
+        nameEn,
+        {
+          genre_id: { before: null, after: nextId },
+          name_en: { before: null, after: nameEn },
+          name_lo: { before: null, after: nameLo || null },
+          is_visible: { before: null, after: isVisible },
+        }
+      );
       
       return {
         genre: {
@@ -169,6 +185,19 @@ export default async function genreRoutes(fastify: FastifyInstance) {
       for (const trans of translations) {
         name[trans.language] = trans.name;
       }
+      
+      // Log audit event
+      const genreName = translations.find(t => t.language === 'en')?.name || 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'update',
+        'genre',
+        id,
+        genreName,
+        {
+          is_visible: { before: existingGenre[0].isVisible, after: isVisible },
+        }
+      );
       
       return {
         genre: {

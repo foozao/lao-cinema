@@ -305,6 +305,18 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
             .returning();
         }
 
+        // Log audit event
+        await logAuditFromRequest(
+          request,
+          'update',
+          'settings',
+          '1',
+          'Homepage settings',
+          {
+            randomize_featured: { before: !randomizeFeatured, after: randomizeFeatured },
+          }
+        );
+
         return { settings };
       } catch (error) {
         fastify.log.error(error);
