@@ -79,6 +79,14 @@ CONTENT_TABLES=(
     "short_pack_items"
     "homepage_featured"
     "trailers"
+    "award_shows"
+    "award_show_translations"
+    "award_editions"
+    "award_edition_translations"
+    "award_categories"
+    "award_category_translations"
+    "award_nominations"
+    "award_nomination_translations"
 )
 
 # User data tables (will NOT be synced)

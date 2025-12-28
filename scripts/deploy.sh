@@ -37,6 +37,7 @@ DEPLOY_WEB=false
 DEPLOY_VIDEO=false
 DB_UPDATE=false     # Push schema changes to Cloud SQL
 DB_WIPE=false       # Replace Cloud SQL with local database
+SYNC_CONTENT=false  # Sync content (movies, awards, etc.) to Cloud SQL
 
 # Show help if no arguments provided
 if [ $# -eq 0 ]; then
@@ -49,15 +50,18 @@ if [ $# -eq 0 ]; then
     echo "  --all           Deploy all services (API + Web + Video)"
     echo ""
     echo "Database options:"
-    echo "  --db-update     Push schema changes to Cloud SQL (drizzle-kit push)"
-    echo "  --db-wipe       Replace Cloud SQL with local database (DESTRUCTIVE)"
+    echo "  --db-update       Push schema changes to Cloud SQL (drizzle-kit push)"
+    echo "  --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL"
+    echo "  --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)"
     echo ""
     echo "Examples:"
-    echo "  $0 --all                # Deploy all services"
-    echo "  $0 --api --web          # Deploy API + Web only"
-    echo "  $0 --all --db-update    # Deploy all + update schema"
-    echo "  $0 --all --db-wipe      # Deploy all + replace Cloud DB with local"
-    echo "  $0 --api --db-update    # Deploy API only + update schema"
+    echo "  $0 --all                      # Deploy all services"
+    echo "  $0 --api --web                # Deploy API + Web only"
+    echo "  $0 --all --db-update          # Deploy all + update schema"
+    echo "  $0 --all --sync-content       # Deploy all + sync content data"
+    echo "  $0 --all --db-update --sync-content  # Full deploy with schema + content"
+    echo "  $0 --api --db-update          # Deploy API only + update schema"
+    echo "  $0 --all --db-wipe            # Deploy all + replace Cloud DB with local"
     exit 0
 fi
 
@@ -89,6 +93,10 @@ while [[ $# -gt 0 ]]; do
             DB_UPDATE=true
             shift
             ;;
+        --sync-content)
+            SYNC_CONTENT=true
+            shift
+            ;;
         --db-wipe)
             DB_WIPE=true
             shift
@@ -103,8 +111,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --all           Deploy all services (default: API + Web)"
             echo ""
             echo "Database options:"
-            echo "  --db-update     Push schema changes to Cloud SQL (drizzle-kit push)"
-            echo "  --db-wipe       Replace Cloud SQL with local database (DESTRUCTIVE)"
+            echo "  --db-update       Push schema changes to Cloud SQL (drizzle-kit push)"
+            echo "  --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL"
+            echo "  --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)"
             echo ""
             echo "Examples:"
             echo "  $0                      # Deploy API + Web"
@@ -433,9 +442,14 @@ fi
 # DATABASE OPERATIONS
 # ========================================
 
-# Check if both flags are set (not allowed)
-if [ "$DB_UPDATE" = true ] && [ "$DB_WIPE" = true ]; then
+# Check for conflicting flags
+if [ "$DB_WIPE" = true ] && [ "$DB_UPDATE" = true ]; then
     log_error "Cannot use --db-update and --db-wipe together"
+    exit 1
+fi
+
+if [ "$DB_WIPE" = true ] && [ "$SYNC_CONTENT" = true ]; then
+    log_error "Cannot use --sync-content and --db-wipe together (--db-wipe already syncs everything)"
     exit 1
 fi
 
@@ -465,10 +479,10 @@ if [ "$DB_UPDATE" = true ]; then
     fi
     log_info "✓ Cloud SQL proxy started (PID: $PROXY_PID)"
     
-    # Push schema changes
+    # Push schema changes (--force for non-interactive mode)
     log_info "Pushing schema changes to Cloud SQL..."
     cd db
-    DATABASE_URL="postgresql://${CLOUD_DB_USER:-laocinema}:${CLOUD_DB_PASS}@127.0.0.1:5433/${CLOUD_DB_NAME:-laocinema}" npm run db:push
+    DATABASE_URL="postgresql://${CLOUD_DB_USER:-laocinema}:${CLOUD_DB_PASS}@127.0.0.1:5433/${CLOUD_DB_NAME:-laocinema}" npx drizzle-kit push --force
     cd ..
     
     # Stop proxy
@@ -476,6 +490,23 @@ if [ "$DB_UPDATE" = true ]; then
     kill $PROXY_PID 2>/dev/null
     
     log_info "✓ Schema updated successfully"
+fi
+
+# Sync content to Cloud SQL
+if [ "$SYNC_CONTENT" = true ]; then
+    log_info "========================================="
+    log_info "Syncing content to Cloud SQL..."
+    log_info "========================================="
+    
+    # Run content sync script
+    ./scripts/sync-content-to-cloud.sh
+    
+    if [ $? -ne 0 ]; then
+        log_error "Content sync failed"
+        exit 1
+    fi
+    
+    log_info "✓ Content synced successfully"
 fi
 
 # Wipe and restore database
