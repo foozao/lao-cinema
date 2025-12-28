@@ -186,15 +186,19 @@ DATABASE_URL=postgresql://laocinema:laocinema_dev@localhost:5432/lao_cinema
 ```bash
 # web/.env.local (build time)
 TMDB_API_KEY=your_tmdb_api_key
-NEXT_PUBLIC_API_URL=https://api.laocinema.com/api
+NEXT_PUBLIC_API_URL=https://api.laocinema.com/api  # Production
+# NEXT_PUBLIC_API_URL=https://api.preview.laocinema.com/api  # Preview
 NEXT_PUBLIC_SITE_URL=https://laocinema.com
 
 # Cloud Run environment variables (runtime)
 AUTH_USERS=admin:SecurePassword123:admin
+NODE_ENV=production
 
 # api/.env
 DATABASE_URL=postgresql://user:pass@/lao_cinema?host=/cloudsql/project:region:instance
 VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls
+VIDEO_SERVER_URL=https://stream.laocinema.com  # Production
+# VIDEO_SERVER_URL=https://stream.preview.laocinema.com  # Preview
 CORS_ORIGIN=https://laocinema.com
 ```
 

@@ -191,7 +191,8 @@ npm run build
 Required for production:
 - `DATABASE_URL` - PostgreSQL connection string
 - `PORT` - Server port (default: 3001)
-- `CORS_ORIGIN` - Frontend URL (e.g., https://laocinema.com)
+- `CORS_ORIGIN` - Frontend URL (e.g., https://laocinema.com or https://preview.laocinema.com)
+- `VIDEO_SERVER_URL` - Video streaming URL (e.g., https://stream.laocinema.com or https://stream.preview.laocinema.com)
 - `LOG_LEVEL` - `info`, `warn`, `error`
 
 ### Start

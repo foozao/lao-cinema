@@ -6,17 +6,19 @@ This guide covers setting up custom domains for your Lao Cinema deployment on GC
 
 ### Recommended Setup (Testing Phase)
 ```
-laocinema.com              → Placeholder "Coming Soon" page
-www.laocinema.com          → Redirect to laocinema.com
-preview.laocinema.com      → Full web app (for testing)
-api-preview.laocinema.com  → API service (for testing)
+laocinema.com                → Placeholder "Coming Soon" page
+www.laocinema.com            → Redirect to laocinema.com
+preview.laocinema.com        → Full web app (for testing)
+api.preview.laocinema.com    → API service (for testing)
+stream.preview.laocinema.com → Video streaming (for testing)
 ```
 
 ### Production Setup (After Launch)
 ```
-laocinema.com              → Full web app
-www.laocinema.com          → Redirect to laocinema.com
-api.laocinema.com          → API service
+laocinema.com         → Full web app
+www.laocinema.com     → Redirect to laocinema.com
+api.laocinema.com     → API service
+stream.laocinema.com  → Video streaming
 ```
 
 ---
@@ -84,7 +86,13 @@ gcloud beta run domain-mappings create \
 # Map API subdomain to API service
 gcloud beta run domain-mappings create \
   --service=lao-cinema-api \
-  --domain=api-preview.laocinema.com \
+  --domain=api.preview.laocinema.com \
+  --region=$REGION
+
+# Map video streaming subdomain to video service
+gcloud beta run domain-mappings create \
+  --service=lao-cinema-video \
+  --domain=stream.preview.laocinema.com \
   --region=$REGION
 ```
 
@@ -158,12 +166,20 @@ gcloud dns record-sets create preview.laocinema.com. \
   --ttl="300" \
   --rrdatas="2001:4860:4802:32::15"
 
-# Repeat for API subdomain
-gcloud dns record-sets create api-preview.laocinema.com. \
+# Note: Modern Cloud Run uses CNAME records instead of A/AAAA
+# DNS records are auto-created when you add domain mappings
+# If you need to create them manually:
+gcloud dns record-sets create api.preview.laocinema.com. \
   --zone="laocinema-zone" \
-  --type="A" \
+  --type="CNAME" \
   --ttl="300" \
-  --rrdatas="[API_IP_FROM_MAPPING]"
+  --rrdatas="ghs.googlehosted.com."
+
+gcloud dns record-sets create stream.preview.laocinema.com. \
+  --zone="laocinema-zone" \
+  --type="CNAME" \
+  --ttl="300" \
+  --rrdatas="ghs.googlehosted.com."
 ```
 
 ---
@@ -270,12 +286,17 @@ After domain mapping, update your services with the new URLs:
 # Update Web app with new API URL
 gcloud run services update lao-cinema-web \
   --region=$REGION \
-  --update-env-vars="NEXT_PUBLIC_API_URL=https://api-preview.laocinema.com"
+  --update-env-vars="NEXT_PUBLIC_API_URL=https://api.preview.laocinema.com/api"
 
-# Update API with new CORS origin
+# Update API with new CORS origin and video server URL
 gcloud run services update lao-cinema-api \
   --region=$REGION \
-  --update-env-vars="CORS_ORIGIN=https://preview.laocinema.com"
+  --update-env-vars="CORS_ORIGIN=https://preview.laocinema.com,VIDEO_SERVER_URL=https://stream.preview.laocinema.com"
+
+# Update Video server with CORS origins
+gcloud run services update lao-cinema-video \
+  --region=$REGION \
+  --update-env-vars="CORS_ORIGINS=https://preview.laocinema.com"
 ```
 
 ---
@@ -302,12 +323,14 @@ Test your domains:
 ```bash
 # Check DNS propagation
 dig preview.laocinema.com
-dig api-preview.laocinema.com
+dig api.preview.laocinema.com
+dig stream.preview.laocinema.com
 dig laocinema.com
 
 # Test HTTPS (may take a few minutes for SSL cert provisioning)
 curl -I https://preview.laocinema.com
-curl -I https://api-preview.laocinema.com
+curl -I https://api.preview.laocinema.com/health
+curl -I https://stream.preview.laocinema.com/health
 ```
 
 **Note**: Cloud Run automatically provisions SSL certificates for custom domains. This can take 15-30 minutes.
@@ -333,6 +356,11 @@ gcloud beta run domain-mappings create \
 gcloud beta run domain-mappings create \
   --service=lao-cinema-api \
   --domain=api.laocinema.com \
+  --region=$REGION
+
+gcloud beta run domain-mappings create \
+  --service=lao-cinema-video \
+  --domain=stream.laocinema.com \
   --region=$REGION
 ```
 
@@ -383,14 +411,25 @@ Update DNS records accordingly.
 
 ---
 
-## Alternative: Use Different TLD for Testing
+## Domain Structure Benefits
+
+The subdomain-based structure (`api.preview.laocinema.com`) provides several advantages:
+
+1. **Cleaner hierarchy**: Environment is the primary organizational unit
+2. **Simpler SSL**: One wildcard cert per environment (`*.preview.laocinema.com`, `*.laocinema.com`)
+3. **Easier CORS**: Consistent origin patterns across environments
+4. **Better DNS management**: Subdomain delegation is cleaner
+5. **Scalable**: Easy to add staging environment (`api.staging.laocinema.com`)
+
+### Alternative: Separate Testing Domain
 
 If you want maximum obscurity, you could register a separate domain:
 
 ```
-laocinema.com              → Placeholder
-laocinema-preview.com      → Full testing site
-api.laocinema-preview.com  → API for testing
+laocinema.com                → Placeholder
+laocinema-preview.com        → Full testing site
+api.laocinema-preview.com    → API for testing
+stream.laocinema-preview.com → Video streaming for testing
 ```
 
 This keeps testing completely separate from your production domain.

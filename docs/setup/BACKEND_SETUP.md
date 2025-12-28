@@ -419,7 +419,10 @@ npm run db:seed
 
 Update `NEXT_PUBLIC_API_URL` to production API URL:
 ```env
+# Production
 NEXT_PUBLIC_API_URL=https://api.laocinema.com/api
+# Preview
+NEXT_PUBLIC_API_URL=https://api.preview.laocinema.com/api
 ```
 
 ## Quick Reference

@@ -24,9 +24,15 @@ export DB_INSTANCE_NAME="lao-cinema-db"
 export CONNECTION_NAME=""  # Will be fetched automatically if empty
 
 # Custom domain configuration (leave empty to use Cloud Run URLs)
+# New subdomain structure (preferred):
 export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
-export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
-export CUSTOM_VIDEO_DOMAIN="https://stream-preview.laocinema.com"
+export CUSTOM_API_DOMAIN="https://api.preview.laocinema.com"
+export CUSTOM_VIDEO_DOMAIN="https://stream.preview.laocinema.com"
+
+# Legacy domains (for backward compatibility during migration):
+# export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
+# export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
+# export CUSTOM_VIDEO_DOMAIN="https://stream-preview.laocinema.com"
 
 # GCS bucket for video files
 export VIDEO_BUCKET="lao-cinema-videos"
@@ -322,7 +328,7 @@ else
         --update-env-vars="DB_USER=laocinema" \
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
-        --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream-preview.laocinema.com}" \
+        --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream.preview.laocinema.com}" \
         --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
         --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:-}" \

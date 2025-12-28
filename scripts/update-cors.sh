@@ -7,7 +7,7 @@ set -e
 # Configuration
 PROJECT_ID="lao-cinema"
 REGION="asia-southeast1"
-DEFAULT_CORS_ORIGIN="https://preview.laocinema.com"
+DEFAULT_CORS_ORIGIN="https://preview.laocinema.com"  # Web domain (unchanged)
 
 # Colors
 GREEN='\033[0;32m'

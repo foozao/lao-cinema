@@ -25,6 +25,7 @@ export const SITE_NAME = 'Lao Cinema';
  * Set via NEXT_PUBLIC_API_URL environment variable
  * 
  * Production: https://api.laocinema.com/api
+ * Preview: https://api.preview.laocinema.com/api
  * Development: http://localhost:3001/api
  */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
