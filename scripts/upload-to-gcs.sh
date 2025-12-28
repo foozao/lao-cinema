@@ -6,9 +6,52 @@
 
 set -e
 
+# Parse --env argument
+ENV="preview"
+ARGS=()
+for arg in "$@"; do
+    case $arg in
+        --env=*)
+            ENV="${arg#*=}"
+            ;;
+        *)
+            ARGS+=("$arg")
+            ;;
+    esac
+done
+
+# Handle --env with space
+NEW_ARGS=()
+i=0
+while [ $i -lt ${#ARGS[@]} ]; do
+    if [ "${ARGS[$i]}" = "--env" ]; then
+        ENV="${ARGS[$((i+1))]}"
+        i=$((i+2))
+    else
+        NEW_ARGS+=("${ARGS[$i]}")
+        i=$((i+1))
+    fi
+done
+set -- "${NEW_ARGS[@]}"
+
 # Configuration
-BUCKET_NAME="lao-cinema-videos"
 PROJECT_ID="lao-cinema"
+
+# Environment-specific bucket
+case $ENV in
+    preview|production)
+        BUCKET_NAME="lao-cinema-videos"
+        ;;
+    staging)
+        BUCKET_NAME="lao-cinema-videos-staging"
+        ;;
+    *)
+        echo "Invalid environment: $ENV"
+        echo "Use: --env preview|staging|production"
+        exit 1
+        ;;
+esac
+
 SPECIFIC_MOVIE="$1"  # Optional: specific movie to upload
 
 # Colors
@@ -37,6 +80,8 @@ if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
     exit 1
 fi
 log_info "✓ GCP project: $PROJECT_ID"
+log_info "✓ Environment: $ENV"
+log_info "✓ Bucket: $BUCKET_NAME"
 echo ""
 
 # Check if bucket exists, create if not

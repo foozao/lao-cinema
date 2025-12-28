@@ -64,7 +64,7 @@ Database credentials are configured in the scripts:
 - Password: `laocinema_dev`
 
 **Cloud SQL:**
-- Instance: `lao-cinema-db`
+- Instance: `laocinema-preview` (or `laocinema-staging`, `laocinema-production`)
 - Database: `laocinema`
 - User: `laocinema`
 - Password: Set via `CLOUD_DB_PASS` environment variable

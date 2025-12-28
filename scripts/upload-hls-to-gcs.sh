@@ -9,10 +9,39 @@
 
 set -e
 
+# Parse --env argument
+ENV="preview"
+for arg in "$@"; do
+    case $arg in
+        --env)
+            shift
+            ENV="$1"
+            shift
+            ;;
+        --env=*)
+            ENV="${arg#*=}"
+            ;;
+    esac
+done
+
 # Configuration
-GCS_BUCKET="lao-cinema-videos"
-GCS_HLS_PATH="hls"
 PROJECT_ID="lao-cinema"
+GCS_HLS_PATH="hls"
+
+# Environment-specific bucket
+case $ENV in
+    preview|production)
+        GCS_BUCKET="lao-cinema-videos"
+        ;;
+    staging)
+        GCS_BUCKET="lao-cinema-videos-staging"
+        ;;
+    *)
+        echo "Invalid environment: $ENV"
+        echo "Use: --env preview|staging|production"
+        exit 1
+        ;;
+esac
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -32,6 +61,8 @@ if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
     exit 1
 fi
 echo -e "${GREEN}✓ GCP project: $PROJECT_ID${NC}"
+echo -e "${GREEN}✓ Environment: $ENV${NC}"
+echo -e "${GREEN}✓ Bucket: $GCS_BUCKET${NC}"
 echo ""
 
 # Check if gsutil is installed
@@ -42,9 +73,20 @@ if ! command -v gsutil &> /dev/null; then
     exit 1
 fi
 
+# Filter out --env from positional args
+POS_ARGS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --env) shift; shift ;; # skip --env and its value
+        --env=*) shift ;;
+        *) POS_ARGS+=("$1"); shift ;;
+    esac
+done
+set -- "${POS_ARGS[@]}"
+
 # Show usage if no arguments
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <movie-name> [--dry-run]"
+    echo "Usage: $0 [--env preview|staging|production] <movie-name> [--dry-run]"
     echo ""
     echo "Arguments:"
     echo "  movie-name   Name of the HLS folder in video-server/videos/hls/"

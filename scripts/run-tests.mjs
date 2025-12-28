@@ -27,6 +27,7 @@ const colors = {
 const testSuites = [
   { name: 'Web (Jest)', command: 'npm', args: ['test'], cwd: join(rootDir, 'web') },
   { name: 'API (Vitest)', command: 'npm', args: ['test'], cwd: join(rootDir, 'api') },
+  { name: 'Scripts (Env Flags)', command: './scripts/test-env-flags.sh', args: [], cwd: rootDir },
 ];
 
 const results = [];

@@ -20,9 +20,13 @@ fi
 # ========================================
 export PROJECT_ID="lao-cinema"
 export REGION="asia-southeast1"  # Singapore - closest to Laos
-export DB_INSTANCE_NAME="lao-cinema-db"
-export CONNECTION_NAME=""  # Will be fetched automatically if empty
-export VIDEO_BUCKET="lao-cinema-videos"
+
+# Environment-specific resources (set after --env flag is parsed)
+export DB_INSTANCE_NAME=""
+export CONNECTION_NAME=""
+export VIDEO_BUCKET=""
+export CLOUD_DB_USER="laocinema"
+export CLOUD_DB_NAME="laocinema"
 
 # Colors for output
 RED='\033[0;31m'
@@ -53,30 +57,45 @@ log_step() {
 # ========================================
 # ENVIRONMENT CONFIGURATION
 # ========================================
-# Sets CUSTOM_WEB_DOMAIN, CUSTOM_API_DOMAIN, CUSTOM_VIDEO_DOMAIN based on environment
+# Sets domains, service names, and infrastructure per environment
 set_environment_domains() {
-    case $DEPLOY_ENV in
-        preview)
-            CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
-            CUSTOM_API_DOMAIN="https://api.preview.laocinema.com"
-            CUSTOM_VIDEO_DOMAIN="https://stream.preview.laocinema.com"
-            ;;
-        staging)
-            CUSTOM_WEB_DOMAIN="https://staging.laocinema.com"
-            CUSTOM_API_DOMAIN="https://api.staging.laocinema.com"
-            CUSTOM_VIDEO_DOMAIN="https://stream.staging.laocinema.com"
-            ;;
-        production)
-            CUSTOM_WEB_DOMAIN="https://laocinema.com"
-            CUSTOM_API_DOMAIN="https://api.laocinema.com"
-            CUSTOM_VIDEO_DOMAIN="https://stream.laocinema.com"
-            ;;
-        *)
-            log_error "Unknown environment: $DEPLOY_ENV"
-            log_error "Valid environments: preview, staging, production"
-            exit 1
-            ;;
-    esac
+    if [ "$DEPLOY_ENV" = "production" ]; then
+        CUSTOM_WEB_DOMAIN="https://laocinema.com"
+        CUSTOM_API_DOMAIN="https://api.laocinema.com"
+        CUSTOM_VIDEO_DOMAIN="https://stream.laocinema.com"
+        DB_INSTANCE_NAME="laocinema-production"
+        VIDEO_BUCKET="lao-cinema-videos-production"
+        # Production uses base service names (no suffix)
+        SERVICE_WEB="lao-cinema-web"
+        SERVICE_API="lao-cinema-api"
+        SERVICE_VIDEO="lao-cinema-video"
+        # Use CLOUD_DB_PASS_PRODUCTION env var (fallback to CLOUD_DB_PASS)
+        CLOUD_DB_PASS="${CLOUD_DB_PASS_PRODUCTION:-$CLOUD_DB_PASS}"
+    elif [ "$DEPLOY_ENV" = "staging" ]; then
+        CUSTOM_WEB_DOMAIN="https://staging.laocinema.com"
+        CUSTOM_API_DOMAIN="https://api.staging.laocinema.com"
+        CUSTOM_VIDEO_DOMAIN="https://stream.staging.laocinema.com"
+        DB_INSTANCE_NAME="laocinema-staging"
+        VIDEO_BUCKET="lao-cinema-videos-staging"
+        # Staging uses -staging suffix
+        SERVICE_WEB="lao-cinema-web-staging"
+        SERVICE_API="lao-cinema-api-staging"
+        SERVICE_VIDEO="lao-cinema-video-staging"
+        # Use CLOUD_DB_PASS_STAGING env var (fallback to CLOUD_DB_PASS)
+        CLOUD_DB_PASS="${CLOUD_DB_PASS_STAGING:-$CLOUD_DB_PASS}"
+    else
+        # preview (default)
+        CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
+        CUSTOM_API_DOMAIN="https://api.preview.laocinema.com"
+        CUSTOM_VIDEO_DOMAIN="https://stream.preview.laocinema.com"
+        DB_INSTANCE_NAME="laocinema-preview"
+        VIDEO_BUCKET="lao-cinema-videos"
+        # Preview uses -preview suffix
+        SERVICE_WEB="lao-cinema-web-preview"
+        SERVICE_API="lao-cinema-api-preview"
+        SERVICE_VIDEO="lao-cinema-video-preview"
+        # Use CLOUD_DB_PASS env var
+    fi
 }
 
 # ========================================
@@ -148,7 +167,7 @@ WORKFLOWS:
     Test-Then-Release:
         1. $0 --all --no-traffic           # Deploy for testing
         2. Test at tagged URL
-        3. gcloud run services update-traffic lao-cinema-api --region=asia-southeast1 --to-latest
+        3. gcloud run services update-traffic <service> --region=asia-southeast1 --to-latest
 
     Canary Deployment:
         1. $0 --all --canary 10            # Start with 10%
@@ -286,21 +305,21 @@ if [ "$DEPLOY_MODE" = "rollback" ]; then
     
     # Get previous API revision
     PREV_API_REVISION=$(gcloud run revisions list \
-        --service=lao-cinema-api \
+        --service=$SERVICE_API \
         --region=$REGION \
         --limit=2 \
         --format='value(metadata.name)' | tail -n 1)
     
     # Get previous Web revision
     PREV_WEB_REVISION=$(gcloud run revisions list \
-        --service=lao-cinema-web \
+        --service=$SERVICE_WEB \
         --region=$REGION \
         --limit=2 \
         --format='value(metadata.name)' | tail -n 1)
     
     # Get previous Video revision
     PREV_VIDEO_REVISION=$(gcloud run revisions list \
-        --service=lao-cinema-video \
+        --service=$SERVICE_VIDEO \
         --region=$REGION \
         --limit=2 \
         --format='value(metadata.name)' 2>/dev/null | tail -n 1 || echo "")
@@ -311,20 +330,20 @@ if [ "$DEPLOY_MODE" = "rollback" ]; then
     fi
     
     log_info "Rolling back API to: $PREV_API_REVISION"
-    gcloud run services update-traffic lao-cinema-api \
+    gcloud run services update-traffic $SERVICE_API \
         --region=$REGION \
         --to-revisions=$PREV_API_REVISION=100 \
         --quiet
     
     log_info "Rolling back Web to: $PREV_WEB_REVISION"
-    gcloud run services update-traffic lao-cinema-web \
+    gcloud run services update-traffic $SERVICE_WEB \
         --region=$REGION \
         --to-revisions=$PREV_WEB_REVISION=100 \
         --quiet
     
     if [ -n "$PREV_VIDEO_REVISION" ]; then
         log_info "Rolling back Video to: $PREV_VIDEO_REVISION"
-        gcloud run services update-traffic lao-cinema-video \
+        gcloud run services update-traffic $SERVICE_VIDEO \
             --region=$REGION \
             --to-revisions=$PREV_VIDEO_REVISION=100 \
             --quiet
@@ -360,13 +379,13 @@ fi
 log_info "Building Docker images..."
 
 # Determine API URL (use existing service URL or construct expected URL)
-EXISTING_API_URL=$(gcloud run services describe lao-cinema-api \
+EXISTING_API_URL=$(gcloud run services describe $SERVICE_API \
     --region=$REGION \
     --format='value(status.url)' 2>/dev/null || echo "")
 
 if [ -z "$EXISTING_API_URL" ]; then
     # Construct expected URL for new deployment
-    API_URL="https://lao-cinema-api-$PROJECT_NUMBER.$REGION.run.app"
+    API_URL="https://${SERVICE_API}-$PROJECT_NUMBER.$REGION.run.app"
     log_info "New deployment - using expected API URL: $API_URL"
 else
     API_URL=$EXISTING_API_URL
@@ -376,7 +395,9 @@ fi
 # Build API (build from root to include /db directory)
 if [ "$DEPLOY_API" = true ]; then
     log_info "Building API image..."
-    docker build --platform linux/amd64 -f api/Dockerfile -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest .
+    docker build --platform linux/amd64 -f api/Dockerfile \
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:$DEPLOY_ENV .
     if [ $? -ne 0 ]; then
         log_error "Failed to build API image"
         exit 1
@@ -387,11 +408,11 @@ fi
 if [ "$DEPLOY_WEB" = true ]; then
     # Use custom API domain if configured, otherwise use Cloud Run URL
     WEB_API_URL="${CUSTOM_API_DOMAIN:-$API_URL}/api"
-    log_info "Building Web image with API_URL=$WEB_API_URL..."
+    log_info "Building Web image for $DEPLOY_ENV with API_URL=$WEB_API_URL..."
     cd web
     docker build --no-cache --platform linux/amd64 \
         --build-arg NEXT_PUBLIC_API_URL=$WEB_API_URL \
-        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest .
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:$DEPLOY_ENV .
     if [ $? -ne 0 ]; then
         log_error "Failed to build Web image"
         exit 1
@@ -404,7 +425,8 @@ if [ "$DEPLOY_VIDEO" = true ]; then
     log_info "Building Video Server image..."
     cd video-server
     docker build --platform linux/amd64 \
-        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest .
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest \
+        -t $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:$DEPLOY_ENV .
     if [ $? -ne 0 ]; then
         log_error "Failed to build Video Server image"
         exit 1
@@ -419,6 +441,7 @@ log_info "Pushing images to Artifact Registry..."
 
 if [ "$DEPLOY_API" = true ]; then
     docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:$DEPLOY_ENV
     if [ $? -ne 0 ]; then
         log_error "Failed to push API image"
         exit 1
@@ -426,7 +449,7 @@ if [ "$DEPLOY_API" = true ]; then
 fi
 
 if [ "$DEPLOY_WEB" = true ]; then
-    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:$DEPLOY_ENV
     if [ $? -ne 0 ]; then
         log_error "Failed to push Web image"
         exit 1
@@ -435,6 +458,7 @@ fi
 
 if [ "$DEPLOY_VIDEO" = true ]; then
     docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest
+    docker push $REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:$DEPLOY_ENV
     if [ $? -ne 0 ]; then
         log_error "Failed to push Video Server image"
         exit 1
@@ -467,8 +491,8 @@ if [ "$DEPLOY_API" = true ]; then
 log_info "Deploying API service..."
 if [ -z "$CONNECTION_NAME" ]; then
     log_warn "Deploying API without Cloud SQL connection. Set CONNECTION_NAME if you need database access."
-    gcloud run deploy lao-cinema-api \
-        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
+    gcloud run deploy $SERVICE_API \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:$DEPLOY_ENV \
         --region=$REGION \
         --platform=managed \
         --allow-unauthenticated \
@@ -482,8 +506,8 @@ if [ -z "$CONNECTION_NAME" ]; then
 else
     # Deploy with Cloud SQL connection via unix socket
     # Set env vars individually to avoid delimiter issues
-    gcloud run deploy lao-cinema-api \
-        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:latest \
+    gcloud run deploy $SERVICE_API \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:$DEPLOY_ENV \
         --region=$REGION \
         --platform=managed \
         --allow-unauthenticated \
@@ -492,7 +516,7 @@ else
         --update-env-vars="DB_NAME=laocinema" \
         --update-env-vars="DB_USER=laocinema" \
         --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
-        --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/lao-cinema-videos/hls" \
+        --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/$VIDEO_BUCKET/hls" \
         --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream.preview.laocinema.com}" \
         --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
@@ -511,7 +535,7 @@ else
 fi
 
 # Get API URL (needed for web deployment)
-API_URL=$(gcloud run services describe lao-cinema-api \
+API_URL=$(gcloud run services describe $SERVICE_API \
     --region=$REGION \
     --format='value(status.url)')
 if [ "$DEPLOY_API" = true ]; then
@@ -526,14 +550,14 @@ log_info "Deploying Web service..."
 # Create temporary env file with API URL and video base URL
 cat > scripts/.env.web.yaml.tmp <<EOF
 NEXT_PUBLIC_API_URL: "$API_URL"
-NEXT_PUBLIC_VIDEO_BASE_URL: "https://storage.googleapis.com/lao-cinema-videos/hls"
+NEXT_PUBLIC_VIDEO_BASE_URL: "https://storage.googleapis.com/$VIDEO_BUCKET/hls"
 NEXT_PUBLIC_SENTRY_DSN: "${SENTRY_WEB_DSN:-}"
 AUTH_USERS: "admin:uCQkoNT_DsUTo6:admin,test:LaoCinema5050:viewer"
 NODE_ENV: "production"
 EOF
 
-gcloud run deploy lao-cinema-web \
-    --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:latest \
+gcloud run deploy $SERVICE_WEB \
+    --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/web:$DEPLOY_ENV \
     --region=$REGION \
     --platform=managed \
     --allow-unauthenticated \
@@ -549,14 +573,14 @@ gcloud run deploy lao-cinema-web \
 rm -f scripts/.env.web.yaml.tmp
 
 # Get Web URL
-WEB_URL=$(gcloud run services describe lao-cinema-web \
+WEB_URL=$(gcloud run services describe $SERVICE_WEB \
     --region=$REGION \
     --format='value(status.url)')
 log_info "Web deployed at: $WEB_URL"
 else
     log_info "Skipping Web deployment (--api flag)"
     # Still need WEB_URL for summary
-    WEB_URL=$(gcloud run services describe lao-cinema-web \
+    WEB_URL=$(gcloud run services describe $SERVICE_WEB \
         --region=$REGION \
         --format='value(status.url)' 2>/dev/null || echo "not deployed")
 fi
@@ -568,8 +592,8 @@ if [ "$DEPLOY_VIDEO" = true ]; then
     # Get the API URL for token validation (use internal Cloud Run URL for low latency)
     VIDEO_API_URL="$API_URL"
     
-    gcloud run deploy lao-cinema-video \
-        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:latest \
+    gcloud run deploy $SERVICE_VIDEO \
+        --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:$DEPLOY_ENV \
         --region=$REGION \
         --platform=managed \
         --allow-unauthenticated \
@@ -589,12 +613,12 @@ if [ "$DEPLOY_VIDEO" = true ]; then
         $TRAFFIC_FLAGS $TAG_FLAGS
 
     # Get Video Server URL
-    VIDEO_URL=$(gcloud run services describe lao-cinema-video \
+    VIDEO_URL=$(gcloud run services describe $SERVICE_VIDEO \
         --region=$REGION \
         --format='value(status.url)')
     log_info "Video Server deployed at: $VIDEO_URL"
 else
-    VIDEO_URL=$(gcloud run services describe lao-cinema-video \
+    VIDEO_URL=$(gcloud run services describe $SERVICE_VIDEO \
         --region=$REGION \
         --format='value(status.url)' 2>/dev/null || echo "not deployed")
 fi
@@ -606,7 +630,7 @@ if [ "$DEPLOY_WEB" = true ] && [ "$DEPLOY_MODE" = "full" ]; then
     log_info "Updating API CORS configuration..."
     # Use custom domain if configured, otherwise use Cloud Run URL
     CORS_ORIGIN="${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-    gcloud run services update lao-cinema-api \
+    gcloud run services update $SERVICE_API \
         --region=$REGION \
         --update-env-vars="CORS_ORIGIN=$CORS_ORIGIN" \
         --quiet
@@ -620,12 +644,12 @@ if [ "$DEPLOY_MODE" = "canary" ]; then
     
     if [ "$DEPLOY_API" = true ]; then
         API_REVISION=$(gcloud run revisions list \
-            --service=lao-cinema-api \
+            --service=$SERVICE_API \
             --region=$REGION \
             --limit=1 \
             --format='value(metadata.name)')
         log_info "Setting ${CANARY_PERCENT}% traffic to new API revision: $API_REVISION"
-        gcloud run services update-traffic lao-cinema-api \
+        gcloud run services update-traffic $SERVICE_API \
             --region=$REGION \
             --to-revisions=$API_REVISION=$CANARY_PERCENT \
             --quiet
@@ -633,12 +657,12 @@ if [ "$DEPLOY_MODE" = "canary" ]; then
     
     if [ "$DEPLOY_WEB" = true ]; then
         WEB_REVISION=$(gcloud run revisions list \
-            --service=lao-cinema-web \
+            --service=$SERVICE_WEB \
             --region=$REGION \
             --limit=1 \
             --format='value(metadata.name)')
         log_info "Setting ${CANARY_PERCENT}% traffic to new Web revision: $WEB_REVISION"
-        gcloud run services update-traffic lao-cinema-web \
+        gcloud run services update-traffic $SERVICE_WEB \
             --region=$REGION \
             --to-revisions=$WEB_REVISION=$CANARY_PERCENT \
             --quiet
@@ -646,12 +670,12 @@ if [ "$DEPLOY_MODE" = "canary" ]; then
     
     if [ "$DEPLOY_VIDEO" = true ]; then
         VIDEO_REVISION=$(gcloud run revisions list \
-            --service=lao-cinema-video \
+            --service=$SERVICE_VIDEO \
             --region=$REGION \
             --limit=1 \
             --format='value(metadata.name)')
         log_info "Setting ${CANARY_PERCENT}% traffic to new Video revision: $VIDEO_REVISION"
-        gcloud run services update-traffic lao-cinema-video \
+        gcloud run services update-traffic $SERVICE_VIDEO \
             --region=$REGION \
             --to-revisions=$VIDEO_REVISION=$CANARY_PERCENT \
             --quiet
@@ -736,6 +760,10 @@ if [ "$DB_WIPE" = true ]; then
     log_warn "========================================="
     log_warn "⚠️  DATABASE WIPE - DESTRUCTIVE OPERATION"
     log_warn "========================================="
+    log_warn "Environment: $DEPLOY_ENV"
+    log_warn "Target Instance: $DB_INSTANCE_NAME"
+    log_warn "Target Database: laocinema"
+    log_warn ""
     log_warn "This will REPLACE Cloud SQL database with your local database"
     log_warn "All data in Cloud SQL will be LOST"
     echo ""
@@ -745,7 +773,7 @@ if [ "$DB_WIPE" = true ]; then
         log_info "Database wipe cancelled"
     else
         log_info "Running database sync script..."
-        ./scripts/sync-db-to-cloud.sh
+        ./scripts/sync-db-to-cloud.sh "$DB_INSTANCE_NAME"
         log_info "✓ Database wiped and restored from local"
     fi
 fi
@@ -769,15 +797,15 @@ if [ "$DEPLOY_MODE" = "test" ]; then
     log_info "  Video: ${CUSTOM_VIDEO_DOMAIN}"
     echo ""
     log_info "Test URLs (tag: $DEPLOY_TAG):"
-    log_info "  Web:   https://$DEPLOY_TAG---lao-cinema-web-$(echo $WEB_URL | sed 's/https:\/\/lao-cinema-web-//')"
-    log_info "  API:   https://$DEPLOY_TAG---lao-cinema-api-$(echo $API_URL | sed 's/https:\/\/lao-cinema-api-//')"
+    log_info "  Web:   https://$DEPLOY_TAG---${SERVICE_WEB}-$(echo $WEB_URL | sed "s/https:\/\/${SERVICE_WEB}-//")"
+    log_info "  API:   https://$DEPLOY_TAG---${SERVICE_API}-$(echo $API_URL | sed "s/https:\/\/${SERVICE_API}-//")"
     echo ""
     log_info "Next steps:"
     log_info "1. Test the new revision at the test URLs"
     log_info "2. Release to production:"
-    log_info "   gcloud run services update-traffic lao-cinema-api --region=$REGION --to-latest"
-    log_info "   gcloud run services update-traffic lao-cinema-web --region=$REGION --to-latest"
-    log_info "   gcloud run services update-traffic lao-cinema-video --region=$REGION --to-latest"
+    log_info "   gcloud run services update-traffic $SERVICE_API --region=$REGION --to-latest"
+    log_info "   gcloud run services update-traffic $SERVICE_WEB --region=$REGION --to-latest"
+    log_info "   gcloud run services update-traffic $SERVICE_VIDEO --region=$REGION --to-latest"
 
 elif [ "$DEPLOY_MODE" = "canary" ]; then
     log_info "Canary Deployment (${CANARY_PERCENT}% traffic)"
@@ -791,7 +819,7 @@ elif [ "$DEPLOY_MODE" = "canary" ]; then
     log_info "Traffic split: ${CANARY_PERCENT}% new revision, $((100-CANARY_PERCENT))% previous revision"
     echo ""
     log_info "Next steps:"
-    log_info "1. Monitor logs: gcloud run services logs read lao-cinema-api --region=$REGION"
+    log_info "1. Monitor logs: gcloud run services logs read $SERVICE_API --region=$REGION"
     log_info "2. Increase traffic: $0 --all --canary 50"
     log_info "3. Full release: $0 --all"
     log_info "4. Or rollback: $0 --rollback"
@@ -815,12 +843,12 @@ else
         log_info "1. If schema changed: $0 --db-update"
     fi
     log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-    log_info "3. Check logs: gcloud run services logs read lao-cinema-api --region=$REGION"
+    log_info "3. Check logs: gcloud run services logs read $SERVICE_API --region=$REGION"
     log_info "4. If issues, rollback: $0 --rollback"
 fi
 
 echo ""
 log_info "View revisions:"
-log_info "  gcloud run revisions list --service=lao-cinema-api --region=$REGION"
-log_info "  gcloud run revisions list --service=lao-cinema-web --region=$REGION"
+log_info "  gcloud run revisions list --service=$SERVICE_API --region=$REGION"
+log_info "  gcloud run revisions list --service=$SERVICE_WEB --region=$REGION"
 echo ""

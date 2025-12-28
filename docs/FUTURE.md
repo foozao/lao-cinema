@@ -34,7 +34,29 @@ Possible Future Changes:
 
 - Gamification? 
   - Badges for things seen
-    - Feature film, short film, film that won award X, film with .. 
+    - Feature film, short film, film that won award X, film with ..
+
+## Security & Configuration
+
+### Environment-Specific HTTP Basic Auth Credentials
+
+**Current State**: All environments (preview, staging, production) use the same hardcoded HTTP Basic Auth credentials in `scripts/deploy.sh`:
+- Username: `admin` / Password: `uCQkoNT_DsUTo6` (admin role)
+- Username: `test` / Password: `LaoCinema5050` (viewer role)
+
+**Future Enhancement**: Use environment-specific credentials for better security isolation:
+- **Preview**: Current credentials (for testing)
+- **Staging**: Different credentials (shared with QA team)
+- **Production**: Strong unique credentials (limited access)
+
+**Implementation**:
+- Store credentials in environment variables or Secret Manager
+- Update `deploy.sh` to read from env-specific secrets
+- Document credential rotation process
+
+**Priority**: Low (current setup is acceptable for now, but should be changed before production launch)
+
+**Status**: Deferred until closer to production deployment 
 
 ## Backend Search API & Advanced Filtering
 

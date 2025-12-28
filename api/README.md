@@ -35,7 +35,7 @@ createdb lao_cinema
 
 **Option B: Docker**
 ```bash
-docker run --name lao-cinema-db \
+docker run --name lao-cinema-postgres \
   -e POSTGRES_PASSWORD=password \
   -e POSTGRES_DB=lao_cinema \
   -p 5432:5432 \

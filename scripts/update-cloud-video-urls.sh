@@ -8,7 +8,7 @@ set -e
 
 # Configuration
 PROJECT_ID="lao-cinema"
-INSTANCE_NAME="lao-cinema-db"
+INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
 DB_NAME="laocinema"
 DB_USER="laocinema"
 DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"

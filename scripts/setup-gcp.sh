@@ -9,7 +9,7 @@ set -e  # Exit on error
 # ========================================
 export PROJECT_ID="lao-cinema"
 export REGION="asia-southeast1"  # Singapore - closest to Laos
-export DB_INSTANCE_NAME="lao-cinema-db"
+export DB_INSTANCE_NAME="laocinema-preview"  # Or laocinema-staging, laocinema-production
 export DB_NAME="laocinema"
 export DB_USER="laocinema"
 export DB_PASSWORD=""  # Will prompt if empty

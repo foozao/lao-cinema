@@ -24,7 +24,7 @@ log_error() {
 
 # Configuration
 PROJECT_ID="lao-cinema"
-DB_INSTANCE_NAME="lao-cinema-db"
+DB_INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
 
 # Check correct GCP project is active
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)

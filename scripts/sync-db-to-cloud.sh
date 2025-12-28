@@ -2,6 +2,7 @@
 
 # Sync local database to Cloud SQL
 # This script dumps your local database and restores it to Cloud SQL
+# Usage: ./sync-db-to-cloud.sh [instance-name]
 
 set -e
 
@@ -29,7 +30,7 @@ log_error() {
 # Configuration
 PROJECT_ID="lao-cinema"
 REGION="asia-southeast1"
-INSTANCE_NAME="lao-cinema-db"
+INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
 CLOUD_DB_NAME="laocinema"
 CLOUD_DB_USER="laocinema"
 CLOUD_DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
@@ -157,5 +158,6 @@ log_info "Database sync completed successfully! 🎉"
 log_info "========================================="
 echo ""
 log_info "Your local database has been synced to Cloud SQL"
+log_info "Cloud SQL instance: $INSTANCE_NAME"
 log_info "Cloud SQL database: $CLOUD_DB_NAME"
 echo ""

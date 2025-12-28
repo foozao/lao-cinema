@@ -41,7 +41,7 @@ log_section() {
 # Configuration
 PROJECT_ID="lao-cinema"
 REGION="asia-southeast1"
-INSTANCE_NAME="lao-cinema-db"
+INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
 CLOUD_DB_NAME="laocinema"
 CLOUD_DB_USER="laocinema"
 CLOUD_DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"

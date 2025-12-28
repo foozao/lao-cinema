@@ -34,10 +34,10 @@ Location: asia-southeast1 (Singapore)
 
 ```bash
 # List all backups
-gcloud sql backups list --instance=lao-cinema-db
+gcloud sql backups list --instance=laocinema-preview
 
 # View backup details
-gcloud sql backups describe BACKUP_ID --instance=lao-cinema-db
+gcloud sql backups describe BACKUP_ID --instance=laocinema-preview
 ```
 
 ### Cost
@@ -61,7 +61,7 @@ Use manual backups before:
 
 # Or using gcloud directly
 gcloud sql backups create \
-  --instance=lao-cinema-db \
+  --instance=laocinema-preview \
   --description="Manual backup before migration"
 ```
 
@@ -140,9 +140,9 @@ Cloud SQL supports point-in-time recovery (PITR) within the transaction log rete
 
 ```bash
 # Restore to a specific timestamp
-gcloud sql instances restore-backup lao-cinema-db \
+gcloud sql instances restore-backup laocinema-preview \
   --backup-run=BACKUP_ID \
-  --backup-instance=lao-cinema-db \
+  --backup-instance=laocinema-preview \
   --point-in-time="2025-01-19T14:30:00Z"
 ```
 
@@ -192,12 +192,12 @@ gcloud sql instances restore-backup lao-cinema-db \
 
 ```bash
 # Verify automated backups are enabled
-gcloud sql instances describe lao-cinema-db \
+gcloud sql instances describe laocinema-preview \
   --format="yaml(settings.backupConfiguration)"
 
 # Check recent backup success
 gcloud sql operations list \
-  --instance=lao-cinema-db \
+  --instance=laocinema-preview \
   --filter="operationType=BACKUP" \
   --limit=5
 ```
@@ -242,10 +242,10 @@ Configure Cloud Monitoring alerts for:
 
 ```bash
 # Check instance status
-gcloud sql instances describe lao-cinema-db
+gcloud sql instances describe laocinema-preview
 
 # Check recent operations
-gcloud sql operations list --instance=lao-cinema-db --limit=10
+gcloud sql operations list --instance=laocinema-preview --limit=10
 
 # View operation details
 gcloud sql operations describe OPERATION_ID
@@ -257,7 +257,7 @@ gcloud sql operations describe OPERATION_ID
 - Large databases may take 30-60 minutes
 - Check operation status:
   ```bash
-  gcloud sql operations list --instance=lao-cinema-db
+  gcloud sql operations list --instance=laocinema-preview
   ```
 
 ### Local Export Fails

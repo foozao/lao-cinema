@@ -14,10 +14,41 @@ set -e
 # Force gsutil to use Python 3.9 (compatible with gsutil, avoids Python 3.13 issues)
 export CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.9
 
+# Parse --env argument early
+ENV="preview"
+for arg in "$@"; do
+    case $arg in
+        --env=*)
+            ENV="${arg#*=}"
+            ;;
+    esac
+done
+# Handle --env with space
+ARGS=("$@")
+for i in "${!ARGS[@]}"; do
+    if [ "${ARGS[$i]}" = "--env" ]; then
+        ENV="${ARGS[$((i+1))]}"
+    fi
+done
+
 # Configuration
-BUCKET_NAME="lao-cinema-images"
 PROJECT_ID="lao-cinema"
 IMAGE_SERVER_DIR="video-server/public"
+
+# Environment-specific bucket
+case $ENV in
+    preview|production)
+        BUCKET_NAME="lao-cinema-images"
+        ;;
+    staging)
+        BUCKET_NAME="lao-cinema-images-staging"
+        ;;
+    *)
+        echo "Invalid environment: $ENV"
+        echo "Use: --env preview|staging|production"
+        exit 1
+        ;;
+esac
 
 # Supported image categories
 SUPPORTED_CATEGORIES=("logos" "posters" "backdrops" "profiles")
@@ -55,6 +86,8 @@ if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
     exit 1
 fi
 log_info "✓ GCP project: $PROJECT_ID"
+log_info "✓ Environment: $ENV"
+log_info "✓ Bucket: $BUCKET_NAME"
 echo ""
 
 # Check if gsutil is installed
@@ -65,13 +98,23 @@ if ! command -v gsutil &> /dev/null; then
     exit 1
 fi
 
-# Parse arguments
-CATEGORY="$1"
+# Parse arguments (skip --env args)
+CATEGORY=""
 DRY_RUN=""
 UPDATE_DB=""
+SKIP_NEXT=false
 
 for arg in "$@"; do
+    if $SKIP_NEXT; then
+        SKIP_NEXT=false
+        continue
+    fi
     case $arg in
+        --env)
+            SKIP_NEXT=true
+            ;;
+        --env=*)
+            ;;
         --dry-run)
             DRY_RUN="true"
             log_warn "DRY RUN MODE - No files will be uploaded"
@@ -82,12 +125,17 @@ for arg in "$@"; do
             log_info "Will update database URLs after upload"
             echo ""
             ;;
+        *)
+            if [ -z "$CATEGORY" ]; then
+                CATEGORY="$arg"
+            fi
+            ;;
     esac
 done
 
 # Show usage if no arguments
 if [ -z "$CATEGORY" ]; then
-    echo "Usage: $0 <category> [--dry-run]"
+    echo "Usage: $0 [--env preview|staging|production] <category> [--dry-run] [--update-db]"
     echo ""
     echo "Categories:"
     echo "  logos      - Upload logo images"

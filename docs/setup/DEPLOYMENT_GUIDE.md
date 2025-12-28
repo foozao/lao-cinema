@@ -42,7 +42,7 @@ This comprehensive guide covers deploying Lao Cinema to Google Cloud Platform us
 # Set variables
 export PROJECT_ID=YOUR_PROJECT_ID
 export REGION=asia-southeast1
-export DB_INSTANCE_NAME=lao-cinema-db
+export DB_INSTANCE_NAME=laocinema-preview  # or laocinema-staging, laocinema-production
 export DB_NAME=laocinema
 export DB_USER=laocinema
 export DB_PASSWORD=YOUR_SECURE_PASSWORD

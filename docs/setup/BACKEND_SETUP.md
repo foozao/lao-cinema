@@ -33,7 +33,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-You should see `lao-cinema-db` with status "Up".
+You should see `lao-cinema-postgres` with status "Up".
 
 **Connection details:**
 - Host: localhost
@@ -84,7 +84,7 @@ createdb lao_cinema
 
 ```bash
 # Run PostgreSQL in Docker
-docker run --name lao-cinema-db \
+docker run --name lao-cinema-postgres \
   -e POSTGRES_USER=laocinema \
   -e POSTGRES_PASSWORD=password \
   -e POSTGRES_DB=lao_cinema \
@@ -304,7 +304,7 @@ curl -X POST http://localhost:3001/api/movies \
 brew services list | grep postgresql
 
 # Docker
-docker ps | grep lao-cinema-db
+docker ps | grep lao-cinema-postgres
 ```
 
 **Test connection:**

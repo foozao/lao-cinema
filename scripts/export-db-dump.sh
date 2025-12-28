@@ -27,7 +27,7 @@ log_error() {
 
 # Configuration
 PROJECT_ID="lao-cinema"
-DB_INSTANCE_NAME="lao-cinema-db"
+DB_INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
 CONNECTION_NAME="$PROJECT_ID:asia-southeast1:$DB_INSTANCE_NAME"
 DB_NAME="laocinema"
 DB_USER="laocinema"
