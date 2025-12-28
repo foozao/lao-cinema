@@ -1,6 +1,6 @@
 #!/bin/bash
 # Lao Cinema - GCP Cloud Run Deployment Script
-# Make sure to configure the variables below before running
+# Supports multiple environments and staged deployments
 
 set -e  # Exit on error
 
@@ -16,130 +16,19 @@ if [[ -f "$(dirname "$0")/../api/.env" ]]; then
 fi
 
 # ========================================
-# CONFIGURATION - UPDATE THESE VALUES
+# CONFIGURATION
 # ========================================
 export PROJECT_ID="lao-cinema"
 export REGION="asia-southeast1"  # Singapore - closest to Laos
 export DB_INSTANCE_NAME="lao-cinema-db"
 export CONNECTION_NAME=""  # Will be fetched automatically if empty
-
-# Custom domain configuration (leave empty to use Cloud Run URLs)
-# New subdomain structure (preferred):
-export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
-export CUSTOM_API_DOMAIN="https://api.preview.laocinema.com"
-export CUSTOM_VIDEO_DOMAIN="https://stream.preview.laocinema.com"
-
-# Legacy domains (for backward compatibility during migration):
-# export CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
-# export CUSTOM_API_DOMAIN="https://api-preview.laocinema.com"
-# export CUSTOM_VIDEO_DOMAIN="https://stream-preview.laocinema.com"
-
-# GCS bucket for video files
 export VIDEO_BUCKET="lao-cinema-videos"
-
-# Parse command line arguments
-DEPLOY_API=false
-DEPLOY_WEB=false
-DEPLOY_VIDEO=false
-DB_UPDATE=false     # Push schema changes to Cloud SQL
-DB_WIPE=false       # Replace Cloud SQL with local database
-SYNC_CONTENT=false  # Sync content (movies, awards, etc.) to Cloud SQL
-
-# Show help if no arguments provided
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 [OPTIONS]"
-    echo ""
-    echo "Deployment options:"
-    echo "  --api           Deploy only API service"
-    echo "  --web           Deploy only Web service"
-    echo "  --video         Deploy only Video server"
-    echo "  --all           Deploy all services (API + Web + Video)"
-    echo ""
-    echo "Database options:"
-    echo "  --db-update       Push schema changes to Cloud SQL (drizzle-kit push)"
-    echo "  --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL"
-    echo "  --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)"
-    echo ""
-    echo "Examples:"
-    echo "  $0 --all                      # Deploy all services"
-    echo "  $0 --api --web                # Deploy API + Web only"
-    echo "  $0 --all --db-update          # Deploy all + update schema"
-    echo "  $0 --all --sync-content       # Deploy all + sync content data"
-    echo "  $0 --all --db-update --sync-content  # Full deploy with schema + content"
-    echo "  $0 --api --db-update          # Deploy API only + update schema"
-    echo "  $0 --all --db-wipe            # Deploy all + replace Cloud DB with local"
-    exit 0
-fi
-
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --api)
-            DEPLOY_WEB=false
-            DEPLOY_VIDEO=false
-            shift
-            ;;
-        --web)
-            DEPLOY_API=false
-            DEPLOY_VIDEO=false
-            shift
-            ;;
-        --video)
-            DEPLOY_API=false
-            DEPLOY_WEB=false
-            DEPLOY_VIDEO=true
-            shift
-            ;;
-        --all)
-            DEPLOY_API=true
-            DEPLOY_WEB=true
-            DEPLOY_VIDEO=true
-            shift
-            ;;
-        --db-update)
-            DB_UPDATE=true
-            shift
-            ;;
-        --sync-content)
-            SYNC_CONTENT=true
-            shift
-            ;;
-        --db-wipe)
-            DB_WIPE=true
-            shift
-            ;;
-        --help)
-            echo "Usage: $0 [OPTIONS]"
-            echo ""
-            echo "Deployment options:"
-            echo "  --api           Deploy only API service"
-            echo "  --web           Deploy only Web service"
-            echo "  --video         Deploy only Video server"
-            echo "  --all           Deploy all services (default: API + Web)"
-            echo ""
-            echo "Database options:"
-            echo "  --db-update       Push schema changes to Cloud SQL (drizzle-kit push)"
-            echo "  --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL"
-            echo "  --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)"
-            echo ""
-            echo "Examples:"
-            echo "  $0                      # Deploy API + Web"
-            echo "  $0 --db-update          # Deploy + update schema"
-            echo "  $0 --db-wipe            # Deploy + replace Cloud DB with local"
-            echo "  $0 --api --db-update    # Deploy API only + update schema"
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [--api|--web|--video|--all] [--db-update|--db-wipe] [--help]"
-            exit 1
-            ;;
-    esac
-done
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # ========================================
@@ -157,10 +46,207 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+log_step() {
+    echo -e "${BLUE}[STEP]${NC} $1"
+}
+
+# ========================================
+# ENVIRONMENT CONFIGURATION
+# ========================================
+# Sets CUSTOM_WEB_DOMAIN, CUSTOM_API_DOMAIN, CUSTOM_VIDEO_DOMAIN based on environment
+set_environment_domains() {
+    case $DEPLOY_ENV in
+        preview)
+            CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
+            CUSTOM_API_DOMAIN="https://api.preview.laocinema.com"
+            CUSTOM_VIDEO_DOMAIN="https://stream.preview.laocinema.com"
+            ;;
+        staging)
+            CUSTOM_WEB_DOMAIN="https://staging.laocinema.com"
+            CUSTOM_API_DOMAIN="https://api.staging.laocinema.com"
+            CUSTOM_VIDEO_DOMAIN="https://stream.staging.laocinema.com"
+            ;;
+        production)
+            CUSTOM_WEB_DOMAIN="https://laocinema.com"
+            CUSTOM_API_DOMAIN="https://api.laocinema.com"
+            CUSTOM_VIDEO_DOMAIN="https://stream.laocinema.com"
+            ;;
+        *)
+            log_error "Unknown environment: $DEPLOY_ENV"
+            log_error "Valid environments: preview, staging, production"
+            exit 1
+            ;;
+    esac
+}
+
+# ========================================
+# DEFAULT OPTIONS
+# ========================================
+DEPLOY_API=false
+DEPLOY_WEB=false
+DEPLOY_VIDEO=false
+DB_UPDATE=false         # Push schema changes to Cloud SQL
+DB_WIPE=false           # Replace Cloud SQL with local database
+SYNC_CONTENT=false      # Sync content (movies, awards, etc.) to Cloud SQL
+DEPLOY_ENV="preview"    # Environment: preview, staging, production
+DEPLOY_MODE="full"      # Deployment mode: full, test, canary, rollback
+CANARY_PERCENT=10       # Traffic percentage for canary deployments
+DEPLOY_TAG="test"       # Tag for test deployments
+
+# ========================================
+# HELP TEXT
+# ========================================
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Deploy Lao Cinema to GCP Cloud Run.
+
+SERVICE OPTIONS:
+    --api             Deploy only API service
+    --web             Deploy only Web service
+    --video           Deploy only Video server
+    --all             Deploy all services (API + Web + Video)
+
+ENVIRONMENT OPTIONS:
+    --env ENV         Target environment: preview (default), staging, production
+                      - preview:    *.preview.laocinema.com
+                      - staging:    *.staging.laocinema.com
+                      - production: *.laocinema.com
+
+STAGED DEPLOYMENT OPTIONS:
+    --no-traffic      Deploy without shifting traffic (for testing)
+    --canary PERCENT  Deploy with canary traffic split (e.g., --canary 10)
+    --tag TAG         Tag for test deployments (default: test)
+    --rollback        Rollback to previous revision
+
+DATABASE OPTIONS:
+    --db-update       Push schema changes to Cloud SQL (drizzle-kit push)
+    --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL
+    --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)
+
+EXAMPLES:
+    # Standard deployment to preview environment
+    $0 --all
+
+    # Deploy to staging environment
+    $0 --all --env staging
+
+    # Deploy without traffic (test new revision)
+    $0 --all --no-traffic
+
+    # Canary deployment (10% traffic to new revision)
+    $0 --all --canary 10
+
+    # Rollback to previous revision
+    $0 --rollback
+
+    # Deploy with database schema update
+    $0 --all --db-update
+
+WORKFLOWS:
+    Test-Then-Release:
+        1. $0 --all --no-traffic           # Deploy for testing
+        2. Test at tagged URL
+        3. gcloud run services update-traffic lao-cinema-api --region=asia-southeast1 --to-latest
+
+    Canary Deployment:
+        1. $0 --all --canary 10            # Start with 10%
+        2. Monitor logs and metrics
+        3. $0 --all --canary 50            # Increase to 50%
+        4. $0 --all                        # Full release (100%)
+
+EOF
+    exit 0
+}
+
+# Show help if no arguments provided
+if [ $# -eq 0 ]; then
+    show_help
+fi
+
+# ========================================
+# PARSE ARGUMENTS
+# ========================================
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --api)
+            DEPLOY_API=true
+            shift
+            ;;
+        --web)
+            DEPLOY_WEB=true
+            shift
+            ;;
+        --video)
+            DEPLOY_VIDEO=true
+            shift
+            ;;
+        --all)
+            DEPLOY_API=true
+            DEPLOY_WEB=true
+            DEPLOY_VIDEO=true
+            shift
+            ;;
+        --env)
+            DEPLOY_ENV="$2"
+            shift 2
+            ;;
+        --no-traffic)
+            DEPLOY_MODE="test"
+            shift
+            ;;
+        --canary)
+            DEPLOY_MODE="canary"
+            CANARY_PERCENT="$2"
+            shift 2
+            ;;
+        --tag)
+            DEPLOY_TAG="$2"
+            shift 2
+            ;;
+        --rollback)
+            DEPLOY_MODE="rollback"
+            shift
+            ;;
+        --db-update)
+            DB_UPDATE=true
+            shift
+            ;;
+        --sync-content)
+            SYNC_CONTENT=true
+            shift
+            ;;
+        --db-wipe)
+            DB_WIPE=true
+            shift
+            ;;
+        --help|-h)
+            show_help
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Run '$0 --help' for usage information."
+            exit 1
+            ;;
+    esac
+done
+
+# Set domain configuration based on environment
+set_environment_domains
+
 # ========================================
 # PRE-FLIGHT CHECKS
 # ========================================
 log_info "Starting deployment to GCP Cloud Run..."
+log_info "Environment: $DEPLOY_ENV"
+log_info "Mode: $DEPLOY_MODE"
+if [ "$DEPLOY_MODE" = "canary" ]; then
+    log_info "Canary traffic: ${CANARY_PERCENT}%"
+fi
+if [ "$DEPLOY_MODE" = "test" ]; then
+    log_info "Deploy tag: $DEPLOY_TAG"
+fi
 
 # Check correct GCP project is active
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
@@ -177,8 +263,8 @@ if ! command -v gcloud &> /dev/null; then
     exit 1
 fi
 
-# Check if docker is installed
-if ! command -v docker &> /dev/null; then
+# Check if docker is installed (skip for rollback)
+if [ "$DEPLOY_MODE" != "rollback" ] && ! command -v docker &> /dev/null; then
     log_error "Docker is not installed. Please install it first."
     exit 1
 fi
@@ -191,6 +277,68 @@ fi
 
 # Set project
 gcloud config set project $PROJECT_ID
+
+# ========================================
+# ROLLBACK MODE
+# ========================================
+if [ "$DEPLOY_MODE" = "rollback" ]; then
+    log_step "Rolling back to previous revision..."
+    
+    # Get previous API revision
+    PREV_API_REVISION=$(gcloud run revisions list \
+        --service=lao-cinema-api \
+        --region=$REGION \
+        --limit=2 \
+        --format='value(metadata.name)' | tail -n 1)
+    
+    # Get previous Web revision
+    PREV_WEB_REVISION=$(gcloud run revisions list \
+        --service=lao-cinema-web \
+        --region=$REGION \
+        --limit=2 \
+        --format='value(metadata.name)' | tail -n 1)
+    
+    # Get previous Video revision
+    PREV_VIDEO_REVISION=$(gcloud run revisions list \
+        --service=lao-cinema-video \
+        --region=$REGION \
+        --limit=2 \
+        --format='value(metadata.name)' 2>/dev/null | tail -n 1 || echo "")
+    
+    if [ -z "$PREV_API_REVISION" ] || [ -z "$PREV_WEB_REVISION" ]; then
+        log_error "Could not find previous revisions for rollback"
+        exit 1
+    fi
+    
+    log_info "Rolling back API to: $PREV_API_REVISION"
+    gcloud run services update-traffic lao-cinema-api \
+        --region=$REGION \
+        --to-revisions=$PREV_API_REVISION=100 \
+        --quiet
+    
+    log_info "Rolling back Web to: $PREV_WEB_REVISION"
+    gcloud run services update-traffic lao-cinema-web \
+        --region=$REGION \
+        --to-revisions=$PREV_WEB_REVISION=100 \
+        --quiet
+    
+    if [ -n "$PREV_VIDEO_REVISION" ]; then
+        log_info "Rolling back Video to: $PREV_VIDEO_REVISION"
+        gcloud run services update-traffic lao-cinema-video \
+            --region=$REGION \
+            --to-revisions=$PREV_VIDEO_REVISION=100 \
+            --quiet
+    fi
+    
+    log_info "========================================="
+    log_info "Rollback completed successfully! ✅"
+    log_info "========================================="
+    log_info "Environment: $DEPLOY_ENV"
+    log_info "Web:   ${CUSTOM_WEB_DOMAIN}"
+    log_info "API:   ${CUSTOM_API_DOMAIN}"
+    log_info "Video: ${CUSTOM_VIDEO_DOMAIN}"
+    exit 0
+fi
 
 # Get Cloud SQL connection name if not set
 if [ -z "$CONNECTION_NAME" ]; then
@@ -298,6 +446,22 @@ fi
 # ========================================
 log_info "Deploying to Cloud Run..."
 
+# Prepare traffic and tag flags for staged deployments
+TRAFFIC_FLAGS=""
+TAG_FLAGS=""
+
+if [ "$DEPLOY_MODE" = "test" ]; then
+    TRAFFIC_FLAGS="--no-traffic"
+    TAG_FLAGS="--tag=$DEPLOY_TAG"
+    log_info "Deploying without traffic (tag: $DEPLOY_TAG)"
+elif [ "$DEPLOY_MODE" = "canary" ]; then
+    # Will set traffic after deployment
+    TRAFFIC_FLAGS="--no-traffic"
+    log_info "Deploying for canary release (${CANARY_PERCENT}% traffic)"
+else
+    log_info "Deploying with full traffic (100%)"
+fi
+
 # Deploy API
 if [ "$DEPLOY_API" = true ]; then
 log_info "Deploying API service..."
@@ -313,7 +477,8 @@ if [ -z "$CONNECTION_NAME" ]; then
         --memory=512Mi \
         --cpu=1 \
         --min-instances=0 \
-        --max-instances=10
+        --max-instances=10 \
+        $TRAFFIC_FLAGS $TAG_FLAGS
 else
     # Deploy with Cloud SQL connection via unix socket
     # Set env vars individually to avoid delimiter issues
@@ -337,7 +502,8 @@ else
         --memory=512Mi \
         --cpu=1 \
         --min-instances=0 \
-        --max-instances=10
+        --max-instances=10 \
+        $TRAFFIC_FLAGS $TAG_FLAGS
 fi
 log_info "API deployed successfully"
 else
@@ -376,7 +542,8 @@ gcloud run deploy lao-cinema-web \
     --memory=512Mi \
     --cpu=1 \
     --min-instances=0 \
-    --max-instances=10
+    --max-instances=10 \
+    $TRAFFIC_FLAGS $TAG_FLAGS
 
 # Clean up temp file
 rm -f scripts/.env.web.yaml.tmp
@@ -418,7 +585,8 @@ if [ "$DEPLOY_VIDEO" = true ]; then
         --memory=512Mi \
         --cpu=1 \
         --min-instances=0 \
-        --max-instances=10
+        --max-instances=10 \
+        $TRAFFIC_FLAGS $TAG_FLAGS
 
     # Get Video Server URL
     VIDEO_URL=$(gcloud run services describe lao-cinema-video \
@@ -434,7 +602,7 @@ fi
 # ========================================
 # UPDATE API CORS
 # ========================================
-if [ "$DEPLOY_WEB" = true ]; then
+if [ "$DEPLOY_WEB" = true ] && [ "$DEPLOY_MODE" = "full" ]; then
     log_info "Updating API CORS configuration..."
     # Use custom domain if configured, otherwise use Cloud Run URL
     CORS_ORIGIN="${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
@@ -442,6 +610,54 @@ if [ "$DEPLOY_WEB" = true ]; then
         --region=$REGION \
         --update-env-vars="CORS_ORIGIN=$CORS_ORIGIN" \
         --quiet
+fi
+
+# ========================================
+# CANARY TRAFFIC MANAGEMENT
+# ========================================
+if [ "$DEPLOY_MODE" = "canary" ]; then
+    log_step "Setting up canary traffic split..."
+    
+    if [ "$DEPLOY_API" = true ]; then
+        API_REVISION=$(gcloud run revisions list \
+            --service=lao-cinema-api \
+            --region=$REGION \
+            --limit=1 \
+            --format='value(metadata.name)')
+        log_info "Setting ${CANARY_PERCENT}% traffic to new API revision: $API_REVISION"
+        gcloud run services update-traffic lao-cinema-api \
+            --region=$REGION \
+            --to-revisions=$API_REVISION=$CANARY_PERCENT \
+            --quiet
+    fi
+    
+    if [ "$DEPLOY_WEB" = true ]; then
+        WEB_REVISION=$(gcloud run revisions list \
+            --service=lao-cinema-web \
+            --region=$REGION \
+            --limit=1 \
+            --format='value(metadata.name)')
+        log_info "Setting ${CANARY_PERCENT}% traffic to new Web revision: $WEB_REVISION"
+        gcloud run services update-traffic lao-cinema-web \
+            --region=$REGION \
+            --to-revisions=$WEB_REVISION=$CANARY_PERCENT \
+            --quiet
+    fi
+    
+    if [ "$DEPLOY_VIDEO" = true ]; then
+        VIDEO_REVISION=$(gcloud run revisions list \
+            --service=lao-cinema-video \
+            --region=$REGION \
+            --limit=1 \
+            --format='value(metadata.name)')
+        log_info "Setting ${CANARY_PERCENT}% traffic to new Video revision: $VIDEO_REVISION"
+        gcloud run services update-traffic lao-cinema-video \
+            --region=$REGION \
+            --to-revisions=$VIDEO_REVISION=$CANARY_PERCENT \
+            --quiet
+    fi
+    
+    log_info "Canary deployment active (${CANARY_PERCENT}% traffic)"
 fi
 
 # ========================================
@@ -542,18 +758,69 @@ log_info "========================================="
 log_info "Deployment completed successfully! 🚀"
 log_info "========================================="
 echo ""
-log_info "Preview Site:   ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-log_info "Preview API:    ${CUSTOM_API_DOMAIN:-$API_URL}"
-log_info "Video Server:   ${CUSTOM_VIDEO_DOMAIN:-$VIDEO_URL}"
-echo ""
-log_info "Cloud Run URLs (internal):"
-log_info "  Web: $WEB_URL"
-log_info "  API: $API_URL"
-echo ""
-log_info "Next steps:"
-if [ "$DB_UPDATE" = false ] && [ "$DB_WIPE" = false ]; then
-    log_info "1. If schema changed: ./scripts/deploy.sh --db-update"
+
+if [ "$DEPLOY_MODE" = "test" ]; then
+    log_info "Test Deployment (no production traffic)"
+    log_info "Environment: $DEPLOY_ENV"
+    echo ""
+    log_info "Production URLs (unchanged):"
+    log_info "  Web:   ${CUSTOM_WEB_DOMAIN}"
+    log_info "  API:   ${CUSTOM_API_DOMAIN}"
+    log_info "  Video: ${CUSTOM_VIDEO_DOMAIN}"
+    echo ""
+    log_info "Test URLs (tag: $DEPLOY_TAG):"
+    log_info "  Web:   https://$DEPLOY_TAG---lao-cinema-web-$(echo $WEB_URL | sed 's/https:\/\/lao-cinema-web-//')"
+    log_info "  API:   https://$DEPLOY_TAG---lao-cinema-api-$(echo $API_URL | sed 's/https:\/\/lao-cinema-api-//')"
+    echo ""
+    log_info "Next steps:"
+    log_info "1. Test the new revision at the test URLs"
+    log_info "2. Release to production:"
+    log_info "   gcloud run services update-traffic lao-cinema-api --region=$REGION --to-latest"
+    log_info "   gcloud run services update-traffic lao-cinema-web --region=$REGION --to-latest"
+    log_info "   gcloud run services update-traffic lao-cinema-video --region=$REGION --to-latest"
+
+elif [ "$DEPLOY_MODE" = "canary" ]; then
+    log_info "Canary Deployment (${CANARY_PERCENT}% traffic)"
+    log_info "Environment: $DEPLOY_ENV"
+    echo ""
+    log_info "URLs:"
+    log_info "  Web:   ${CUSTOM_WEB_DOMAIN}"
+    log_info "  API:   ${CUSTOM_API_DOMAIN}"
+    log_info "  Video: ${CUSTOM_VIDEO_DOMAIN}"
+    echo ""
+    log_info "Traffic split: ${CANARY_PERCENT}% new revision, $((100-CANARY_PERCENT))% previous revision"
+    echo ""
+    log_info "Next steps:"
+    log_info "1. Monitor logs: gcloud run services logs read lao-cinema-api --region=$REGION"
+    log_info "2. Increase traffic: $0 --all --canary 50"
+    log_info "3. Full release: $0 --all"
+    log_info "4. Or rollback: $0 --rollback"
+
+else
+    log_info "Full Deployment (100% traffic)"
+    log_info "Environment: $DEPLOY_ENV"
+    echo ""
+    log_info "URLs:"
+    log_info "  Web:   ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+    log_info "  API:   ${CUSTOM_API_DOMAIN:-$API_URL}"
+    log_info "  Video: ${CUSTOM_VIDEO_DOMAIN:-$VIDEO_URL}"
+    echo ""
+    log_info "Cloud Run URLs (internal):"
+    log_info "  Web:   $WEB_URL"
+    log_info "  API:   $API_URL"
+    log_info "  Video: $VIDEO_URL"
+    echo ""
+    log_info "Next steps:"
+    if [ "$DB_UPDATE" = false ] && [ "$DB_WIPE" = false ]; then
+        log_info "1. If schema changed: $0 --db-update"
+    fi
+    log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
+    log_info "3. Check logs: gcloud run services logs read lao-cinema-api --region=$REGION"
+    log_info "4. If issues, rollback: $0 --rollback"
 fi
-log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
-log_info "3. Check logs: gcloud run services logs read lao-cinema-api --region=$REGION"
+
+echo ""
+log_info "View revisions:"
+log_info "  gcloud run revisions list --service=lao-cinema-api --region=$REGION"
+log_info "  gcloud run revisions list --service=lao-cinema-web --region=$REGION"
 echo ""
