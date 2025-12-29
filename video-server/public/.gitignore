@@ -1,6 +1,0 @@
-# Ignore uploaded images (local dev only, production uses GCS)
-logos/
-posters/
-backdrops/
-profiles/
-subtitles/

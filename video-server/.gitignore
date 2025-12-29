@@ -2,7 +2,9 @@
 node_modules/
 
 # Video files (too large for git)
-videos/
+videos/**/*
+!videos/hls/
+!videos/hls/.gitignore
 
 # Logs
 *.log

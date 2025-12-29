@@ -18,7 +18,8 @@
   "workspaces": [
     "web",
     "api",
-    "db"
+    "db",
+    "video-server"
   ],
   "dependencies": {
     "postgres": "^3.4.7"
