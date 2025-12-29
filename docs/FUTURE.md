@@ -1,6 +1,45 @@
 
 Possible Future Changes:
 
+## Infrastructure Improvements
+
+### Admin Panel: Video Source Management
+**Current State**: Video sources can be added/edited via admin panel, but the UX could be improved.
+
+**TODO**: 
+- Add bulk video source import/update
+- Better validation of HLS URLs before saving
+- Preview/test video playback in admin
+- Auto-detect video duration and resolution from HLS manifest
+
+**Priority**: Medium
+
+---
+
+### Image Serving: Proxy Through Video Server
+**Current State**: Images are served directly from GCS (`storage.googleapis.com/lao-cinema-images/...`), which:
+- Requires CORS configuration on GCS buckets
+- Exposes GCS URLs directly to clients
+- Different serving pattern than videos (which go through `stream.laocinema.com`)
+
+**TODO**: 
+- Route images through `stream.laocinema.com` (or new `images.laocinema.com`)
+- Benefits:
+  - Unified serving pattern with videos
+  - No CORS configuration needed on GCS
+  - Easier to add CDN/caching layer
+  - Can add image optimization (resizing, format conversion)
+  - Hide GCS infrastructure from clients
+- Implementation options:
+  1. Add image serving routes to video-server
+  2. Create separate image proxy service
+  3. Use Cloud CDN with GCS as origin
+
+**Priority**: Low (current setup works, this is optimization)
+
+---
+
+
 * removed the "email verified" requirement for notifications
   - can we get bounce info from Brevo?
   - if so, assume it's correct
