@@ -8,7 +8,7 @@ Complete reference for all environment variables across the Lao Cinema platform.
 
 ```bash
 # Copy example files
-cp web/env.example web/.env.local
+cp web/.env.example web/.env
 cp api/.env.example api/.env
 cp db/.env.example db/.env
 
