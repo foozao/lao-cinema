@@ -298,6 +298,23 @@ fi
 gcloud config set project $PROJECT_ID
 
 # ========================================
+# VERIFY SECRETS AND ENV VARS
+# ========================================
+log_step "Verifying secrets and environment variables for $DEPLOY_ENV..."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/verify-secrets.sh" ]; then
+    if ! "$SCRIPT_DIR/verify-secrets.sh" "$DEPLOY_ENV"; then
+        log_error "Secrets verification failed for $DEPLOY_ENV environment"
+        log_error "Please fix the configuration issues above before deploying"
+        exit 1
+    fi
+    log_info "✓ Secrets and environment variables verified"
+else
+    log_warn "verify-secrets.sh not found, skipping verification"
+fi
+echo ""
+
+# ========================================
 # ROLLBACK MODE
 # ========================================
 if [ "$DEPLOY_MODE" = "rollback" ]; then
