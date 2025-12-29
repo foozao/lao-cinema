@@ -13,8 +13,7 @@ import { SubtitleManager } from '@/components/admin/subtitle-manager';
 import type { Movie, Trailer } from '@/lib/types';
 import type { MovieFormData } from './types';
 import { buildVideoUrlPreview, buildTrailerUrlPreview, extractTrailerSlug, buildTrailerThumbnailUrl } from './types';
-import { API_BASE_URL } from '@/lib/config';
-import { getAuthHeaders } from '@/lib/api/auth-headers';
+import { trailersAPI } from '@/lib/api/client';
 
 interface MediaTabProps {
   formData: MovieFormData;
@@ -66,11 +65,8 @@ export function MediaTab({
   };
 
   const refreshTrailers = async () => {
-    const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
-      headers: getAuthHeaders(),
-    });
-    if (response.ok) {
-      const data = await response.json();
+    try {
+      const data = await trailersAPI.getForMovie(movieId);
       // Map API response to Trailer type
       const mappedTrailers: Trailer[] = data.map((t: any) => ({
         id: t.id,
@@ -89,6 +85,8 @@ export function MediaTab({
         }),
       }));
       onTrailersChange(mappedTrailers);
+    } catch (error) {
+      console.error('Failed to refresh trailers:', error);
     }
   };
 
@@ -97,13 +95,8 @@ export function MediaTab({
     if (!confirm(`Remove trailer "${trailer.name}"?`)) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/trailers/${trailer.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        await refreshTrailers();
-      }
+      await trailersAPI.delete(trailer.id);
+      await refreshTrailers();
     } catch (error) {
       console.error('Failed to delete trailer:', error);
     }
@@ -144,23 +137,7 @@ export function MediaTab({
 
     setSelectingThumbnail(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/trailers/${currentTrailerForThumbnail.id}/select-thumbnail`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({ thumbnail_number: thumbnailNumber }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to select thumbnail');
-      }
-
+      await trailersAPI.selectThumbnail(currentTrailerForThumbnail.id, thumbnailNumber);
       await refreshTrailers();
       setThumbnailModalOpen(false);
       setCurrentTrailerForThumbnail(null);
@@ -178,27 +155,17 @@ export function MediaTab({
     
     setSavingEdit(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/trailers/${editingTrailer.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: editForm.name,
-          video_url: editForm.slug,
-          video_format: editForm.format,
-        }),
+      await trailersAPI.update(editingTrailer.id, {
+        name: editForm.name,
+        video_url: editForm.slug,
+        video_format: editForm.format,
       });
-      
-      if (response.ok) {
-        await refreshTrailers();
-        setEditingTrailer(null);
-        showTrailerAdded('Trailer updated!');
-      } else {
-        const error = await response.json();
-        alert(`Failed to update trailer: ${error.message || 'Unknown error'}`);
-      }
+      await refreshTrailers();
+      setEditingTrailer(null);
+      showTrailerAdded('Trailer updated!');
     } catch (error) {
       console.error('Failed to update trailer:', error);
-      alert('Failed to update trailer');
+      alert(error instanceof Error ? error.message : 'Failed to update trailer');
     } finally {
       setSavingEdit(false);
     }
@@ -220,28 +187,16 @@ export function MediaTab({
     
     setAddingTrailer(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          type: 'youtube',
-          youtube_key: videoId,
-          name: 'YouTube Trailer',
-          official: false,
-          order: trailers.length,
-        }),
+      await trailersAPI.addYouTube(movieId, {
+        key: videoId,
+        name: 'YouTube Trailer',
+        official: false,
       });
-      
-      if (response.ok) {
-        await refreshTrailers();
-        showTrailerAdded('YouTube trailer added!');
-      } else {
-        const error = await response.json();
-        alert(`Failed to add trailer: ${error.message || 'Unknown error'}`);
-      }
+      await refreshTrailers();
+      showTrailerAdded('YouTube trailer added!');
     } catch (error) {
       console.error('Failed to add trailer:', error);
-      alert('Failed to add trailer');
+      alert(error instanceof Error ? error.message : 'Failed to add trailer');
     } finally {
       setAddingTrailer(false);
     }
@@ -261,30 +216,16 @@ export function MediaTab({
     
     setAddingTrailer(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          type: 'video',
-          video_url: slug, // Store just the slug
-          video_format: format,
-          video_quality: 'original',
-          name: name || 'Self-hosted Trailer',
-          official: true,
-          order: trailers.length,
-        }),
+      await trailersAPI.addSelfHosted(movieId, {
+        slug,
+        name: name || 'Self-hosted Trailer',
+        format,
       });
-      
-      if (response.ok) {
-        await refreshTrailers();
-        showTrailerAdded('Self-hosted trailer added!');
-      } else {
-        const error = await response.json();
-        alert(`Failed to add trailer: ${error.message || 'Unknown error'}`);
-      }
+      await refreshTrailers();
+      showTrailerAdded('Self-hosted trailer added!');
     } catch (error) {
       console.error('Failed to add trailer:', error);
-      alert('Failed to add trailer');
+      alert(error instanceof Error ? error.message : 'Failed to add trailer');
     } finally {
       setAddingTrailer(false);
     }

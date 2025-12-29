@@ -560,3 +560,137 @@ export const awardsAPI = {
   // Get all winners across all awards (for showcase)
   getWinners: () => fetchAPI<{ winners: any[] }>('/awards/winners'),
 };
+
+// Homepage API methods
+export const homepageAPI = {
+  // Get featured films (public)
+  getFeatured: () => fetchAPI<{ featured: any[] }>('/homepage/featured'),
+
+  // Get featured films with admin data
+  getFeaturedAdmin: () => fetchAPI<{ featured: any[] }>('/homepage/featured/admin'),
+
+  // Get homepage settings
+  getSettings: () => fetchAPI<{ settings: any }>('/homepage/settings'),
+
+  // Update homepage settings
+  updateSettings: (data: { randomizeFeatured?: boolean; heroType?: 'disabled' | 'video' | 'image' }) =>
+    fetchAPI<{ settings: any }>('/homepage/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Add featured film
+  addFeatured: (movieId: string, order?: number) =>
+    fetchAPI<any>('/homepage/featured', {
+      method: 'POST',
+      body: JSON.stringify({ movieId, order }),
+    }),
+
+  // Remove featured film
+  removeFeatured: (id: string) =>
+    fetchAPI<{ success: boolean }>(`/homepage/featured/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Reorder featured films
+  reorderFeatured: (items: { id: string; order: number }[]) =>
+    fetchAPI<{ success: boolean }>('/homepage/featured/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ items }),
+    }),
+
+  // Update hero times for a featured film
+  updateHeroTimes: (id: string, heroStartTime: number | null, heroEndTime: number | null) =>
+    fetchAPI<any>(`/homepage/featured/${id}/hero-times`, {
+      method: 'PATCH',
+      body: JSON.stringify({ heroStartTime, heroEndTime }),
+    }),
+};
+
+// Subtitles API methods
+export const subtitlesAPI = {
+  // Add subtitle track to movie
+  add: (movieId: string, data: {
+    language: string;
+    label: string;
+    url: string;
+    isDefault?: boolean;
+    kind?: string;
+  }) => fetchAPI<any>(`/movies/${movieId}/subtitles`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Delete subtitle track
+  delete: (movieId: string, trackId: string) =>
+    fetchAPI<{ success: boolean }>(`/movies/${movieId}/subtitles/${trackId}`, {
+      method: 'DELETE',
+    }),
+
+  // Update subtitle track
+  update: (movieId: string, trackId: string, data: {
+    isDefault?: boolean;
+    linePosition?: number;
+  }) => fetchAPI<any>(`/movies/${movieId}/subtitles/${trackId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  // Upload subtitle file (uses FormData, not JSON)
+  upload: async (movieId: string, file: File): Promise<{ url: string; offsetCorrected?: boolean; offsetAmount?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/upload/subtitle?movieId=${movieId}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Failed to upload subtitle file');
+    }
+
+    return response.json();
+  },
+};
+
+// Trailers API methods
+export const trailersAPI = {
+  // Get trailers for a movie
+  getForMovie: (movieId: string) => fetchAPI<any[]>(`/trailers/${movieId}`),
+
+  // Delete trailer
+  delete: (trailerId: string) =>
+    fetchAPI<{ success: boolean }>(`/trailers/${trailerId}`, {
+      method: 'DELETE',
+    }),
+
+  // Update trailer
+  update: (trailerId: string, data: { name?: string; video_url?: string; video_format?: string }) =>
+    fetchAPI<any>(`/trailers/${trailerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Select thumbnail for trailer
+  selectThumbnail: (trailerId: string, thumbnailNumber: number) =>
+    fetchAPI<any>(`/trailers/${trailerId}/select-thumbnail`, {
+      method: 'POST',
+      body: JSON.stringify({ thumbnailNumber }),
+    }),
+
+  // Add YouTube trailer
+  addYouTube: (movieId: string, data: { key: string; name: string; official?: boolean; language?: string }) =>
+    fetchAPI<any>(`/trailers/${movieId}/youtube`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Add self-hosted trailer
+  addSelfHosted: (movieId: string, data: { slug: string; name: string; format?: 'hls' | 'mp4' }) =>
+    fetchAPI<any>(`/trailers/${movieId}/self-hosted`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};

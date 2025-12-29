@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Save, Film } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { getPosterUrl } from '@/lib/images';
-import { getAuthHeaders } from '@/lib/api/auth-headers';
-import { API_BASE_URL } from '@/lib/config';
+import { homepageAPI, movieAPI } from '@/lib/api/client';
 import { useDragAndDrop } from '@/hooks/use-drag-and-drop';
 import { DraggableItemList } from '@/components/admin/draggable-item-list';
 import { MovieSelectionModal } from '@/components/admin/movie-selection-modal';
@@ -50,19 +49,13 @@ export default function HomepageAdminPage() {
 
   const loadData = async () => {
     try {
-      // Load featured films
-      const featuredRes = await fetch(`${API_BASE_URL}/homepage/featured/admin`);
-      const featuredData = await featuredRes.json();
+      const [featuredData, moviesData, settingsData] = await Promise.all([
+        homepageAPI.getFeaturedAdmin(),
+        movieAPI.getAll(),
+        homepageAPI.getSettings(),
+      ]);
       setFeatured(featuredData.featured || []);
-
-      // Load all movies
-      const moviesRes = await fetch(`${API_BASE_URL}/movies`);
-      const moviesData = await moviesRes.json();
       setAllMovies(moviesData.movies || []);
-
-      // Load homepage settings
-      const settingsRes = await fetch(`${API_BASE_URL}/homepage/settings`);
-      const settingsData = await settingsRes.json();
       setRandomizeFeatured(settingsData.settings?.randomizeFeatured || false);
       setHeroType(settingsData.settings?.heroType || 'video');
     } catch (error) {
@@ -74,23 +67,12 @@ export default function HomepageAdminPage() {
 
   const addFeatured = async (movieId: string) => {
     try {
-      const nextOrder = featured.length;
-      const res = await fetch(`${API_BASE_URL}/homepage/featured`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ movieId, order: nextOrder }),
-      });
-
-      if (res.ok) {
-        await loadData();
-        setShowAddModal(false);
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to add featured film');
-      }
+      await homepageAPI.addFeatured(movieId, featured.length);
+      await loadData();
+      setShowAddModal(false);
     } catch (error) {
       console.error('Failed to add featured film:', error);
-      alert('Failed to add featured film');
+      alert(error instanceof Error ? error.message : 'Failed to add featured film');
     }
   };
 
@@ -98,14 +80,8 @@ export default function HomepageAdminPage() {
     if (!confirm(t('removeFromFeatured'))) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/homepage/featured/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      if (res.ok) {
-        await loadData();
-      }
+      await homepageAPI.removeFeatured(id);
+      await loadData();
     } catch (error) {
       console.error('Failed to remove featured film:', error);
     }
@@ -122,12 +98,7 @@ export default function HomepageAdminPage() {
           id: f.id,
           order: index,
         }));
-
-        await fetch(`${API_BASE_URL}/homepage/featured/reorder`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ items }),
-        });
+        await homepageAPI.reorderFeatured(items);
       } catch (error) {
         console.error('Failed to save order:', error);
         alert('Failed to save order');
@@ -144,18 +115,8 @@ export default function HomepageAdminPage() {
   const toggleRandomize = async () => {
     setUpdatingSettings(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/homepage/settings`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ randomizeFeatured: !randomizeFeatured }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setRandomizeFeatured(data.settings.randomizeFeatured);
-      } else {
-        alert('Failed to update settings');
-      }
+      const data = await homepageAPI.updateSettings({ randomizeFeatured: !randomizeFeatured });
+      setRandomizeFeatured(data.settings.randomizeFeatured);
     } catch (error) {
       console.error('Failed to update settings:', error);
       alert('Failed to update settings');
@@ -167,24 +128,13 @@ export default function HomepageAdminPage() {
   const updateHeroTimes = async (id: string, startTime: number | null, endTime: number | null) => {
     setSavingHeroTimes(id);
     try {
-      const res = await fetch(`${API_BASE_URL}/homepage/featured/${id}/hero-times`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ heroStartTime: startTime, heroEndTime: endTime }),
-      });
-
-      if (res.ok) {
-        // Update local state
-        setFeatured(prev => prev.map(f => 
-          f.id === id ? { ...f, heroStartTime: startTime, heroEndTime: endTime } : f
-        ));
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to update hero times');
-      }
+      await homepageAPI.updateHeroTimes(id, startTime, endTime);
+      setFeatured(prev => prev.map(f => 
+        f.id === id ? { ...f, heroStartTime: startTime, heroEndTime: endTime } : f
+      ));
     } catch (error) {
       console.error('Failed to update hero times:', error);
-      alert('Failed to update hero times');
+      alert(error instanceof Error ? error.message : 'Failed to update hero times');
     } finally {
       setSavingHeroTimes(null);
     }
@@ -193,18 +143,8 @@ export default function HomepageAdminPage() {
   const updateHeroType = async (newHeroType: 'disabled' | 'video' | 'image') => {
     setUpdatingSettings(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/homepage/settings`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ heroType: newHeroType }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setHeroType(data.settings.heroType);
-      } else {
-        alert('Failed to update settings');
-      }
+      const data = await homepageAPI.updateSettings({ heroType: newHeroType });
+      setHeroType(data.settings.heroType);
     } catch (error) {
       console.error('Failed to update settings:', error);
       alert('Failed to update settings');

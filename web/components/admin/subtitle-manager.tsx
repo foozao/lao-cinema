@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Check, Upload, Loader2 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/config';
-import { getAuthHeaders } from '@/lib/api/auth-headers';
+import { subtitlesAPI } from '@/lib/api/client';
 import { SUBTITLE_LANGUAGES } from '@/lib/config/subtitle-languages';
 
 interface SubtitleManagerProps {
@@ -58,20 +57,7 @@ export function SubtitleManager({ movieId, subtitles, hasBurnedSubtitles = false
     setUploadError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(`${API_BASE_URL}/upload/subtitle?movieId=${movieId}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to upload subtitle file');
-      }
-
-      const result = await response.json();
+      const result = await subtitlesAPI.upload(movieId, file);
       
       // Auto-fill the URL field with the uploaded file URL
       setNewSubtitle(prev => ({ ...prev, url: result.url }));
@@ -127,21 +113,13 @@ export function SubtitleManager({ movieId, subtitles, hasBurnedSubtitles = false
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/subtitles`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          language: newSubtitle.language,
-          label: newSubtitle.label,
-          url: newSubtitle.url,
-          isDefault: newSubtitle.isDefault,
-          kind: newSubtitle.kind,
-        }),
+      await subtitlesAPI.add(movieId, {
+        language: newSubtitle.language,
+        label: newSubtitle.label,
+        url: newSubtitle.url,
+        isDefault: newSubtitle.isDefault,
+        kind: newSubtitle.kind,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add subtitle track');
-      }
 
       setNewSubtitle({
         language: '',
@@ -166,15 +144,7 @@ export function SubtitleManager({ movieId, subtitles, hasBurnedSubtitles = false
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/subtitles/${trackId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete subtitle track');
-      }
-
+      await subtitlesAPI.delete(movieId, trackId);
       onUpdate();
     } catch (error) {
       console.error('Error deleting subtitle:', error);
@@ -184,18 +154,7 @@ export function SubtitleManager({ movieId, subtitles, hasBurnedSubtitles = false
 
   const handleToggleDefault = async (track: SubtitleTrack) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/subtitles/${track.id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          isDefault: !track.is_default,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update subtitle track');
-      }
-
+      await subtitlesAPI.update(movieId, track.id, { isDefault: !track.is_default });
       onUpdate();
     } catch (error) {
       console.error('Error updating subtitle:', error);
@@ -205,18 +164,7 @@ export function SubtitleManager({ movieId, subtitles, hasBurnedSubtitles = false
 
   const handleLinePositionChange = async (trackId: string, linePosition: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/movies/${movieId}/subtitles/${trackId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          linePosition,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update subtitle position');
-      }
-
+      await subtitlesAPI.update(movieId, trackId, { linePosition });
       onUpdate();
     } catch (error) {
       console.error('Error updating subtitle position:', error);

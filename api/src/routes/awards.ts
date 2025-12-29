@@ -7,17 +7,7 @@ import { eq, sql, and, desc, asc } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { buildInClause } from '../lib/query-helpers.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
-
-// Helper to build localized text from translations
-function buildLocalizedText(translations: Array<{ language: string; [key: string]: any }>, field: string): { en?: string; lo?: string } {
-  const result: { en?: string; lo?: string } = {};
-  for (const trans of translations) {
-    if (trans[field]) {
-      result[trans.language as 'en' | 'lo'] = trans[field];
-    }
-  }
-  return result;
-}
+import { buildLocalizedText } from '../lib/translation-helpers.js';
 
 export default async function awardsRoutes(fastify: FastifyInstance) {
   // ==========================================================================
