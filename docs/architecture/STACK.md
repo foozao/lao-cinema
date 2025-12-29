@@ -5,7 +5,7 @@ This document defines the technology stack for the Lao Cinema streaming platform
 **✅ Fully Implemented:**
 - Next.js 16.0.3 web application with React 19.2.0
 - Fastify backend API with PostgreSQL database
-- Drizzle ORM with migration system (22 migrations)
+- Drizzle ORM with migration system (43 migrations)
 - TMDB integration (import movies, cast, crew, production companies)
 - Bilingual support (English/Lao) with next-intl
 - People-centric architecture (separate people table with merge/alias support)
@@ -16,7 +16,7 @@ This document defines the technology stack for the Lao Cinema streaming platform
 - Rental system with database persistence (dual-mode: userId OR anonymousId)
 - Watch progress with cross-device sync
 - Video analytics framework
-- Testing framework (1095+ tests)
+- Testing framework (436+ tests)
 - Docker Compose development environment
 - GCP Cloud Run deployment
 - Production companies with TMDB sync
@@ -30,7 +30,6 @@ This document defines the technology stack for the Lao Cinema streaming platform
 **📋 Planned:**
 - OAuth providers (Google, Apple sign-in)
 - Watchlist functionality
-- Password reset flow (requires email service)
 - Mobile app (React Native/Expo)
 - Automated video transcoding pipeline
 
@@ -48,8 +47,8 @@ This document defines the technology stack for the Lao Cinema streaming platform
 	•	Key Responsibilities:
 	•	Browsing/Searching film catalog
 	•	Playback UI (HLS video player)
-	•	User login/auth (planned)
-	•	Watchlist & Continue Watching (planned)
+	•	User login/auth ✅
+	•	Watchlist (planned), Continue Watching ✅
 	•	Admin interface (TMDB import, movie editing)
 
 ⸻

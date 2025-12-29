@@ -1,7 +1,7 @@
 # User Accounts Implementation
 
 **Status**: Phase 1-4 Complete (Backend + Frontend)  
-**Last Updated**: December 13, 2025
+**Last Updated**: December 30, 2025
 
 ## Overview
 
@@ -263,11 +263,11 @@ Headers: {
 
 ## Next Steps
 
-### Phase 6: OAuth & Email (Pending)
-1. Implement Google OAuth provider
-2. Implement Apple OAuth provider
-3. Add password reset flow (requires email service)
-4. Email verification flow
+### Phase 6: OAuth & Email (Partial)
+1. Implement Google OAuth provider (pending)
+2. Implement Apple OAuth provider (pending)
+3. ✅ Password reset flow (implemented via Brevo email)
+4. ✅ Email verification flow (implemented)
 
 ## OAuth Integration (Future)
 
@@ -332,8 +332,8 @@ interface AppleOAuthProvider implements OAuthProvider {
 
 ### Pending
 - [ ] OAuth providers (Google, Apple)
-- [ ] Password reset flow
-- [ ] Email verification
+- [x] Password reset flow ✅
+- [x] Email verification ✅
 
 ## Configuration
 
@@ -388,7 +388,7 @@ Full API documentation available at:
 
 ---
 
-**Implementation Progress**: 95% Complete
+**Implementation Progress**: 98% Complete
 - ✅ Database schema (Migration 0011+)
 - ✅ Backend auth infrastructure (routes, middleware, services)
 - ✅ Backend dual-mode APIs (rentals, watch progress, migration)
@@ -396,6 +396,6 @@ Full API documentation available at:
 - ✅ Frontend UI components (login/register forms, user menu)
 - ✅ Profile pages (dashboard, settings, rentals, continue watching)
 - ✅ Cross-device sync (rentals, watch progress)
+- ✅ Password reset flow (Brevo email integration)
+- ✅ Email verification
 - ⏳ OAuth providers (Google, Apple)
-- ⏳ Password reset flow
-- ⏳ Email verification
