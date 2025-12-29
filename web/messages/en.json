@@ -691,7 +691,7 @@
     },
     "settings": {
       "title": "Account Settings",
-      "subtitle": "Manage your profile and account preferences",
+      "description": "Manage your profile and account preferences",
       "backToProfile": "Back to Profile",
       "displayName": {
         "title": "Display Name",
