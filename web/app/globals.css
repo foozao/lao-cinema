@@ -130,6 +130,21 @@
   }
 }
 
+/* Prevent iOS auto-zoom on form inputs (iOS zooms when font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Video player slider styles */
 input[type="range"].slider {
   -webkit-appearance: none;
