@@ -1,16 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, CheckCircle, Loader2, Trash2, Pencil } from 'lucide-react';
 import { PosterManager } from '@/components/admin/poster-manager';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { SubtitleManager } from '@/components/admin/subtitle-manager';
 import type { Movie, Trailer } from '@/lib/types';
 import type { MovieFormData } from './types';
+import { buildVideoUrlPreview, buildTrailerUrlPreview, extractTrailerSlug } from './types';
+import { API_BASE_URL } from '@/lib/config';
+import { getAuthHeaders } from '@/lib/api/auth-headers';
 
 interface MediaTabProps {
   formData: MovieFormData;
@@ -47,11 +51,57 @@ export function MediaTab({
   onSubtitleUpdate,
   setHasChanges,
 }: MediaTabProps) {
-  const handleRemoveTrailer = (index: number) => {
+  const [trailerAddedMessage, setTrailerAddedMessage] = useState<string | null>(null);
+  const [addingTrailer, setAddingTrailer] = useState(false);
+  const [editingTrailer, setEditingTrailer] = useState<Trailer | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', slug: '', format: 'hls' as 'hls' | 'mp4' });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const showTrailerAdded = (message: string) => {
+    setTrailerAddedMessage(message);
+    setTimeout(() => setTrailerAddedMessage(null), 3000);
+  };
+
+  const refreshTrailers = async () => {
+    const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
+      headers: getAuthHeaders(),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      // Map API response to Trailer type
+      const mappedTrailers: Trailer[] = data.map((t: any) => ({
+        id: t.id,
+        type: t.type,
+        name: t.name,
+        official: t.official,
+        language: t.language,
+        published_at: t.publishedAt,
+        order: t.order,
+        ...(t.type === 'youtube' && { key: t.youtubeKey }),
+        ...(t.type === 'video' && {
+          video_url: t.videoUrl,
+          video_format: t.videoFormat,
+          video_quality: t.videoQuality,
+        }),
+      }));
+      onTrailersChange(mappedTrailers);
+    }
+  };
+
+  const handleRemoveTrailer = async (index: number) => {
     const trailer = trailers[index];
-    if (confirm(`Remove trailer "${trailer.name}"?`)) {
-      onTrailersChange(trailers.filter((_, i) => i !== index));
-      setHasChanges(true);
+    if (!confirm(`Remove trailer "${trailer.name}"?`)) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/trailers/${trailer.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        await refreshTrailers();
+      }
+    } catch (error) {
+      console.error('Failed to delete trailer:', error);
     }
   };
 
@@ -63,7 +113,53 @@ export function MediaTab({
     setHasChanges(true);
   };
 
-  const handleAddTrailer = (key: string) => {
+  const handleStartEdit = (trailer: Trailer) => {
+    if (trailer.type !== 'video') return;
+    setEditingTrailer(trailer);
+    setEditForm({
+      name: trailer.name,
+      slug: extractTrailerSlug(trailer.video_url),
+      format: (trailer.video_format as 'hls' | 'mp4') || 'hls',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTrailer(null);
+    setEditForm({ name: '', slug: '', format: 'hls' });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTrailer) return;
+    
+    setSavingEdit(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/trailers/${editingTrailer.id}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: editForm.name,
+          video_url: editForm.slug,
+          video_format: editForm.format,
+        }),
+      });
+      
+      if (response.ok) {
+        await refreshTrailers();
+        setEditingTrailer(null);
+        showTrailerAdded('Trailer updated!');
+      } else {
+        const error = await response.json();
+        alert(`Failed to update trailer: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to update trailer:', error);
+      alert('Failed to update trailer');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleAddYouTubeTrailer = async (key: string) => {
     // Extract video ID from various YouTube URL formats
     let videoId = key;
     if (key.includes('youtube.com') || key.includes('youtu.be')) {
@@ -77,16 +173,76 @@ export function MediaTab({
       return;
     }
     
-    const newTrailer: Trailer = {
-      id: `temp-${Date.now()}`,
-      type: 'youtube',
-      key: videoId,
-      name: 'Manual Trailer',
-      official: false,
-      order: trailers.length,
-    };
-    onTrailersChange([...trailers, newTrailer]);
-    setHasChanges(true);
+    setAddingTrailer(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          type: 'youtube',
+          youtube_key: videoId,
+          name: 'YouTube Trailer',
+          official: false,
+          order: trailers.length,
+        }),
+      });
+      
+      if (response.ok) {
+        await refreshTrailers();
+        showTrailerAdded('YouTube trailer added!');
+      } else {
+        const error = await response.json();
+        alert(`Failed to add trailer: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to add trailer:', error);
+      alert('Failed to add trailer');
+    } finally {
+      setAddingTrailer(false);
+    }
+  };
+
+  const handleAddSelfHostedTrailer = async (slug: string, name: string, format: 'hls' | 'mp4') => {
+    if (!slug.trim()) {
+      alert('Please enter a trailer slug.');
+      return;
+    }
+    
+    // Check if trailer already exists
+    if (trailers.some(t => t.type === 'video' && extractTrailerSlug(t.video_url) === slug)) {
+      alert('This trailer is already in the list.');
+      return;
+    }
+    
+    setAddingTrailer(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/trailers/${movieId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          type: 'video',
+          video_url: slug, // Store just the slug
+          video_format: format,
+          video_quality: 'original',
+          name: name || 'Self-hosted Trailer',
+          official: true,
+          order: trailers.length,
+        }),
+      });
+      
+      if (response.ok) {
+        await refreshTrailers();
+        showTrailerAdded('Self-hosted trailer added!');
+      } else {
+        const error = await response.json();
+        alert(`Failed to add trailer: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to add trailer:', error);
+      alert('Failed to add trailer');
+    } finally {
+      setAddingTrailer(false);
+    }
   };
 
   return (
@@ -98,17 +254,31 @@ export function MediaTab({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="video_url">Video URL</Label>
+            <Label htmlFor="video_url">Video Slug</Label>
             <Input
               id="video_url"
               name="video_url"
               value={formData.video_url}
               onChange={onFormChange}
-              placeholder="/videos/movie.mp4 or https://stream.example.com/video.m3u8"
+              placeholder="the-signal"
+              className="font-mono"
             />
             <p className="text-xs text-gray-500 mt-1">
-              For local files: upload to /public/videos/ and enter path. For HLS: enter full URL
+              Enter just the video folder name (e.g., <code className="bg-gray-100 px-1 rounded">the-signal</code>). The full URL is constructed automatically.
             </p>
+            {formData.video_url && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border text-xs space-y-1">
+                <p className="font-medium text-gray-700">Full URLs (auto-generated):</p>
+                <p className="text-gray-600 truncate" title={buildVideoUrlPreview(formData.video_url).local}>
+                  <span className="text-gray-400">Local:</span>{' '}
+                  <code className="text-blue-600">{buildVideoUrlPreview(formData.video_url).local}</code>
+                </p>
+                <p className="text-gray-600 truncate" title={buildVideoUrlPreview(formData.video_url).production}>
+                  <span className="text-gray-400">Production:</span>{' '}
+                  <code className="text-green-600">{buildVideoUrlPreview(formData.video_url).production}</code>
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -243,50 +413,179 @@ export function MediaTab({
           <CardTitle>Trailers ({trailers.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Manual Trailer Entry */}
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="text-sm font-medium mb-3">Add Trailer Manually</h4>
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="manual_trailer_key" className="text-xs">YouTube Video ID</Label>
-                <Input
-                  id="manual_trailer_key"
-                  placeholder="e.g., dQw4w9WgXcQ"
-                  className="text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const input = e.currentTarget;
+          {/* Add Trailer Forms */}
+          <Tabs defaultValue="self-hosted" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="self-hosted">Self-hosted</TabsTrigger>
+              <TabsTrigger value="youtube">YouTube</TabsTrigger>
+            </TabsList>
+            
+            {/* Self-hosted Trailer Form */}
+            <TabsContent value="self-hosted" className="mt-3">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="text-sm font-medium mb-3">Add Self-hosted Trailer</h4>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="trailer_name" className="text-xs">Trailer Name</Label>
+                    <Input
+                      id="trailer_name"
+                      placeholder="e.g., Official Trailer, Teaser"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="trailer_slug" className="text-xs">Trailer Slug</Label>
+                    <Input
+                      id="trailer_slug"
+                      placeholder="e.g., the-signal-trailer"
+                      className="text-sm font-mono"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Enter just the folder/file name. Full URL is auto-generated.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="trailer_format" className="text-xs">Format</Label>
+                    <select
+                      id="trailer_format"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+                      defaultValue="hls"
+                    >
+                      <option value="hls">HLS (.m3u8)</option>
+                      <option value="mp4">MP4</option>
+                    </select>
+                  </div>
+                  <div id="trailer_url_preview" className="hidden p-3 bg-white rounded-md border text-xs space-y-1">
+                    <p className="font-medium text-gray-700">Full URLs (auto-generated):</p>
+                    <p className="text-gray-600 truncate">
+                      <span className="text-gray-400">Local:</span>{' '}
+                      <code id="trailer_local_url" className="text-blue-600"></code>
+                    </p>
+                    <p className="text-gray-600 truncate">
+                      <span className="text-gray-400">Production:</span>{' '}
+                      <code id="trailer_prod_url" className="text-green-600"></code>
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={addingTrailer}
+                    onClick={() => {
+                      const nameInput = document.getElementById('trailer_name') as HTMLInputElement;
+                      const slugInput = document.getElementById('trailer_slug') as HTMLInputElement;
+                      const formatSelect = document.getElementById('trailer_format') as HTMLSelectElement;
+                      if (slugInput.value.trim()) {
+                        handleAddSelfHostedTrailer(
+                          slugInput.value.trim(),
+                          nameInput.value.trim(),
+                          formatSelect.value as 'hls' | 'mp4'
+                        );
+                        nameInput.value = '';
+                        slugInput.value = '';
+                      }
+                    }}
+                  >
+                    {addingTrailer ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</>
+                    ) : (
+                      'Add Self-hosted Trailer'
+                    )}
+                  </Button>
+                  {/* Success notification */}
+                  {trailerAddedMessage && (
+                    <div className="flex items-center gap-2 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 text-sm mt-2">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      {trailerAddedMessage}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
+            {/* YouTube Trailer Form */}
+            <TabsContent value="youtube" className="mt-3">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="text-sm font-medium mb-3">Add YouTube Trailer</h4>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="manual_trailer_key" className="text-xs">YouTube Video ID or URL</Label>
+                    <Input
+                      id="manual_trailer_key"
+                      placeholder="e.g., dQw4w9WgXcQ or https://youtube.com/watch?v=..."
+                      className="text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const input = e.currentTarget;
+                          const key = input.value.trim();
+                          if (key) {
+                            handleAddYouTubeTrailer(key);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Paste YouTube video ID or full URL, then press Enter
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={addingTrailer}
+                    onClick={() => {
+                      const input = document.getElementById('manual_trailer_key') as HTMLInputElement;
                       const key = input.value.trim();
                       if (key) {
-                        handleAddTrailer(key);
+                        handleAddYouTubeTrailer(key);
                         input.value = '';
                       }
-                    }
-                  }}
-                />
-                <p className="text-xs text-gray-600 mt-1">
-                  Paste YouTube video ID or full URL, then press Enter
-                </p>
+                    }}
+                  >
+                    {addingTrailer ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</>
+                    ) : (
+                      'Add YouTube Trailer'
+                    )}
+                  </Button>
+                  {/* Success notification */}
+                  {trailerAddedMessage && (
+                    <div className="flex items-center gap-2 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 text-sm mt-2">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      {trailerAddedMessage}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Existing Trailers */}
           {trailers.length > 0 ? (
             <div className="space-y-3">
               {trailers.map((trailer, index) => {
-                if (trailer.type !== 'youtube') return null;
-                const ytKey = trailer.key;
+                const isYouTube = trailer.type === 'youtube';
+                const isSelfHosted = trailer.type === 'video';
+                const ytKey = isYouTube ? trailer.key : null;
+                const trailerSlug = isSelfHosted ? extractTrailerSlug(trailer.video_url) : null;
+                const trailerFormat = isSelfHosted ? trailer.video_format : null;
                 
                 return (
-                  <div key={trailer.id || ytKey} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
+                  <div key={trailer.id} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
                     <div className="flex items-start gap-3">
-                      <img
-                        src={`https://img.youtube.com/vi/${ytKey}/hqdefault.jpg`}
-                        alt={trailer.name}
-                        className="w-32 h-18 rounded object-cover flex-shrink-0"
-                      />
+                      {/* Thumbnail */}
+                      {isYouTube && ytKey ? (
+                        <img
+                          src={`https://img.youtube.com/vi/${ytKey}/hqdefault.jpg`}
+                          alt={trailer.name}
+                          className="w-32 h-18 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-32 h-18 rounded bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0">
+                          <span className="text-green-600 text-xs font-medium">Self-hosted</span>
+                        </div>
+                      )}
+                      
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <p className="font-medium text-sm">{trailer.name}</p>
@@ -296,34 +595,67 @@ export function MediaTab({
                             </span>
                           )}
                         </div>
+                        
+                        {/* Type badges */}
                         <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-                          <span className="px-2 py-0.5 bg-gray-200 rounded">YouTube</span>
+                          {isYouTube ? (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded">YouTube</span>
+                          ) : (
+                            <>
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">Self-hosted</span>
+                              <span className="px-2 py-0.5 bg-gray-200 rounded uppercase">{trailerFormat}</span>
+                            </>
+                          )}
                           {trailer.official && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Official</span>
                           )}
                         </div>
+                        
+                        {/* Slug/URL info for self-hosted */}
+                        {isSelfHosted && trailerSlug && (
+                          <p className="text-xs text-gray-500 mb-2 font-mono truncate" title={trailer.video_url}>
+                            Slug: {trailerSlug}
+                          </p>
+                        )}
+                        
+                        {/* Actions */}
                         <div className="flex items-center gap-2">
-                          <a
-                            href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:text-blue-800 underline"
-                          >
-                            Open in YouTube →
-                          </a>
+                          {isYouTube && ytKey && (
+                            <a
+                              href={`https://www.youtube.com/watch?v=${ytKey}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-800 underline"
+                            >
+                              Open in YouTube →
+                            </a>
+                          )}
                           {index > 0 && (
                             <button
+                              type="button"
                               onClick={() => handleSetPrimaryTrailer(index)}
                               className="text-xs text-gray-600 hover:text-gray-800 underline"
                             >
                               Set as Primary
                             </button>
                           )}
+                          {isSelfHosted && (
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(trailer)}
+                              className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                              title="Edit trailer"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
+                            type="button"
                             onClick={() => handleRemoveTrailer(index)}
-                            className="text-xs text-red-600 hover:text-red-800 underline"
+                            className="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                            title="Delete trailer"
                           >
-                            Remove
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -336,10 +668,76 @@ export function MediaTab({
               </p>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No trailers available. Add one manually or sync from TMDB.</p>
+            <p className="text-sm text-gray-500">No trailers available. Add a self-hosted or YouTube trailer above.</p>
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Trailer Modal */}
+      {editingTrailer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-semibold mb-4">Edit Self-hosted Trailer</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit_trailer_name" className="text-sm">Trailer Name</Label>
+                <Input
+                  id="edit_trailer_name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="e.g., Official Trailer"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_trailer_slug" className="text-sm">Trailer Slug</Label>
+                <Input
+                  id="edit_trailer_slug"
+                  value={editForm.slug}
+                  onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                  placeholder="e.g., the-signal-trailer"
+                  className="font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Just the folder/file name, not the full URL
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="edit_trailer_format" className="text-sm">Format</Label>
+                <select
+                  id="edit_trailer_format"
+                  value={editForm.format}
+                  onChange={(e) => setEditForm({ ...editForm, format: e.target.value as 'hls' | 'mp4' })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="hls">HLS (.m3u8)</option>
+                  <option value="mp4">MP4</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={savingEdit}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Poster Management */}
       {currentMovie?.images && currentMovie.images.length > 0 ? (

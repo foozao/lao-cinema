@@ -420,16 +420,31 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
 
     // Insert new trailers
     if (trailers.length > 0) {
-      const trailerValues = trailers.map((trailer: any, index: number) => ({
-        movieId,
-        type: 'youtube' as const,
-        youtubeKey: trailer.key,
-        name: trailer.name || 'Trailer',
-        official: trailer.official || false,
-        language: trailer.iso_639_1 || null,
-        publishedAt: trailer.published_at || null,
-        order: index,
-      }));
+      const trailerValues = trailers.map((trailer: any, index: number) => {
+        const isYouTube = trailer.type === 'youtube';
+        const isVideo = trailer.type === 'video';
+        
+        return {
+          movieId,
+          type: (isVideo ? 'video' : 'youtube') as 'youtube' | 'video',
+          // YouTube fields
+          youtubeKey: isYouTube ? trailer.key : null,
+          // Video fields (self-hosted)
+          videoUrl: isVideo ? trailer.video_url : null,
+          videoFormat: isVideo ? (trailer.video_format || 'mp4') : null,
+          videoQuality: isVideo ? (trailer.video_quality || 'original') : null,
+          sizeBytes: isVideo ? trailer.size_bytes : null,
+          width: isVideo ? trailer.width : null,
+          height: isVideo ? trailer.height : null,
+          durationSeconds: isVideo ? trailer.duration_seconds : null,
+          // Common fields
+          name: trailer.name || 'Trailer',
+          official: trailer.official || false,
+          language: trailer.language || trailer.iso_639_1 || null,
+          publishedAt: trailer.published_at || null,
+          order: index,
+        };
+      });
       
       await db.insert(schema.trailers).values(trailerValues);
     }

@@ -20,15 +20,15 @@ const youtubeTrailerSchema = z.object({
 
 const videoTrailerSchema = z.object({
   type: z.literal('video'),
-  video_url: z.string().url(),
+  video_url: z.string().min(1), // Can be slug or full URL
   video_format: z.enum(['mp4', 'hls', 'dash']),
-  video_quality: z.enum(['original', '1080p', '720p', '480p', '360p']),
+  video_quality: z.enum(['original', '1080p', '720p', '480p', '360p']).default('original'),
   size_bytes: z.number().int().optional(),
   width: z.number().int().optional(),
   height: z.number().int().optional(),
   duration_seconds: z.number().int().optional(),
   name: z.string().min(1),
-  official: z.boolean().default(false),
+  official: z.boolean().default(true),
   language: z.string().optional(),
   published_at: z.string().optional(),
   order: z.number().int().default(0),
@@ -46,7 +46,7 @@ const updateTrailerSchema = z.object({
   published_at: z.string().optional(),
   order: z.number().int().optional(),
   // Allow updating video-specific fields
-  video_url: z.string().url().optional(),
+  video_url: z.string().min(1).optional(), // Can be slug or full URL
   video_format: z.enum(['mp4', 'hls', 'dash']).optional(),
   video_quality: z.enum(['original', '1080p', '720p', '480p', '360p']).optional(),
   size_bytes: z.number().int().optional(),
@@ -164,13 +164,27 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
 
       const data = validation.data;
 
+      // Map snake_case to camelCase for Drizzle
+      const updateData: Record<string, any> = {
+        updatedAt: new Date(),
+      };
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.official !== undefined) updateData.official = data.official;
+      if (data.language !== undefined) updateData.language = data.language;
+      if (data.published_at !== undefined) updateData.publishedAt = data.published_at;
+      if (data.order !== undefined) updateData.order = data.order;
+      if (data.video_url !== undefined) updateData.videoUrl = data.video_url;
+      if (data.video_format !== undefined) updateData.videoFormat = data.video_format;
+      if (data.video_quality !== undefined) updateData.videoQuality = data.video_quality;
+      if (data.size_bytes !== undefined) updateData.sizeBytes = data.size_bytes;
+      if (data.width !== undefined) updateData.width = data.width;
+      if (data.height !== undefined) updateData.height = data.height;
+      if (data.duration_seconds !== undefined) updateData.durationSeconds = data.duration_seconds;
+
       // Update trailer
       const [updatedTrailer] = await db
         .update(trailers)
-        .set({
-          ...data,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(trailers.id, trailerId))
         .returning();
 

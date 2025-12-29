@@ -93,27 +93,46 @@ export async function buildMovieWithRelations(
     popularity: movie.popularity,
     adult: movie.adult,
     availability_status: movie.availabilityStatus,
-    trailers: movieTrailers.map(t => ({
-      id: t.id,
-      type: t.type,
-      name: t.name,
-      official: t.official,
-      language: t.language,
-      published_at: t.publishedAt,
-      order: t.order,
-      // YouTube trailer fields
-      ...(t.type === 'youtube' && { key: t.youtubeKey }),
-      // Video trailer fields
-      ...(t.type === 'video' && {
-        video_url: t.videoUrl,
-        video_format: t.videoFormat,
-        video_quality: t.videoQuality,
-        size_bytes: t.sizeBytes,
-        width: t.width,
-        height: t.height,
-        duration_seconds: t.durationSeconds,
-      }),
-    })),
+    trailers: movieTrailers.map(t => {
+      // For self-hosted trailers, construct full URL from slug
+      let videoUrl = t.videoUrl;
+      if (t.type === 'video' && t.videoUrl && !t.videoUrl.startsWith('http')) {
+        // It's a slug - construct full URL based on environment
+        // Derive trailer base from VIDEO_BASE_URL: /videos/hls -> /trailers/hls
+        const videoBaseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
+        const trailerBaseUrl = videoBaseUrl
+          .replace('/videos/hls', '/trailers/hls')
+          .replace('lao-cinema-videos/hls', 'lao-cinema-videos/trailers/hls');
+        if (t.videoFormat === 'hls') {
+          videoUrl = `${trailerBaseUrl}/${t.videoUrl}/master.m3u8`;
+        } else {
+          // MP4: /trailers/{slug}.mp4 (no /hls/ subfolder)
+          videoUrl = trailerBaseUrl.replace('/hls', '') + `/${t.videoUrl}.mp4`;
+        }
+      }
+      
+      return {
+        id: t.id,
+        type: t.type,
+        name: t.name,
+        official: t.official,
+        language: t.language,
+        published_at: t.publishedAt,
+        order: t.order,
+        // YouTube trailer fields
+        ...(t.type === 'youtube' && { key: t.youtubeKey }),
+        // Video trailer fields
+        ...(t.type === 'video' && {
+          video_url: videoUrl,
+          video_format: t.videoFormat,
+          video_quality: t.videoQuality,
+          size_bytes: t.sizeBytes,
+          width: t.width,
+          height: t.height,
+          duration_seconds: t.durationSeconds,
+        }),
+      };
+    }),
     title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
     overview: Object.keys(overview).length > 0 ? overview : { en: '' },
     tagline: Object.keys(tagline).length > 0 ? tagline : undefined,
