@@ -1,0 +1,387 @@
+// Award Nominations routes
+
+import { FastifyInstance } from 'fastify';
+import { sendBadRequest, sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
+import { db, schema } from '../db/index.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
+import { buildInClause } from '../lib/query-helpers.js';
+import { logAuditFromRequest } from '../lib/audit-service.js';
+import { buildLocalizedText } from '../lib/translation-helpers.js';
+
+export default async function awardNominationsRoutes(fastify: FastifyInstance) {
+  // Create nomination
+  fastify.post<{
+    Body: {
+      edition_id: string;
+      category_id: string;
+      person_id?: number;
+      movie_id?: string;
+      for_movie_id?: string;
+      work_title?: { en?: string; lo?: string };
+      notes?: { en?: string; lo?: string };
+      recognition_type?: { en?: string; lo?: string };
+      is_winner?: boolean;
+      sort_order?: number;
+    };
+  }>('/awards/nominations', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+    try {
+      const { edition_id, category_id, person_id, movie_id, for_movie_id, work_title, notes, recognition_type, is_winner, sort_order } = request.body;
+      
+      if (!edition_id || !category_id) {
+        return sendBadRequest(reply, 'edition_id and category_id are required');
+      }
+      
+      if (!person_id && !movie_id) {
+        return sendBadRequest(reply, 'Either person_id or movie_id is required');
+      }
+      
+      // Verify edition and category exist
+      const [edition] = await db.select().from(schema.awardEditions).where(eq(schema.awardEditions.id, edition_id)).limit(1);
+      if (!edition) {
+        return sendNotFound(reply, 'Award edition not found');
+      }
+      
+      const [category] = await db.select().from(schema.awardCategories).where(eq(schema.awardCategories.id, category_id)).limit(1);
+      if (!category) {
+        return sendNotFound(reply, 'Award category not found');
+      }
+      
+      const [newNomination] = await db.insert(schema.awardNominations).values({
+        editionId: edition_id,
+        categoryId: category_id,
+        personId: person_id || null,
+        movieId: movie_id || null,
+        forMovieId: for_movie_id || null,
+        isWinner: is_winner || false,
+        sortOrder: sort_order || 0,
+      }).returning();
+      
+      // Insert translations if provided
+      if (work_title?.en || notes?.en || recognition_type?.en) {
+        await db.insert(schema.awardNominationTranslations).values({
+          nominationId: newNomination.id,
+          language: 'en',
+          workTitle: work_title?.en || null,
+          notes: notes?.en || null,
+          recognitionType: recognition_type?.en || null,
+        });
+      }
+      
+      if (work_title?.lo || notes?.lo || recognition_type?.lo) {
+        await db.insert(schema.awardNominationTranslations).values({
+          nominationId: newNomination.id,
+          language: 'lo',
+          workTitle: work_title?.lo || null,
+          notes: notes?.lo || null,
+          recognitionType: recognition_type?.lo || null,
+        });
+      }
+      
+      // Log audit event
+      const nomineeDesc = person_id ? `Person #${person_id}` : movie_id ? `Movie ${movie_id}` : 'Unknown';
+      await logAuditFromRequest(
+        request,
+        'create',
+        'settings',
+        newNomination.id,
+        nomineeDesc,
+        {
+          nomination_id: { before: null, after: newNomination.id },
+          edition_id: { before: null, after: edition_id },
+          category_id: { before: null, after: category_id },
+        }
+      );
+      
+      return sendCreated(reply, {
+        id: newNomination.id,
+        edition_id: newNomination.editionId,
+        category_id: newNomination.categoryId,
+        person_id: newNomination.personId,
+        movie_id: newNomination.movieId,
+        for_movie_id: newNomination.forMovieId,
+        work_title,
+        notes,
+        is_winner: newNomination.isWinner,
+        sort_order: newNomination.sortOrder,
+      });
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to create nomination');
+    }
+  });
+
+  // Update nomination
+  fastify.put<{
+    Params: { id: string };
+    Body: {
+      person_id?: number;
+      movie_id?: string;
+      for_movie_id?: string;
+      work_title?: { en?: string; lo?: string };
+      notes?: { en?: string; lo?: string };
+      recognition_type?: { en?: string; lo?: string };
+      is_winner?: boolean;
+      sort_order?: number;
+    };
+  }>('/awards/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const updates = request.body;
+      
+      const [existing] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, id)).limit(1);
+      if (!existing) {
+        return sendNotFound(reply, 'Nomination not found');
+      }
+      
+      const nominationUpdates: any = { updatedAt: new Date() };
+      if (updates.person_id !== undefined) nominationUpdates.personId = updates.person_id || null;
+      if (updates.movie_id !== undefined) nominationUpdates.movieId = updates.movie_id || null;
+      if (updates.for_movie_id !== undefined) nominationUpdates.forMovieId = updates.for_movie_id || null;
+      if (updates.is_winner !== undefined) nominationUpdates.isWinner = updates.is_winner;
+      if (updates.sort_order !== undefined) nominationUpdates.sortOrder = updates.sort_order;
+      
+      await db.update(schema.awardNominations).set(nominationUpdates).where(eq(schema.awardNominations.id, id));
+      
+      // Update translations
+      if (updates.work_title || updates.notes || updates.recognition_type) {
+        for (const lang of ['en', 'lo'] as const) {
+          const workTitleVal = updates.work_title?.[lang];
+          const notesVal = updates.notes?.[lang];
+          const recognitionTypeVal = updates.recognition_type?.[lang];
+          
+          if (workTitleVal !== undefined || notesVal !== undefined || recognitionTypeVal !== undefined) {
+            const [existingTrans] = await db.select().from(schema.awardNominationTranslations)
+              .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)))
+              .limit(1);
+            
+            if (existingTrans) {
+              const transUpdates: any = { updatedAt: new Date() };
+              if (workTitleVal !== undefined) transUpdates.workTitle = workTitleVal || null;
+              if (notesVal !== undefined) transUpdates.notes = notesVal || null;
+              if (recognitionTypeVal !== undefined) transUpdates.recognitionType = recognitionTypeVal || null;
+              await db.update(schema.awardNominationTranslations).set(transUpdates)
+                .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)));
+            } else if (workTitleVal || notesVal || recognitionTypeVal) {
+              await db.insert(schema.awardNominationTranslations).values({
+                nominationId: id,
+                language: lang,
+                workTitle: workTitleVal || null,
+                notes: notesVal || null,
+                recognitionType: recognitionTypeVal || null,
+              });
+            }
+          }
+        }
+      }
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        id,
+        `Nomination ${id}`
+      );
+      
+      return { success: true, id };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to update nomination');
+    }
+  });
+
+  // Delete nomination
+  fastify.delete<{ Params: { id: string } }>('/awards/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      
+      const [existing] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, id)).limit(1);
+      if (!existing) {
+        return sendNotFound(reply, 'Nomination not found');
+      }
+      
+      await db.delete(schema.awardNominations).where(eq(schema.awardNominations.id, id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'delete',
+        'settings',
+        id,
+        `Nomination ${id}`,
+        {
+          nomination_id: { before: id, after: null },
+        }
+      );
+      
+      return { success: true, id };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to delete nomination');
+    }
+  });
+
+  // Get all winners and nominees across all awards (for showcase)
+  fastify.get('/awards/winners', async (request, reply) => {
+    try {
+      // Get all nominations (winners and nominees) with related data
+      const winners = await db.select()
+        .from(schema.awardNominations)
+        .orderBy(desc(schema.awardNominations.createdAt))
+        .limit(100);
+      
+      if (winners.length === 0) {
+        return { winners: [] };
+      }
+      
+      // Get all related data
+      const editionIds = [...new Set(winners.map(w => w.editionId))];
+      const categoryIds = [...new Set(winners.map(w => w.categoryId))];
+      const personIds = [...new Set(winners.filter(w => w.personId).map(w => w.personId!))];
+      const movieIds = [...new Set(winners.map(w => w.movieId).filter(Boolean).concat(winners.map(w => w.forMovieId).filter(Boolean)))] as string[];
+      
+      const editions = await db.select().from(schema.awardEditions).where(buildInClause(schema.awardEditions.id, editionIds));
+      const categories = await db.select().from(schema.awardCategories).where(buildInClause(schema.awardCategories.id, categoryIds));
+      const categoryTrans = await db.select().from(schema.awardCategoryTranslations).where(buildInClause(schema.awardCategoryTranslations.categoryId, categoryIds));
+      const nominationTrans = await db.select().from(schema.awardNominationTranslations).where(buildInClause(schema.awardNominationTranslations.nominationId, winners.map(w => w.id)));
+      
+      const people = personIds.length > 0 
+        ? await db.select().from(schema.people).where(buildInClause(schema.people.id, personIds))
+        : [];
+      const peopleTrans = personIds.length > 0 
+        ? await db.select().from(schema.peopleTranslations).where(buildInClause(schema.peopleTranslations.personId, personIds))
+        : [];
+      const movies = movieIds.length > 0 
+        ? await db.select().from(schema.movies).where(buildInClause(schema.movies.id, movieIds))
+        : [];
+      const movieTrans = movieIds.length > 0 
+        ? await db.select().from(schema.movieTranslations).where(buildInClause(schema.movieTranslations.movieId, movieIds))
+        : [];
+      
+      // Get show data
+      const showIds = [...new Set(editions.map(e => e.showId))];
+      const shows = await db.select().from(schema.awardShows).where(buildInClause(schema.awardShows.id, showIds));
+      const showTrans = await db.select().from(schema.awardShowTranslations).where(buildInClause(schema.awardShowTranslations.showId, showIds));
+      
+      // Format response
+      const formattedWinners = winners.map(winner => {
+        const edition = editions.find(e => e.id === winner.editionId);
+        const show = edition ? shows.find(s => s.id === edition.showId) : null;
+        const category = categories.find(c => c.id === winner.categoryId);
+        const catTrans = categoryTrans.filter(t => t.categoryId === winner.categoryId);
+        const nomTrans = nominationTrans.filter(t => t.nominationId === winner.id);
+        
+        let nominee = null;
+        if (winner.personId) {
+          const person = people.find(p => p.id === winner.personId);
+          const pTrans = peopleTrans.filter(t => t.personId === winner.personId);
+          nominee = person ? {
+            type: 'person',
+            id: person.id,
+            name: buildLocalizedText(pTrans, 'name'),
+            profile_path: person.profilePath,
+          } : null;
+        } else if (winner.movieId) {
+          const movie = movies.find(m => m.id === winner.movieId);
+          const mTrans = movieTrans.filter(t => t.movieId === winner.movieId);
+          nominee = movie ? {
+            type: 'movie',
+            id: movie.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: movie.posterPath,
+          } : null;
+        }
+        
+        let forMovie = null;
+        if (winner.forMovieId) {
+          const movie = movies.find(m => m.id === winner.forMovieId);
+          const mTrans = movieTrans.filter(t => t.movieId === winner.forMovieId);
+          forMovie = movie ? {
+            id: movie.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: movie.posterPath,
+          } : null;
+        }
+        
+        return {
+          id: winner.id,
+          nominee,
+          for_movie: forMovie,
+          is_winner: winner.isWinner,
+          recognition_type: buildLocalizedText(nomTrans, 'recognitionType'),
+          show: show ? {
+            id: show.id,
+            name: buildLocalizedText(showTrans.filter(t => t.showId === show.id), 'name'),
+            country: show.country,
+          } : null,
+          edition: edition ? {
+            id: edition.id,
+            year: edition.year,
+            edition_number: edition.editionNumber,
+          } : null,
+          category: category ? {
+            id: category.id,
+            name: buildLocalizedText(catTrans, 'name'),
+            nominee_type: category.nomineeType,
+          } : null,
+        };
+      });
+      
+      return { winners: formattedWinners };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to fetch winners');
+    }
+  });
+
+  // Set winner for a category in an edition
+  fastify.post<{
+    Body: {
+      nomination_id: string;
+    };
+  }>('/awards/nominations/set-winner', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+    try {
+      const { nomination_id } = request.body;
+      
+      if (!nomination_id) {
+        return sendBadRequest(reply, 'nomination_id is required');
+      }
+      
+      const [nomination] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, nomination_id)).limit(1);
+      if (!nomination) {
+        return sendNotFound(reply, 'Nomination not found');
+      }
+      
+      // Clear any existing winners in this category for this edition
+      await db.update(schema.awardNominations)
+        .set({ isWinner: false, updatedAt: new Date() })
+        .where(and(
+          eq(schema.awardNominations.editionId, nomination.editionId),
+          eq(schema.awardNominations.categoryId, nomination.categoryId)
+        ));
+      
+      // Set the new winner
+      await db.update(schema.awardNominations)
+        .set({ isWinner: true, updatedAt: new Date() })
+        .where(eq(schema.awardNominations.id, nomination_id));
+      
+      // Log audit event
+      await logAuditFromRequest(
+        request,
+        'update',
+        'settings',
+        nomination_id,
+        `Set winner for nomination ${nomination_id}`,
+        {
+          is_winner: { before: false, after: true },
+        }
+      );
+      
+      return { success: true, nomination_id };
+    } catch (error) {
+      fastify.log.error(error);
+      return sendInternalError(reply, 'Failed to set winner');
+    }
+  });
+}
