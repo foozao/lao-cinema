@@ -2,12 +2,42 @@
 
 import { getRawSessionToken } from '../auth/api-client';
 import { API_BASE_URL } from '../config';
+import type {
+  Movie,
+  Person,
+  ProductionCompany,
+  ShortPack,
+  ShortPackSummary,
+  AwardShow,
+  AwardEdition,
+  AwardCategory,
+  AwardNomination,
+  Trailer,
+  SubtitleTrack,
+  MovieImage,
+  LocalizedText,
+} from '../types';
+
+// Homepage featured film type
+interface FeaturedFilm {
+  id: string;
+  movieId: string;
+  order: number;
+  heroStartTime?: number | null;
+  heroEndTime?: number | null;
+  movie: Movie;
+}
+
+interface HomepageSettings {
+  randomizeFeatured: boolean;
+  heroType: 'disabled' | 'video' | 'image';
+}
 
 export class APIError extends Error {
   constructor(
     message: string,
     public status: number,
-    public data?: any
+    public data?: unknown
   ) {
     super(message);
     this.name = 'APIError';
@@ -52,19 +82,19 @@ async function fetchAPI<T>(
 // Movie API methods
 export const movieAPI = {
   // Get all movies
-  getAll: () => fetchAPI<{ movies: any[] }>('/movies'),
+  getAll: () => fetchAPI<{ movies: Movie[] }>('/movies'),
 
   // Get movie by ID
-  getById: (id: string) => fetchAPI<any>(`/movies/${id}`),
+  getById: (id: string) => fetchAPI<Movie>(`/movies/${id}`),
 
   // Create movie
-  create: (data: any) => fetchAPI<any>('/movies', {
+  create: (data: Partial<Movie>) => fetchAPI<Movie>('/movies', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
 
   // Update movie
-  update: (id: string, data: any) => fetchAPI<any>(`/movies/${id}`, {
+  update: (id: string, data: Partial<Movie>) => fetchAPI<Movie>(`/movies/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -83,7 +113,7 @@ export const movieAPI = {
     width?: number;
     isPrimary?: boolean;
   }) =>
-    fetchAPI<{ success: boolean; image: any }>(`/movies/${movieId}/images`, {
+    fetchAPI<{ success: boolean; image: MovieImage }>(`/movies/${movieId}/images`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -110,15 +140,15 @@ export const peopleAPI = {
     if (params?.search) searchParams.set('search', params.search);
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     const query = searchParams.toString();
-    return fetchAPI<{ people: any[] }>(`/people${query ? `?${query}` : ''}`);
+    return fetchAPI<{ people: Person[] }>(`/people${query ? `?${query}` : ''}`);
   },
   
   // Search people (convenience method)
   search: (query: string, limit = 20) => 
-    fetchAPI<{ people: any[] }>(`/people?search=${encodeURIComponent(query)}&limit=${limit}`),
+    fetchAPI<{ people: Person[] }>(`/people?search=${encodeURIComponent(query)}&limit=${limit}`),
   
   // Get person by ID
-  getById: (id: string | number) => fetchAPI<any>(`/people/${id}`),
+  getById: (id: string | number) => fetchAPI<Person>(`/people/${id}`),
   
   // Create person
   create: (data: {
@@ -127,14 +157,14 @@ export const peopleAPI = {
     known_for_department?: string;
     birthday?: string;
     place_of_birth?: string;
-  }) => fetchAPI<any>('/people', {
+  }) => fetchAPI<Person>('/people', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
   
   // Update person
-  update: (id: string | number, data: any) => fetchAPI<any>(`/people/${id}`, {
+  update: (id: string | number, data: Partial<Person>) => fetchAPI<Person>(`/people/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -167,7 +197,7 @@ export const peopleAPI = {
     height?: number;
     aspectRatio?: number;
     isPrimary?: boolean;
-  }) => fetchAPI<any>(`/people/${personId}/images`, {
+  }) => fetchAPI<{ success: boolean; image: { id: string; file_path: string } }>(`/people/${personId}/images`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -254,15 +284,15 @@ export const productionCompaniesAPI = {
     if (params?.search) searchParams.set('search', params.search);
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     const query = searchParams.toString();
-    return fetchAPI<{ companies: any[] }>(`/production-companies${query ? `?${query}` : ''}`);
+    return fetchAPI<{ companies: ProductionCompany[] }>(`/production-companies${query ? `?${query}` : ''}`);
   },
 
   // Search production companies
   search: (query: string, limit = 20) =>
-    fetchAPI<{ companies: any[] }>(`/production-companies?search=${encodeURIComponent(query)}&limit=${limit}`),
+    fetchAPI<{ companies: ProductionCompany[] }>(`/production-companies?search=${encodeURIComponent(query)}&limit=${limit}`),
 
   // Get production company by ID
-  getById: (id: number) => fetchAPI<any>(`/production-companies/${id}`),
+  getById: (id: number) => fetchAPI<ProductionCompany>(`/production-companies/${id}`),
 
   // Create production company
   create: (data: {
@@ -273,7 +303,7 @@ export const productionCompaniesAPI = {
     custom_logo_url?: string;
     website_url?: string;
     origin_country?: string;
-  }) => fetchAPI<any>('/production-companies', {
+  }) => fetchAPI<ProductionCompany>('/production-companies', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -286,7 +316,7 @@ export const productionCompaniesAPI = {
     custom_logo_url?: string;
     website_url?: string;
     origin_country?: string;
-  }) => fetchAPI<any>(`/production-companies/${id}`, {
+  }) => fetchAPI<ProductionCompany>(`/production-companies/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
@@ -300,7 +330,7 @@ export const productionCompaniesAPI = {
 // Short Packs API methods
 export const shortPacksAPI = {
   // Get all short packs
-  getAll: async (params?: { published?: boolean }): Promise<{ short_packs: any[] }> => {
+  getAll: async (params?: { published?: boolean }): Promise<{ short_packs: ShortPackSummary[] }> => {
     const url = new URL(`${API_BASE_URL}/short-packs`);
     if (params?.published !== undefined) {
       url.searchParams.set('published', String(params.published));
@@ -313,7 +343,7 @@ export const shortPacksAPI = {
     return response.json();
   },
 
-  getPackContext: async (movieId: string): Promise<any> => {
+  getPackContext: async (movieId: string): Promise<{ pack: ShortPack | null; position: number }> => {
     const { getAuthHeaders } = await import('./auth-headers');
     const response = await fetch(`${API_BASE_URL}/short-packs/context/${movieId}`, {
       headers: getAuthHeaders(),
@@ -336,7 +366,7 @@ export const shortPacksAPI = {
   },
 
   // Get short pack by ID or slug
-  getById: (id: string) => fetchAPI<any>(`/short-packs/${id}`),
+  getById: (id: string) => fetchAPI<ShortPack>(`/short-packs/${id}`),
 
   // Create short pack
   create: (data: {
@@ -348,7 +378,7 @@ export const shortPacksAPI = {
     backdrop_path?: string;
     price_usd?: number;
     is_published?: boolean;
-  }) => fetchAPI<any>('/short-packs', {
+  }) => fetchAPI<ShortPack>('/short-packs', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -363,7 +393,7 @@ export const shortPacksAPI = {
     backdrop_path?: string;
     price_usd?: number;
     is_published?: boolean;
-  }) => fetchAPI<any>(`/short-packs/${id}`, {
+  }) => fetchAPI<ShortPack>(`/short-packs/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -375,20 +405,20 @@ export const shortPacksAPI = {
 
   // Add short to pack
   addShort: (packId: string, movieId: string, order?: number) =>
-    fetchAPI<any>(`/short-packs/${packId}/shorts`, {
+    fetchAPI<{ success: boolean }>(`/short-packs/${packId}/shorts`, {
       method: 'POST',
       body: JSON.stringify({ movie_id: movieId, order }),
     }),
 
   // Remove short from pack
   removeShort: (packId: string, movieId: string) =>
-    fetchAPI<any>(`/short-packs/${packId}/shorts/${movieId}`, {
+    fetchAPI<{ success: boolean }>(`/short-packs/${packId}/shorts/${movieId}`, {
       method: 'DELETE',
     }),
 
   // Reorder shorts in pack
   reorderShorts: (packId: string, shorts: { movie_id: string; order: number }[]) =>
-    fetchAPI<any>(`/short-packs/${packId}/reorder`, {
+    fetchAPI<{ success: boolean }>(`/short-packs/${packId}/reorder`, {
       method: 'PUT',
       body: JSON.stringify({ shorts }),
     }),
@@ -401,10 +431,10 @@ export const awardsAPI = {
   // ==========================================================================
   
   // Get all award shows
-  getShows: () => fetchAPI<{ shows: any[] }>('/awards/shows'),
+  getShows: () => fetchAPI<{ shows: AwardShow[] }>('/awards/shows'),
   
   // Get single award show with editions and categories
-  getShow: (id: string) => fetchAPI<any>(`/awards/shows/${id}`),
+  getShow: (id: string) => fetchAPI<AwardShow>(`/awards/shows/${id}`),
   
   // Create award show
   createShow: (data: {
@@ -415,7 +445,7 @@ export const awardsAPI = {
     city?: string;
     website_url?: string;
     logo_path?: string;
-  }) => fetchAPI<any>('/awards/shows', {
+  }) => fetchAPI<AwardShow>('/awards/shows', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -429,7 +459,7 @@ export const awardsAPI = {
     city?: string;
     website_url?: string;
     logo_path?: string;
-  }) => fetchAPI<any>(`/awards/shows/${id}`, {
+  }) => fetchAPI<AwardShow>(`/awards/shows/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -444,7 +474,7 @@ export const awardsAPI = {
   // ==========================================================================
   
   // Get edition with full nominations
-  getEdition: (id: string) => fetchAPI<any>(`/awards/editions/${id}`),
+  getEdition: (id: string) => fetchAPI<AwardEdition>(`/awards/editions/${id}`),
   
   // Create edition
   createEdition: (data: {
@@ -455,7 +485,7 @@ export const awardsAPI = {
     theme?: { en?: string; lo?: string };
     start_date?: string;
     end_date?: string;
-  }) => fetchAPI<any>('/awards/editions', {
+  }) => fetchAPI<AwardEdition>('/awards/editions', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -468,7 +498,7 @@ export const awardsAPI = {
     theme?: { en?: string; lo?: string };
     start_date?: string;
     end_date?: string;
-  }) => fetchAPI<any>(`/awards/editions/${id}`, {
+  }) => fetchAPI<AwardEdition>(`/awards/editions/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -489,7 +519,7 @@ export const awardsAPI = {
     description?: { en?: string; lo?: string };
     nominee_type: 'person' | 'movie';
     sort_order?: number;
-  }) => fetchAPI<any>('/awards/categories', {
+  }) => fetchAPI<AwardCategory>('/awards/categories', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -500,7 +530,7 @@ export const awardsAPI = {
     description?: { en?: string; lo?: string };
     nominee_type?: 'person' | 'movie';
     sort_order?: number;
-  }) => fetchAPI<any>(`/awards/categories/${id}`, {
+  }) => fetchAPI<AwardCategory>(`/awards/categories/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -526,7 +556,7 @@ export const awardsAPI = {
     recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
-  }) => fetchAPI<any>('/awards/nominations', {
+  }) => fetchAPI<AwardNomination>('/awards/nominations', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -541,7 +571,7 @@ export const awardsAPI = {
     recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
-  }) => fetchAPI<any>(`/awards/nominations/${id}`, {
+  }) => fetchAPI<AwardNomination>(`/awards/nominations/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -558,30 +588,30 @@ export const awardsAPI = {
   }),
   
   // Get all winners across all awards (for showcase)
-  getWinners: () => fetchAPI<{ winners: any[] }>('/awards/winners'),
+  getWinners: () => fetchAPI<{ winners: AwardNomination[] }>('/awards/winners'),
 };
 
 // Homepage API methods
 export const homepageAPI = {
   // Get featured films (public)
-  getFeatured: () => fetchAPI<{ featured: any[] }>('/homepage/featured'),
+  getFeatured: () => fetchAPI<{ featured: FeaturedFilm[] }>('/homepage/featured'),
 
   // Get featured films with admin data
-  getFeaturedAdmin: () => fetchAPI<{ featured: any[] }>('/homepage/featured/admin'),
+  getFeaturedAdmin: () => fetchAPI<{ featured: FeaturedFilm[] }>('/homepage/featured/admin'),
 
   // Get homepage settings
-  getSettings: () => fetchAPI<{ settings: any }>('/homepage/settings'),
+  getSettings: () => fetchAPI<{ settings: HomepageSettings }>('/homepage/settings'),
 
   // Update homepage settings
   updateSettings: (data: { randomizeFeatured?: boolean; heroType?: 'disabled' | 'video' | 'image' }) =>
-    fetchAPI<{ settings: any }>('/homepage/settings', {
+    fetchAPI<{ settings: HomepageSettings }>('/homepage/settings', {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   // Add featured film
   addFeatured: (movieId: string, order?: number) =>
-    fetchAPI<any>('/homepage/featured', {
+    fetchAPI<FeaturedFilm>('/homepage/featured', {
       method: 'POST',
       body: JSON.stringify({ movieId, order }),
     }),
@@ -601,7 +631,7 @@ export const homepageAPI = {
 
   // Update hero times for a featured film
   updateHeroTimes: (id: string, heroStartTime: number | null, heroEndTime: number | null) =>
-    fetchAPI<any>(`/homepage/featured/${id}/hero-times`, {
+    fetchAPI<FeaturedFilm>(`/homepage/featured/${id}/hero-times`, {
       method: 'PATCH',
       body: JSON.stringify({ heroStartTime, heroEndTime }),
     }),
@@ -616,7 +646,7 @@ export const subtitlesAPI = {
     url: string;
     isDefault?: boolean;
     kind?: string;
-  }) => fetchAPI<any>(`/movies/${movieId}/subtitles`, {
+  }) => fetchAPI<SubtitleTrack>(`/movies/${movieId}/subtitles`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -631,7 +661,7 @@ export const subtitlesAPI = {
   update: (movieId: string, trackId: string, data: {
     isDefault?: boolean;
     linePosition?: number;
-  }) => fetchAPI<any>(`/movies/${movieId}/subtitles/${trackId}`, {
+  }) => fetchAPI<SubtitleTrack>(`/movies/${movieId}/subtitles/${trackId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -658,7 +688,7 @@ export const subtitlesAPI = {
 // Trailers API methods
 export const trailersAPI = {
   // Get trailers for a movie
-  getForMovie: (movieId: string) => fetchAPI<any[]>(`/trailers/${movieId}`),
+  getForMovie: (movieId: string) => fetchAPI<Trailer[]>(`/trailers/${movieId}`),
 
   // Delete trailer
   delete: (trailerId: string) =>
@@ -668,28 +698,28 @@ export const trailersAPI = {
 
   // Update trailer
   update: (trailerId: string, data: { name?: string; video_url?: string; video_format?: string }) =>
-    fetchAPI<any>(`/trailers/${trailerId}`, {
+    fetchAPI<Trailer>(`/trailers/${trailerId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   // Select thumbnail for trailer
   selectThumbnail: (trailerId: string, thumbnailNumber: number) =>
-    fetchAPI<any>(`/trailers/${trailerId}/select-thumbnail`, {
+    fetchAPI<Trailer>(`/trailers/${trailerId}/select-thumbnail`, {
       method: 'POST',
       body: JSON.stringify({ thumbnailNumber }),
     }),
 
   // Add YouTube trailer
   addYouTube: (movieId: string, data: { key: string; name: string; official?: boolean; language?: string }) =>
-    fetchAPI<any>(`/trailers/${movieId}/youtube`, {
+    fetchAPI<Trailer>(`/trailers/${movieId}/youtube`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   // Add self-hosted trailer
   addSelfHosted: (movieId: string, data: { slug: string; name: string; format?: 'hls' | 'mp4' }) =>
-    fetchAPI<any>(`/trailers/${movieId}/self-hosted`, {
+    fetchAPI<Trailer>(`/trailers/${movieId}/self-hosted`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
