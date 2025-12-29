@@ -9,7 +9,7 @@ Lao Cinema is a streaming platform for Lao films with:
 - **Backend API**: Fastify API with PostgreSQL 16 and Drizzle ORM (`/api`)
 - **Database**: PostgreSQL with Docker Compose setup (`/db`)
 - **Admin Panel**: TMDB import and movie editing interface
-- **Testing**: Vitest with 339+ unit tests
+- **Testing**: Vitest with 436+ unit tests
 - **Future Mobile**: React Native (Expo) companion app
 - **Video Delivery**: HLS streaming (Cloudflare Stream or Bunny Stream - to be configured)
 
@@ -339,7 +339,7 @@ export default function StaticContent() { }
 - [x] Dual-mode APIs (authenticated OR anonymous users)
 - [x] HTTP Basic Auth for deployment-level protection
 - [x] Admin panel (TMDB import, movie editing, people management, analytics, audit logs)
-- [x] Database schema (Drizzle ORM with 22 migrations)
+- [x] Database schema (Drizzle ORM with 43 migrations)
 - [x] Deployment configuration (GCP Cloud Run)
 - [x] Video streaming (HLS with GCS)
 - [x] Rental system (database-backed with cross-device sync)

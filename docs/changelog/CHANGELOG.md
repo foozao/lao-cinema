@@ -1,5 +1,50 @@
 # Changelog
 
+## 2025-12-30 - Route Refactoring & Test Fixtures
+
+### Changed
+
+**Route File Modularization**:
+- Split `api/src/routes/awards.ts` (525 lines) into 4 focused files:
+  - `award-shows.ts` - Award show CRUD operations
+  - `award-editions.ts` - Edition management
+  - `award-categories.ts` - Category management  
+  - `award-nominations.ts` - Nomination management
+  - `awards.ts` - Thin orchestrator (30 lines)
+
+- Split `api/src/routes/auth.ts` (723 lines) into 5 focused files:
+  - `auth-registration.ts` - User registration
+  - `auth-session.ts` - Login, logout, session management
+  - `auth-profile.ts` - Profile CRUD operations
+  - `auth-password-reset.ts` - Password reset flow
+  - `auth-email-verification.ts` - Email verification
+  - `auth.ts` - Thin orchestrator (28 lines)
+
+- Split `api/src/routes/short-packs.ts` (703 lines) into 3 focused files:
+  - `short-pack-crud.ts` - CRUD operations (293 lines)
+  - `short-pack-items.ts` - Pack item management (225 lines)
+  - `short-pack-context.ts` - Playback context (200 lines)
+  - `short-packs.ts` - Thin orchestrator (18 lines)
+
+**Type Consolidation**:
+- Moved award-related types to `web/lib/types.ts`:
+  - `AwardShow`, `AwardEdition`, `AwardCategory`, `AwardNomination`
+  - `AwardNominee`, `AwardCategoryWithNominations`, `AwardEditionDetail`
+- Updated all consuming components to use centralized types
+
+### Added
+
+**Test Fixtures** (`api/src/test/fixtures.ts`, 419 lines):
+- Entity creation: `createTestMovie()`, `createTestPerson()`, `createTestShortPack()`, `createTestGenre()`, `createTestUser()`, `createTestRental()`, `createTestWatchProgress()`
+- Cleanup utilities: `cleanupUsers()`, `cleanupMovies()`, `cleanupPeople()`, `cleanupShortPacks()`, `cleanupRentals()`, `cleanupWatchProgress()`, `cleanupGenres()`
+- Reduces boilerplate in test `beforeEach` setup
+
+### Tests
+- All 436 API tests passing after refactoring
+- Updated `rentals.test.ts` and `watch-progress.test.ts` to use new fixtures
+
+---
+
 ## 2025-12-10 - Documentation Cleanup
 
 ### Changed

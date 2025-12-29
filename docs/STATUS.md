@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-**Last Updated**: December 26, 2025
+**Last Updated**: December 30, 2025
 
 Quick reference for the current state of Lao Cinema platform development and next steps.
 
@@ -23,12 +23,12 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 - [x] Movie edit interface (`/admin/edit/[id]`)
 - [x] People admin page (`/admin/people`)
 - [x] Admin dashboard with bilingual support
-- [x] Vitest testing framework (1095+ tests, 100% utility coverage)
+- [x] Vitest testing framework (436+ API tests, 100% utility coverage)
 
 ### Backend (`/api`)
 - [x] Fastify REST API server
 - [x] PostgreSQL 16 database
-- [x] Drizzle ORM with migrations
+- [x] Drizzle ORM with migrations (43 migrations)
 - [x] Movie CRUD endpoints
 - [x] Health check endpoint
 - [x] CORS configuration
@@ -159,7 +159,7 @@ Lao Cinema is a bilingual (English/Lao) streaming platform for Lao films, built 
 
 ## 📈 Metrics
 
-- **Total Tests**: 1095+
+- **Total Tests**: 436+ (API)
 - **Test Coverage**: 100% (utilities)
 - **Database Tables**: 15+ (movies, people, video_sources, rentals, etc.)
 - **API Endpoints**: 10+ (movies, people, images, health)
@@ -273,7 +273,7 @@ cd web && npm run dev
 - [x] Admin edit interface
 - [x] Database operations (CRUD)
 - [x] Bilingual content support
-- [x] Unit tests (1095 tests passing)
+- [x] Unit tests (436+ API tests passing)
 
 ### To Test
 - [x] Video player with CDN video files
@@ -284,7 +284,7 @@ cd web && npm run dev
 
 ### Pending Tests
 - [ ] OAuth providers (when implemented)
-- [ ] Password reset flow (when implemented)
+- [x] Password reset flow ✅ (implemented December 2025)
 - [ ] Bulk import operations
 
 ## 💻 Development Commands

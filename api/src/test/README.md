@@ -30,7 +30,8 @@ npm run test:coverage
 src/test/
 ├── README.md          # This file
 ├── setup.ts           # Global test setup
-├── helpers.ts         # Test fixtures and utilities
+├── helpers.ts         # Movie fixtures (API request format)
+├── fixtures.ts        # Database entity creation utilities
 ├── app.ts             # Fastify app builder for tests
 └── ...
 ```
@@ -79,6 +80,44 @@ const customMovie = createMinimalMovie({
   runtime: 120,
 });
 ```
+
+### Using Database Fixtures
+
+For creating entities directly in the database (useful in `beforeEach`):
+
+```typescript
+import { 
+  createTestMovie, 
+  createTestUser,
+  createTestShortPack,
+  cleanupUsers,
+  cleanupMovies 
+} from '../test/fixtures.js';
+
+beforeEach(async () => {
+  // Clean up using fixture utilities
+  await cleanupUsers();
+  await cleanupMovies();
+  
+  // Create test entities
+  const movie = await createTestMovie({ originalTitle: 'Test Film' });
+  const user = await createTestUser({ role: 'editor' });
+  
+  // user.headers contains auth headers for protected routes
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/movies',
+    headers: user.headers,
+    payload: { ... },
+  });
+});
+```
+
+**Available fixtures:**
+- `createTestMovie()`, `createTestShortFilm()`, `createTestMovieWithTranslations()`
+- `createTestPerson()`, `createTestGenre()`, `createTestShortPack()`
+- `createTestUser()`, `createTestRental()`, `createTestWatchProgress()`
+- `cleanupUsers()`, `cleanupMovies()`, `cleanupPeople()`, `cleanupShortPacks()`, etc.
 
 ## Test Database
 
