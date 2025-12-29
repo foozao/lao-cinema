@@ -19,18 +19,19 @@ describe('People Merge Service', () => {
     // Generate new UUID for each test
     testMovieId = randomUUID();
     
-    // Clean up test data in correct order (respecting foreign keys)
-    await db.delete(schema.personAliases);
-    await db.delete(schema.movieCastTranslations);
-    await db.delete(schema.movieCrewTranslations);
-    await db.delete(schema.movieCast);
-    await db.delete(schema.movieCrew);
-    await db.delete(schema.peopleTranslations);
-    await db.delete(schema.people);
-    
-    // Clean up movies
-    await db.delete(schema.movieTranslations);
-    await db.delete(schema.movies);
+    // Use TRUNCATE for much faster cleanup (single query instead of 9 separate deletes)
+    await db.execute(sql`
+      TRUNCATE TABLE person_aliases, 
+                     movie_cast_translations, 
+                     movie_crew_translations, 
+                     movie_cast, 
+                     movie_crew, 
+                     people_translations, 
+                     people,
+                     movie_translations,
+                     movies
+      RESTART IDENTITY CASCADE
+    `);
     
     // Create a test movie for credits
     await db.insert(schema.movies).values({

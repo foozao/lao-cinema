@@ -421,8 +421,9 @@ export default async function movieUpdateRoutes(fastify: FastifyInstance) {
     // Insert new trailers
     if (trailers.length > 0) {
       const trailerValues = trailers.map((trailer: any, index: number) => {
-        const isYouTube = trailer.type === 'youtube';
-        const isVideo = trailer.type === 'video';
+        // Handle both TMDB format (site: 'YouTube') and new format (type: 'youtube')
+        const isYouTube = trailer.type === 'youtube' || trailer.site === 'YouTube' || (trailer.key && !trailer.video_url);
+        const isVideo = trailer.type === 'video' || trailer.video_url;
         
         return {
           movieId,

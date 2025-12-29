@@ -283,11 +283,14 @@ const homepageFeatured = pgTable("homepage_featured", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
+const heroTypeEnum = pgEnum("hero_type", ["disabled", "video", "image"]);
 const homepageSettings = pgTable("homepage_settings", {
   id: integer("id").primaryKey().default(1),
   // Single row table
   randomizeFeatured: boolean("randomize_featured").default(false).notNull(),
   // Randomize featured films order
+  heroType: heroTypeEnum("hero_type").default("video").notNull(),
+  // Hero section style
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 const movieExternalPlatforms = pgTable("movie_external_platforms", {
@@ -620,6 +623,7 @@ export {
   emailVerificationTokens,
   genreTranslations,
   genres,
+  heroTypeEnum,
   homepageFeatured,
   homepageSettings,
   imageTypeEnum,

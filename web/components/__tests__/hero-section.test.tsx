@@ -25,20 +25,24 @@ jest.mock('@/i18n/routing', () => ({
 }));
 
 // Mock HLS.js
-const mockHls = {
+const mockHlsInstance = {
   loadSource: jest.fn(),
   attachMedia: jest.fn(),
   on: jest.fn(),
   destroy: jest.fn(),
-  isSupported: jest.fn(() => true),
-  Events: {
-    MANIFEST_PARSED: 'hlsManifestParsed',
-    ERROR: 'hlsError',
-  },
 };
 
 jest.mock('hls.js', () => {
-  return jest.fn().mockImplementation(() => mockHls);
+  const MockHls: any = jest.fn().mockImplementation(() => mockHlsInstance);
+  MockHls.isSupported = jest.fn(() => true);
+  MockHls.Events = {
+    MANIFEST_PARSED: 'hlsManifestParsed',
+    ERROR: 'hlsError',
+  };
+  return {
+    __esModule: true,
+    default: MockHls,
+  };
 });
 
 const mockMovie: Movie = {
@@ -172,10 +176,10 @@ describe('HeroSection', () => {
     render(<HeroSection movie={mockMovie} />);
     
     await waitFor(() => {
-      expect(mockHls.loadSource).toHaveBeenCalledWith(
+      expect(mockHlsInstance.loadSource).toHaveBeenCalledWith(
         'http://localhost:3002/trailers/hls/test-movie/master.m3u8'
       );
-      expect(mockHls.attachMedia).toHaveBeenCalled();
+      expect(mockHlsInstance.attachMedia).toHaveBeenCalled();
     });
   });
 
@@ -297,6 +301,6 @@ describe('HeroSection', () => {
     
     unmount();
     
-    expect(mockHls.destroy).toHaveBeenCalled();
+    expect(mockHlsInstance.destroy).toHaveBeenCalled();
   });
 });
