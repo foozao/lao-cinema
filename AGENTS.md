@@ -266,16 +266,30 @@ Some video files have letterboxing (black bars) baked into the video encoding it
 - **Migration order matters**: When truncating tables in tests, order by foreign key dependencies (`users`, `movies` first, then dependent tables)
 - **CASCADE in schema**: All `onDelete: 'cascade'` - deleting a movie removes all translations, cast, crew, etc.
 - **Composite PKs**: Translation tables use composite primary keys `(entityId, language)` - can't use auto-increment
+- **See**: `docs/architecture/DATABASE_RELATIONSHIPS.md` for full relationship diagram
 
 ### Testing Patterns
 - **Always use TEST_DATABASE_URL**: Tests verify the URL contains `_test` to prevent running against production
 - **Clean up in beforeEach**: Truncate tables at start of each test, not afterEach (ensures clean state even if test crashes)
 - **Use app builder options**: `build({ includeAuth: true })` to include only needed routes
+- **Use fixtures**: Import from `api/src/test/fixtures.ts` for entity creation (`createTestMovie`, `createTestUser`, etc.)
+- **Cleanup helpers**: Use `cleanupUsers()`, `cleanupMovies()`, etc. instead of raw deletes
 
 ### API Conventions
 - **Dual-mode auth**: Rentals/watch-progress support both `userId` and `anonymousId` - exactly one should be set
 - **Negative person IDs**: Manually-created people use negative IDs to distinguish from TMDB imports
+- **Negative genre IDs**: Custom genres use negative IDs to distinguish from TMDB imports
 - **LocalizedText everywhere**: Never access `movie.title` directly - always `getLocalizedText(movie.title, locale)`
+
+### Import Paths
+- **API routes**: Import schema from `'../db/schema.js'` (local re-export), NOT `'../../../db/src/schema.js'`
+- **Test files**: Use `.js` extension in imports even for TypeScript files (ESM requirement)
+- **Types**: Frontend types from `@/lib/types`, backend types inferred from Drizzle schema
+
+### Route File Organization
+- **Large routes are split**: `auth.ts`, `awards.ts`, `short-packs.ts`, `movies.ts` are orchestrators
+- **Sub-routes**: Named `<feature>-<subfeature>.ts` (e.g., `auth-password-reset.ts`)
+- **See**: `docs/architecture/ROUTE_STRUCTURE.md` for complete mapping
 
 ---
 
