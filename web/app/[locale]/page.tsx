@@ -35,8 +35,10 @@ export default function Home() {
   const loadMovies = useCallback(async () => {
     try {
       setError(null);
-      // Fetch featured films for homepage
-      const response = await fetch(`${API_BASE_URL}/homepage/featured`);
+      // Fetch featured films for homepage (no-store to always get fresh hero timing data)
+      const response = await fetch(`${API_BASE_URL}/homepage/featured`, {
+        cache: 'no-store',
+      });
       
       if (!response.ok) {
         // Server returned an error status
@@ -132,12 +134,12 @@ export default function Home() {
         <Header variant="dark" />
         <SubHeader variant="dark" />
 
-        {/* Hero Section - First featured film */}
+        {/* Hero Section - Cycles through featured films with video trailers */}
         {!loading && !error && movies.length > 0 && heroType !== 'disabled' && (
-          heroType === 'video' && movies[0].trailers?.some(t => t.type === 'video') ? (
-            <HeroSection movie={movies[0]} clipDuration={15} />
+          heroType === 'video' && movies.some(m => m.trailers?.some(t => t.type === 'video')) ? (
+            <HeroSection movies={movies} clipDuration={15} />
           ) : heroType === 'image' ? (
-            <HeroSection movie={movies[0]} clipDuration={15} />
+            <HeroSection movies={movies} clipDuration={15} />
           ) : null
         )}
 

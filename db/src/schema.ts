@@ -277,6 +277,8 @@ export const homepageFeatured = pgTable('homepage_featured', {
   id: uuid('id').defaultRandom().primaryKey(),
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull().unique(),
   order: integer('order').notNull(), // Display order on homepage
+  heroStartTime: integer('hero_start_time'), // Start time in seconds for hero trailer clip
+  heroEndTime: integer('hero_end_time'), // End time in seconds for hero trailer clip
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -228,6 +228,12 @@ fastify.register(require('@fastify/static'), {
   prefix: '/trailers/',
   decorateReply: false,
   setHeaders: (res, filepath) => {
+    // Enable CORS for trailer files (required for HLS.js cross-origin requests)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+    
     // Cache trailers for a day
     res.setHeader('Cache-Control', 'public, max-age=86400');
     

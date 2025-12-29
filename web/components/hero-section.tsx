@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Play, Pause, Info } from 'lucide-react';
+import { Play, Pause, Info, VolumeX, Volume2 } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
+import { TEXT_LIMITS } from '@/lib/config';
 import type { Movie, VideoTrailer } from '@/lib/types';
 
 import Hls from 'hls.js';
@@ -15,24 +16,33 @@ function getTmdbImageUrl(path: string | null, size: 'w500' | 'w780' | 'original'
 }
 
 interface HeroSectionProps {
-  movie: Movie;
-  /** Duration to play trailer before looping (seconds). Default 15. */
+  movies: Movie[];
+  /** Duration to play each trailer before advancing (seconds). Default 15. */
   clipDuration?: number;
 }
 
-export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
+export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'lo';
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
+  // Filter to only movies with local video trailers
+  const moviesWithTrailers = movies.filter(m => 
+    m.trailers?.some((t): t is VideoTrailer => t.type === 'video' && !!t.video_url)
+  );
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const [hasVideoError, setHasVideoError] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Find first self-hosted video trailer
-  const videoTrailer = movie.trailers?.find(
+  // Current movie and its trailer
+  const movie = moviesWithTrailers[currentIndex] || movies[0];
+  const videoTrailer = movie?.trailers?.find(
     (t): t is VideoTrailer => t.type === 'video' && !!t.video_url
   );
 
@@ -52,22 +62,45 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
     const video = videoRef.current;
     if (!video || !videoTrailer?.video_url) return;
 
+    // Reset state for new video
+    setIsVideoReady(false);
+    setHasVideoError(false);
+
     const initHls = () => {
+      // Destroy previous instance
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+
+      // Get start time for this movie's hero clip
+      const startTime = movie.heroStartTime ?? 0;
+
       if (Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
           startLevel: 1, // Start with 720p for hero (balance quality/speed)
+          startPosition: startTime, // Start at hero clip position
         });
         
         hls.loadSource(videoTrailer.video_url);
         hls.attachMedia(video);
         
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Ensure muted for autoplay compliance
+        video.muted = true;
+        
+        // Try to play when we have enough data buffered
+        const attemptPlay = () => {
           video.play().catch(() => {
-            // Autoplay blocked, that's ok - we show poster
+            // Autoplay blocked - retry once on user interaction or canplay
           });
+        };
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          attemptPlay();
         });
+        
+        // Also try on canplay in case manifest parsed fires too early
+        video.addEventListener('canplay', attemptPlay, { once: true });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
@@ -79,7 +112,16 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari native HLS
         video.src = videoTrailer.video_url;
-        video.play().catch(() => {});
+        video.muted = true; // Ensure muted for autoplay compliance
+        // Wait for video to be seekable before setting start time
+        const handleLoadedMetadata = () => {
+          if (startTime > 0) {
+            video.currentTime = startTime;
+          }
+          video.play().catch(() => {});
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
       } else {
         setHasVideoError(true);
       }
@@ -91,16 +133,36 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [videoTrailer?.video_url]);
+  }, [videoTrailer?.video_url, currentIndex]);
 
-  // Loop video at clip duration
+  // Advance to next movie at end time or clip duration
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    // Calculate effective end time: use heroEndTime if set, otherwise startTime + clipDuration
+    const startTime = movie.heroStartTime ?? 0;
+    const endTime = movie.heroEndTime ?? (startTime + clipDuration);
+
+    let transitionScheduled = false;
+
     const handleTimeUpdate = () => {
-      if (video.currentTime >= clipDuration) {
-        video.currentTime = 0;
+      // Guard against multiple transitions
+      if (transitionScheduled) return;
+      
+      if (video.currentTime >= endTime) {
+        if (moviesWithTrailers.length > 1) {
+          // Transition to next movie
+          transitionScheduled = true;
+          setIsTransitioning(true);
+          setTimeout(() => {
+            setCurrentIndex((prev) => (prev + 1) % moviesWithTrailers.length);
+            setTimeout(() => setIsTransitioning(false), 100);
+          }, 500); // Wait for fade out
+        } else {
+          // Only one movie, loop back to start time
+          video.currentTime = startTime;
+        }
       }
     };
 
@@ -121,7 +183,7 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
     };
-  }, [clipDuration]);
+  }, [clipDuration, moviesWithTrailers.length, movie.heroStartTime, movie.heroEndTime]);
 
   // Auto-pause when scrolled off screen (50% visibility threshold)
   // Using scroll listener for more responsive detection
@@ -185,19 +247,14 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
         {/* Background: Video or Image */}
         {showVideo ? (
           <>
-            {/* Backdrop image as loading placeholder */}
-            {backdropUrl && !isVideoReady && (
-              <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${backdropUrl})` }}
-              />
-            )}
+            {/* Dark background while video loads (no image flash) */}
+            <div className="absolute inset-0 bg-gray-900" />
             
             {/* Video */}
             <video
               ref={videoRef}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                isVideoReady ? 'opacity-100' : 'opacity-0'
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                isVideoReady && !isTransitioning ? 'opacity-100' : 'opacity-0'
               }`}
               muted
               playsInline
@@ -220,7 +277,9 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
 
         {/* Content overlay */}
-        <div className="absolute inset-x-0 bottom-0 pb-4 md:pb-8">
+        <div className={`absolute inset-x-0 bottom-0 pb-4 md:pb-8 transition-opacity duration-300 ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}>
           <div className="w-full max-w-[1600px] mx-auto px-4 md:px-6">
           <div className="max-w-xl md:max-w-2xl">
             {/* Tagline */}
@@ -255,8 +314,26 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
             </div>
 
             {/* Overview (truncated) - hidden on mobile */}
-            <p className="hidden md:block text-gray-300/70 text-sm line-clamp-2 max-w-lg mb-4">
-              {overview}
+            <p className="hidden md:block text-gray-300/70 text-sm max-w-lg mb-4">
+              {(() => {
+                const { maxLength, graceThreshold, breakSearchRange } = TEXT_LIMITS.heroOverview;
+                // Don't truncate if within grace threshold
+                if (overview.length <= maxLength + graceThreshold) {
+                  return overview;
+                }
+                // Look for a period or comma within breakSearchRange before maxLength
+                const searchStart = maxLength - breakSearchRange;
+                const searchArea = overview.slice(searchStart, maxLength);
+                const lastBreak = Math.max(searchArea.lastIndexOf('.'), searchArea.lastIndexOf(','));
+                if (lastBreak >= 0) {
+                  // Found a sentence break - use it
+                  return `${overview.slice(0, searchStart + lastBreak + 1).trimEnd()}…`;
+                }
+                // No sentence break - find the next space after maxLength
+                const nextSpace = overview.indexOf(' ', maxLength);
+                const breakPoint = nextSpace >= 0 ? nextSpace : maxLength;
+                return `${overview.slice(0, breakPoint).trimEnd()}…`;
+              })()}
             </p>
 
             {/* Action buttons */}
@@ -282,6 +359,54 @@ export function HeroSection({ movie, clipDuration = 15 }: HeroSectionProps) {
                     <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                   )}
                 </button>
+              )}
+              
+              {/* Volume/Mute button */}
+              {showVideo && isVideoReady && (
+                <button
+                  onClick={() => {
+                    const video = videoRef.current;
+                    if (video) {
+                      video.muted = !video.muted;
+                      setIsMuted(!isMuted);
+                    }
+                  }}
+                  className="p-2.5 md:p-3 rounded-full bg-gray-900/60 hover:bg-gray-800/80 text-white transition-colors backdrop-blur-sm border border-gray-700/50 cursor-pointer"
+                  aria-label={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4 md:w-5 md:h-5" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 md:w-5 md:h-5" />
+                  )}
+                </button>
+              )}
+              
+              {/* Movie indicators (dots) - only show if multiple trailers */}
+              {moviesWithTrailers.length > 1 && (
+                <div className="flex items-center gap-1.5 ml-2">
+                  {moviesWithTrailers.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (idx !== currentIndex) {
+                          setIsTransitioning(true);
+                          setTimeout(() => {
+                            setCurrentIndex(idx);
+                            if (videoRef.current) videoRef.current.currentTime = 0;
+                            setTimeout(() => setIsTransitioning(false), 100);
+                          }, 300);
+                        }
+                      }}
+                      className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
+                        idx === currentIndex 
+                          ? 'bg-white w-6' 
+                          : 'bg-white/40 hover:bg-white/60'
+                      }`}
+                      aria-label={`View trailer ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>

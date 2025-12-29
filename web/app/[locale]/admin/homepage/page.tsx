@@ -19,6 +19,9 @@ interface FeaturedMovie {
   id: string;
   movieId: string;
   order: number;
+  heroStartTime?: number | null;
+  heroEndTime?: number | null;
+  hasVideoTrailer?: boolean;
   movie: {
     id: string;
     title: { en: string; lo?: string };
@@ -39,6 +42,7 @@ export default function HomepageAdminPage() {
   const [randomizeFeatured, setRandomizeFeatured] = useState(false);
   const [heroType, setHeroType] = useState<'disabled' | 'video' | 'image'>('video');
   const [updatingSettings, setUpdatingSettings] = useState(false);
+  const [savingHeroTimes, setSavingHeroTimes] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -157,6 +161,32 @@ export default function HomepageAdminPage() {
       alert('Failed to update settings');
     } finally {
       setUpdatingSettings(false);
+    }
+  };
+
+  const updateHeroTimes = async (id: string, startTime: number | null, endTime: number | null) => {
+    setSavingHeroTimes(id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/homepage/featured/${id}/hero-times`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ heroStartTime: startTime, heroEndTime: endTime }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setFeatured(prev => prev.map(f => 
+          f.id === id ? { ...f, heroStartTime: startTime, heroEndTime: endTime } : f
+        ));
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update hero times');
+      }
+    } catch (error) {
+      console.error('Failed to update hero times:', error);
+      alert('Failed to update hero times');
+    } finally {
+      setSavingHeroTimes(null);
     }
   };
 
@@ -321,6 +351,48 @@ export default function HomepageAdminPage() {
                       <p className="text-sm text-gray-600">
                         {item.movie.release_date || t('noReleaseDate')}
                       </p>
+                      
+                      {/* Hero clip time settings - only for films with video trailers */}
+                      {item.hasVideoTrailer && (
+                        <div className="mt-2 flex items-center gap-2 text-sm">
+                          <span className="text-gray-500">Hero clip:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Start"
+                            value={item.heroStartTime ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? null : parseInt(e.target.value);
+                              setFeatured(prev => prev.map(f => 
+                                f.id === item.id ? { ...f, heroStartTime: val } : f
+                              ));
+                            }}
+                            onBlur={() => updateHeroTimes(item.id, item.heroStartTime ?? null, item.heroEndTime ?? null)}
+                            className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                            disabled={savingHeroTimes === item.id}
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="End"
+                            value={item.heroEndTime ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? null : parseInt(e.target.value);
+                              setFeatured(prev => prev.map(f => 
+                                f.id === item.id ? { ...f, heroEndTime: val } : f
+                              ));
+                            }}
+                            onBlur={() => updateHeroTimes(item.id, item.heroStartTime ?? null, item.heroEndTime ?? null)}
+                            className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                            disabled={savingHeroTimes === item.id}
+                          />
+                          <span className="text-gray-400 text-xs">sec (5-15s clip)</span>
+                          {savingHeroTimes === item.id && (
+                            <span className="text-blue-500 text-xs">Saving...</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </>
                 );

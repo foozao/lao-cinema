@@ -105,6 +105,10 @@ export interface Movie {
   // Trailers (YouTube videos from TMDB)
   trailers?: Trailer[]; // Array of trailer objects
   
+  // Hero section settings (when featured on homepage)
+  heroStartTime?: number | null; // Start time in seconds for hero trailer clip
+  heroEndTime?: number | null; // End time in seconds for hero trailer clip
+  
   // Relationships
   genres: Genre[];
   production_companies?: ProductionCompany[];

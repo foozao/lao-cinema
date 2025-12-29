@@ -142,7 +142,7 @@ describe('HeroSection', () => {
   });
 
   it('renders movie title and metadata', () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     expect(screen.getByText('Test Movie')).toBeInTheDocument();
     expect(screen.getByText('2023')).toBeInTheDocument();
@@ -151,13 +151,13 @@ describe('HeroSection', () => {
   });
 
   it('renders tagline when present', () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     expect(screen.getByText('Test tagline')).toBeInTheDocument();
   });
 
   it('renders overview on desktop (hidden on mobile)', () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     const overview = screen.getByText('Test overview');
     expect(overview).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('HeroSection', () => {
   });
 
   it('renders More Info button with correct link', () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     const moreInfoButton = screen.getByRole('link', { name: /home.moreInfo/i });
     expect(moreInfoButton).toBeInTheDocument();
@@ -173,7 +173,7 @@ describe('HeroSection', () => {
   });
 
   it('initializes HLS player when video trailer is available', async () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     await waitFor(() => {
       expect(mockHlsInstance.loadSource).toHaveBeenCalledWith(
@@ -184,7 +184,7 @@ describe('HeroSection', () => {
   });
 
   it('shows play/pause button when video is ready', async () => {
-    render(<HeroSection movie={mockMovie} />);
+    render(<HeroSection movies={[mockMovie]} />);
     
     // Simulate video ready
     const video = document.querySelector('video');
@@ -199,7 +199,7 @@ describe('HeroSection', () => {
   });
 
   it('toggles play/pause when button is clicked', async () => {
-    const { container } = render(<HeroSection movie={mockMovie} />);
+    const { container } = render(<HeroSection movies={[mockMovie]} />);
     
     const video = container.querySelector('video');
     if (video) {
@@ -217,7 +217,7 @@ describe('HeroSection', () => {
   });
 
   it('pauses video when scrolled off screen', async () => {
-    const { container } = render(<HeroSection movie={mockMovie} />);
+    const { container } = render(<HeroSection movies={[mockMovie]} />);
     
     const video = container.querySelector('video');
     if (video) {
@@ -247,7 +247,7 @@ describe('HeroSection', () => {
   });
 
   it('accounts for fixed header in visibility calculation', async () => {
-    const { container } = render(<HeroSection movie={mockMovie} />);
+    const { container } = render(<HeroSection movies={[mockMovie]} />);
     
     const video = container.querySelector('video');
     if (video) {
@@ -275,8 +275,8 @@ describe('HeroSection', () => {
     expect(HTMLVideoElement.prototype.pause).not.toHaveBeenCalled();
   });
 
-  it('loops video at specified clip duration', async () => {
-    const { container } = render(<HeroSection movie={mockMovie} clipDuration={10} />);
+  it('loops video at specified clip duration with single movie', async () => {
+    const { container } = render(<HeroSection movies={[mockMovie]} clipDuration={10} />);
     
     const video = container.querySelector('video') as HTMLVideoElement;
     if (video) {
@@ -290,17 +290,34 @@ describe('HeroSection', () => {
 
   it('falls back to backdrop image when no video trailer', () => {
     const movieWithoutTrailer = { ...mockMovie, trailers: [] };
-    render(<HeroSection movie={movieWithoutTrailer} />);
+    render(<HeroSection movies={[movieWithoutTrailer]} />);
     
     const backdrop = document.querySelector('[style*="background-image"]');
     expect(backdrop).toBeInTheDocument();
   });
 
   it('cleans up HLS instance on unmount', () => {
-    const { unmount } = render(<HeroSection movie={mockMovie} />);
+    const { unmount } = render(<HeroSection movies={[mockMovie]} />);
     
     unmount();
     
     expect(mockHlsInstance.destroy).toHaveBeenCalled();
+  });
+
+  it('shows indicator dots when multiple movies with trailers', () => {
+    const secondMovie = { ...mockMovie, id: 'movie-2', slug: 'movie-2' };
+    render(<HeroSection movies={[mockMovie, secondMovie]} />);
+    
+    // Should have 2 indicator dots
+    const dots = screen.getAllByLabelText(/View trailer/);
+    expect(dots).toHaveLength(2);
+  });
+
+  it('does not show indicator dots with single movie', () => {
+    render(<HeroSection movies={[mockMovie]} />);
+    
+    // Should not have indicator dots
+    const dots = screen.queryAllByLabelText(/View trailer/);
+    expect(dots).toHaveLength(0);
   });
 });

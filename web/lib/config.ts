@@ -44,6 +44,12 @@ export const TEXT_LIMITS = {
     mobileMaxLength: 200,
     graceThreshold: 50,
   },
+  // Hero section synopsis truncation
+  heroOverview: {
+    maxLength: 300,
+    graceThreshold: 50, // Don't truncate if remaining text is less than this
+    breakSearchRange: 50, // Look back this many chars for a period or comma to break at
+  },
 };
 
 /**

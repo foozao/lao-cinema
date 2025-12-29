@@ -21,9 +21,18 @@ const UpdateOrderSchema = z.object({
   })),
 });
 
+const UpdateHeroTimesSchema = z.object({
+  heroStartTime: z.number().int().min(0).nullable(),
+  heroEndTime: z.number().int().min(0).nullable(),
+});
+
 export default async function homepageRoutes(fastify: FastifyInstance) {
   // Get featured films for homepage
   fastify.get('/homepage/featured', async (request, reply) => {
+    // Prevent browser caching so hero timing changes take effect immediately
+    reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    reply.header('Pragma', 'no-cache');
+    
     try {
       // Get homepage settings
       const [settings] = await db.select()
@@ -55,15 +64,22 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         }))
       );
 
-      // Sort by featured order or randomize
+      // Sort by featured order or randomize, and attach hero times
       let sortedMovies;
       if (settings?.randomizeFeatured) {
         // Randomize the order
-        sortedMovies = moviesWithData.sort(() => Math.random() - 0.5);
+        sortedMovies = moviesWithData.sort(() => Math.random() - 0.5).map(m => {
+          const f = featured.find(f => f.movieId === m.id);
+          return { ...m, heroStartTime: f?.heroStartTime, heroEndTime: f?.heroEndTime };
+        });
       } else {
         // Use the defined order
         sortedMovies = featured.map(f => {
-          return moviesWithData.find(m => m.id === f.movieId);
+          const movie = moviesWithData.find(m => m.id === f.movieId);
+          if (movie) {
+            return { ...movie, heroStartTime: f.heroStartTime, heroEndTime: f.heroEndTime };
+          }
+          return undefined;
         }).filter(m => m !== undefined);
       }
 
@@ -106,10 +122,20 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
             title[trans.language] = trans.title;
           }
 
+          // Get trailers for this movie
+          const trailers = await db.select()
+            .from(schema.trailers)
+            .where(eq(schema.trailers.movieId, f.movieId));
+          
+          const hasVideoTrailer = trailers.some(t => t.type === 'video' && t.videoUrl);
+
           return {
             id: f.id,
             movieId: f.movieId,
             order: f.order,
+            heroStartTime: f.heroStartTime,
+            heroEndTime: f.heroEndTime,
+            hasVideoTrailer,
             movie: {
               id: movie.id,
               title: Object.keys(title).length > 0 ? title : { en: movie.originalTitle || 'Untitled' },
@@ -213,6 +239,47 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
       } catch (error) {
         fastify.log.error(error);
         return sendInternalError(reply, 'Failed to update order');
+      }
+    }
+  );
+
+  // Update hero times for a featured film
+  fastify.patch<{ Params: { id: string }; Body: z.infer<typeof UpdateHeroTimesSchema> }>(
+    '/homepage/featured/:id/hero-times',
+    { preHandler: [requireEditorOrAdmin] },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const { heroStartTime, heroEndTime } = request.body;
+
+        // Validate time range if both are provided
+        if (heroStartTime !== null && heroEndTime !== null) {
+          if (heroEndTime <= heroStartTime) {
+            return sendBadRequest(reply, 'End time must be greater than start time');
+          }
+          const duration = heroEndTime - heroStartTime;
+          if (duration < 5 || duration > 15) {
+            return sendBadRequest(reply, 'Clip duration must be between 5 and 15 seconds');
+          }
+        }
+
+        const [updated] = await db.update(schema.homepageFeatured)
+          .set({ 
+            heroStartTime, 
+            heroEndTime, 
+            updatedAt: new Date() 
+          })
+          .where(eq(schema.homepageFeatured.id, id))
+          .returning();
+
+        if (!updated) {
+          return sendNotFound(reply, 'Featured film not found');
+        }
+
+        return { success: true, featured: updated };
+      } catch (error) {
+        fastify.log.error(error);
+        return sendInternalError(reply, 'Failed to update hero times');
       }
     }
   );

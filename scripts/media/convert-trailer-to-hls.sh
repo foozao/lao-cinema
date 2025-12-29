@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Convert trailer to HLS for hero section autoplay
-# Extracts first 15 seconds and converts to adaptive HLS
+# Convert trailer to HLS for streaming
+# Converts full trailer to adaptive HLS (use heroStartTime/heroEndTime in admin to control hero clip)
 # Usage: ./scripts/media/convert-trailer-to-hls.sh input.mp4 output-name
 
 set -e
@@ -19,9 +19,9 @@ if [ "$#" -lt 2 ]; then
     echo "Example: $0 ~/Downloads/at-the-horizon-trailer.mp4 at-the-horizon"
     echo ""
     echo "This will:"
-    echo "  1. Extract first 15 seconds of the trailer"
-    echo "  2. Convert to HLS with multiple quality levels (1080p, 720p, 480p, 360p)"
-    echo "  3. Output to video-server/trailers/hls/<output-name>/"
+    echo "  1. Convert full trailer to HLS with multiple quality levels (1080p, 720p, 480p, 360p)"
+    echo "  2. Output to video-server/trailers/hls/<output-name>/"
+    echo "  3. Use heroStartTime/heroEndTime in admin panel to control which portion plays on hero"
     exit 1
 fi
 
@@ -41,26 +41,27 @@ mkdir -p "$OUTPUT_DIR"
 
 echo "Converting trailer: $INPUT_FILE"
 echo "Output directory: $OUTPUT_DIR"
-echo "Extracting first 15 seconds and converting to HLS..."
+echo "Converting full trailer to HLS..."
 echo ""
 
-# Extract 9 thumbnails at different timestamps for selection
-echo "Extracting 9 thumbnail options..."
-# Extract at 3s, 6s, 9s, 12s, 15s, 18s, 21s, 24s, 27s (spread across trailer)
-ffmpeg -ss 3 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-1.jpg" -y
-ffmpeg -ss 6 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-2.jpg" -y
-ffmpeg -ss 9 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-3.jpg" -y
-ffmpeg -ss 12 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-4.jpg" -y
-ffmpeg -ss 15 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-5.jpg" -y
-ffmpeg -ss 18 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-6.jpg" -y
-ffmpeg -ss 21 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-7.jpg" -y
-ffmpeg -ss 24 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-8.jpg" -y
-ffmpeg -ss 27 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-9.jpg" -y
+# Get trailer duration using ffprobe
+DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INPUT_FILE" | cut -d'.' -f1)
+echo "Trailer duration: ${DURATION}s"
 
-echo "9 thumbnail options saved (thumbnail-1.jpg through thumbnail-9.jpg)"
+# Extract 9 thumbnails evenly spaced throughout the trailer
+echo "Extracting 9 thumbnail options (evenly spaced)..."
+# Calculate interval: divide duration into 10 parts, take timestamps at 1/10, 2/10, ... 9/10
+INTERVAL=$((DURATION / 10))
+for i in 1 2 3 4 5 6 7 8 9; do
+  TIMESTAMP=$((INTERVAL * i))
+  echo "  Thumbnail $i at ${TIMESTAMP}s..."
+  ffmpeg -ss $TIMESTAMP -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-${i}.jpg" -y 2>/dev/null
+done
+
+echo "9 thumbnail options saved (evenly spaced across ${DURATION}s trailer)"
 echo ""
 
-# Extract first 15 seconds and convert to HLS with multiple bitrates
+# Convert to HLS with multiple bitrates
 # This creates:
 # - 1080p @ 5000k (max width 1920, height auto to preserve aspect ratio)
 # - 720p @ 2800k (max width 1280)
@@ -70,7 +71,7 @@ echo ""
 # Using scale=-2 ensures height is divisible by 2 (required for h264)
 # This preserves the original aspect ratio instead of forcing 16:9
 
-ffmpeg -i "$INPUT_FILE" -t 15 \
+ffmpeg -i "$INPUT_FILE" \
   -filter_complex \
   "[0:v]split=4[v1][v2][v3][v4]; \
    [v1]scale=w='min(1920,iw)':h=-2[v1out]; \
@@ -111,19 +112,14 @@ echo ""
 echo "✅ Trailer conversion complete!"
 echo ""
 echo "Thumbnails (choose one in admin panel):"
-echo "  - Option 1 (3s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-1.jpg"
-echo "  - Option 2 (6s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-2.jpg"
-echo "  - Option 3 (9s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-3.jpg"
-echo "  - Option 4 (12s): /trailers/hls/${OUTPUT_NAME}/thumbnail-4.jpg"
-echo "  - Option 5 (15s): /trailers/hls/${OUTPUT_NAME}/thumbnail-5.jpg"
-echo "  - Option 6 (18s): /trailers/hls/${OUTPUT_NAME}/thumbnail-6.jpg"
-echo "  - Option 7 (21s): /trailers/hls/${OUTPUT_NAME}/thumbnail-7.jpg"
-echo "  - Option 8 (24s): /trailers/hls/${OUTPUT_NAME}/thumbnail-8.jpg"
-echo "  - Option 9 (27s): /trailers/hls/${OUTPUT_NAME}/thumbnail-9.jpg"
+for i in 1 2 3 4 5 6 7 8 9; do
+  TIMESTAMP=$((INTERVAL * i))
+  printf "  - Option %d (%ds): /trailers/hls/%s/thumbnail-%d.jpg\n" "$i" "$TIMESTAMP" "$OUTPUT_NAME" "$i"
+done
 echo ""
 echo "HLS master playlist: /trailers/hls/${OUTPUT_NAME}/master.m3u8"
 echo ""
-echo "Generated variants (15 seconds each):"
+echo "Generated variants (full length):"
 echo "  - 1080p @ 5000k: /trailers/hls/${OUTPUT_NAME}/stream_0/playlist.m3u8"
 echo "  - 720p @ 2800k:  /trailers/hls/${OUTPUT_NAME}/stream_1/playlist.m3u8"
 echo "  - 480p @ 1400k:  /trailers/hls/${OUTPUT_NAME}/stream_2/playlist.m3u8"
@@ -136,5 +132,6 @@ echo ""
 echo "Next steps:"
 echo "  1. Upload to GCS: ./scripts/upload-to-gcs.sh video-server/trailers/hls/${OUTPUT_NAME}"
 echo "  2. Add trailer in admin panel and select preferred thumbnail"
-echo "  3. Unused thumbnails will be automatically deleted after selection"
+echo "  3. Set heroStartTime/heroEndTime in Homepage Settings to control hero clip (5-15s)"
+echo "  4. Unused thumbnails will be automatically deleted after selection"
 echo ""
