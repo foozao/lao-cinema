@@ -8,59 +8,13 @@ import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { getProfileUrl, getPosterUrl } from '@/lib/images';
 import { Trophy, Calendar, Globe, ExternalLink, ChevronRight, User, Film, Award } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-
-interface AwardShow {
-  id: string;
-  slug?: string;
-  name: { en?: string; lo?: string };
-  description?: { en?: string; lo?: string };
-  country?: string;
-  city?: string;
-  website_url?: string;
-  logo_path?: string;
-  edition_count?: number;
-}
-
-interface AwardEdition {
-  id: string;
-  show: { id: string; slug?: string; name: { en?: string; lo?: string } };
-  year: number;
-  edition_number?: number;
-  name?: { en?: string; lo?: string };
-  categories: CategoryWithNominations[];
-}
-
-interface CategoryWithNominations {
-  id: string;
-  name: { en?: string; lo?: string };
-  nominee_type: 'person' | 'movie';
-  nominations: Nomination[];
-}
-
-interface Nomination {
-  id: string;
-  nominee: {
-    type: 'person' | 'movie';
-    id: number | string;
-    name?: { en?: string; lo?: string };
-    title?: { en?: string; lo?: string };
-    profile_path?: string;
-    poster_path?: string;
-  } | null;
-  for_movie?: {
-    id: string;
-    title: { en?: string; lo?: string };
-    poster_path?: string;
-  } | null;
-  recognition_type?: { en?: string; lo?: string };
-  is_winner: boolean;
-}
+import type { AwardShow, AwardEditionDetail } from '@/lib/types';
 
 export default function DevAwardsPage() {
   const locale = useLocale() as 'en' | 'lo';
   const [shows, setShows] = useState<AwardShow[]>([]);
   const [selectedShow, setSelectedShow] = useState<AwardShow | null>(null);
-  const [selectedEdition, setSelectedEdition] = useState<AwardEdition | null>(null);
+  const [selectedEdition, setSelectedEdition] = useState<AwardEditionDetail | null>(null);
   const [editions, setEditions] = useState<{ id: string; year: number; edition_number?: number }[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

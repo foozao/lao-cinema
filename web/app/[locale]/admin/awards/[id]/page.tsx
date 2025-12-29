@@ -15,74 +15,19 @@ import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
 import { getProfileUrl, getPosterUrl } from '@/lib/images';
 import { getOrdinal } from '@/lib/utils/ordinals';
-
-interface AwardShow {
-  id: string;
-  slug?: string;
-  name: { en?: string; lo?: string };
-  description?: { en?: string; lo?: string };
-  country?: string;
-  city?: string;
-  website_url?: string;
-  editions: AwardEdition[];
-  categories: AwardCategory[];
-}
-
-interface AwardEdition {
-  id: string;
-  year: number;
-  edition_number?: number;
-  name?: { en?: string; lo?: string };
-  theme?: { en?: string; lo?: string };
-  start_date?: string;
-  end_date?: string;
-}
-
-interface AwardCategory {
-  id: string;
-  name: { en?: string; lo?: string };
-  description?: { en?: string; lo?: string };
-  nominee_type: 'person' | 'movie';
-  sort_order: number;
-}
-
-interface Nomination {
-  id: string;
-  nominee: {
-    type: 'person' | 'movie';
-    id: number | string;
-    name?: { en?: string; lo?: string };
-    title?: { en?: string; lo?: string };
-    profile_path?: string;
-    poster_path?: string;
-  } | null;
-  for_movie?: {
-    id: string;
-    title: { en?: string; lo?: string };
-    poster_path?: string;
-  } | null;
-  recognition_type?: { en?: string; lo?: string };
-  is_winner: boolean;
-  sort_order: number;
-}
-
-interface CategoryWithNominations extends AwardCategory {
-  nominations: Nomination[];
-}
-
-interface EditionDetail {
-  id: string;
-  show: { id: string; name: { en?: string; lo?: string } };
-  year: number;
-  edition_number?: number;
-  name?: { en?: string; lo?: string };
-  categories: CategoryWithNominations[];
-}
+import type { 
+  AwardShow, 
+  AwardEdition, 
+  AwardCategory, 
+  AwardNomination,
+  AwardCategoryWithNominations,
+  AwardEditionDetail 
+} from '@/lib/types';
 
 export default function AdminAwardShowPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [show, setShow] = useState<AwardShow | null>(null);
-  const [selectedEdition, setSelectedEdition] = useState<EditionDetail | null>(null);
+  const [selectedEdition, setSelectedEdition] = useState<AwardEditionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [movies, setMovies] = useState<any[]>([]);
 
@@ -115,7 +60,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
 
   // Nomination form
   const [addingNominationTo, setAddingNominationTo] = useState<string | null>(null);
-  const [editingNomination, setEditingNomination] = useState<Nomination | null>(null);
+  const [editingNomination, setEditingNomination] = useState<AwardNomination | null>(null);
   const [nominationForm, setNominationForm] = useState({
     person: null as { id: number; name: { en?: string; lo?: string } } | null,
     movie_id: '',
@@ -326,7 +271,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     setEditingNomination(null);
   };
 
-  const handleEditNomination = (nomination: Nomination, categoryId: string) => {
+  const handleEditNomination = (nomination: AwardNomination, categoryId: string) => {
     setEditingNomination(nomination);
     setAddingNominationTo(categoryId);
     setNominationForm({
@@ -507,10 +452,10 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                 </form>
               )}
 
-              {show.editions.length === 0 ? (
+              {(show.editions?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No editions yet</p>
               ) : (
-                show.editions.map((edition) => (
+                show.editions?.map((edition) => (
                   <div
                     key={edition.id}
                     className={`w-full text-left p-3 rounded-lg cursor-pointer transition-all ${
@@ -618,10 +563,10 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                 </form>
               )}
 
-              {show.categories.length === 0 ? (
+              {(show.categories?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No categories yet</p>
               ) : (
-                show.categories.map((category) => (
+                show.categories?.map((category) => (
                   <div key={category.id} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -668,14 +613,14 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
               <CardContent className="py-12 text-center">
                 <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {show.editions.length === 0 ? 'No Editions Yet' : 'Select an Edition'}
+                  {(show.editions?.length ?? 0) === 0 ? 'No Editions Yet' : 'Select an Edition'}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  {show.editions.length === 0 
+                  {(show.editions?.length ?? 0) === 0 
                     ? 'Create your first edition to start adding nominations.'
                     : 'Choose an edition from the sidebar to manage nominations.'}
                 </p>
-                {show.editions.length === 0 && (
+                {(show.editions?.length ?? 0) === 0 && (
                   <Button onClick={() => setShowEditionForm(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add First Edition

@@ -357,8 +357,19 @@ export interface AwardNomination {
   } | null;
   work_title?: LocalizedText;
   notes?: LocalizedText;
+  recognition_type?: LocalizedText;
   is_winner: boolean;
   sort_order: number;
+}
+
+// Full edition detail (for edition detail page)
+export interface AwardEditionDetail extends Omit<AwardEdition, 'categories'> {
+  show: {
+    id: string;
+    slug?: string;
+    name: LocalizedText;
+  };
+  categories: AwardCategoryWithNominations[];
 }
 
 // For future TMDB API integration

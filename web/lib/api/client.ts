@@ -12,6 +12,7 @@ import type {
   AwardEdition,
   AwardCategory,
   AwardNomination,
+  AwardEditionDetail,
   Trailer,
   SubtitleTrack,
   MovieImage,
@@ -474,7 +475,7 @@ export const awardsAPI = {
   // ==========================================================================
   
   // Get edition with full nominations
-  getEdition: (id: string) => fetchAPI<AwardEdition>(`/awards/editions/${id}`),
+  getEdition: (id: string) => fetchAPI<AwardEditionDetail>(`/awards/editions/${id}`),
   
   // Create edition
   createEdition: (data: {

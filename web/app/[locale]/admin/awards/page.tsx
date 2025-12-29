@@ -9,18 +9,7 @@ import { awardsAPI } from '@/lib/api/client';
 import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { Plus, Pencil, Trash2, ChevronRight, Trophy, Calendar, Globe, ExternalLink } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-
-interface AwardShow {
-  id: string;
-  slug?: string;
-  name: { en?: string; lo?: string };
-  description?: { en?: string; lo?: string };
-  country?: string;
-  city?: string;
-  website_url?: string;
-  logo_path?: string;
-  edition_count?: number;
-}
+import type { AwardShow } from '@/lib/types';
 
 export default function AdminAwardsPage() {
   const [shows, setShows] = useState<AwardShow[]>([]);
