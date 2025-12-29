@@ -7,9 +7,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { build } from '../test/app.js';
 import { db } from '../db/index.js';
-import { users, userSessions, rentals, movies, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
+import { rentals, movies, shortPacks, shortPackItems, shortPackTranslations } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { 
+  createTestMovie, 
+  cleanupUsers, 
+  cleanupRentals 
+} from '../test/fixtures.js';
 
 describe('Rental Routes', () => {
   let app: FastifyInstance;
@@ -19,22 +24,15 @@ describe('Rental Routes', () => {
   beforeEach(async () => {
     app = await build({ includeAuth: true, includeRentals: true, includeShortPacks: true });
     
-    // Clean up test data
-    await db.delete(rentals);
-    await db.delete(userSessions);
-    await db.delete(users);
+    // Clean up test data using fixtures
+    await cleanupRentals();
+    await cleanupUsers();
     
-    // Create test movies
-    const [movie1] = await db.insert(movies).values({
-      originalTitle: 'Test Movie 1',
-      releaseDate: '2024-01-01',
-    }).returning();
+    // Create test movies using fixtures
+    const movie1 = await createTestMovie({ originalTitle: 'Test Movie 1' });
     movieId1 = movie1.id;
     
-    const [movie2] = await db.insert(movies).values({
-      originalTitle: 'Test Movie 2',
-      releaseDate: '2024-01-02',
-    }).returning();
+    const movie2 = await createTestMovie({ originalTitle: 'Test Movie 2', releaseDate: '2024-01-02' });
     movieId2 = movie2.id;
   });
 
