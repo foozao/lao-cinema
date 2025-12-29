@@ -764,6 +764,539 @@ Get audit log entries. **Admin only.**
 
 ---
 
+### Password Reset (`/api/auth/*`)
+
+#### `POST /api/auth/forgot-password`
+Request a password reset email.
+
+**Body:**
+```json
+{
+  "email": "user@example.com",
+  "locale": "en"  // optional, for email language
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link will be sent."
+}
+```
+
+**Errors:**
+- `400` - Invalid email format
+- `429` - Rate limited (too many requests)
+
+---
+
+#### `POST /api/auth/reset-password`
+Reset password using token from email.
+
+**Body:**
+```json
+{
+  "token": "reset-token-from-email",
+  "newPassword": "newSecurePassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password has been reset successfully"
+}
+```
+
+**Errors:**
+- `400` - Invalid/expired token, weak password
+
+---
+
+#### `GET /api/auth/verify-reset-token`
+Verify a password reset token is valid.
+
+**Query:** `?token=reset-token-here`
+
+**Response:**
+```json
+{
+  "valid": true,
+  "email": "user@example.com"
+}
+```
+
+---
+
+### Email Verification (`/api/auth/*`)
+
+#### `POST /api/auth/send-verification-email`
+Send verification email. **Requires auth.**
+
+**Body:**
+```json
+{
+  "locale": "en"  // optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Verification email sent"
+}
+```
+
+---
+
+#### `POST /api/auth/verify-email`
+Verify email with token from email link.
+
+**Body:**
+```json
+{
+  "token": "verification-token-from-email"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully",
+  "user": { ... }
+}
+```
+
+---
+
+### Awards (`/api/awards/*`)
+
+#### `GET /api/awards/shows`
+Get all award shows.
+
+**Response:**
+```json
+{
+  "shows": [
+    {
+      "id": "uuid",
+      "slug": "lao-film-awards",
+      "name": { "en": "Lao Film Awards", "lo": "..." },
+      "description": { "en": "...", "lo": "..." },
+      "country": "LA",
+      "city": "Vientiane",
+      "website_url": "https://...",
+      "logo_path": "/abc.jpg",
+      "edition_count": 5
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/awards/shows/:id`
+Get award show with editions and categories.
+
+---
+
+#### `POST /api/awards/shows`
+Create award show. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "slug": "lao-film-awards",
+  "name": { "en": "Lao Film Awards", "lo": "..." },
+  "description": { "en": "...", "lo": "..." },
+  "country": "LA",
+  "city": "Vientiane"
+}
+```
+
+---
+
+#### `PUT /api/awards/shows/:id`
+Update award show. **Editor/Admin only.**
+
+---
+
+#### `DELETE /api/awards/shows/:id`
+Delete award show. **Admin only.**
+
+---
+
+#### `GET /api/awards/editions/:id`
+Get edition with categories and nominations.
+
+---
+
+#### `POST /api/awards/shows/:showId/editions`
+Create edition for a show. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "year": 2024,
+  "edition_number": 5,
+  "name": { "en": "5th Annual Awards", "lo": "..." },
+  "ceremony_date": "2024-03-15"
+}
+```
+
+---
+
+#### `POST /api/awards/editions/:editionId/categories`
+Add category to edition. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "name": { "en": "Best Picture", "lo": "..." },
+  "description": { "en": "...", "lo": "..." },
+  "sort_order": 1
+}
+```
+
+---
+
+#### `POST /api/awards/categories/:categoryId/nominations`
+Add nomination to category. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "movie_id": "uuid",
+  "person_id": 123,  // optional
+  "is_winner": false,
+  "notes": { "en": "...", "lo": "..." }
+}
+```
+
+---
+
+#### `PUT /api/awards/nominations/:nominationId/winner`
+Set nomination as winner. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "is_winner": true
+}
+```
+
+---
+
+### Short Packs (`/api/short-packs/*`)
+
+Short packs are curated collections of short films.
+
+#### `GET /api/short-packs`
+Get all short packs. Optional `?published=true` for public packs only.
+
+**Response:**
+```json
+{
+  "short_packs": [
+    {
+      "id": "uuid",
+      "slug": "lao-shorts-2024",
+      "title": { "en": "Lao Shorts 2024", "lo": "..." },
+      "description": { "en": "...", "lo": "..." },
+      "poster_path": "/abc.jpg",
+      "backdrop_path": "/xyz.jpg",
+      "is_published": true,
+      "short_count": 5,
+      "total_runtime": 75
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/short-packs/:id`
+Get short pack by ID or slug with full movie data.
+
+---
+
+#### `POST /api/short-packs`
+Create short pack. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "slug": "lao-shorts-2024",
+  "title": { "en": "Lao Shorts 2024", "lo": "..." },
+  "description": { "en": "...", "lo": "..." },
+  "is_published": false
+}
+```
+
+---
+
+#### `PUT /api/short-packs/:id`
+Update short pack. **Editor/Admin only.**
+
+---
+
+#### `DELETE /api/short-packs/:id`
+Delete short pack. **Admin only.**
+
+---
+
+#### `POST /api/short-packs/:id/items`
+Add short film to pack. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "movie_id": "uuid",
+  "order": 0
+}
+```
+
+---
+
+#### `DELETE /api/short-packs/:id/items/:movieId`
+Remove short from pack. **Editor/Admin only.**
+
+---
+
+#### `PUT /api/short-packs/:id/items/reorder`
+Reorder shorts in pack. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "items": [
+    { "movie_id": "uuid", "order": 0 },
+    { "movie_id": "uuid", "order": 1 }
+  ]
+}
+```
+
+---
+
+#### `GET /api/short-packs/for-movie/:movieId`
+Get packs containing a specific short film.
+
+---
+
+### Genres (`/api/genres/*`)
+
+#### `GET /api/genres`
+Get all genres with visibility. **Admin only.**
+
+**Response:**
+```json
+{
+  "genres": [
+    {
+      "id": 28,
+      "name": { "en": "Action", "lo": "..." },
+      "isVisible": true,
+      "movieCount": 15
+    }
+  ]
+}
+```
+
+---
+
+#### `POST /api/genres`
+Create custom genre. **Admin only.**
+
+**Body:**
+```json
+{
+  "nameEn": "Lao Traditional",
+  "nameLo": "ລາວພື້ນບ້ານ",
+  "isVisible": true
+}
+```
+
+---
+
+#### `PUT /api/genres/:id`
+Update genre. **Admin only.**
+
+---
+
+#### `DELETE /api/genres/:id`
+Delete genre. **Admin only.**
+
+---
+
+### Movie Genres (`/api/movies/:id/genres`)
+
+#### `POST /api/movies/:id/genres`
+Add genre to movie. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "genreId": 28
+}
+```
+
+---
+
+#### `DELETE /api/movies/:id/genres/:genreId`
+Remove genre from movie. **Editor/Admin only.**
+
+---
+
+### Subtitles (`/api/movies/:id/subtitles`)
+
+#### `GET /api/movies/:id/subtitles`
+Get all subtitle tracks for a movie.
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "language": "en",
+    "label": "English",
+    "url": "https://.../subtitles.vtt",
+    "isDefault": true,
+    "kind": "subtitles"
+  }
+]
+```
+
+---
+
+#### `POST /api/movies/:id/subtitles`
+Add subtitle track. **Editor/Admin only.**
+
+**Body:**
+```json
+{
+  "language": "lo",
+  "label": "ພາສາລາວ",
+  "url": "https://.../subtitles-lo.vtt",
+  "isDefault": false,
+  "kind": "subtitles"
+}
+```
+
+---
+
+#### `PUT /api/movies/:id/subtitles/:trackId`
+Update subtitle track. **Editor/Admin only.**
+
+---
+
+#### `DELETE /api/movies/:id/subtitles/:trackId`
+Delete subtitle track. **Editor/Admin only.**
+
+---
+
+### Notifications (`/api/notifications/*`)
+
+Request notifications when movies become available.
+
+#### `POST /api/notifications/movies/:movieId`
+Subscribe to movie availability notification. **Requires auth.**
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Notification request created",
+  "notification": { ... }
+}
+```
+
+---
+
+#### `DELETE /api/notifications/movies/:movieId`
+Unsubscribe from movie notification. **Requires auth.**
+
+---
+
+#### `GET /api/notifications/movies`
+Get all notification subscriptions. **Requires auth.**
+
+---
+
+### Watchlist (`/api/watchlist/*`)
+
+User's personal watchlist (movies to watch later).
+
+#### `POST /api/watchlist/:movieId`
+Add movie to watchlist. **Requires auth.**
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Added to watchlist",
+  "item": { ... }
+}
+```
+
+---
+
+#### `DELETE /api/watchlist/:movieId`
+Remove movie from watchlist. **Requires auth.**
+
+---
+
+#### `GET /api/watchlist`
+Get user's watchlist with movie details. **Requires auth.**
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "movieId": "uuid",
+      "addedAt": "2025-12-30T00:00:00.000Z",
+      "movie": {
+        "id": "uuid",
+        "title": { "en": "...", "lo": "..." },
+        "poster_path": "/abc.jpg"
+      }
+    }
+  ],
+  "total": 5
+}
+```
+
+---
+
+### Video Tokens (`/api/video-tokens/*`)
+
+Secure signed URLs for video playback.
+
+#### `POST /api/video-tokens/:movieId`
+Get signed playback URL. **Requires auth or anonymous + valid rental.**
+
+**Response:**
+```json
+{
+  "success": true,
+  "signedUrl": "https://.../video.m3u8?token=...",
+  "expiresAt": "2025-12-30T00:15:00.000Z",
+  "sessionCookie": "video_session=...",
+  "aspectRatio": "2.39:1"
+}
+```
+
+**Errors:**
+- `403` - No valid rental for this movie
+- `404` - Movie not found or no video source
+
+---
+
 ## Error Response Format
 
 All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) format:
