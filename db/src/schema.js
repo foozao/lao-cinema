@@ -263,6 +263,8 @@ const trailers = pgTable("trailers", {
   width: integer("width"),
   height: integer("height"),
   durationSeconds: integer("duration_seconds"),
+  thumbnailUrl: text("thumbnail_url"),
+  // Thumbnail image for video trailers
   // Common fields
   name: text("name").notNull(),
   official: boolean("official").default(false),

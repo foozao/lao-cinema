@@ -1,0 +1,1 @@
+ALTER TABLE "trailers" ADD COLUMN "thumbnail_url" text;

@@ -97,15 +97,37 @@ export function buildTrailerUrlPreview(slug: string, format: 'hls' | 'mp4' = 'hl
   if (format === 'hls') {
     return {
       local: `http://localhost:3002/trailers/hls/${slug}/master.m3u8`,
-      production: `https://storage.googleapis.com/lao-cinema-videos/trailers/hls/${slug}/master.m3u8`,
+      production: `https://storage.googleapis.com/lao-cinema-trailers/hls/${slug}/master.m3u8`,
     };
   }
   
   // MP4: /trailers/{slug}.mp4 (no /hls/ subfolder)
   return {
     local: `http://localhost:3002/trailers/${slug}.mp4`,
-    production: `https://storage.googleapis.com/lao-cinema-videos/trailers/${slug}.mp4`,
+    production: `https://storage.googleapis.com/lao-cinema-trailers/${slug}.mp4`,
   };
+}
+
+/**
+ * Get the appropriate trailer base URL based on environment.
+ * Returns the base URL for accessing trailer files.
+ */
+export function getTrailerBaseUrl(): string {
+  // Check if we're in production (deployed)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return 'https://storage.googleapis.com/lao-cinema-trailers';
+  }
+  // Local development
+  return 'http://localhost:3002';
+}
+
+/**
+ * Build full trailer thumbnail URL from slug and thumbnail number.
+ * Works for both local development and production.
+ */
+export function buildTrailerThumbnailUrl(slug: string, thumbnailNumber: number): string {
+  const baseUrl = getTrailerBaseUrl();
+  return `${baseUrl}/trailers/hls/${slug}/thumbnail-${thumbnailNumber}.jpg`;
 }
 
 export interface MovieFormData {

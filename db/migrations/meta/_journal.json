@@ -267,6 +267,13 @@
       "when": 1767004232507,
       "tag": "0037_young_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1767020404391,
+      "tag": "0038_lively_golden_guardian",
+      "breakpoints": true
     }
   ]
 }

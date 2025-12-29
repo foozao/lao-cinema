@@ -27,6 +27,7 @@ const videoTrailerSchema = z.object({
   width: z.number().int().optional(),
   height: z.number().int().optional(),
   duration_seconds: z.number().int().optional(),
+  thumbnail_url: z.string().optional(), // Thumbnail image (slug or full URL)
   name: z.string().min(1),
   official: z.boolean().default(true),
   language: z.string().optional(),
@@ -53,6 +54,7 @@ const updateTrailerSchema = z.object({
   width: z.number().int().optional(),
   height: z.number().int().optional(),
   duration_seconds: z.number().int().optional(),
+  thumbnail_url: z.string().optional(), // Thumbnail image (slug or full URL)
 });
 
 export default async function trailersRoutes(fastify: FastifyInstance) {
@@ -110,6 +112,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
           width: data.type === 'video' ? data.width : null,
           height: data.type === 'video' ? data.height : null,
           durationSeconds: data.type === 'video' ? data.duration_seconds : null,
+          thumbnailUrl: data.type === 'video' ? data.thumbnail_url : null,
           name: data.name,
           official: data.official,
           language: data.language || null,
@@ -180,6 +183,7 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
       if (data.width !== undefined) updateData.width = data.width;
       if (data.height !== undefined) updateData.height = data.height;
       if (data.duration_seconds !== undefined) updateData.durationSeconds = data.duration_seconds;
+      if (data.thumbnail_url !== undefined) updateData.thumbnailUrl = data.thumbnail_url;
 
       // Update trailer
       const [updatedTrailer] = await db
@@ -248,6 +252,63 @@ export default async function trailersRoutes(fastify: FastifyInstance) {
       );
 
       return { success: true, deleted: deletedTrailer };
+    }
+  );
+
+  // POST /api/trailers/:trailerId/select-thumbnail - Select thumbnail and cleanup unused ones (admin only)
+  fastify.post(
+    '/trailers/:trailerId/select-thumbnail',
+    { preHandler: requireEditorOrAdmin },
+    async (request, reply) => {
+      const { trailerId } = request.params as { trailerId: string };
+      const { thumbnail_number } = request.body as { thumbnail_number: number };
+
+      // Validate thumbnail number (1-9)
+      if (!thumbnail_number || thumbnail_number < 1 || thumbnail_number > 9) {
+        return sendBadRequest(reply, 'thumbnail_number must be between 1 and 9');
+      }
+
+      // Get trailer
+      const [trailer] = await db
+        .select()
+        .from(trailers)
+        .where(eq(trailers.id, trailerId))
+        .limit(1);
+
+      if (!trailer) {
+        return sendNotFound(reply, 'Trailer not found');
+      }
+
+      if (trailer.type !== 'video') {
+        return sendBadRequest(reply, 'Thumbnail selection only applies to video trailers');
+      }
+
+      // Extract slug from video URL
+      const videoUrl = trailer.videoUrl;
+      if (!videoUrl || videoUrl.startsWith('http')) {
+        return sendBadRequest(reply, 'Trailer must use slug-based URL for thumbnail selection');
+      }
+
+      // Update trailer with selected thumbnail
+      const selectedThumbnail = `${videoUrl}/thumbnail-${thumbnail_number}.jpg`;
+      const [updatedTrailer] = await db
+        .update(trailers)
+        .set({ 
+          thumbnailUrl: selectedThumbnail,
+          updatedAt: new Date() 
+        })
+        .where(eq(trailers.id, trailerId))
+        .returning();
+
+      // Note: Cleanup of unused thumbnails should be done via a separate cleanup script
+      // or GCS lifecycle policy, as the API doesn't have direct filesystem access in production
+
+      return { 
+        success: true, 
+        trailer: updatedTrailer,
+        selected_thumbnail: thumbnail_number,
+        message: 'Thumbnail selected. Unused thumbnails can be cleaned up via cleanup script.'
+      };
     }
   );
 

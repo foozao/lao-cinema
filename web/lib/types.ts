@@ -45,6 +45,7 @@ export interface VideoTrailer extends BaseTrailer {
   width?: number;
   height?: number;
   duration_seconds?: number;
+  thumbnail_url?: string; // Thumbnail image URL
 }
 
 export type Trailer = YouTubeTrailer | VideoTrailer;

@@ -198,20 +198,20 @@ YouTube trailers are automatically imported when you import a movie from TMDB.
 **Step 1: Upload video to GCS**
 ```bash
 # Upload to GCS bucket
-gsutil cp trailer.mp4 gs://lao-cinema-videos/trailers/movie-slug/
+gsutil cp trailer.mp4 gs://lao-cinema-trailers/movie-slug/
 
 # Or for HLS
-gsutil cp -r trailer-hls/ gs://lao-cinema-videos/trailers/movie-slug/
+gsutil cp -r trailer-hls/ gs://lao-cinema-trailers/movie-slug/
 ```
 
 **Step 2: Create trailer via API**
 ```bash
-curl -X POST https://api.laocinema.com/api/trailers/{movieId} \
-  -H "Authorization: Basic {admin_credentials}" \
+curl -X POST http://localhost:3001/api/trailers/MOVIE_ID \
+  -H "Authorization: Basic $(echo -n 'admin:password' | base64)" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "video",
-    "video_url": "https://storage.googleapis.com/lao-cinema-videos/trailers/movie-slug/master.m3u8",
+    "video_url": "https://storage.googleapis.com/lao-cinema-trailers/movie-slug/master.m3u8",
     "video_format": "hls",
     "video_quality": "1080p",
     "name": "Official Trailer",

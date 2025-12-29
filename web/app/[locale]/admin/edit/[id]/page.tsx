@@ -119,7 +119,11 @@ export default function EditMoviePage() {
         setAvailabilityStatus(initialStatus);
         setOriginalAvailabilityStatus(initialStatus);
         
-        const initialTrailers = movie.trailers || [];
+        // Ensure trailers include thumbnail_url field on initial load
+        const initialTrailers = (movie.trailers || []).map((t: any) => ({
+          ...t,
+          thumbnail_url: t.thumbnail_url || t.thumbnailUrl,
+        }));
         setTrailers(initialTrailers);
         setOriginalTrailers([...initialTrailers]);
       } catch (error) {
@@ -577,7 +581,9 @@ export default function EditMoviePage() {
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
         poster_path: formData.poster_path || undefined,
         backdrop_path: formData.backdrop_path || undefined,
-        trailers: trailers.length > 0 ? trailers : undefined,
+        // Note: trailers are managed separately via their own endpoints (add/delete/reorder/select-thumbnail)
+        // Don't include them here to avoid overwriting thumbnail_url and other trailer-specific fields
+        // trailers: trailers.length > 0 ? trailers : undefined,
         video_sources: (formData.video_url || formData.has_burned_subtitles || formData.video_aspect_ratio) ? [{
           id: '1',
           url: formData.video_url || '',
@@ -613,8 +619,13 @@ export default function EditMoviePage() {
       setOriginalCastTranslations(updatedCastTrans);
       setOriginalCrewTranslations(updatedCrewTrans);
       
-      setTrailers(updatedMovie.trailers || []);
-      setOriginalTrailers(updatedMovie.trailers || []);
+      // Ensure trailers include thumbnail_url field
+      const updatedTrailers = (updatedMovie.trailers || []).map((t: any) => ({
+        ...t,
+        thumbnail_url: t.thumbnail_url || t.thumbnailUrl,
+      }));
+      setTrailers(updatedTrailers);
+      setOriginalTrailers(updatedTrailers);
       setOriginalExternalPlatforms([...externalPlatforms]);
       setOriginalAvailabilityStatus(availabilityStatus);
       setSubscribersChecked(false);

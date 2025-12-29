@@ -96,18 +96,32 @@ export async function buildMovieWithRelations(
     trailers: movieTrailers.map(t => {
       // For self-hosted trailers, construct full URL from slug
       let videoUrl = t.videoUrl;
+      let thumbnailUrl = t.thumbnailUrl;
       if (t.type === 'video' && t.videoUrl && !t.videoUrl.startsWith('http')) {
         // It's a slug - construct full URL based on environment
-        // Derive trailer base from VIDEO_BASE_URL: /videos/hls -> /trailers/hls
+        // Trailers are in /trailers/hls (not /videos/trailers/hls)
         const videoBaseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
         const trailerBaseUrl = videoBaseUrl
           .replace('/videos/hls', '/trailers/hls')
-          .replace('lao-cinema-videos/hls', 'lao-cinema-videos/trailers/hls');
+          .replace('lao-cinema-videos/hls', 'lao-cinema-trailers/hls');
         if (t.videoFormat === 'hls') {
           videoUrl = `${trailerBaseUrl}/${t.videoUrl}/master.m3u8`;
+          // Construct thumbnail URL if it's a slug or slug/filename pattern
+          if (thumbnailUrl && !thumbnailUrl.startsWith('http')) {
+            // Handle both "slug" and "slug/thumbnail-N.jpg" patterns
+            if (thumbnailUrl.includes('/')) {
+              thumbnailUrl = `${trailerBaseUrl}/${thumbnailUrl}`;
+            } else {
+              thumbnailUrl = `${trailerBaseUrl}/${t.videoUrl}/thumbnail.jpg`;
+            }
+          }
         } else {
           // MP4: /trailers/{slug}.mp4 (no /hls/ subfolder)
           videoUrl = trailerBaseUrl.replace('/hls', '') + `/${t.videoUrl}.mp4`;
+          // Thumbnail for MP4 would be at same level
+          if (thumbnailUrl && !thumbnailUrl.startsWith('http')) {
+            thumbnailUrl = trailerBaseUrl.replace('/hls', '') + `/${thumbnailUrl}`;
+          }
         }
       }
       
@@ -130,6 +144,7 @@ export async function buildMovieWithRelations(
           width: t.width,
           height: t.height,
           duration_seconds: t.durationSeconds,
+          thumbnail_url: thumbnailUrl,
         }),
       };
     }),

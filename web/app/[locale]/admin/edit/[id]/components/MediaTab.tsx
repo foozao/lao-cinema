@@ -12,7 +12,7 @@ import { ImageUploader } from '@/components/admin/image-uploader';
 import { SubtitleManager } from '@/components/admin/subtitle-manager';
 import type { Movie, Trailer } from '@/lib/types';
 import type { MovieFormData } from './types';
-import { buildVideoUrlPreview, buildTrailerUrlPreview, extractTrailerSlug } from './types';
+import { buildVideoUrlPreview, buildTrailerUrlPreview, extractTrailerSlug, buildTrailerThumbnailUrl } from './types';
 import { API_BASE_URL } from '@/lib/config';
 import { getAuthHeaders } from '@/lib/api/auth-headers';
 
@@ -53,6 +53,9 @@ export function MediaTab({
 }: MediaTabProps) {
   const [trailerAddedMessage, setTrailerAddedMessage] = useState<string | null>(null);
   const [addingTrailer, setAddingTrailer] = useState(false);
+  const [selectingThumbnail, setSelectingThumbnail] = useState(false);
+  const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false);
+  const [currentTrailerForThumbnail, setCurrentTrailerForThumbnail] = useState<Trailer | null>(null);
   const [editingTrailer, setEditingTrailer] = useState<Trailer | null>(null);
   const [editForm, setEditForm] = useState({ name: '', slug: '', format: 'hls' as 'hls' | 'mp4' });
   const [savingEdit, setSavingEdit] = useState(false);
@@ -82,6 +85,7 @@ export function MediaTab({
           video_url: t.videoUrl,
           video_format: t.videoFormat,
           video_quality: t.videoQuality,
+          thumbnail_url: t.thumbnailUrl,
         }),
       }));
       onTrailersChange(mappedTrailers);
@@ -126,6 +130,47 @@ export function MediaTab({
   const handleCancelEdit = () => {
     setEditingTrailer(null);
     setEditForm({ name: '', slug: '', format: 'hls' });
+  };
+
+  const handleOpenThumbnailSelector = (trailer: Trailer) => {
+    if (trailer.type === 'video') {
+      setCurrentTrailerForThumbnail(trailer);
+      setThumbnailModalOpen(true);
+    }
+  };
+
+  const handleSelectThumbnail = async (thumbnailNumber: number) => {
+    if (!currentTrailerForThumbnail) return;
+
+    setSelectingThumbnail(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/trailers/${currentTrailerForThumbnail.id}/select-thumbnail`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({ thumbnail_number: thumbnailNumber }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to select thumbnail');
+      }
+
+      await refreshTrailers();
+      setThumbnailModalOpen(false);
+      setCurrentTrailerForThumbnail(null);
+      showTrailerAdded('Thumbnail selected!');
+    } catch (error) {
+      console.error('Error selecting thumbnail:', error);
+      alert(`Failed to select thumbnail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setSelectingThumbnail(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -570,6 +615,23 @@ export function MediaTab({
                 const trailerSlug = isSelfHosted ? extractTrailerSlug(trailer.video_url) : null;
                 const trailerFormat = isSelfHosted ? trailer.video_format : null;
                 
+                // Build full thumbnail URL for self-hosted trailers
+                let thumbnailUrl = null;
+                if (isSelfHosted && trailer.thumbnail_url) {
+                  if (trailer.thumbnail_url.startsWith('http')) {
+                    // Already a full URL
+                    thumbnailUrl = trailer.thumbnail_url;
+                  } else {
+                    // It's a slug path like "at-the-horizon/thumbnail-6.jpg"
+                    // Extract the thumbnail number and use the helper
+                    const match = trailer.thumbnail_url.match(/thumbnail-(\d+)\.jpg$/);
+                    if (match && trailerSlug) {
+                      const thumbnailNumber = parseInt(match[1]);
+                      thumbnailUrl = buildTrailerThumbnailUrl(trailerSlug, thumbnailNumber);
+                    }
+                  }
+                }
+                
                 return (
                   <div key={trailer.id} className="p-3 bg-gray-50 rounded-lg border-2 border-transparent hover:border-gray-300 transition-colors">
                     <div className="flex items-start gap-3">
@@ -577,6 +639,12 @@ export function MediaTab({
                       {isYouTube && ytKey ? (
                         <img
                           src={`https://img.youtube.com/vi/${ytKey}/hqdefault.jpg`}
+                          alt={trailer.name}
+                          className="w-32 h-18 rounded object-cover flex-shrink-0"
+                        />
+                      ) : isSelfHosted && thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
                           alt={trailer.name}
                           className="w-32 h-18 rounded object-cover flex-shrink-0"
                         />
@@ -640,14 +708,23 @@ export function MediaTab({
                             </button>
                           )}
                           {isSelfHosted && (
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(trailer)}
-                              className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
-                              title="Edit trailer"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenThumbnailSelector(trailer)}
+                                className="text-xs text-purple-600 hover:text-purple-800 underline"
+                              >
+                                Choose Thumbnail
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(trailer)}
+                                className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                                title="Edit trailer"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                           <button
                             type="button"
@@ -672,6 +749,67 @@ export function MediaTab({
           )}
         </CardContent>
       </Card>
+
+      {/* Thumbnail Selection Modal */}
+      {thumbnailModalOpen && currentTrailerForThumbnail && currentTrailerForThumbnail.type === 'video' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-2">Choose Thumbnail</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Select the best thumbnail for &quot;{currentTrailerForThumbnail.name}&quot;. Unused thumbnails will be cleaned up.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
+                  const slug = extractTrailerSlug(currentTrailerForThumbnail.video_url);
+                  // Add cache-busting timestamp to prevent browser caching
+                  const cacheBuster = Date.now();
+                  const thumbnailUrl = `${buildTrailerThumbnailUrl(slug, num)}?t=${cacheBuster}`;
+                  
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleSelectThumbnail(num)}
+                      disabled={selectingThumbnail}
+                      className="relative group border-2 border-gray-300 rounded-lg overflow-hidden hover:border-purple-500 transition-colors disabled:opacity-50"
+                    >
+                      <img
+                        src={thumbnailUrl}
+                        alt={`Thumbnail option ${num}`}
+                        className="w-full h-auto"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span className="bg-purple-600 text-white px-3 py-1 rounded text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          Select
+                        </span>
+                      </div>
+                      <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                        Option {num} ({num * 3}s)
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setThumbnailModalOpen(false);
+                    setCurrentTrailerForThumbnail(null);
+                  }}
+                  disabled={selectingThumbnail}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Trailer Modal */}
       {editingTrailer && (

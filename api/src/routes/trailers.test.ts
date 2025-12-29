@@ -446,4 +446,156 @@ describe('Trailer Routes', () => {
       expect(response.statusCode).toBe(400);
     });
   });
+
+  describe('POST /api/trailers/:trailerId/select-thumbnail', () => {
+    let videoTrailerId: string;
+
+    beforeEach(async () => {
+      // Create a video trailer (thumbnail selection only applies to video trailers)
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${movieId}`,
+        headers: editorAuth.headers,
+        payload: {
+          type: 'video',
+          video_url: 'at-the-horizon',
+          video_format: 'hls',
+          video_quality: '1080p',
+          name: 'Official Trailer',
+        },
+      });
+      const created = JSON.parse(createResponse.body);
+      videoTrailerId = created.id;
+    });
+
+    it('should require admin authentication', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${videoTrailerId}/select-thumbnail`,
+        payload: {
+          thumbnail_number: 3,
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should select a thumbnail for a video trailer', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${videoTrailerId}/select-thumbnail`,
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 5,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.selected_thumbnail).toBe(5);
+      expect(body.trailer.thumbnailUrl).toBe('at-the-horizon/thumbnail-5.jpg');
+    });
+
+    it('should return 400 for invalid thumbnail number (less than 1)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${videoTrailerId}/select-thumbnail`,
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 0,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.detail).toContain('thumbnail_number must be between 1 and 9');
+    });
+
+    it('should return 400 for invalid thumbnail number (greater than 9)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${videoTrailerId}/select-thumbnail`,
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 10,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.detail).toContain('thumbnail_number must be between 1 and 9');
+    });
+
+    it('should return 404 for non-existent trailer', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/trailers/00000000-0000-0000-0000-000000000000/select-thumbnail',
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 3,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('should return 400 for YouTube trailers', async () => {
+      // Create a YouTube trailer
+      const ytCreateResponse = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${movieId}`,
+        headers: editorAuth.headers,
+        payload: {
+          type: 'youtube',
+          youtube_key: 'dQw4w9WgXcQ',
+          name: 'YouTube Trailer',
+        },
+      });
+      const ytTrailer = JSON.parse(ytCreateResponse.body);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${ytTrailer.id}/select-thumbnail`,
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 3,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.detail).toContain('Thumbnail selection only applies to video trailers');
+    });
+
+    it('should return 400 for video trailers with full URLs', async () => {
+      // Create a video trailer with a full URL (not a slug)
+      const fullUrlCreateResponse = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${movieId}`,
+        headers: editorAuth.headers,
+        payload: {
+          type: 'video',
+          video_url: 'https://example.com/videos/trailer.m3u8',
+          video_format: 'hls',
+          video_quality: '1080p',
+          name: 'External Trailer',
+        },
+      });
+      const fullUrlTrailer = JSON.parse(fullUrlCreateResponse.body);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/trailers/${fullUrlTrailer.id}/select-thumbnail`,
+        headers: editorAuth.headers,
+        payload: {
+          thumbnail_number: 3,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.detail).toContain('Trailer must use slug-based URL for thumbnail selection');
+    });
+  });
 });

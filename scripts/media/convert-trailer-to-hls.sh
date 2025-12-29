@@ -21,14 +21,14 @@ if [ "$#" -lt 2 ]; then
     echo "This will:"
     echo "  1. Extract first 15 seconds of the trailer"
     echo "  2. Convert to HLS with multiple quality levels (1080p, 720p, 480p, 360p)"
-    echo "  3. Output to video-server/videos/trailers/hls/<output-name>/"
+    echo "  3. Output to video-server/trailers/hls/<output-name>/"
     exit 1
 fi
 
 INPUT_FILE="$1"
 OUTPUT_NAME="$2"
 SCRIPT_DIR="$(dirname "$0")"
-OUTPUT_DIR="${SCRIPT_DIR}/../../video-server/videos/trailers/hls/${OUTPUT_NAME}"
+OUTPUT_DIR="${SCRIPT_DIR}/../../video-server/trailers/hls/${OUTPUT_NAME}"
 
 # Validate input file exists
 if [ ! -f "$INPUT_FILE" ]; then
@@ -42,6 +42,22 @@ mkdir -p "$OUTPUT_DIR"
 echo "Converting trailer: $INPUT_FILE"
 echo "Output directory: $OUTPUT_DIR"
 echo "Extracting first 15 seconds and converting to HLS..."
+echo ""
+
+# Extract 9 thumbnails at different timestamps for selection
+echo "Extracting 9 thumbnail options..."
+# Extract at 3s, 6s, 9s, 12s, 15s, 18s, 21s, 24s, 27s (spread across trailer)
+ffmpeg -ss 3 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-1.jpg" -y
+ffmpeg -ss 6 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-2.jpg" -y
+ffmpeg -ss 9 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-3.jpg" -y
+ffmpeg -ss 12 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-4.jpg" -y
+ffmpeg -ss 15 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-5.jpg" -y
+ffmpeg -ss 18 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-6.jpg" -y
+ffmpeg -ss 21 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-7.jpg" -y
+ffmpeg -ss 24 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-8.jpg" -y
+ffmpeg -ss 27 -i "$INPUT_FILE" -vframes 1 -vf "scale='min(1920,iw)':-2" -q:v 2 "${OUTPUT_DIR}/thumbnail-9.jpg" -y
+
+echo "9 thumbnail options saved (thumbnail-1.jpg through thumbnail-9.jpg)"
 echo ""
 
 # Extract first 15 seconds and convert to HLS with multiple bitrates
@@ -94,17 +110,31 @@ fi
 echo ""
 echo "✅ Trailer conversion complete!"
 echo ""
-echo "HLS master playlist: /videos/trailers/hls/${OUTPUT_NAME}/master.m3u8"
+echo "Thumbnails (choose one in admin panel):"
+echo "  - Option 1 (3s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-1.jpg"
+echo "  - Option 2 (6s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-2.jpg"
+echo "  - Option 3 (9s):  /trailers/hls/${OUTPUT_NAME}/thumbnail-3.jpg"
+echo "  - Option 4 (12s): /trailers/hls/${OUTPUT_NAME}/thumbnail-4.jpg"
+echo "  - Option 5 (15s): /trailers/hls/${OUTPUT_NAME}/thumbnail-5.jpg"
+echo "  - Option 6 (18s): /trailers/hls/${OUTPUT_NAME}/thumbnail-6.jpg"
+echo "  - Option 7 (21s): /trailers/hls/${OUTPUT_NAME}/thumbnail-7.jpg"
+echo "  - Option 8 (24s): /trailers/hls/${OUTPUT_NAME}/thumbnail-8.jpg"
+echo "  - Option 9 (27s): /trailers/hls/${OUTPUT_NAME}/thumbnail-9.jpg"
+echo ""
+echo "HLS master playlist: /trailers/hls/${OUTPUT_NAME}/master.m3u8"
 echo ""
 echo "Generated variants (15 seconds each):"
-echo "  - 1080p @ 5000k: /videos/trailers/hls/${OUTPUT_NAME}/stream_0/playlist.m3u8"
-echo "  - 720p @ 2800k:  /videos/trailers/hls/${OUTPUT_NAME}/stream_1/playlist.m3u8"
-echo "  - 480p @ 1400k:  /videos/trailers/hls/${OUTPUT_NAME}/stream_2/playlist.m3u8"
-echo "  - 360p @ 800k:   /videos/trailers/hls/${OUTPUT_NAME}/stream_3/playlist.m3u8"
+echo "  - 1080p @ 5000k: /trailers/hls/${OUTPUT_NAME}/stream_0/playlist.m3u8"
+echo "  - 720p @ 2800k:  /trailers/hls/${OUTPUT_NAME}/stream_1/playlist.m3u8"
+echo "  - 480p @ 1400k:  /trailers/hls/${OUTPUT_NAME}/stream_2/playlist.m3u8"
+echo "  - 360p @ 800k:   /trailers/hls/${OUTPUT_NAME}/stream_3/playlist.m3u8"
 echo ""
-echo "Local URL: http://localhost:3000/videos/trailers/hls/${OUTPUT_NAME}/master.m3u8"
+echo "Local URLs:"
+echo "  Video: http://localhost:3000/trailers/hls/${OUTPUT_NAME}/master.m3u8"
+echo "  Thumbnails: http://localhost:3000/trailers/hls/${OUTPUT_NAME}/thumbnail-[1-5].jpg"
 echo ""
 echo "Next steps:"
-echo "  1. Upload to GCS: ./scripts/upload-to-gcs.sh video-server/videos/trailers/hls/${OUTPUT_NAME}"
-echo "  2. Add trailer_url to movie in database"
+echo "  1. Upload to GCS: ./scripts/upload-to-gcs.sh video-server/trailers/hls/${OUTPUT_NAME}"
+echo "  2. Add trailer in admin panel and select preferred thumbnail"
+echo "  3. Unused thumbnails will be automatically deleted after selection"
 echo ""
