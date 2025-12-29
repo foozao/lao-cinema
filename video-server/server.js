@@ -221,6 +221,25 @@ fastify.register(require('@fastify/static'), {
   },
 });
 
+// Serve trailers (publicly accessible, no token required)
+const TRAILERS_PATH = process.env.TRAILERS_PATH || path.join(__dirname, 'trailers');
+fastify.register(require('@fastify/static'), {
+  root: TRAILERS_PATH,
+  prefix: '/trailers/',
+  decorateReply: false,
+  setHeaders: (res, filepath) => {
+    // Cache trailers for a day
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    
+    // Set correct content types for HLS
+    if (filepath.endsWith('.m3u8')) {
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    } else if (filepath.endsWith('.ts')) {
+      res.setHeader('Content-Type', 'video/mp2t');
+    }
+  },
+});
+
 // Health check
 fastify.get('/health', async () => {
   return { status: 'ok', service: 'video-server' };

@@ -10,6 +10,7 @@ import { SubHeader } from '@/components/sub-header';
 import { Footer } from '@/components/footer';
 import { CinematicLoader } from '@/components/cinematic-loader';
 import { AnimatedMovieGrid } from '@/components/animated-movie-grid';
+import { HeroSection } from '@/components/hero-section';
 import { Film, ChevronRight } from 'lucide-react';
 import { APIError } from '@/components/api-error';
 import type { Movie, ShortPackSummary } from '@/lib/types';
@@ -22,8 +23,9 @@ export default function Home() {
   const t = useTranslations();
   const { user, isLoading: authLoading } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [rentals, setRentals] = useState<Rental[]>([]);
   const [shortPacks, setShortPacks] = useState<ShortPackSummary[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [heroType, setHeroType] = useState<'disabled' | 'video' | 'image'>('video');
   const [loading, setLoading] = useState(true);
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [error, setError] = useState<'network' | 'server' | null>(null);
@@ -44,6 +46,7 @@ export default function Home() {
       
       const data = await response.json();
       setMovies(data.movies || []);
+      setHeroType(data.settings?.heroType || 'video');
     } catch (err) {
       console.error('Failed to load movies:', err);
       // Network error (server unreachable, CORS, etc.)
@@ -128,6 +131,15 @@ export default function Home() {
         {/* Header */}
         <Header variant="dark" />
         <SubHeader variant="dark" />
+
+        {/* Hero Section - First featured film */}
+        {!loading && !error && movies.length > 0 && heroType !== 'disabled' && (
+          heroType === 'video' && movies[0].trailers?.some(t => t.type === 'video') ? (
+            <HeroSection movie={movies[0]} clipDuration={15} />
+          ) : heroType === 'image' ? (
+            <HeroSection movie={movies[0]} clipDuration={15} />
+          ) : null
+        )}
 
         {/* Main Content */}
         <main className="mx-auto px-3 py-8 flex-grow max-w-[1600px]">

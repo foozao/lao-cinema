@@ -37,6 +37,7 @@ export default function HomepageAdminPage() {
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [randomizeFeatured, setRandomizeFeatured] = useState(false);
+  const [heroType, setHeroType] = useState<'disabled' | 'video' | 'image'>('video');
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function HomepageAdminPage() {
       const settingsRes = await fetch(`${API_BASE_URL}/homepage/settings`);
       const settingsData = await settingsRes.json();
       setRandomizeFeatured(settingsData.settings?.randomizeFeatured || false);
+      setHeroType(settingsData.settings?.heroType || 'video');
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -158,6 +160,29 @@ export default function HomepageAdminPage() {
     }
   };
 
+  const updateHeroType = async (newHeroType: 'disabled' | 'video' | 'image') => {
+    setUpdatingSettings(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/homepage/settings`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ heroType: newHeroType }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setHeroType(data.settings.heroType);
+      } else {
+        alert('Failed to update settings');
+      }
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      alert('Failed to update settings');
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-gray-50" />;
   }
@@ -180,11 +205,60 @@ export default function HomepageAdminPage() {
         {/* Settings Card */}
         <Card>
           <CardHeader>
-            <CardTitle>{t('randomizeFeatured')}</CardTitle>
+            <CardTitle>Homepage Settings</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-6">
+            {/* Hero Type Setting */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hero Section Style
+              </label>
+              <p className="text-sm text-gray-600 mb-3">
+                Choose how the first featured film is displayed on the homepage
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateHeroType('video')}
+                  disabled={updatingSettings}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${
+                    heroType === 'video'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Auto-play Video
+                </button>
+                <button
+                  onClick={() => updateHeroType('image')}
+                  disabled={updatingSettings}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${
+                    heroType === 'image'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Static Image
+                </button>
+                <button
+                  onClick={() => updateHeroType('disabled')}
+                  disabled={updatingSettings}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${
+                    heroType === 'disabled'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Disabled
+                </button>
+              </div>
+            </div>
+
+            {/* Randomize Setting */}
+            <div className="flex items-center justify-between pt-4 border-t">
               <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('randomizeFeatured')}
+                </label>
                 <p className="text-sm text-gray-600">
                   {t('randomizeFeaturedDescription')}
                 </p>

@@ -5,6 +5,9 @@ node_modules/
 videos/**/*
 !videos/hls/
 !videos/hls/.gitignore
+!trailers/**/*
+!trailers/hls/
+!trailers/hls/.gitignore
 
 # Logs
 *.log

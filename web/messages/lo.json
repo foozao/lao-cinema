@@ -49,7 +49,9 @@
     "noFilms": "ຍັງບໍ່ມີຮູບເງົາ",
     "noFilmsDescription": "ກະລຸນາກັບມາໃໝ່ໃນໄວໆນີ້",
     "myRentals": "ການເຊົ່າຂອງຂ້ອຍ",
-    "viewAll": "ເບິ່ງທັງໝົດ"
+    "viewAll": "ເບິ່ງທັງໝົດ",
+    "watchNow": "ເບິ່ງດຽວນີ້",
+    "moreInfo": "ຂໍ້ມູນເພີ່ມເຕີມ"
   },
   "subheader": {
     "searchPlaceholder": "ຄົ້ນຫາຮູບເງົາ ຫຼື ບຸກຄົນ..."
@@ -88,8 +90,9 @@
     "trailer": "ຕົວຢ່າງ",
     "releaseDate": "ວັນທີອອກສາຍ",
     "runtime": "ໄລຍະເວລາ",
-    "minutes": "{count} ນາທີ",
+    "minutes": "ນາທີ",
     "min": "ນາທີ",
+    "directedBy": "ກຳກັບໂດຍ",
     "rating": "ຄະແນນ",
     "genres": "ປະເພດ",
     "watchNow": "ເບິ່ງດຽວນີ້",

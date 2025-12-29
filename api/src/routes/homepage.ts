@@ -67,7 +67,13 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
         }).filter(m => m !== undefined);
       }
 
-      return { movies: sortedMovies };
+      return { 
+        movies: sortedMovies,
+        settings: {
+          heroType: settings?.heroType || 'video',
+          randomizeFeatured: settings?.randomizeFeatured || false,
+        }
+      };
     } catch (error) {
       fastify.log.error(error);
       return sendInternalError(reply, 'Failed to fetch featured films');
@@ -283,10 +289,17 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
     { preHandler: [requireEditorOrAdmin] },
     async (request, reply) => {
       try {
-        const { randomizeFeatured } = request.body as { randomizeFeatured: boolean };
+        const { randomizeFeatured, heroType } = request.body as { 
+          randomizeFeatured?: boolean;
+          heroType?: 'disabled' | 'video' | 'image';
+        };
 
-        if (typeof randomizeFeatured !== 'boolean') {
+        if (randomizeFeatured !== undefined && typeof randomizeFeatured !== 'boolean') {
           return sendBadRequest(reply, 'randomizeFeatured must be a boolean');
+        }
+
+        if (heroType !== undefined && !['disabled', 'video', 'image'].includes(heroType)) {
+          return sendBadRequest(reply, 'heroType must be one of: disabled, video, image');
         }
 
         // Ensure settings row exists
@@ -294,27 +307,37 @@ export default async function homepageRoutes(fastify: FastifyInstance) {
           .from(schema.homepageSettings)
           .limit(1);
         
+        const updates: any = { updatedAt: new Date() };
+        if (randomizeFeatured !== undefined) updates.randomizeFeatured = randomizeFeatured;
+        if (heroType !== undefined) updates.heroType = heroType;
+
         if (!settings) {
           [settings] = await db.insert(schema.homepageSettings)
-            .values({ id: 1, randomizeFeatured })
+            .values({ id: 1, ...updates })
             .returning();
         } else {
           [settings] = await db.update(schema.homepageSettings)
-            .set({ randomizeFeatured, updatedAt: new Date() })
+            .set(updates)
             .where(eq(schema.homepageSettings.id, 1))
             .returning();
         }
 
         // Log audit event
+        const changes: any = {};
+        if (randomizeFeatured !== undefined) {
+          changes.randomize_featured = { before: !randomizeFeatured, after: randomizeFeatured };
+        }
+        if (heroType !== undefined) {
+          changes.hero_type = { before: settings.heroType, after: heroType };
+        }
+        
         await logAuditFromRequest(
           request,
           'update',
           'settings',
           '1',
           'Homepage settings',
-          {
-            randomize_featured: { before: !randomizeFeatured, after: randomizeFeatured },
-          }
+          changes
         );
 
         return { settings };

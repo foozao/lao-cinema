@@ -280,10 +280,14 @@ export const homepageFeatured = pgTable('homepage_featured', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Hero type enum - different homepage hero styles
+export const heroTypeEnum = pgEnum('hero_type', ['disabled', 'video', 'image']);
+
 // Homepage settings table
 export const homepageSettings = pgTable('homepage_settings', {
   id: integer('id').primaryKey().default(1), // Single row table
   randomizeFeatured: boolean('randomize_featured').default(false).notNull(), // Randomize featured films order
+  heroType: heroTypeEnum('hero_type').default('video').notNull(), // Hero section style
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 

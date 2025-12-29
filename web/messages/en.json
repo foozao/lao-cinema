@@ -49,7 +49,9 @@
     "noFilms": "No films available yet",
     "noFilmsDescription": "Check back soon for new content",
     "myRentals": "My Rentals",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "watchNow": "Watch Now",
+    "moreInfo": "More Info"
   },
   "subheader": {
     "searchPlaceholder": "Search movies or people..."
@@ -88,8 +90,9 @@
     "trailer": "Trailer",
     "releaseDate": "Release Date",
     "runtime": "Runtime",
-    "minutes": "{count} minutes",
+    "minutes": "min",
     "min": "min",
+    "directedBy": "Directed by",
     "rating": "Rating",
     "genres": "Genres",
     "watchNow": "Watch Now",
