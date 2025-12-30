@@ -15,11 +15,18 @@ import {
   deleteAllUserSessions,
 } from '../lib/auth-service.js';
 import { sendPasswordResetEmail } from '../lib/email-service.js';
-import { 
-  isValidEmail, 
-  validatePassword,
-} from '../lib/auth-utils.js';
+import { validatePassword } from '../lib/auth-utils.js';
 import { checkRateLimit, recordAttempt, RATE_LIMITS } from '../lib/rate-limiter.js';
+import { validateBody, validateQuery, forgotPasswordSchema, resetPasswordSchema, nonEmptyString } from '../lib/validation.js';
+import { z } from 'zod';
+
+const forgotPasswordBodySchema = forgotPasswordSchema.extend({
+  locale: z.enum(['en', 'lo']).optional(),
+});
+
+const tokenQuerySchema = z.object({
+  token: nonEmptyString,
+});
 
 export default async function authPasswordResetRoutes(fastify: FastifyInstance) {
   
@@ -28,19 +35,10 @@ export default async function authPasswordResetRoutes(fastify: FastifyInstance) 
    * Request a password reset email
    */
   fastify.post('/auth/forgot-password', async (request, reply) => {
-    const { email, locale } = request.body as {
-      email: string;
-      locale?: 'en' | 'lo';
-    };
+    const body = validateBody(forgotPasswordBodySchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!email) {
-      return sendBadRequest(reply, 'Email is required');
-    }
-    
-    if (!isValidEmail(email)) {
-      return sendBadRequest(reply, 'Invalid email format');
-    }
+    const { email, locale } = body;
     
     // Check rate limit
     const ipAddress = request.ip;
@@ -103,20 +101,15 @@ export default async function authPasswordResetRoutes(fastify: FastifyInstance) 
    * Reset password using a valid token
    */
   fastify.post('/auth/reset-password', async (request, reply) => {
-    const { token, newPassword } = request.body as {
-      token: string;
-      newPassword: string;
-    };
+    const body = validateBody(resetPasswordSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!token || !newPassword) {
-      return sendBadRequest(reply, 'Token and new password are required');
-    }
+    const { token, newPassword } = body;
     
+    // Additional password policy validation
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.valid) {
-      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors,
-      );
+      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors);
     }
     
     try {
@@ -153,11 +146,10 @@ export default async function authPasswordResetRoutes(fastify: FastifyInstance) 
    * Verify if a password reset token is valid (for frontend validation)
    */
   fastify.get('/auth/verify-reset-token', async (request, reply) => {
-    const { token } = request.query as { token: string };
+    const query = validateQuery(tokenQuerySchema, request.query, reply);
+    if (!query) return;
     
-    if (!token) {
-      return sendBadRequest(reply, 'Token is required');
-    }
+    const { token } = query;
     
     try {
       const resetTokenData = await findValidPasswordResetToken(token);

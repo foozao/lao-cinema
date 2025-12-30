@@ -11,10 +11,8 @@ import {
   findUserByEmail,
   createSession,
 } from '../lib/auth-service.js';
-import { 
-  isValidEmail, 
-  validatePassword,
-} from '../lib/auth-utils.js';
+import { validatePassword } from '../lib/auth-utils.js';
+import { validateBody, registerSchema } from '../lib/validation.js';
 
 // Cookie configuration
 const SESSION_COOKIE_NAME = 'session';
@@ -46,25 +44,16 @@ export default async function authRegistrationRoutes(fastify: FastifyInstance) {
    * Register a new user with email/password
    */
   fastify.post('/auth/register', async (request, reply) => {
-    const { email, password, displayName } = request.body as {
-      email: string;
-      password: string;
-      displayName?: string;
-    };
+    // Validate input with Zod
+    const body = validateBody(registerSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!email || !password) {
-      return sendBadRequest(reply, 'Email and password are required');
-    }
+    const { email, password, displayName } = body;
     
-    if (!isValidEmail(email)) {
-      return sendBadRequest(reply, 'Invalid email format');
-    }
-    
+    // Additional password policy validation
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
-      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors,
-      );
+      return sendBadRequest(reply, 'Invalid password', passwordValidation.errors);
     }
     
     // Check if user already exists

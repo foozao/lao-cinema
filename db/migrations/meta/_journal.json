@@ -281,6 +281,13 @@
       "when": 1767024943894,
       "tag": "0039_smart_lionheart",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1767092054768,
+      "tag": "0040_flimsy_hex",
+      "breakpoints": true
     }
   ]
 }

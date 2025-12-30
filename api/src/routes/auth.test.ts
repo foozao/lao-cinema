@@ -115,7 +115,7 @@ describe('Auth Routes', () => {
       
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.detail).toContain('Invalid password');
+      expect(body.detail).toContain('password');
     });
   });
   
@@ -517,7 +517,7 @@ describe('Auth Routes', () => {
       userId = body.user.id;
     });
     
-    it('should delete account with correct password', async () => {
+    it('should soft-delete account with correct password', async () => {
       const response = await app.inject({
         method: 'DELETE',
         url: '/api/auth/me',
@@ -531,11 +531,16 @@ describe('Auth Routes', () => {
       
       expect(response.statusCode).toBe(200);
       
-      // Verify user is deleted
+      // Verify user is soft-deleted (record exists but PII is anonymized)
       const [user] = await db.select().from(users).where(eq(users.id, userId));
-      expect(user).toBeUndefined();
+      expect(user).toBeDefined();
+      expect(user.deletedAt).not.toBeNull();
+      expect(user.email).toMatch(/^deleted_[a-f0-9]+@deleted\.local$/);
+      expect(user.displayName).toBe('Deleted User');
+      expect(user.passwordHash).toBeNull();
+      expect(user.profileImageUrl).toBeNull();
       
-      // Verify cannot login
+      // Verify cannot login with old credentials
       const loginResponse = await app.inject({
         method: 'POST',
         url: '/api/auth/login',

@@ -15,11 +15,25 @@ import {
   deleteUser,
 } from '../lib/auth-service.js';
 import { 
-  isValidEmail, 
   validatePassword,
   verifyPassword,
 } from '../lib/auth-utils.js';
 import { requireAuth } from '../lib/auth-middleware.js';
+import { validateBody, changePasswordSchema, updateProfileSchema, emailSchema } from '../lib/validation.js';
+import { z } from 'zod';
+
+const changeEmailSchema = z.object({
+  newEmail: emailSchema,
+  password: z.string().min(1, 'Password is required'),
+});
+
+const profileUpdateSchema = z.object({
+  displayName: z.string().min(1).max(100).optional(),
+  profileImageUrl: z.string().url().optional().nullable(),
+  timezone: z.string().optional(),
+  preferredSubtitleLanguage: z.string().optional().nullable(),
+  alwaysShowSubtitles: z.boolean().optional(),
+});
 
 export default async function authProfileRoutes(fastify: FastifyInstance) {
   
@@ -50,20 +64,17 @@ export default async function authProfileRoutes(fastify: FastifyInstance) {
    * Update current user profile
    */
   fastify.patch('/auth/me', { preHandler: requireAuth }, async (request, reply) => {
-    const { displayName, profileImageUrl, timezone, preferredSubtitleLanguage, alwaysShowSubtitles } = request.body as {
-      displayName?: string;
-      profileImageUrl?: string;
-      timezone?: string;
-      preferredSubtitleLanguage?: string | null;
-      alwaysShowSubtitles?: boolean;
-    };
+    const body = validateBody(profileUpdateSchema, request.body, reply);
+    if (!body) return;
+    
+    const { displayName, profileImageUrl, timezone, preferredSubtitleLanguage, alwaysShowSubtitles } = body;
     
     try {
       const user = await updateUser(request.userId!, {
         displayName,
-        profileImageUrl,
+        profileImageUrl: profileImageUrl ?? undefined,
         timezone,
-        preferredSubtitleLanguage,
+        preferredSubtitleLanguage: preferredSubtitleLanguage ?? undefined,
         alwaysShowSubtitles,
       });
       
@@ -92,20 +103,15 @@ export default async function authProfileRoutes(fastify: FastifyInstance) {
    * Change password
    */
   fastify.patch('/auth/me/password', { preHandler: requireAuth }, async (request, reply) => {
-    const { currentPassword, newPassword } = request.body as {
-      currentPassword: string;
-      newPassword: string;
-    };
+    const body = validateBody(changePasswordSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!currentPassword || !newPassword) {
-      return sendBadRequest(reply, 'Current password and new password are required');
-    }
+    const { currentPassword, newPassword } = body;
     
+    // Additional password policy validation
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.valid) {
-      return sendBadRequest(reply, 'Invalid new password', passwordValidation.errors,
-      );
+      return sendBadRequest(reply, 'Invalid new password', passwordValidation.errors);
     }
     
     try {
@@ -141,19 +147,10 @@ export default async function authProfileRoutes(fastify: FastifyInstance) {
    * Requires password confirmation and resets email verified status
    */
   fastify.patch('/auth/me/email', { preHandler: requireAuth }, async (request, reply) => {
-    const { newEmail, password } = request.body as {
-      newEmail: string;
-      password: string;
-    };
+    const body = validateBody(changeEmailSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!newEmail || !password) {
-      return sendBadRequest(reply, 'New email and password are required');
-    }
-    
-    if (!isValidEmail(newEmail)) {
-      return sendBadRequest(reply, 'Invalid email format');
-    }
+    const { newEmail, password } = body;
     
     try {
       // Verify password

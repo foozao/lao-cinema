@@ -12,6 +12,7 @@ import { db } from '../db/index.js';
 import { rentals, watchProgress } from '../db/schema.js';
 import { requireAuth } from '../lib/auth-middleware.js';
 import { extractAnonymousId, isValidAnonymousId } from '../lib/anonymous-id.js';
+import { validateBody, migrationSchema } from '../lib/validation.js';
 
 export default async function userDataRoutes(fastify: FastifyInstance) {
   
@@ -25,13 +26,11 @@ export default async function userDataRoutes(fastify: FastifyInstance) {
    * Called automatically after first login/registration
    */
   fastify.post('/users/migrate', { preHandler: requireAuth }, async (request, reply) => {
-    const { anonymousId: signedAnonymousId } = request.body as { anonymousId: string };
-    const userId = request.userId!;
+    const body = validateBody(migrationSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!signedAnonymousId) {
-      return sendBadRequest(reply, 'Anonymous ID is required');
-    }
+    const { anonymousId: signedAnonymousId } = body;
+    const userId = request.userId!;
     
     // Extract UUID from signed anonymous ID
     // The database stores the UUID, not the full signed ID

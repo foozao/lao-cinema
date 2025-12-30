@@ -67,8 +67,14 @@ export async function optionalAuth(request: FastifyRequest, reply: FastifyReply)
       const session = await findSessionByToken(token);
       
       if (session) {
-        request.user = session.user;
-        request.userId = session.user.id;
+        // Check if user is soft-deleted
+        if (session.user.deletedAt) {
+          request.log.warn({ userId: session.user.id }, 'Attempt to use deleted user session');
+          // Don't set user - treat as unauthenticated
+        } else {
+          request.user = session.user;
+          request.userId = session.user.id;
+        }
       }
     } catch (error) {
       // Invalid token, but don't block request
@@ -117,6 +123,15 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
       return reply.status(401).send({
         error: 'Unauthorized',
         message: 'Invalid or expired session',
+      });
+    }
+    
+    // Check if user is soft-deleted
+    if (session.user.deletedAt) {
+      return reply.status(401).send({
+        error: 'Unauthorized',
+        message: 'Account has been deleted',
+        code: 'ACCOUNT_DELETED',
       });
     }
     

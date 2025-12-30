@@ -18,6 +18,10 @@ import * as schema from '../db/schema.js';
 import { buildLocalizedText, localizedOrUndefined } from '../lib/translation-helpers.js';
 import { checkMovieAccess } from '../lib/rental-access.js';
 import { buildRentalPackResponse, calculatePackWatchProgress } from '../lib/rental-helpers.js';
+import { z } from 'zod';
+import { validateBody, validateParams, createRentalSchema, movieIdParamSchema, packIdParamSchema, migrationSchema, updatePackPositionSchema, uuidSchema } from '../lib/validation.js';
+
+const rentalIdParamSchema = z.object({ rentalId: uuidSchema });
 
 export default async function rentalRoutes(fastify: FastifyInstance) {
   
@@ -376,16 +380,15 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
    * Create a new rental for a short pack (grants access to all shorts in the pack)
    */
   fastify.post('/rentals/packs/:packId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { packId } = request.params as { packId: string };
-    const { transactionId, paymentMethod = 'demo' } = request.body as {
-      transactionId: string;
-      paymentMethod?: string;
-    };
-    const { userId, anonymousId } = getUserContext(request);
+    const params = validateParams(packIdParamSchema, request.params, reply);
+    if (!params) return;
     
-    if (!transactionId) {
-      return sendBadRequest(reply, 'Transaction ID is required');
-    }
+    const body = validateBody(createRentalSchema, request.body, reply);
+    if (!body) return;
+    
+    const { packId } = params;
+    const { transactionId, paymentMethod } = body;
+    const { userId, anonymousId } = getUserContext(request);
     
     try {
       // Check if pack exists
@@ -479,17 +482,15 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
    * Called automatically after first login/registration
    */
   fastify.post('/rentals/migrate', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { anonymousId: bodyAnonymousId } = request.body as { anonymousId: string };
+    const body = validateBody(migrationSchema, request.body, reply);
+    if (!body) return;
+    
+    const { anonymousId: bodyAnonymousId } = body;
     const { userId } = getUserContext(request);
     
     // Must be authenticated to migrate
     if (!userId) {
       return sendUnauthorized(reply, 'Authentication required to migrate data');
-    }
-    
-    // Must provide anonymous ID
-    if (!bodyAnonymousId) {
-      return sendBadRequest(reply, 'Anonymous ID is required');
     }
     
     try {
@@ -522,18 +523,15 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
    * Create a new rental for a movie
    */
   fastify.post('/rentals/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { movieId } = request.params as { movieId: string };
-    const { transactionId, amount = 500, paymentMethod = 'demo' } = request.body as {
-      transactionId: string;
-      amount?: number;
-      paymentMethod?: string;
-    };
-    const { userId, anonymousId } = getUserContext(request);
+    const params = validateParams(movieIdParamSchema, request.params, reply);
+    if (!params) return;
     
-    // Validate input
-    if (!transactionId) {
-      return sendBadRequest(reply, 'Transaction ID is required');
-    }
+    const body = validateBody(createRentalSchema, request.body, reply);
+    if (!body) return;
+    
+    const { movieId } = params;
+    const { transactionId, amount, paymentMethod } = body;
+    const { userId, anonymousId } = getUserContext(request);
     
     try {
       // Check if movie exists
@@ -593,7 +591,7 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
         purchasedAt: now,
         expiresAt,
         transactionId,
-        amount,
+        amount: amount ?? 500,
         currency: 'USD',
         paymentMethod,
       }).returning();
@@ -625,8 +623,14 @@ export default async function rentalRoutes(fastify: FastifyInstance) {
    * Update the current short position for a pack rental
    */
   fastify.patch('/rentals/:rentalId/position', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { rentalId } = request.params as { rentalId: string };
-    const { currentShortId } = request.body as { currentShortId: string };
+    const params = validateParams(rentalIdParamSchema, request.params, reply);
+    if (!params) return;
+    
+    const body = validateBody(updatePackPositionSchema, request.body, reply);
+    if (!body) return;
+    
+    const { rentalId } = params;
+    const { currentShortId } = body;
     const { userId, anonymousId } = getUserContext(request);
     
     try {

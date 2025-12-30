@@ -188,16 +188,35 @@ describe('Auth Service', () => {
     });
 
     describe('deleteUser', () => {
-      it('should delete a user', async () => {
+      it('should soft-delete a user (anonymize PII)', async () => {
         const user = await createUser({
           email: 'delete@example.com',
+          password: 'password123',
+          displayName: 'Test User',
+        });
+
+        await deleteUser(user.id);
+
+        // User record should still exist but be anonymized
+        const deleted = await findUserById(user.id);
+        expect(deleted).not.toBeNull();
+        expect(deleted!.deletedAt).not.toBeNull();
+        expect(deleted!.email).toMatch(/^deleted_[a-f0-9]+@deleted\.local$/);
+        expect(deleted!.displayName).toBe('Deleted User');
+        expect(deleted!.passwordHash).toBeNull();
+      });
+
+      it('should prevent authentication for soft-deleted users', async () => {
+        const user = await createUser({
+          email: 'deleted-auth@example.com',
           password: 'password123',
         });
 
         await deleteUser(user.id);
 
-        const deleted = await findUserById(user.id);
-        expect(deleted).toBeNull();
+        // Should not be able to authenticate
+        const authenticated = await authenticateUser('deleted-auth@example.com', 'password123');
+        expect(authenticated).toBeNull();
       });
     });
   });

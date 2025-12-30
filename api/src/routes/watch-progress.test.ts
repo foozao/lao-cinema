@@ -325,7 +325,7 @@ describe('Watch Progress Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('required');
+        expect(body.detail).toContain('progressSeconds');
       });
 
       it('should reject missing durationSeconds', async () => {
@@ -342,7 +342,7 @@ describe('Watch Progress Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('required');
+        expect(body.detail).toContain('durationSeconds');
       });
 
       it('should reject negative values', async () => {
@@ -360,7 +360,7 @@ describe('Watch Progress Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('non-negative');
+        expect(body.detail).toContain('Must be zero or positive');
       });
 
       it('should reject non-existent movie', async () => {
@@ -630,7 +630,7 @@ describe('Watch Progress Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('Anonymous ID is required');
+        expect(body.detail).toContain('anonymousId');
       });
 
       it('should handle migration with no matching progress', async () => {

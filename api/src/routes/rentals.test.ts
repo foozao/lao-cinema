@@ -236,7 +236,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('Transaction ID is required');
+        expect(body.detail).toContain('transactionId');
       });
 
       it('should reject rental for non-existent movie', async () => {
@@ -512,7 +512,7 @@ describe('Rental Routes', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.detail).toContain('Anonymous ID is required');
+        expect(body.detail).toContain('anonymousId');
       });
 
       it('should handle migration with no matching rentals', async () => {

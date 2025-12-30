@@ -12,6 +12,7 @@ import { db } from '../db/index.js';
 import { watchProgress, movies } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildDualModeWhereClause } from '../lib/auth-helpers.js';
+import { validateBody, validateParams, updateWatchProgressSchema, movieIdParamSchema, migrationSchema } from '../lib/validation.js';
 
 export default async function watchProgressRoutes(fastify: FastifyInstance) {
   
@@ -114,22 +115,16 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
    * Update or create watch progress for a movie
    */
   fastify.put('/watch-progress/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { movieId } = request.params as { movieId: string };
-    const { progressSeconds, durationSeconds, completed } = request.body as {
-      progressSeconds: number;
-      durationSeconds: number;
-      completed?: boolean;
-    };
+    // Validate params and body
+    const params = validateParams(movieIdParamSchema, request.params, reply);
+    if (!params) return;
+    
+    const body = validateBody(updateWatchProgressSchema, request.body, reply);
+    if (!body) return;
+    
+    const { movieId } = params;
+    const { progressSeconds, durationSeconds, completed } = body;
     const { userId, anonymousId } = getUserContext(request);
-    
-    // Validate input
-    if (progressSeconds === undefined || durationSeconds === undefined) {
-      return sendBadRequest(reply, 'progressSeconds and durationSeconds are required');
-    }
-    
-    if (progressSeconds < 0 || durationSeconds < 0) {
-      return sendBadRequest(reply, 'Progress and duration must be non-negative');
-    }
     
     try {
       // Check if movie exists
@@ -223,7 +218,10 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
    * Delete watch progress for a specific movie
    */
   fastify.delete('/watch-progress/:movieId', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { movieId } = request.params as { movieId: string };
+    const params = validateParams(movieIdParamSchema, request.params, reply);
+    if (!params) return;
+    
+    const { movieId } = params;
     const { userId, anonymousId } = getUserContext(request);
     
     try {
@@ -259,17 +257,15 @@ export default async function watchProgressRoutes(fastify: FastifyInstance) {
    * Called automatically after first login/registration
    */
   fastify.post('/watch-progress/migrate', { preHandler: requireAuthOrAnonymous }, async (request, reply) => {
-    const { anonymousId: bodyAnonymousId } = request.body as { anonymousId: string };
+    const body = validateBody(migrationSchema, request.body, reply);
+    if (!body) return;
+    
+    const { anonymousId: bodyAnonymousId } = body;
     const { userId } = getUserContext(request);
     
     // Must be authenticated to migrate
     if (!userId) {
       return sendUnauthorized(reply, 'Authentication required to migrate data');
-    }
-    
-    // Must provide anonymous ID
-    if (!bodyAnonymousId) {
-      return sendBadRequest(reply, 'Anonymous ID is required');
     }
     
     try {

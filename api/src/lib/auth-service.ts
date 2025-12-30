@@ -144,10 +144,57 @@ export async function updateLastLogin(userId: string): Promise<void> {
 }
 
 /**
- * Delete user account
+ * Soft-delete user account
+ * 
+ * Instead of hard deleting, this function:
+ * 1. Anonymizes all PII (email, displayName, profileImageUrl)
+ * 2. Clears password hash
+ * 3. Sets deletedAt timestamp
+ * 4. Deletes all sessions (logs user out everywhere)
+ * 
+ * This preserves audit log integrity while complying with privacy requirements.
+ * The userId remains intact for foreign key references in audit_logs, rentals, etc.
  */
 export async function deleteUser(userId: string): Promise<void> {
-  await db.delete(users).where(eq(users.id, userId));
+  // Generate a unique anonymized email using the userId
+  // Format: deleted_<first8chars>@deleted.local
+  const anonymizedEmail = `deleted_${userId.substring(0, 8)}@deleted.local`;
+  
+  // Anonymize PII and mark as deleted
+  await db.update(users)
+    .set({
+      email: anonymizedEmail,
+      passwordHash: null,
+      displayName: 'Deleted User',
+      profileImageUrl: null,
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+  
+  // Delete all sessions (log out everywhere)
+  await db.delete(userSessions).where(eq(userSessions.userId, userId));
+  
+  // Delete OAuth accounts (these contain provider IDs which could be PII-adjacent)
+  await db.delete(oauthAccounts).where(eq(oauthAccounts.userId, userId));
+  
+  // Delete password reset tokens
+  await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
+  
+  // Delete email verification tokens
+  await db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, userId));
+}
+
+/**
+ * Check if a user is soft-deleted
+ */
+export async function isUserDeleted(userId: string): Promise<boolean> {
+  const [user] = await db.select({ deletedAt: users.deletedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  
+  return user?.deletedAt !== null;
 }
 
 // =============================================================================
@@ -156,11 +203,17 @@ export async function deleteUser(userId: string): Promise<void> {
 
 /**
  * Authenticate user with email/password
+ * Returns null if user doesn't exist, password is wrong, or user is soft-deleted
  */
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   const user = await findUserByEmail(email);
   
   if (!user || !user.passwordHash) {
+    return null;
+  }
+  
+  // Check if user is soft-deleted
+  if (user.deletedAt) {
     return null;
   }
   

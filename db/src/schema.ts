@@ -403,6 +403,7 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   lastLoginAt: timestamp('last_login_at'),
+  deletedAt: timestamp('deleted_at'), // Soft-delete: when set, user is considered deleted and PII is anonymized
 });
 
 // OAuth accounts table - links users to external OAuth providers

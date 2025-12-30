@@ -357,7 +357,9 @@ const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  lastLoginAt: timestamp("last_login_at")
+  lastLoginAt: timestamp("last_login_at"),
+  deletedAt: timestamp("deleted_at")
+  // Soft-delete: when set, user is considered deleted and PII is anonymized
 });
 const oauthAccounts = pgTable("oauth_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),

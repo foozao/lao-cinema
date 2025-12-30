@@ -1,5 +1,6 @@
 // Tests for auth-middleware.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from './auth-utils.js';
 import { generateAnonymousId, extractAnonymousId } from './anonymous-id.js';
@@ -407,6 +408,133 @@ describe('Auth Middleware', () => {
       expect(context.userId).toBe(testUserId);
       expect(context.anonymousId).toBe('anon-123');
       expect(context.isAuthenticated).toBe(true);
+    });
+  });
+
+  describe('Soft-Delete Behavior', () => {
+    let deletedUserId: string;
+    let deletedUserToken: string;
+
+    beforeEach(async () => {
+      // Create a user and then soft-delete them
+      const passwordHash = await hashPassword('password123');
+      const [user] = await db.insert(schema.users).values({
+        email: 'deleted@test.com',
+        passwordHash,
+        displayName: 'Deleted User',
+        role: 'user',
+      }).returning();
+      deletedUserId = user.id;
+
+      // Create session for the user
+      deletedUserToken = generateSessionToken();
+      await db.insert(schema.userSessions).values({
+        userId: deletedUserId,
+        token: deletedUserToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      // Soft-delete the user
+      await db.update(schema.users)
+        .set({
+          email: `deleted_${deletedUserId.substring(0, 8)}@deleted.local`,
+          displayName: 'Deleted User',
+          passwordHash: null,
+          deletedAt: new Date(),
+        })
+        .where(eq(schema.users.id, deletedUserId));
+    });
+
+    describe('optionalAuth with deleted user', () => {
+      it('should not set user for soft-deleted account', async () => {
+        const request = createMockRequest({
+          headers: { authorization: `Bearer ${deletedUserToken}` },
+        });
+        const reply = createMockReply();
+
+        await optionalAuth(request, reply);
+
+        expect(request.user).toBeUndefined();
+        expect(request.userId).toBeUndefined();
+        expect(reply.sentStatus).toBeUndefined(); // Should not block
+      });
+
+      it('should log warning for deleted user session', async () => {
+        const request = createMockRequest({
+          headers: { authorization: `Bearer ${deletedUserToken}` },
+        });
+        const reply = createMockReply();
+
+        await optionalAuth(request, reply);
+
+        expect(request.log.warn).toHaveBeenCalledWith(
+          { userId: deletedUserId },
+          'Attempt to use deleted user session'
+        );
+      });
+    });
+
+    describe('requireAuth with deleted user', () => {
+      it('should return 401 with ACCOUNT_DELETED code', async () => {
+        const request = createMockRequest({
+          headers: { authorization: `Bearer ${deletedUserToken}` },
+        });
+        const reply = createMockReply();
+
+        await requireAuth(request, reply);
+
+        expect(reply.sentStatus).toBe(401);
+        expect(reply.sentBody.error).toBe('Unauthorized');
+        expect(reply.sentBody.message).toBe('Account has been deleted');
+        expect(reply.sentBody.code).toBe('ACCOUNT_DELETED');
+      });
+
+      it('should not set user for deleted account', async () => {
+        const request = createMockRequest({
+          headers: { authorization: `Bearer ${deletedUserToken}` },
+        });
+        const reply = createMockReply();
+
+        await requireAuth(request, reply);
+
+        expect(request.user).toBeUndefined();
+        expect(request.userId).toBeUndefined();
+      });
+    });
+
+    describe('requireAuthOrAnonymous with deleted user', () => {
+      it('should reject deleted user even with valid token', async () => {
+        const request = createMockRequest({
+          headers: { authorization: `Bearer ${deletedUserToken}` },
+        });
+        const reply = createMockReply();
+
+        await requireAuthOrAnonymous(request, reply);
+
+        // Should fail because user is deleted and no anonymous ID
+        expect(reply.sentStatus).toBe(401);
+        expect(reply.sentBody.message).toContain('anonymous ID required');
+      });
+
+      it('should allow deleted user to continue as anonymous', async () => {
+        const signedId = generateAnonymousId();
+        const expectedId = extractAnonymousId(signedId);
+        
+        const request = createMockRequest({
+          headers: { 
+            authorization: `Bearer ${deletedUserToken}`,
+            'x-anonymous-id': signedId,
+          },
+        });
+        const reply = createMockReply();
+
+        await requireAuthOrAnonymous(request, reply);
+
+        // Should succeed with anonymous ID (user not set due to deletion)
+        expect(request.userId).toBeUndefined();
+        expect(request.anonymousId).toBe(expectedId);
+        expect(reply.sentStatus).toBeUndefined();
+      });
     });
   });
 });

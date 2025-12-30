@@ -14,6 +14,7 @@ import {
 } from '../lib/auth-service.js';
 import { requireAuth } from '../lib/auth-middleware.js';
 import { checkRateLimit, recordAttempt, resetRateLimit, RATE_LIMITS } from '../lib/rate-limiter.js';
+import { validateBody, loginSchema } from '../lib/validation.js';
 
 // Cookie configuration
 const SESSION_COOKIE_NAME = 'session';
@@ -65,15 +66,11 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
    * Login with email/password
    */
   fastify.post('/auth/login', async (request, reply) => {
-    const { email, password } = request.body as {
-      email: string;
-      password: string;
-    };
+    // Validate input with Zod
+    const body = validateBody(loginSchema, request.body, reply);
+    if (!body) return;
     
-    // Validate input
-    if (!email || !password) {
-      return sendBadRequest(reply, 'Email and password are required');
-    }
+    const { email, password } = body;
     
     // Check rate limit
     const ipAddress = request.ip;
