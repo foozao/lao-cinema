@@ -266,6 +266,103 @@ export async function addVideoSource(movieId: string, data: {
   });
 }
 
+export async function seedTestPerson(data: {
+  id?: number;
+  nameEn?: string;
+  nameLo?: string;
+  profilePath?: string;
+} = {}) {
+  return withRetry(async (sql) => {
+    const personId = data.id || Math.floor(Math.random() * -1000000); // Negative for custom people
+    
+    const [person] = await sql`
+      INSERT INTO people (id, profile_path)
+      VALUES (${personId}, ${data.profilePath || null})
+      RETURNING *
+    `;
+    
+    // Insert English translation
+    await sql`
+      INSERT INTO people_translations (person_id, language, name)
+      VALUES (${personId}, 'en', ${data.nameEn || 'Test Actor'})
+    `;
+    
+    // Insert Lao translation
+    await sql`
+      INSERT INTO people_translations (person_id, language, name)
+      VALUES (${personId}, 'lo', ${data.nameLo || 'ນັກສະແດງທົດສອບ'})
+    `;
+    
+    return person;
+  });
+}
+
+export async function addCastMember(movieId: string, personId: number, data: {
+  characterEn?: string;
+  characterLo?: string;
+  order?: number;
+} = {}) {
+  return withRetry(async (sql) => {
+    const [cast] = await sql`
+      INSERT INTO movie_cast (movie_id, person_id, "order")
+      VALUES (${movieId}, ${personId}, ${data.order || 0})
+      RETURNING *
+    `;
+    
+    // Insert English translation
+    await sql`
+      INSERT INTO movie_cast_translations (movie_id, person_id, language, character)
+      VALUES (${movieId}, ${personId}, 'en', ${data.characterEn || 'Test Character'})
+    `;
+    
+    // Insert Lao translation
+    await sql`
+      INSERT INTO movie_cast_translations (movie_id, person_id, language, character)
+      VALUES (${movieId}, ${personId}, 'lo', ${data.characterLo || 'ຕົວລະຄອນທົດສອບ'})
+    `;
+    
+    return cast;
+  });
+}
+
+export async function addCrewMember(movieId: string, personId: number, data: {
+  jobEn?: string;
+  jobLo?: string;
+  department?: string;
+} = {}) {
+  return withRetry(async (sql) => {
+    const [crew] = await sql`
+      INSERT INTO movie_crew (movie_id, person_id, department)
+      VALUES (${movieId}, ${personId}, ${data.department || 'Directing'})
+      RETURNING *
+    `;
+    
+    // Insert English translation
+    await sql`
+      INSERT INTO movie_crew_translations (movie_id, person_id, language, job)
+      VALUES (${movieId}, ${personId}, 'en', ${data.jobEn || 'Director'})
+    `;
+    
+    // Insert Lao translation
+    await sql`
+      INSERT INTO movie_crew_translations (movie_id, person_id, language, job)
+      VALUES (${movieId}, ${personId}, 'lo', ${data.jobLo || 'ຜູ້ກຳກັບ'})
+    `;
+    
+    return crew;
+  });
+}
+
+export async function addMovieGenre(movieId: string, genreId: number) {
+  return withRetry(async (sql) => {
+    await sql`
+      INSERT INTO movie_genres (movie_id, genre_id)
+      VALUES (${movieId}, ${genreId})
+      ON CONFLICT DO NOTHING
+    `;
+  });
+}
+
 export async function closeDatabase() {
   // No-op since we use fresh connections per operation now
 }
