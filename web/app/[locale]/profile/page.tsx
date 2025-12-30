@@ -20,10 +20,15 @@ export default function ProfilePage() {
   const [verificationError, setVerificationError] = useState('');
   
   useEffect(() => {
-    loadStats();
-  }, []);
+    // Only load stats if user is authenticated
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
   
   const loadStats = async () => {
+    if (!user) return; // Guard against race conditions
+    
     setIsLoadingStats(true);
     try {
       const data = await authApi.getUserStats();

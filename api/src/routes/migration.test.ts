@@ -10,6 +10,14 @@ import { db } from '../db/index.js';
 import { users, userSessions, rentals, watchProgress, movies } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { 
+  createTestMovie, 
+  createTestUser,
+  cleanupUsers, 
+  cleanupRentals,
+  cleanupWatchProgress
+} from '../test/fixtures.js';
+import { generateAnonymousId, extractAnonymousId } from '../lib/anonymous-id.js';
 
 describe('Anonymous Data Migration', () => {
   let app: FastifyInstance;
@@ -41,7 +49,8 @@ describe('Anonymous Data Migration', () => {
   describe('POST /api/users/migrate', () => {
     let sessionToken: string;
     let userId: string;
-    const anonymousId = 'anon_test_12345';
+    const signedAnonymousId = generateAnonymousId();
+    const anonymousId = extractAnonymousId(signedAnonymousId);
     
     beforeEach(async () => {
       // Register user

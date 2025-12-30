@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { rentals, watchProgress } from '../db/schema.js';
 import { requireAuth } from '../lib/auth-middleware.js';
+import { extractAnonymousId, isValidAnonymousId } from '../lib/anonymous-id.js';
 
 export default async function userDataRoutes(fastify: FastifyInstance) {
   
@@ -24,12 +25,23 @@ export default async function userDataRoutes(fastify: FastifyInstance) {
    * Called automatically after first login/registration
    */
   fastify.post('/users/migrate', { preHandler: requireAuth }, async (request, reply) => {
-    const { anonymousId } = request.body as { anonymousId: string };
+    const { anonymousId: signedAnonymousId } = request.body as { anonymousId: string };
     const userId = request.userId!;
     
     // Validate input
-    if (!anonymousId) {
+    if (!signedAnonymousId) {
       return sendBadRequest(reply, 'Anonymous ID is required');
+    }
+    
+    // Extract UUID from signed anonymous ID
+    // The database stores the UUID, not the full signed ID
+    let anonymousId: string;
+    if (isValidAnonymousId(signedAnonymousId)) {
+      // It's a valid signed ID, extract the UUID
+      anonymousId = extractAnonymousId(signedAnonymousId);
+    } else {
+      // Legacy format or already a UUID - use as-is
+      anonymousId = signedAnonymousId;
     }
     
     try {

@@ -2,7 +2,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from './auth-utils.js';
-import {
+import { generateAnonymousId, extractAnonymousId } from './anonymous-id.js';
+import { 
   optionalAuth,
   requireAuth,
   requireAdmin,
@@ -132,14 +133,17 @@ describe('Auth Middleware', () => {
     });
 
     it('should extract anonymous ID from header', async () => {
+      const signedId = generateAnonymousId();
+      const expectedId = extractAnonymousId(signedId);
+      
       const request = createMockRequest({
-        headers: { 'x-anonymous-id': 'anon-123' },
+        headers: { 'x-anonymous-id': signedId },
       });
       const reply = createMockReply();
 
       await optionalAuth(request, reply);
 
-      expect(request.anonymousId).toBe('anon-123');
+      expect(request.anonymousId).toBe(expectedId);
     });
 
     it('should handle invalid token gracefully', async () => {
@@ -347,14 +351,17 @@ describe('Auth Middleware', () => {
     });
 
     it('should allow anonymous user with ID', async () => {
+      const signedId = generateAnonymousId();
+      const expectedId = extractAnonymousId(signedId);
+      
       const request = createMockRequest({
-        headers: { 'x-anonymous-id': 'anon-123' },
+        headers: { 'x-anonymous-id': signedId },
       });
       const reply = createMockReply();
 
       await requireAuthOrAnonymous(request, reply);
 
-      expect(request.anonymousId).toBe('anon-123');
+      expect(request.anonymousId).toBe(expectedId);
       expect(reply.sentStatus).toBeUndefined();
     });
 

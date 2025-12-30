@@ -16,6 +16,7 @@ import {
   cleanupUsers, 
   cleanupWatchProgress 
 } from '../test/fixtures.js';
+import { generateAnonymousId, extractAnonymousId } from '../lib/anonymous-id.js';
 
 describe('Watch Progress Routes', () => {
   let app: FastifyInstance;
@@ -42,7 +43,9 @@ describe('Watch Progress Routes', () => {
   // =============================================================================
 
   describe('Anonymous User', () => {
-    const anonymousId = 'anon_progress_test';
+    // Generate a valid signed anonymous ID for testing
+    const signedAnonymousId = generateAnonymousId();
+    const anonymousId = extractAnonymousId(signedAnonymousId);
 
     describe('GET /api/watch-progress', () => {
       it('should return empty array when no progress exists', async () => {
@@ -50,7 +53,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: '/api/watch-progress',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -84,7 +87,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: '/api/watch-progress',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -108,7 +111,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: '/api/watch-progress',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -142,7 +145,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: '/api/watch-progress',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -158,7 +161,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -181,7 +184,7 @@ describe('Watch Progress Routes', () => {
           method: 'GET',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -201,7 +204,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 300,
@@ -234,7 +237,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 1200,
@@ -258,7 +261,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 4900, // > 90% of 5400
@@ -276,7 +279,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 4000, // < 90% of 5400
@@ -294,7 +297,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 100, // Only 100 seconds
@@ -313,7 +316,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             durationSeconds: 5400,
@@ -330,7 +333,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 300,
@@ -347,7 +350,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: -100,
@@ -365,7 +368,7 @@ describe('Watch Progress Routes', () => {
           method: 'PUT',
           url: '/api/watch-progress/00000000-0000-0000-0000-000000000000',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             progressSeconds: 300,
@@ -395,7 +398,7 @@ describe('Watch Progress Routes', () => {
           method: 'DELETE',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -415,7 +418,7 @@ describe('Watch Progress Routes', () => {
           method: 'DELETE',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -439,7 +442,7 @@ describe('Watch Progress Routes', () => {
           method: 'DELETE',
           url: `/api/watch-progress/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 

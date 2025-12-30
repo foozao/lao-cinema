@@ -6,6 +6,7 @@
 
 import { getAuthHeaders } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
+import { ensureCsrfToken } from '@/lib/csrf';
 
 // =============================================================================
 // TYPES
@@ -69,6 +70,7 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
   
   const response = await fetch(url.toString(), {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -86,6 +88,7 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
 export async function getRentalStatus(movieId: string): Promise<RentalStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -103,10 +106,14 @@ export async function createRental(
   movieId: string,
   data: CreateRentalRequest
 ): Promise<{ rental: Rental }> {
+  // Ensure CSRF token exists before making POST request
+  await ensureCsrfToken();
+  
   const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -196,6 +203,7 @@ export interface PackRentalStatusResponse {
 export async function getPackRentalStatus(packId: string): Promise<PackRentalStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -213,10 +221,14 @@ export async function createPackRental(
   packId: string,
   data: CreateRentalRequest
 ): Promise<{ rental: PackRental; pack: { id: string; slug: string; title: Record<string, string> } }> {
+  // Ensure CSRF token exists before making POST request
+  await ensureCsrfToken();
+  
   const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -233,6 +245,7 @@ export async function createPackRental(
 export async function checkMovieAccess(movieId: string): Promise<AccessCheckResponse> {
   const response = await fetch(`${API_BASE_URL}/rentals/access/${movieId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {

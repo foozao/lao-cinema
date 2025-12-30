@@ -27,6 +27,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const EXEMPT_ROUTES = new Set([
   '/health',
   '/robots.txt',
+  '/api/anonymous-id', // Anonymous ID generation - must be accessible without tokens
 ]);
 
 const isProduction = process.env.NODE_ENV === 'production';

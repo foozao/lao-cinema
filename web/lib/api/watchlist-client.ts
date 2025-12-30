@@ -46,6 +46,7 @@ export interface WatchlistStatusResponse {
 export async function getWatchlist(): Promise<WatchlistResponse> {
   const response = await fetch(`${API_BASE_URL}/watchlist`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -62,6 +63,7 @@ export async function getWatchlist(): Promise<WatchlistResponse> {
 export async function getWatchlistStatus(movieId: string): Promise<WatchlistStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -78,11 +80,9 @@ export async function getWatchlistStatus(movieId: string): Promise<WatchlistStat
 export async function addToWatchlist(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({}),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -98,6 +98,7 @@ export async function removeFromWatchlist(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {

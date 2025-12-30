@@ -1,63 +1,38 @@
 /**
  * Anonymous ID Management
  * 
- * Generates and manages stable anonymous IDs for tracking user data
- * before they create an account. Uses localStorage + browser fingerprint.
+ * Manages cryptographically signed anonymous IDs from the server.
+ * IDs are generated server-side and validated on each request.
  */
+
+import { API_BASE_URL } from './config';
 
 const STORAGE_KEY = 'lao_cinema_anonymous_id';
 
 /**
- * Simple hash function for browser fingerprinting
+ * Request a new signed anonymous ID from the server
  */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(36);
-}
-
-/**
- * Generate a random string
- */
-function randomString(length: number): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-/**
- * Create a simple browser fingerprint
- * Not for security - just for creating a stable-ish ID
- */
-function createFingerprint(): string {
-  if (typeof window === 'undefined') {
-    return 'server';
+async function requestAnonymousId(): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/anonymous-id`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate anonymous ID');
   }
   
-  const fingerprint = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width,
-    screen.height,
-    screen.colorDepth,
-    new Date().getTimezoneOffset(),
-  ].join('|');
-  
-  return simpleHash(fingerprint);
+  const data = await response.json();
+  return data.anonymousId;
 }
 
 /**
- * Get or create anonymous ID
- * Format: anon_{timestamp}_{fingerprint}_{random}
+ * Get or create signed anonymous ID
+ * 
+ * Returns a cryptographically signed ID from the server.
+ * IDs are cached in localStorage for 90 days.
  */
-export function getAnonymousId(): string {
+export async function getAnonymousId(): Promise<string> {
   if (typeof window === 'undefined') {
     return '';
   }
@@ -65,19 +40,35 @@ export function getAnonymousId(): string {
   // Try to get existing ID from localStorage
   const existing = localStorage.getItem(STORAGE_KEY);
   if (existing) {
+    // TODO: Could validate expiration here, but server will reject expired IDs anyway
     return existing;
   }
   
-  // Generate new ID
-  const timestamp = Date.now();
-  const fingerprint = createFingerprint();
-  const random = randomString(8);
-  const anonymousId = `anon_${timestamp}_${fingerprint}_${random}`;
+  // Request new signed ID from server
+  try {
+    const signedId = await requestAnonymousId();
+    
+    // Store for future use
+    localStorage.setItem(STORAGE_KEY, signedId);
+    
+    return signedId;
+  } catch (error) {
+    console.error('Failed to get anonymous ID:', error);
+    // Return empty string - calling code should handle gracefully
+    return '';
+  }
+}
+
+/**
+ * Synchronous version for contexts that can't use async
+ * Returns cached ID or empty string if not yet generated
+ */
+export function getAnonymousIdSync(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
   
-  // Store for future use
-  localStorage.setItem(STORAGE_KEY, anonymousId);
-  
-  return anonymousId;
+  return localStorage.getItem(STORAGE_KEY) || '';
 }
 
 /**

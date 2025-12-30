@@ -7,96 +7,122 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
   getAnonymousId,
+  getAnonymousIdSync,
   clearAnonymousId,
   hasAnonymousId,
 } from '../anonymous-id';
 import {
   setupLocalStorageMock,
-  setupNavigatorMock,
-  setupScreenMock,
+  createLocalStorageMock,
 } from './test-utils';
 
-// Setup mocks
-const localStorageMock = setupLocalStorageMock();
-setupNavigatorMock();
-setupScreenMock();
+// Mock fetch
+global.fetch = jest.fn();
 
 describe('Anonymous ID', () => {
+  let localStorageMock: ReturnType<typeof createLocalStorageMock>;
+  const mockFetch = global.fetch as jest.Mock;
+
   beforeEach(() => {
+    localStorageMock = setupLocalStorageMock();
     localStorageMock.clear();
+    mockFetch.mockClear();
   });
 
   describe('getAnonymousId', () => {
-    it('should generate an anonymous ID', () => {
-      const id = getAnonymousId();
+    it('should request ID from server when not cached', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
+
+      const id = await getAnonymousId();
       
-      expect(id).toBeDefined();
-      expect(id.length).toBeGreaterThan(0);
+      expect(id).toBe(mockSignedId);
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/anonymous-id'),
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+        })
+      );
     });
 
-    it('should have correct format: anon_{timestamp}_{fingerprint}_{random}', () => {
-      const id = getAnonymousId();
-      
-      expect(id).toMatch(/^anon_\d+_[a-z0-9]+_[a-z0-9]{8}$/);
-    });
+    it('should store signed ID in localStorage', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
 
-    it('should start with "anon_" prefix', () => {
-      const id = getAnonymousId();
-      
-      expect(id.startsWith('anon_')).toBe(true);
-    });
-
-    it('should include timestamp component', () => {
-      const beforeTime = Date.now();
-      const id = getAnonymousId();
-      const afterTime = Date.now();
-      
-      // Extract timestamp from ID
-      const parts = id.split('_');
-      const timestamp = parseInt(parts[1]);
-      
-      expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
-      expect(timestamp).toBeLessThanOrEqual(afterTime);
-    });
-
-    it('should store ID in localStorage', () => {
-      const id = getAnonymousId();
+      await getAnonymousId();
       
       const stored = localStorage.getItem('lao_cinema_anonymous_id');
-      expect(stored).toBe(id);
+      expect(stored).toBe(mockSignedId);
     });
 
-    it('should return same ID on subsequent calls', () => {
-      const id1 = getAnonymousId();
-      const id2 = getAnonymousId();
-      const id3 = getAnonymousId();
+    it('should return cached ID without fetching', async () => {
+      const cachedId = 'eyJpZCI6ImNhY2hlZC11dWlkIn0.cached_signature';
+      localStorage.setItem('lao_cinema_anonymous_id', cachedId);
+
+      const id = await getAnonymousId();
       
-      expect(id1).toBe(id2);
-      expect(id2).toBe(id3);
+      expect(id).toBe(cachedId);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should return stored ID if exists', () => {
-      const existingId = 'anon_1234567890_abc123_random12';
-      localStorage.setItem('lao_cinema_anonymous_id', existingId);
+    it('should return empty string on fetch error', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const id = await getAnonymousId();
       
-      const id = getAnonymousId();
-      expect(id).toBe(existingId);
+      expect(id).toBe('');
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
-    it('should generate unique IDs for fresh storage', () => {
-      const id1 = getAnonymousId();
-      localStorageMock.clear();
-      const id2 = getAnonymousId();
+    it('should return empty string on non-ok response', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+      });
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const id = await getAnonymousId();
       
-      // IDs should be different due to different timestamps and random components
-      expect(id1).not.toBe(id2);
+      expect(id).toBe('');
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('getAnonymousIdSync', () => {
+    it('should return cached ID', () => {
+      const cachedId = 'eyJpZCI6ImNhY2hlZC11dWlkIn0.cached_signature';
+      localStorage.setItem('lao_cinema_anonymous_id', cachedId);
+
+      const id = getAnonymousIdSync();
+      
+      expect(id).toBe(cachedId);
+    });
+
+    it('should return empty string if not cached', () => {
+      const id = getAnonymousIdSync();
+      
+      expect(id).toBe('');
     });
   });
 
   describe('clearAnonymousId', () => {
-    it('should remove anonymous ID from localStorage', () => {
-      // Generate an ID first
-      getAnonymousId();
+    it('should remove anonymous ID from localStorage', async () => {
+      // Store an ID first
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
+      await getAnonymousId();
       expect(localStorage.getItem('lao_cinema_anonymous_id')).not.toBeNull();
       
       // Clear it
@@ -108,10 +134,23 @@ describe('Anonymous ID', () => {
       expect(() => clearAnonymousId()).not.toThrow();
     });
 
-    it('should allow generating new ID after clearing', () => {
-      const id1 = getAnonymousId();
+    it('should allow generating new ID after clearing', async () => {
+      const mockSignedId1 = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      const mockSignedId2 = 'eyJpZCI6ImRpZmZlcmVudC11dWlkIn0.signature456';
+      
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId1 }),
+      });
+      const id1 = await getAnonymousId();
+      
       clearAnonymousId();
-      const id2 = getAnonymousId();
+      
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId2 }),
+      });
+      const id2 = await getAnonymousId();
       
       expect(id2).toBeDefined();
       expect(id1).not.toBe(id2);
@@ -123,13 +162,25 @@ describe('Anonymous ID', () => {
       expect(hasAnonymousId()).toBe(false);
     });
 
-    it('should return true after generating ID', () => {
-      getAnonymousId();
+    it('should return true after storing ID', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
+      
+      await getAnonymousId();
       expect(hasAnonymousId()).toBe(true);
     });
 
-    it('should return false after clearing ID', () => {
-      getAnonymousId();
+    it('should return false after clearing ID', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
+      
+      await getAnonymousId();
       expect(hasAnonymousId()).toBe(true);
       
       clearAnonymousId();
@@ -143,43 +194,34 @@ describe('Anonymous ID', () => {
   });
 
   describe('ID Persistence', () => {
-    it('should persist across multiple function calls', () => {
-      const id = getAnonymousId();
+    it('should persist across multiple function calls', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      localStorage.setItem('lao_cinema_anonymous_id', mockSignedId);
       
-      // Simulate multiple reads
+      // Simulate multiple reads - should use cache
       for (let i = 0; i < 10; i++) {
-        expect(getAnonymousId()).toBe(id);
+        const id = await getAnonymousId();
+        expect(id).toBe(mockSignedId);
         expect(hasAnonymousId()).toBe(true);
       }
+      
+      // Should not have fetched since ID was cached
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should use correct storage key', () => {
-      getAnonymousId();
+    it('should use correct storage key', async () => {
+      const mockSignedId = 'eyJpZCI6InRlc3QtdXVpZCJ9.signature123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ anonymousId: mockSignedId }),
+      });
+      
+      await getAnonymousId();
       
       // Verify the exact storage key
       expect(localStorage.getItem('lao_cinema_anonymous_id')).not.toBeNull();
       expect(localStorage.getItem('anonymous_id')).toBeNull(); // Wrong key
       expect(localStorage.getItem('laocinema_anon')).toBeNull(); // Wrong key
-    });
-  });
-
-  describe('ID Format Validation', () => {
-    it('should generate IDs with consistent structure', () => {
-      // Clear and generate multiple IDs
-      const ids: string[] = [];
-      for (let i = 0; i < 5; i++) {
-        localStorageMock.clear();
-        ids.push(getAnonymousId());
-      }
-      
-      for (const id of ids) {
-        const parts = id.split('_');
-        expect(parts).toHaveLength(4);
-        expect(parts[0]).toBe('anon');
-        expect(parseInt(parts[1])).toBeGreaterThan(0); // Timestamp
-        expect(parts[2].length).toBeGreaterThan(0); // Fingerprint
-        expect(parts[3]).toHaveLength(8); // Random
-      }
     });
   });
 });

@@ -60,7 +60,8 @@ jest.mock('next/navigation', () => ({
 // Mock anonymous-id module
 jest.mock('../../anonymous-id', () => ({
   __esModule: true,
-  getAnonymousId: jest.fn().mockReturnValue('anon-test-123'),
+  getAnonymousId: jest.fn().mockResolvedValue('anon-test-123'),
+  getAnonymousIdSync: jest.fn().mockReturnValue('anon-test-123'),
   clearAnonymousId: jest.fn(),
 }));
 
@@ -83,6 +84,7 @@ import { useRouter } from 'next/navigation';
 
 // Get typed mock references
 const mockGetAnonymousId = anonymousIdModule.getAnonymousId as jest.Mock;
+const mockGetAnonymousIdSync = anonymousIdModule.getAnonymousIdSync as jest.Mock;
 const mockClearAnonymousId = anonymousIdModule.clearAnonymousId as jest.Mock;
 const mockRegister = authApi.register as jest.Mock;
 const mockLogin = authApi.login as jest.Mock;
@@ -112,7 +114,8 @@ describe('Auth Context', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsAuthenticated.mockReturnValue(false);
-    mockGetAnonymousId.mockReturnValue('anon-test-123');
+    mockGetAnonymousId.mockResolvedValue('anon-test-123');
+    mockGetAnonymousIdSync.mockReturnValue('anon-test-123');
     mockGetCurrentUser.mockRejectedValue(new Error('Not authenticated'));
     MockBroadcastChannel.reset();
   });
@@ -577,7 +580,8 @@ describe('Auth Context', () => {
 
       // Setup new anonymous ID for tab2
       const newAnonymousId = 'new-anon-id';
-      mockGetAnonymousId.mockReturnValue(newAnonymousId);
+      mockGetAnonymousId.mockResolvedValue(newAnonymousId);
+      mockGetAnonymousIdSync.mockReturnValue(newAnonymousId);
 
       // Logout in tab1
       mockLogout.mockResolvedValue(undefined);

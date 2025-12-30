@@ -28,6 +28,7 @@ import testErrorRoutes from './routes/test-error.js';
 import awardsRoutes from './routes/awards.js';
 import movieSubtitleRoutes from './routes/movie-subtitles.js';
 import subtitlesRoutes from './routes/subtitles.js';
+import anonymousIdRoutes from './routes/anonymous-id.js';
 
 // Initialize Sentry error monitoring (must be before Fastify setup)
 initSentry();
@@ -109,6 +110,7 @@ fastify.get('/robots.txt', async (request, reply) => {
 });
 
 // Register routes
+await fastify.register(anonymousIdRoutes, { prefix: '/api' });
 await fastify.register(authRoutes, { prefix: '/api' });
 await fastify.register(userDataRoutes, { prefix: '/api' });
 await fastify.register(rentalRoutes, { prefix: '/api' });

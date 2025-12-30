@@ -4,6 +4,7 @@ import { build, createTestEditor } from '../test/app.js';
 import { createMinimalMovie } from '../test/helpers.js';
 import { db, schema } from '../db/index.js';
 import { generateVideoToken, verifyVideoToken } from '../lib/video-token.js';
+import { generateAnonymousId, extractAnonymousId } from '../lib/anonymous-id.js';
 import { clearAllRateLimits } from '../lib/rate-limiter.js';
 import type { FastifyInstance } from 'fastify';
 
@@ -170,7 +171,8 @@ describe('Video Token Routes', () => {
     });
 
     it('should work with anonymous ID', async () => {
-      const anonymousId = 'anon-test-123';
+      const signedAnonymousId = generateAnonymousId();
+      const anonymousId = extractAnonymousId(signedAnonymousId);
       
       // Create valid rental for anonymous user
       await db.insert(schema.rentals).values({
@@ -188,7 +190,7 @@ describe('Video Token Routes', () => {
         method: 'POST',
         url: '/api/video-tokens',
         headers: {
-          'x-anonymous-id': anonymousId,
+          'x-anonymous-id': signedAnonymousId,
         },
         payload: {
           movieId,

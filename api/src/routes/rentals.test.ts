@@ -12,9 +12,11 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { 
   createTestMovie, 
+  createTestUser,
   cleanupUsers, 
   cleanupRentals 
 } from '../test/fixtures.js';
+import { generateAnonymousId, extractAnonymousId } from '../lib/anonymous-id.js';
 
 describe('Rental Routes', () => {
   let app: FastifyInstance;
@@ -41,7 +43,8 @@ describe('Rental Routes', () => {
   // =============================================================================
 
   describe('Anonymous User', () => {
-    const anonymousId = 'anon_test_12345';
+    const signedAnonymousId = generateAnonymousId();
+    const anonymousId = extractAnonymousId(signedAnonymousId);
 
     describe('GET /api/rentals', () => {
       it.skip('should return empty array when no rentals exist', async () => {
@@ -49,7 +52,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: '/api/rentals',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -86,7 +89,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: '/api/rentals',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -112,7 +115,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: '/api/rentals',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -131,7 +134,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -156,7 +159,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -184,7 +187,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
         });
 
@@ -202,7 +205,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             transactionId: 'txn_new',
@@ -226,7 +229,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {},
         });
@@ -241,7 +244,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: '/api/rentals/00000000-0000-0000-0000-000000000000',
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             transactionId: 'txn_bad',
@@ -270,7 +273,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             transactionId: 'txn_duplicate',
@@ -299,7 +302,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             transactionId: 'txn_renewed',
@@ -316,7 +319,7 @@ describe('Rental Routes', () => {
           method: 'POST',
           url: `/api/rentals/${movieId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedAnonymousId,
           },
           payload: {
             transactionId: 'txn_defaults',
@@ -432,7 +435,8 @@ describe('Rental Routes', () => {
 
     describe('POST /api/rentals/migrate', () => {
       it('should migrate anonymous rentals to authenticated user', async () => {
-        const anonymousId = 'anon_migrate_test';
+        const signedMigrateId = generateAnonymousId();
+        const anonymousId = extractAnonymousId(signedMigrateId);
         
         // Create anonymous rentals
         await db.insert(rentals).values([
@@ -535,7 +539,8 @@ describe('Rental Routes', () => {
   // =============================================================================
 
   describe('Pack Rentals', () => {
-    const anonymousId = 'anon_pack_test';
+    const signedPackId = generateAnonymousId();
+    const anonymousId = extractAnonymousId(signedPackId);
     let packId: string;
     let shortId1: string;
     let shortId2: string;
@@ -609,7 +614,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${shortId2}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -631,7 +636,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${standaloneMovie.id}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -668,7 +673,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/${shortId1}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -695,7 +700,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/access/${shortId2}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -724,7 +729,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/packs/${packId}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -754,7 +759,7 @@ describe('Rental Routes', () => {
           method: 'GET',
           url: `/api/rentals/packs/${packId}`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
           },
         });
 
@@ -781,7 +786,7 @@ describe('Rental Routes', () => {
           method: 'PATCH',
           url: `/api/rentals/${rental.id}/position`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
             'content-type': 'application/json',
           },
           payload: {
@@ -815,7 +820,7 @@ describe('Rental Routes', () => {
           method: 'PATCH',
           url: `/api/rentals/${rental.id}/position`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
             'content-type': 'application/json',
           },
           payload: {
@@ -841,7 +846,7 @@ describe('Rental Routes', () => {
           method: 'PATCH',
           url: `/api/rentals/${rental.id}/position`,
           headers: {
-            'x-anonymous-id': anonymousId,
+            'x-anonymous-id': signedPackId,
             'content-type': 'application/json',
           },
           payload: {

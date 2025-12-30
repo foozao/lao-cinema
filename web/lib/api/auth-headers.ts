@@ -5,17 +5,20 @@
  * Anonymous users are identified via X-Anonymous-Id header.
  */
 
-import { getAnonymousId } from '../anonymous-id';
+import { getAnonymousIdSync } from '../anonymous-id';
 import { isAuthenticated } from '../auth/api-client';
+import { getCsrfToken } from '../csrf';
 
 /**
  * Build headers for API requests
  * 
  * Automatically includes:
  * - Content-Type: application/json
- * - X-Anonymous-Id: {id} (if user is not authenticated)
+ * - X-CSRF-Token: {token} (if available)
+ * - X-Anonymous-Id: {id} (if user is not authenticated and ID is cached)
  * 
  * Note: Session auth is handled via HttpOnly cookies (use credentials: 'include')
+ * Note: Anonymous ID must be initialized before using this function
  * 
  * @returns Headers object ready for fetch requests
  */
@@ -24,10 +27,16 @@ export function getAuthHeaders(): Record<string, string> {
     'Content-Type': 'application/json',
   };
   
+  // Add CSRF token for state-changing requests
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+  
   // Only send anonymous ID if not authenticated
   // (authenticated users use HttpOnly cookies automatically)
   if (!isAuthenticated()) {
-    const anonymousId = getAnonymousId();
+    const anonymousId = getAnonymousIdSync();
     if (anonymousId) {
       headers['X-Anonymous-Id'] = anonymousId;
     }

@@ -166,6 +166,7 @@ describe('CSRF Protection', () => {
       
       app.get('/health', async () => ({ status: 'ok' }));
       app.get('/robots.txt', async () => 'robots');
+      app.post('/api/anonymous-id', async () => ({ anonymousId: 'test' }));
       
       await app.ready();
     });
@@ -188,6 +189,16 @@ describe('CSRF Protection', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.headers['set-cookie']).toBeUndefined();
+    });
+
+    it('should allow POST /api/anonymous-id without CSRF token', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/anonymous-id',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ anonymousId: 'test' });
     });
   });
 

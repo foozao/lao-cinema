@@ -45,6 +45,7 @@ export interface NotificationStatusResponse {
 export async function getMovieNotifications(): Promise<NotificationsResponse> {
   const response = await fetch(`${API_BASE_URL}/notifications/movies`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -61,6 +62,7 @@ export async function getMovieNotifications(): Promise<NotificationsResponse> {
 export async function getNotificationStatus(movieId: string): Promise<NotificationStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -79,6 +81,7 @@ export async function subscribeToMovie(movieId: string): Promise<void> {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({}),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -94,6 +97,7 @@ export async function unsubscribeFromMovie(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {

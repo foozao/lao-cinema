@@ -50,6 +50,7 @@ export interface UpdateProgressRequest {
 export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
   const response = await fetch(`${API_BASE_URL}/watch-progress`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -66,6 +67,7 @@ export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
 export async function getWatchProgress(movieId: string): Promise<SingleProgressResponse> {
   const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -87,6 +89,7 @@ export async function updateWatchProgress(
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -104,6 +107,7 @@ export async function deleteWatchProgress(movieId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {

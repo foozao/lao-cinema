@@ -20,6 +20,7 @@ export class UploadClient {
       method: 'POST',
       headers,
       body: formData,
+      credentials: 'include',
     });
 
     if (!response.ok) {

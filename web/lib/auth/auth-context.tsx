@@ -9,7 +9,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAnonymousId, clearAnonymousId } from '../anonymous-id';
+import { getAnonymousId, getAnonymousIdSync, clearAnonymousId } from '../anonymous-id';
 import * as authApi from './api-client';
 import type { User, LoginCredentials, RegisterCredentials } from './types';
 
@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize: Get anonymous ID, check for existing session, setup cross-tab sync
   useEffect(() => {
     const initialize = async () => {
-      // Always get/create anonymous ID
-      const anonId = getAnonymousId();
+      // Always get/create anonymous ID (async now - server-generated)
+      const anonId = await getAnonymousId();
       setAnonymousId(anonId);
       
       // Try to fetch current user (cookie is sent automatically)
@@ -91,9 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Another tab logged out - clear local state
           setUser(null);
           authApi.setAuthenticatedState(false);
-          // Generate new anonymous ID
-          const newAnonId = getAnonymousId();
-          setAnonymousId(newAnonId);
+          // Use existing anonymous ID (already initialized)
+          // Don't generate new one here to avoid async complexity in event handler
+          setAnonymousId(getAnonymousIdSync());
         } else if (message.type === 'login') {
           // Another tab logged in - update local state
           setUser(message.user);
@@ -191,9 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Broadcast logout to other tabs
     channelRef.current?.postMessage({ type: 'logout' });
     
-    // Generate new anonymous ID
-    const newAnonId = getAnonymousId();
-    setAnonymousId(newAnonId);
+    // Generate new anonymous ID asynchronously
+    getAnonymousId().then(newAnonId => {
+      setAnonymousId(newAnonId);
+    });
     
     // Redirect to home
     router.push('/');
@@ -231,7 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAnonymousId();
       
       // Generate new anonymous ID for future use
-      const newAnonId = getAnonymousId();
+      const newAnonId = await getAnonymousId();
       setAnonymousId(newAnonId);
       
       return {

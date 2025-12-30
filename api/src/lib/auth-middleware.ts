@@ -7,7 +7,8 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { findSessionByToken } from './auth-service.js';
-import type { User } from '../db/schema.js';
+import { User } from '../db/schema.js';
+import { extractAnonymousId, isValidAnonymousId } from './anonymous-id.js';
 
 // =============================================================================
 // TYPE EXTENSIONS
@@ -75,10 +76,22 @@ export async function optionalAuth(request: FastifyRequest, reply: FastifyReply)
     }
   }
   
-  // Extract anonymous ID from header (for anonymous users)
-  const anonymousId = request.headers['x-anonymous-id'] as string;
-  if (anonymousId) {
-    request.anonymousId = anonymousId;
+  // Extract and validate anonymous ID from header (for anonymous users)
+  const signedAnonymousId = request.headers['x-anonymous-id'] as string;
+  if (signedAnonymousId) {
+    // Validate the signed anonymous ID
+    if (isValidAnonymousId(signedAnonymousId)) {
+      // Extract the actual ID (UUID) for database operations
+      try {
+        request.anonymousId = extractAnonymousId(signedAnonymousId);
+      } catch (error) {
+        // Invalid or expired anonymous ID - ignore it
+        request.log.warn({ error, signedAnonymousId }, 'Invalid anonymous ID provided');
+      }
+    } else {
+      // Invalid anonymous ID format - log and ignore
+      request.log.warn({ signedAnonymousId }, 'Anonymous ID failed validation');
+    }
   }
 }
 

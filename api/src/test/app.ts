@@ -20,6 +20,7 @@ import genreRoutes from '../routes/genres.js';
 import movieGenresRoutes from '../routes/movie-genres.js';
 import awardsRoutes from '../routes/awards.js';
 import movieSubtitleRoutes from '../routes/movie-subtitles.js';
+import anonymousIdRoutes from '../routes/anonymous-id.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -57,6 +58,7 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
   });
 
   // Register routes
+  await app.register(anonymousIdRoutes, { prefix: '/api' });
   await app.register(movieRoutes, { prefix: '/api' });
   
   if (options.includeAuth) {
