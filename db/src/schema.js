@@ -513,8 +513,8 @@ const userWatchlist = pgTable("user_watchlist", {
   movieId: uuid("movie_id").references(() => movies.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
-const awardNomineeTypeEnum = pgEnum("award_nominee_type", ["person", "movie"]);
-const awardShows = pgTable("award_shows", {
+const accoladeNomineeTypeEnum = pgEnum("accolade_nominee_type", ["person", "movie"]);
+const accoladeEvents = pgTable("accolade_events", {
   id: uuid("id").defaultRandom().primaryKey(),
   slug: text("slug").unique(),
   // Vanity URL (e.g., 'lpff')
@@ -526,19 +526,19 @@ const awardShows = pgTable("award_shows", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-const awardShowTranslations = pgTable("award_show_translations", {
-  showId: uuid("show_id").references(() => awardShows.id, { onDelete: "cascade" }).notNull(),
+const accoladeEventTranslations = pgTable("accolade_event_translations", {
+  eventId: uuid("event_id").references(() => accoladeEvents.id, { onDelete: "cascade" }).notNull(),
   language: languageEnum("language").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => ({
-  pk: primaryKey({ columns: [table.showId, table.language] })
+  pk: primaryKey({ columns: [table.eventId, table.language] })
 }));
-const awardEditions = pgTable("award_editions", {
+const accoladeEditions = pgTable("accolade_editions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  showId: uuid("show_id").references(() => awardShows.id, { onDelete: "cascade" }).notNull(),
+  eventId: uuid("event_id").references(() => accoladeEvents.id, { onDelete: "cascade" }).notNull(),
   year: integer("year").notNull(),
   // The year of this edition
   editionNumber: integer("edition_number"),
@@ -550,8 +550,8 @@ const awardEditions = pgTable("award_editions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-const awardEditionTranslations = pgTable("award_edition_translations", {
-  editionId: uuid("edition_id").references(() => awardEditions.id, { onDelete: "cascade" }).notNull(),
+const accoladeEditionTranslations = pgTable("accolade_edition_translations", {
+  editionId: uuid("edition_id").references(() => accoladeEditions.id, { onDelete: "cascade" }).notNull(),
   language: languageEnum("language").notNull(),
   name: text("name"),
   // Optional override name (e.g., "Special Anniversary Edition")
@@ -562,18 +562,20 @@ const awardEditionTranslations = pgTable("award_edition_translations", {
 }, (table) => ({
   pk: primaryKey({ columns: [table.editionId, table.language] })
 }));
-const awardCategories = pgTable("award_categories", {
+const accoladeCategories = pgTable("accolade_categories", {
   id: uuid("id").defaultRandom().primaryKey(),
-  showId: uuid("show_id").references(() => awardShows.id, { onDelete: "cascade" }).notNull(),
-  nomineeType: awardNomineeTypeEnum("nominee_type").notNull(),
+  eventId: uuid("event_id").references(() => accoladeEvents.id, { onDelete: "cascade" }).notNull(),
+  sectionId: uuid("section_id").references(() => accoladeSections.id, { onDelete: "cascade" }),
+  // Optional - if set, category is section-specific
+  nomineeType: accoladeNomineeTypeEnum("nominee_type").notNull(),
   // 'person' or 'movie'
   sortOrder: integer("sort_order").default(0),
   // Display order
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-const awardCategoryTranslations = pgTable("award_category_translations", {
-  categoryId: uuid("category_id").references(() => awardCategories.id, { onDelete: "cascade" }).notNull(),
+const accoladeCategoryTranslations = pgTable("accolade_category_translations", {
+  categoryId: uuid("category_id").references(() => accoladeCategories.id, { onDelete: "cascade" }).notNull(),
   language: languageEnum("language").notNull(),
   name: text("name").notNull(),
   description: text("description"),
@@ -582,10 +584,10 @@ const awardCategoryTranslations = pgTable("award_category_translations", {
 }, (table) => ({
   pk: primaryKey({ columns: [table.categoryId, table.language] })
 }));
-const awardNominations = pgTable("award_nominations", {
+const accoladeNominations = pgTable("accolade_nominations", {
   id: uuid("id").defaultRandom().primaryKey(),
-  editionId: uuid("edition_id").references(() => awardEditions.id, { onDelete: "cascade" }).notNull(),
-  categoryId: uuid("category_id").references(() => awardCategories.id, { onDelete: "cascade" }).notNull(),
+  editionId: uuid("edition_id").references(() => accoladeEditions.id, { onDelete: "cascade" }).notNull(),
+  categoryId: uuid("category_id").references(() => accoladeCategories.id, { onDelete: "cascade" }).notNull(),
   // The nominee - either a person OR a movie (based on category's nomineeType)
   personId: integer("person_id").references(() => people.id, { onDelete: "cascade" }),
   // Nullable
@@ -599,8 +601,8 @@ const awardNominations = pgTable("award_nominations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-const awardNominationTranslations = pgTable("award_nomination_translations", {
-  nominationId: uuid("nomination_id").references(() => awardNominations.id, { onDelete: "cascade" }).notNull(),
+const accoladeNominationTranslations = pgTable("accolade_nomination_translations", {
+  nominationId: uuid("nomination_id").references(() => accoladeNominations.id, { onDelete: "cascade" }).notNull(),
   language: languageEnum("language").notNull(),
   workTitle: text("work_title"),
   // Custom work title if different from movie title
@@ -613,21 +615,61 @@ const awardNominationTranslations = pgTable("award_nomination_translations", {
 }, (table) => ({
   pk: primaryKey({ columns: [table.nominationId, table.language] })
 }));
+const accoladeSections = pgTable("accolade_sections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id").references(() => accoladeEvents.id, { onDelete: "cascade" }).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+const accoladeSectionTranslations = pgTable("accolade_section_translations", {
+  sectionId: uuid("section_id").references(() => accoladeSections.id, { onDelete: "cascade" }).notNull(),
+  language: languageEnum("language").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  pk: primaryKey({ columns: [table.sectionId, table.language] })
+}));
+const accoladeSectionSelections = pgTable("accolade_section_selections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sectionId: uuid("section_id").references(() => accoladeSections.id, { onDelete: "cascade" }).notNull(),
+  editionId: uuid("edition_id").references(() => accoladeEditions.id, { onDelete: "cascade" }).notNull(),
+  movieId: uuid("movie_id").references(() => movies.id, { onDelete: "cascade" }).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+const accoladeSectionSelectionTranslations = pgTable("accolade_section_selection_translations", {
+  selectionId: uuid("selection_id").references(() => accoladeSectionSelections.id, { onDelete: "cascade" }).notNull(),
+  language: languageEnum("language").notNull(),
+  notes: text("notes"),
+  // Optional notes about the selection
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  pk: primaryKey({ columns: [table.selectionId, table.language] })
+}));
 export {
+  accoladeCategories,
+  accoladeCategoryTranslations,
+  accoladeEditionTranslations,
+  accoladeEditions,
+  accoladeEventTranslations,
+  accoladeEvents,
+  accoladeNominationTranslations,
+  accoladeNominations,
+  accoladeNomineeTypeEnum,
+  accoladeSectionSelectionTranslations,
+  accoladeSectionSelections,
+  accoladeSectionTranslations,
+  accoladeSections,
   auditActionEnum,
   auditEntityTypeEnum,
   auditLogs,
   authProviderEnum,
   availabilityStatusEnum,
-  awardCategories,
-  awardCategoryTranslations,
-  awardEditionTranslations,
-  awardEditions,
-  awardNominationTranslations,
-  awardNominations,
-  awardNomineeTypeEnum,
-  awardShowTranslations,
-  awardShows,
   emailVerificationTokens,
   genreTranslations,
   genres,

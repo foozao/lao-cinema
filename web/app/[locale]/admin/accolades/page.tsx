@@ -140,14 +140,14 @@ export default function AdminAwardsPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Trophy className="w-6 h-6" />
-            Award Shows
+            Accolade Events
           </h1>
-          <p className="text-gray-600 mt-1">Manage film festivals and award ceremonies</p>
+          <p className="text-gray-600 mt-1">Manage film accolades and recognition events</p>
         </div>
         {!showCreateForm && (
           <Button onClick={() => setShowCreateForm(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Award Show
+            Add Accolade Event
           </Button>
         )}
       </div>
@@ -156,7 +156,7 @@ export default function AdminAwardsPage() {
       {showCreateForm && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingShow ? 'Edit Award Show' : 'Create Award Show'}</CardTitle>
+            <CardTitle>{editingShow ? 'Edit Accolade Event' : 'Create Accolade Event'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -260,11 +260,11 @@ export default function AdminAwardsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <Trophy className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Award Shows</h3>
-            <p className="text-gray-500 mb-4">Get started by creating your first award show.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Accolade Events</h3>
+            <p className="text-gray-500 mb-4">Get started by creating your first accolade event.</p>
             <Button onClick={() => setShowCreateForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Award Show
+              Add Accolade Event
             </Button>
           </CardContent>
         </Card>
@@ -309,7 +309,7 @@ export default function AdminAwardsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/awards/${show.id}`}>
+                    <Link href={`/admin/accolades/${show.id}`}>
                       <Button variant="outline" size="sm">
                         Manage
                         <ChevronRight className="w-4 h-4 ml-1" />

@@ -17,6 +17,7 @@ export default function DevAwardsPage() {
   const [selectedEdition, setSelectedEdition] = useState<AwardEditionDetail | null>(null);
   const [editions, setEditions] = useState<{ id: string; year: number; edition_number?: number }[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
+  const [selections, setSelections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function DevAwardsPage() {
     try {
       const response = await awardsAPI.getWinners();
       setWinners(response.winners);
+      setSelections(response.selections || []);
     } catch (error) {
       console.error('Failed to load winners:', error);
     }
@@ -96,16 +98,16 @@ export default function DevAwardsPage() {
         <div className="flex items-center gap-4 mb-8">
           <Trophy className="w-10 h-10 text-yellow-500" />
           <div>
-            <h1 className="text-3xl font-bold">Film Awards</h1>
-            <p className="text-gray-400">Celebrating excellence in Lao cinema</p>
+            <h1 className="text-3xl font-bold">Film Accolades</h1>
+            <p className="text-gray-400">Celebrating excellence and recognition in Lao cinema</p>
           </div>
         </div>
 
         {shows.length === 0 ? (
           <div className="text-center py-16">
             <Trophy className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-400">No Award Shows Yet</h2>
-            <p className="text-gray-500 mt-2">Award shows will appear here once created in the admin panel.</p>
+            <h2 className="text-xl font-semibold text-gray-400">No Accolade Events Yet</h2>
+            <p className="text-gray-500 mt-2">Accolade events will appear here once created in the admin panel.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -115,7 +117,7 @@ export default function DevAwardsPage() {
               <div className="bg-gray-800/50 rounded-xl p-4">
                 <h2 className="font-semibold mb-4 flex items-center gap-2 text-gray-300">
                   <Award className="w-5 h-5" />
-                  Award Shows
+                  Accolade Events
                 </h2>
                 <div className="space-y-4">
                   {/* Lao Awards */}
@@ -128,7 +130,7 @@ export default function DevAwardsPage() {
                         {laoShows.length > 0 && (
                           <div className="space-y-2">
                             <div className="text-xs font-semibold text-yellow-500 uppercase tracking-wider px-1">
-                              Lao Awards
+                              Lao Accolades
                             </div>
                             {laoShows.map((show) => (
                               <button
@@ -163,7 +165,7 @@ export default function DevAwardsPage() {
                         {internationalShows.length > 0 && (
                           <div className="space-y-2">
                             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
-                              International Awards
+                              International Recognition
                             </div>
                             {internationalShows.map((show) => (
                               <button
@@ -255,19 +257,25 @@ export default function DevAwardsPage() {
                   <div className="bg-gray-800/30 rounded-xl p-6 text-center">
                     <h2 className="text-xl font-semibold text-gray-300 flex items-center justify-center gap-3">
                       <Trophy className="w-6 h-6 text-yellow-500" />
-                      Select an Award Show
+                      Select an Accolade Event
                     </h2>
-                    <p className="text-gray-500 mt-2">Choose an award show and edition from the left to view all nominations and winners.</p>
+                    <p className="text-gray-500 mt-2">Choose an accolade event and edition from the left to view all nominations and winners.</p>
                   </div>
                   
-                  {/* Winners and Nominees Showcase */}
-                  {winners.length > 0 && (
+                  {/* Winners, Nominees, and Festival Selections Showcase */}
+                  {(winners.length > 0 || selections.length > 0) && (
                     <div className="bg-gray-800/30 rounded-xl p-6">
                       <h3 className="text-base font-medium text-gray-400 mb-4">
-                        Featured award winners and nominees from recent editions
+                        Featured accolades and festival selections
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {winners.slice(0, 8).map((winner) => {
+                        {/* Combine winners and selections, shuffle, take 8 */}
+                        {[...winners, ...selections]
+                          .sort(() => Math.random() - 0.5)
+                          .slice(0, 8)
+                          .map((item) => {
+                          const isSelection = item.type === 'selection';
+                          const winner = item;
                           // Determine the link destination
                           let href = '';
                           if (winner.nominee?.type === 'person' && winner.nominee.id) {
@@ -315,7 +323,12 @@ export default function DevAwardsPage() {
                                       : getLocalizedText((winner.nominee?.title || { en: 'Unknown' }) as { en: string; lo?: string }, locale)}
                                   </div>
                                   {/* Status Badge */}
-                                  {winner.is_winner ? (
+                                  {isSelection ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/20 text-blue-300 uppercase tracking-wide">
+                                      <Film className="w-2.5 h-2.5" />
+                                      Selection
+                                    </span>
+                                  ) : winner.is_winner ? (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-yellow-500/20 text-yellow-300 uppercase tracking-wide">
                                       <Trophy className="w-2.5 h-2.5" />
                                       Winner
@@ -331,7 +344,16 @@ export default function DevAwardsPage() {
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-400 truncate">
-                                  {getLocalizedText((winner.category?.name || { en: '' }) as { en: string; lo?: string }, locale)}
+                                  {isSelection ? (
+                                    winner.section && getLocalizedText((winner.section.name || { en: '' }) as { en: string; lo?: string }, locale)
+                                  ) : (
+                                    <>
+                                      {getLocalizedText((winner.category?.name || { en: '' }) as { en: string; lo?: string }, locale)}
+                                      {winner.category?.section && (
+                                        <span className="text-blue-400"> · {getLocalizedText((winner.category.section.name || { en: '' }) as { en: string; lo?: string }, locale)}</span>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                                 <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                                   {winner.show && (
@@ -381,6 +403,73 @@ export default function DevAwardsPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
+                      {/* Festival Sections with Film Selections */}
+                      {selectedEdition.sections && selectedEdition.sections.length > 0 && (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                            <Film className="w-4 h-4" />
+                            Official Selection
+                          </h3>
+                          {selectedEdition.sections.map((section) => (
+                            <div key={section.id} className="bg-gray-800/50 rounded-xl overflow-hidden">
+                              <div className="bg-blue-900/30 px-6 py-4">
+                                <h4 className="font-semibold text-lg text-blue-300">
+                                  {getLocalizedText(section.name as { en: string; lo?: string }, locale)}
+                                </h4>
+                                {section.description?.en && (
+                                  <p className="text-sm text-gray-400 mt-1">
+                                    {getLocalizedText(section.description as { en: string; lo?: string }, locale)}
+                                  </p>
+                                )}
+                              </div>
+                              {section.selections && section.selections.length > 0 ? (
+                                <div className="divide-y divide-gray-700/50">
+                                  {section.selections.map((sel) => (
+                                    <Link
+                                      key={sel.id}
+                                      href={`/movies/${sel.movie_id}`}
+                                      className="p-4 flex items-center gap-4 hover:bg-gray-700/30 transition-colors"
+                                    >
+                                      {sel.movie?.poster_path ? (
+                                        <img
+                                          src={getPosterUrl(sel.movie.poster_path, 'small')!}
+                                          alt=""
+                                          className="w-10 h-14 rounded object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-14 rounded bg-gray-700 flex items-center justify-center">
+                                          <Film className="w-5 h-5 text-gray-500" />
+                                        </div>
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium">
+                                          {sel.movie?.title ? getLocalizedText(sel.movie.title as { en: string; lo?: string }, locale) : 'Unknown'}
+                                        </div>
+                                        {sel.movie?.release_date && (
+                                          <div className="text-sm text-gray-500">
+                                            {new Date(sel.movie.release_date).getFullYear()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                                    </Link>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="p-6 text-gray-500 text-center">No films in this section</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Award Categories */}
+                      {selectedEdition.categories.length > 0 && (
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-2 mt-8">
+                          <Award className="w-4 h-4" />
+                          Awards
+                        </h3>
+                      )}
                       {selectedEdition.categories.map((category) => (
                         <div key={category.id} className="bg-gray-800/50 rounded-xl overflow-hidden">
                           <div className="bg-gray-700/50 px-6 py-4 flex items-center gap-3">
@@ -449,10 +538,14 @@ export default function DevAwardsPage() {
                                             ? getLocalizedText((nom.nominee.name || { en: 'Unknown' }) as { en: string; lo?: string }, locale)
                                             : getLocalizedText((nom.nominee?.title || { en: 'Unknown' }) as { en: string; lo?: string }, locale)}
                                         </span>
-                                        {nom.is_winner && (
+                                        {nom.is_winner ? (
                                           <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
                                             <Trophy className="w-3 h-3" />
                                             WINNER
+                                          </span>
+                                        ) : (
+                                          <span className="bg-gray-600 text-gray-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                                            NOMINEE
                                           </span>
                                         )}
                                         {!nom.is_winner && nom.recognition_type && (

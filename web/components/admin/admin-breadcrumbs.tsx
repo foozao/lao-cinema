@@ -202,36 +202,36 @@ export function AdminBreadcrumbs() {
               }
             }
           }
-        } else if (parts[1] === 'awards') {
+        } else if (parts[1] === 'accolades') {
           if (parts.length === 2) {
             breadcrumbs.push({
-              label: t('awards'),
-              href: '/admin/awards',
+              label: t('accolades'),
+              href: '/admin/accolades',
               isLast: true,
             });
           } else if (parts.length === 3) {
-            // Award show detail page
+            // Accolade event detail page
             const showId = parts[2];
             try {
               const { awardsAPI } = await import('@/lib/api/client');
               const show = await awardsAPI.getShow(showId);
               breadcrumbs.push(
                 {
-                  label: t('awards'),
-                  href: '/admin/awards',
+                  label: t('accolades'),
+                  href: '/admin/accolades',
                   isLast: false,
                 },
                 {
                   label: getLocalizedText(show.name, 'en'),
-                  href: `/admin/awards/${showId}`,
+                  href: `/admin/accolades/${showId}`,
                   isLast: true,
                 }
               );
             } catch (error) {
-              console.error('Failed to load award show:', error);
+              console.error('Failed to load accolade event:', error);
               breadcrumbs.push({
-                label: t('awards'),
-                href: '/admin/awards',
+                label: t('accolades'),
+                href: '/admin/accolades',
                 isLast: true,
               });
             }

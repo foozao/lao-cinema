@@ -281,13 +281,13 @@ export interface ShortPackSummary {
 }
 
 // =============================================================================
-// AWARDS SYSTEM
+// ACCOLADES SYSTEM
 // =============================================================================
 
-export type AwardNomineeType = 'person' | 'movie';
+export type AccoladeNomineeType = 'person' | 'movie';
 
-// Award show/ceremony (e.g., "Luang Prabang Film Festival")
-export interface AwardShow {
+// Accolade event/ceremony (e.g., "Luang Prabang Film Festival")
+export interface AccoladeEvent {
   id: string;
   slug?: string;
   name: LocalizedText;
@@ -297,14 +297,15 @@ export interface AwardShow {
   website_url?: string;
   logo_path?: string;
   edition_count?: number;
-  editions?: AwardEdition[];
-  categories?: AwardCategory[];
+  editions?: AccoladeEdition[];
+  categories?: AccoladeCategory[];
+  sections?: AccoladeSection[];
   created_at: string;
   updated_at: string;
 }
 
-// Edition/year of an award show (e.g., "2024 LPFF")
-export interface AwardEdition {
+// Edition/year of an accolade event (e.g., "2024 LPFF")
+export interface AccoladeEdition {
   id: string;
   show?: {
     id: string;
@@ -317,27 +318,28 @@ export interface AwardEdition {
   theme?: LocalizedText;
   start_date?: string;
   end_date?: string;
-  categories?: AwardCategoryWithNominations[];
+  categories?: AccoladeCategoryWithNominations[];
   created_at?: string;
   updated_at?: string;
 }
 
-// Award category (e.g., "Best Director")
-export interface AwardCategory {
+// Accolade category (e.g., "Best Director")
+export interface AccoladeCategory {
   id: string;
+  section_id?: string | null; // If set, category is scoped to this section
   name: LocalizedText;
   description?: LocalizedText;
-  nominee_type: AwardNomineeType;
+  nominee_type: AccoladeNomineeType;
   sort_order: number;
 }
 
 // Category with its nominations (for edition detail view)
-export interface AwardCategoryWithNominations extends AwardCategory {
-  nominations: AwardNomination[];
+export interface AccoladeCategoryWithNominations extends AccoladeCategory {
+  nominations: AccoladeNomination[];
 }
 
 // Nominee can be either a person or a movie
-export interface AwardNominee {
+export interface AccoladeNominee {
   type: 'person' | 'movie';
   id: number | string;
   name?: LocalizedText; // For person
@@ -346,10 +348,10 @@ export interface AwardNominee {
   poster_path?: string; // For movie
 }
 
-// Award nomination
-export interface AwardNomination {
+// Accolade nomination
+export interface AccoladeNomination {
   id: string;
-  nominee: AwardNominee | null;
+  nominee: AccoladeNominee | null;
   for_movie?: {
     id: string;
     title: LocalizedText;
@@ -362,15 +364,61 @@ export interface AwardNomination {
   sort_order: number;
 }
 
+// Section with selections (for edition detail)
+export interface AccoladeSectionWithSelections {
+  id: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  sort_order: number;
+  selections: AccoladeSectionSelection[];
+}
+
 // Full edition detail (for edition detail page)
-export interface AwardEditionDetail extends Omit<AwardEdition, 'categories'> {
+export interface AccoladeEditionDetail extends Omit<AccoladeEdition, 'categories'> {
   show: {
     id: string;
     slug?: string;
     name: LocalizedText;
   };
-  categories: AwardCategoryWithNominations[];
+  categories: AccoladeCategoryWithNominations[];
+  sections?: AccoladeSectionWithSelections[];
 }
+
+// Accolade section (festival program track - non-competitive)
+export interface AccoladeSection {
+  id: string;
+  event_id: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  sort_order: number;
+  selections?: AccoladeSectionSelection[];
+}
+
+// Accolade section selection (movie in a section for a specific edition)
+export interface AccoladeSectionSelection {
+  id: string;
+  section_id: string;
+  edition_id: string;
+  movie_id: string;
+  movie?: {
+    id: string;
+    title: LocalizedText;
+    poster_path?: string | null;
+    release_date?: string;
+  };
+  notes?: LocalizedText;
+  sort_order: number;
+}
+
+// Backward compatibility aliases
+export type AwardNomineeType = AccoladeNomineeType;
+export type AwardShow = AccoladeEvent;
+export type AwardEdition = AccoladeEdition;
+export type AwardCategory = AccoladeCategory;
+export type AwardCategoryWithNominations = AccoladeCategoryWithNominations;
+export type AwardNominee = AccoladeNominee;
+export type AwardNomination = AccoladeNomination;
+export type AwardEditionDetail = AccoladeEditionDetail;
 
 // For future TMDB API integration
 export interface TMDBMovie {

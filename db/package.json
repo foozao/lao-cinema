@@ -4,12 +4,14 @@
   "description": "Database schema and migrations for Lao Cinema",
   "type": "module",
   "scripts": {
+    "start": "docker compose up -d",
+    "stop": "docker compose down",
     "build": "esbuild src/schema.ts --outfile=src/schema.js --format=esm --platform=node",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:migrate:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL tsx src/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:push:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL drizzle-kit push",
+    "db:push:test": "export $(cat ../api/.env | grep -v '^#' | grep -v '^$' | xargs) && DATABASE_URL=$TEST_DATABASE_URL drizzle-kit push --force",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/seed.ts",
     "db:cleanup-orphans": "tsx src/cleanup-orphaned-people.ts"

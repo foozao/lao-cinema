@@ -1,4 +1,4 @@
-// Award Nominations routes
+// Accolade Nominations routes
 
 import { FastifyInstance } from 'fastify';
 import { sendBadRequest, sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
@@ -9,7 +9,7 @@ import { buildInClause } from '../lib/query-helpers.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 import { buildLocalizedText } from '../lib/translation-helpers.js';
 
-export default async function awardNominationsRoutes(fastify: FastifyInstance) {
+export default async function accoladeNominationsRoutes(fastify: FastifyInstance) {
   // Create nomination
   fastify.post<{
     Body: {
@@ -24,7 +24,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       is_winner?: boolean;
       sort_order?: number;
     };
-  }>('/awards/nominations', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  }>('/accolades/nominations', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { edition_id, category_id, person_id, movie_id, for_movie_id, work_title, notes, recognition_type, is_winner, sort_order } = request.body;
       
@@ -37,17 +37,17 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       }
       
       // Verify edition and category exist
-      const [edition] = await db.select().from(schema.awardEditions).where(eq(schema.awardEditions.id, edition_id)).limit(1);
+      const [edition] = await db.select().from(schema.accoladeEditions).where(eq(schema.accoladeEditions.id, edition_id)).limit(1);
       if (!edition) {
-        return sendNotFound(reply, 'Award edition not found');
+        return sendNotFound(reply, 'Accolade edition not found');
       }
       
-      const [category] = await db.select().from(schema.awardCategories).where(eq(schema.awardCategories.id, category_id)).limit(1);
+      const [category] = await db.select().from(schema.accoladeCategories).where(eq(schema.accoladeCategories.id, category_id)).limit(1);
       if (!category) {
-        return sendNotFound(reply, 'Award category not found');
+        return sendNotFound(reply, 'Accolade category not found');
       }
       
-      const [newNomination] = await db.insert(schema.awardNominations).values({
+      const [newNomination] = await db.insert(schema.accoladeNominations).values({
         editionId: edition_id,
         categoryId: category_id,
         personId: person_id || null,
@@ -59,7 +59,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       
       // Insert translations if provided
       if (work_title?.en || notes?.en || recognition_type?.en) {
-        await db.insert(schema.awardNominationTranslations).values({
+        await db.insert(schema.accoladeNominationTranslations).values({
           nominationId: newNomination.id,
           language: 'en',
           workTitle: work_title?.en || null,
@@ -69,7 +69,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       }
       
       if (work_title?.lo || notes?.lo || recognition_type?.lo) {
-        await db.insert(schema.awardNominationTranslations).values({
+        await db.insert(schema.accoladeNominationTranslations).values({
           nominationId: newNomination.id,
           language: 'lo',
           workTitle: work_title?.lo || null,
@@ -124,12 +124,12 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       is_winner?: boolean;
       sort_order?: number;
     };
-  }>('/awards/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  }>('/accolades/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       const updates = request.body;
       
-      const [existing] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, id)).limit(1);
+      const [existing] = await db.select().from(schema.accoladeNominations).where(eq(schema.accoladeNominations.id, id)).limit(1);
       if (!existing) {
         return sendNotFound(reply, 'Nomination not found');
       }
@@ -141,7 +141,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       if (updates.is_winner !== undefined) nominationUpdates.isWinner = updates.is_winner;
       if (updates.sort_order !== undefined) nominationUpdates.sortOrder = updates.sort_order;
       
-      await db.update(schema.awardNominations).set(nominationUpdates).where(eq(schema.awardNominations.id, id));
+      await db.update(schema.accoladeNominations).set(nominationUpdates).where(eq(schema.accoladeNominations.id, id));
       
       // Update translations
       if (updates.work_title || updates.notes || updates.recognition_type) {
@@ -151,8 +151,8 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
           const recognitionTypeVal = updates.recognition_type?.[lang];
           
           if (workTitleVal !== undefined || notesVal !== undefined || recognitionTypeVal !== undefined) {
-            const [existingTrans] = await db.select().from(schema.awardNominationTranslations)
-              .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)))
+            const [existingTrans] = await db.select().from(schema.accoladeNominationTranslations)
+              .where(and(eq(schema.accoladeNominationTranslations.nominationId, id), eq(schema.accoladeNominationTranslations.language, lang)))
               .limit(1);
             
             if (existingTrans) {
@@ -160,10 +160,10 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
               if (workTitleVal !== undefined) transUpdates.workTitle = workTitleVal || null;
               if (notesVal !== undefined) transUpdates.notes = notesVal || null;
               if (recognitionTypeVal !== undefined) transUpdates.recognitionType = recognitionTypeVal || null;
-              await db.update(schema.awardNominationTranslations).set(transUpdates)
-                .where(and(eq(schema.awardNominationTranslations.nominationId, id), eq(schema.awardNominationTranslations.language, lang)));
+              await db.update(schema.accoladeNominationTranslations).set(transUpdates)
+                .where(and(eq(schema.accoladeNominationTranslations.nominationId, id), eq(schema.accoladeNominationTranslations.language, lang)));
             } else if (workTitleVal || notesVal || recognitionTypeVal) {
-              await db.insert(schema.awardNominationTranslations).values({
+              await db.insert(schema.accoladeNominationTranslations).values({
                 nominationId: id,
                 language: lang,
                 workTitle: workTitleVal || null,
@@ -192,16 +192,16 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
   });
 
   // Delete nomination
-  fastify.delete<{ Params: { id: string } }>('/awards/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/accolades/nominations/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       
-      const [existing] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, id)).limit(1);
+      const [existing] = await db.select().from(schema.accoladeNominations).where(eq(schema.accoladeNominations.id, id)).limit(1);
       if (!existing) {
         return sendNotFound(reply, 'Nomination not found');
       }
       
-      await db.delete(schema.awardNominations).where(eq(schema.awardNominations.id, id));
+      await db.delete(schema.accoladeNominations).where(eq(schema.accoladeNominations.id, id));
       
       // Log audit event
       await logAuditFromRequest(
@@ -223,12 +223,12 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
   });
 
   // Get all winners and nominees across all awards (for showcase)
-  fastify.get('/awards/winners', async (request, reply) => {
+  fastify.get('/accolades/winners', async (request, reply) => {
     try {
       // Get all nominations (winners and nominees) with related data
       const winners = await db.select()
-        .from(schema.awardNominations)
-        .orderBy(desc(schema.awardNominations.createdAt))
+        .from(schema.accoladeNominations)
+        .orderBy(desc(schema.accoladeNominations.createdAt))
         .limit(100);
       
       if (winners.length === 0) {
@@ -241,10 +241,10 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
       const personIds = [...new Set(winners.filter(w => w.personId).map(w => w.personId!))];
       const movieIds = [...new Set(winners.map(w => w.movieId).filter(Boolean).concat(winners.map(w => w.forMovieId).filter(Boolean)))] as string[];
       
-      const editions = await db.select().from(schema.awardEditions).where(buildInClause(schema.awardEditions.id, editionIds));
-      const categories = await db.select().from(schema.awardCategories).where(buildInClause(schema.awardCategories.id, categoryIds));
-      const categoryTrans = await db.select().from(schema.awardCategoryTranslations).where(buildInClause(schema.awardCategoryTranslations.categoryId, categoryIds));
-      const nominationTrans = await db.select().from(schema.awardNominationTranslations).where(buildInClause(schema.awardNominationTranslations.nominationId, winners.map(w => w.id)));
+      const editions = await db.select().from(schema.accoladeEditions).where(buildInClause(schema.accoladeEditions.id, editionIds));
+      const categories = await db.select().from(schema.accoladeCategories).where(buildInClause(schema.accoladeCategories.id, categoryIds));
+      const categoryTrans = await db.select().from(schema.accoladeCategoryTranslations).where(buildInClause(schema.accoladeCategoryTranslations.categoryId, categoryIds));
+      const nominationTrans = await db.select().from(schema.accoladeNominationTranslations).where(buildInClause(schema.accoladeNominationTranslations.nominationId, winners.map(w => w.id)));
       
       const people = personIds.length > 0 
         ? await db.select().from(schema.people).where(buildInClause(schema.people.id, personIds))
@@ -260,14 +260,23 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
         : [];
       
       // Get show data
-      const showIds = [...new Set(editions.map(e => e.showId))];
-      const shows = await db.select().from(schema.awardShows).where(buildInClause(schema.awardShows.id, showIds));
-      const showTrans = await db.select().from(schema.awardShowTranslations).where(buildInClause(schema.awardShowTranslations.showId, showIds));
+      const showIds = [...new Set(editions.map(e => e.eventId))];
+      const shows = await db.select().from(schema.accoladeEvents).where(buildInClause(schema.accoladeEvents.id, showIds));
+      const showTrans = await db.select().from(schema.accoladeEventTranslations).where(buildInClause(schema.accoladeEventTranslations.eventId, showIds));
+      
+      // Get section data for section-scoped categories
+      const sectionIds = [...new Set(categories.filter(c => c.sectionId).map(c => c.sectionId!))] as string[];
+      const sections = sectionIds.length > 0
+        ? await db.select().from(schema.accoladeSections).where(buildInClause(schema.accoladeSections.id, sectionIds))
+        : [];
+      const sectionTrans = sectionIds.length > 0
+        ? await db.select().from(schema.accoladeSectionTranslations).where(buildInClause(schema.accoladeSectionTranslations.sectionId, sectionIds))
+        : [];
       
       // Format response
       const formattedWinners = winners.map(winner => {
         const edition = editions.find(e => e.id === winner.editionId);
-        const show = edition ? shows.find(s => s.id === edition.showId) : null;
+        const show = edition ? shows.find(s => s.id === edition.eventId) : null;
         const category = categories.find(c => c.id === winner.categoryId);
         const catTrans = categoryTrans.filter(t => t.categoryId === winner.categoryId);
         const nomTrans = nominationTrans.filter(t => t.nominationId === winner.id);
@@ -312,7 +321,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
           recognition_type: buildLocalizedText(nomTrans, 'recognitionType'),
           show: show ? {
             id: show.id,
-            name: buildLocalizedText(showTrans.filter(t => t.showId === show.id), 'name'),
+            name: buildLocalizedText(showTrans.filter(t => t.eventId === show.id), 'name'),
             country: show.country,
           } : null,
           edition: edition ? {
@@ -324,11 +333,76 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
             id: category.id,
             name: buildLocalizedText(catTrans, 'name'),
             nominee_type: category.nomineeType,
+            section: category.sectionId ? (() => {
+              const section = sections.find(s => s.id === category.sectionId);
+              const secTrans = sectionTrans.filter(t => t.sectionId === category.sectionId);
+              return section ? {
+                id: section.id,
+                name: buildLocalizedText(secTrans, 'name'),
+              } : null;
+            })() : null,
           } : null,
         };
       });
       
-      return { winners: formattedWinners };
+      // Also get section selections (films at festivals)
+      const selections = await db.select()
+        .from(schema.accoladeSectionSelections)
+        .orderBy(desc(schema.accoladeSectionSelections.createdAt))
+        .limit(50);
+      
+      let formattedSelections: any[] = [];
+      if (selections.length > 0) {
+        const selEditionIds = [...new Set(selections.map(s => s.editionId))];
+        const selSectionIds = [...new Set(selections.map(s => s.sectionId))];
+        const selMovieIds = [...new Set(selections.map(s => s.movieId))];
+        
+        const selEditions = await db.select().from(schema.accoladeEditions).where(buildInClause(schema.accoladeEditions.id, selEditionIds));
+        const selSections = await db.select().from(schema.accoladeSections).where(buildInClause(schema.accoladeSections.id, selSectionIds));
+        const selSectionTrans = await db.select().from(schema.accoladeSectionTranslations).where(buildInClause(schema.accoladeSectionTranslations.sectionId, selSectionIds));
+        const selMovies = await db.select().from(schema.movies).where(buildInClause(schema.movies.id, selMovieIds));
+        const selMovieTrans = await db.select().from(schema.movieTranslations).where(buildInClause(schema.movieTranslations.movieId, selMovieIds));
+        
+        const selShowIds = [...new Set(selEditions.map(e => e.eventId))];
+        const selShows = await db.select().from(schema.accoladeEvents).where(buildInClause(schema.accoladeEvents.id, selShowIds));
+        const selShowTrans = await db.select().from(schema.accoladeEventTranslations).where(buildInClause(schema.accoladeEventTranslations.eventId, selShowIds));
+        
+        formattedSelections = selections.map(sel => {
+          const edition = selEditions.find(e => e.id === sel.editionId);
+          const show = edition ? selShows.find(s => s.id === edition.eventId) : null;
+          const section = selSections.find(s => s.id === sel.sectionId);
+          const secTrans = selSectionTrans.filter(t => t.sectionId === sel.sectionId);
+          const movie = selMovies.find(m => m.id === sel.movieId);
+          const mTrans = selMovieTrans.filter(t => t.movieId === sel.movieId);
+          
+          return {
+            id: sel.id,
+            type: 'selection',
+            nominee: movie ? {
+              type: 'movie',
+              id: movie.id,
+              title: buildLocalizedText(mTrans, 'title'),
+              poster_path: movie.posterPath,
+            } : null,
+            section: section ? {
+              id: section.id,
+              name: buildLocalizedText(secTrans, 'name'),
+            } : null,
+            show: show ? {
+              id: show.id,
+              name: buildLocalizedText(selShowTrans.filter(t => t.eventId === show.id), 'name'),
+              country: show.country,
+            } : null,
+            edition: edition ? {
+              id: edition.id,
+              year: edition.year,
+              edition_number: edition.editionNumber,
+            } : null,
+          };
+        });
+      }
+      
+      return { winners: formattedWinners, selections: formattedSelections };
     } catch (error) {
       fastify.log.error(error);
       return sendInternalError(reply, 'Failed to fetch winners');
@@ -340,7 +414,7 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
     Body: {
       nomination_id: string;
     };
-  }>('/awards/nominations/set-winner', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  }>('/accolades/nominations/set-winner', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { nomination_id } = request.body;
       
@@ -348,23 +422,23 @@ export default async function awardNominationsRoutes(fastify: FastifyInstance) {
         return sendBadRequest(reply, 'nomination_id is required');
       }
       
-      const [nomination] = await db.select().from(schema.awardNominations).where(eq(schema.awardNominations.id, nomination_id)).limit(1);
+      const [nomination] = await db.select().from(schema.accoladeNominations).where(eq(schema.accoladeNominations.id, nomination_id)).limit(1);
       if (!nomination) {
         return sendNotFound(reply, 'Nomination not found');
       }
       
       // Clear any existing winners in this category for this edition
-      await db.update(schema.awardNominations)
+      await db.update(schema.accoladeNominations)
         .set({ isWinner: false, updatedAt: new Date() })
         .where(and(
-          eq(schema.awardNominations.editionId, nomination.editionId),
-          eq(schema.awardNominations.categoryId, nomination.categoryId)
+          eq(schema.accoladeNominations.editionId, nomination.editionId),
+          eq(schema.accoladeNominations.categoryId, nomination.categoryId)
         ));
       
       // Set the new winner
-      await db.update(schema.awardNominations)
+      await db.update(schema.accoladeNominations)
         .set({ isWinner: true, updatedAt: new Date() })
-        .where(eq(schema.awardNominations.id, nomination_id));
+        .where(eq(schema.accoladeNominations.id, nomination_id));
       
       // Log audit event
       await logAuditFromRequest(

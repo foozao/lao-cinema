@@ -288,6 +288,27 @@
       "when": 1767092054768,
       "tag": "0040_flimsy_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1735581600000,
+      "tag": "0041_rename_awards_to_accolades",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1735585020000,
+      "tag": "0042_add_accolade_sections",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1735580880000,
+      "tag": "0043_add_section_id_to_categories",
+      "breakpoints": true
     }
   ]
 }

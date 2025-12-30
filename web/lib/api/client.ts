@@ -8,11 +8,13 @@ import type {
   ProductionCompany,
   ShortPack,
   ShortPackSummary,
-  AwardShow,
-  AwardEdition,
-  AwardCategory,
-  AwardNomination,
-  AwardEditionDetail,
+  AccoladeEvent,
+  AccoladeEdition,
+  AccoladeCategory,
+  AccoladeNomination,
+  AccoladeEditionDetail,
+  AccoladeSection,
+  AccoladeSectionSelection,
   Trailer,
   SubtitleTrack,
   MovieImage,
@@ -429,19 +431,19 @@ export const shortPacksAPI = {
     }),
 };
 
-// Awards API methods
-export const awardsAPI = {
+// Accolades API methods
+export const accoladesAPI = {
   // ==========================================================================
-  // SHOWS
+  // EVENTS
   // ==========================================================================
   
-  // Get all award shows
-  getShows: () => fetchAPI<{ shows: AwardShow[] }>('/awards/shows'),
+  // Get all accolade events
+  getShows: () => fetchAPI<{ shows: AccoladeEvent[] }>('/accolades/events'),
   
-  // Get single award show with editions and categories
-  getShow: (id: string) => fetchAPI<AwardShow>(`/awards/shows/${id}`),
+  // Get single accolade event with editions and categories
+  getShow: (id: string) => fetchAPI<AccoladeEvent>(`/accolades/events/${id}`),
   
-  // Create award show
+  // Create accolade event
   createShow: (data: {
     slug?: string;
     name: { en: string; lo?: string };
@@ -450,12 +452,12 @@ export const awardsAPI = {
     city?: string;
     website_url?: string;
     logo_path?: string;
-  }) => fetchAPI<AwardShow>('/awards/shows', {
+  }) => fetchAPI<AccoladeEvent>('/accolades/events', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
   
-  // Update award show
+  // Update accolade event
   updateShow: (id: string, data: {
     slug?: string;
     name?: { en?: string; lo?: string };
@@ -464,13 +466,13 @@ export const awardsAPI = {
     city?: string;
     website_url?: string;
     logo_path?: string;
-  }) => fetchAPI<AwardShow>(`/awards/shows/${id}`, {
+  }) => fetchAPI<AccoladeEvent>(`/accolades/events/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   
-  // Delete award show
-  deleteShow: (id: string) => fetchAPI<{ success: boolean }>(`/awards/shows/${id}`, {
+  // Delete accolade event
+  deleteShow: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/events/${id}`, {
     method: 'DELETE',
   }),
 
@@ -479,18 +481,18 @@ export const awardsAPI = {
   // ==========================================================================
   
   // Get edition with full nominations
-  getEdition: (id: string) => fetchAPI<AwardEditionDetail>(`/awards/editions/${id}`),
+  getEdition: (id: string) => fetchAPI<AccoladeEditionDetail>(`/accolades/editions/${id}`),
   
   // Create edition
   createEdition: (data: {
-    show_id: string;
+    event_id: string;
     year: number;
     edition_number?: number;
     name?: { en?: string; lo?: string };
     theme?: { en?: string; lo?: string };
     start_date?: string;
     end_date?: string;
-  }) => fetchAPI<AwardEdition>('/awards/editions', {
+  }) => fetchAPI<AccoladeEdition>('/accolades/editions', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -503,13 +505,13 @@ export const awardsAPI = {
     theme?: { en?: string; lo?: string };
     start_date?: string;
     end_date?: string;
-  }) => fetchAPI<AwardEdition>(`/awards/editions/${id}`, {
+  }) => fetchAPI<AccoladeEdition>(`/accolades/editions/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   
   // Delete edition
-  deleteEdition: (id: string) => fetchAPI<{ success: boolean }>(`/awards/editions/${id}`, {
+  deleteEdition: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/editions/${id}`, {
     method: 'DELETE',
   }),
 
@@ -519,29 +521,31 @@ export const awardsAPI = {
   
   // Create category
   createCategory: (data: {
-    show_id: string;
+    event_id: string;
+    section_id?: string; // Optional - if set, category is scoped to this section
     name: { en: string; lo?: string };
     description?: { en?: string; lo?: string };
     nominee_type: 'person' | 'movie';
     sort_order?: number;
-  }) => fetchAPI<AwardCategory>('/awards/categories', {
+  }) => fetchAPI<AccoladeCategory>('/accolades/categories', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
   
   // Update category
   updateCategory: (id: string, data: {
+    section_id?: string | null; // Can set to null to make it event-wide
     name?: { en?: string; lo?: string };
     description?: { en?: string; lo?: string };
     nominee_type?: 'person' | 'movie';
     sort_order?: number;
-  }) => fetchAPI<AwardCategory>(`/awards/categories/${id}`, {
+  }) => fetchAPI<AccoladeCategory>(`/accolades/categories/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   
   // Delete category
-  deleteCategory: (id: string) => fetchAPI<{ success: boolean }>(`/awards/categories/${id}`, {
+  deleteCategory: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/categories/${id}`, {
     method: 'DELETE',
   }),
 
@@ -561,7 +565,7 @@ export const awardsAPI = {
     recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
-  }) => fetchAPI<AwardNomination>('/awards/nominations', {
+  }) => fetchAPI<AccoladeNomination>('/accolades/nominations', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -576,25 +580,79 @@ export const awardsAPI = {
     recognition_type?: { en?: string; lo?: string };
     is_winner?: boolean;
     sort_order?: number;
-  }) => fetchAPI<AwardNomination>(`/awards/nominations/${id}`, {
+  }) => fetchAPI<AccoladeNomination>(`/accolades/nominations/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   
   // Delete nomination
-  deleteNomination: (id: string) => fetchAPI<{ success: boolean }>(`/awards/nominations/${id}`, {
+  deleteNomination: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/nominations/${id}`, {
     method: 'DELETE',
   }),
   
   // Set winner for a category
-  setWinner: (nomination_id: string) => fetchAPI<{ success: boolean }>('/awards/nominations/set-winner', {
+  setWinner: (nomination_id: string) => fetchAPI<{ success: boolean }>('/accolades/nominations/set-winner', {
     method: 'POST',
     body: JSON.stringify({ nomination_id }),
   }),
   
-  // Get all winners across all awards (for showcase)
-  getWinners: () => fetchAPI<{ winners: AwardNomination[] }>('/awards/winners'),
+  // Get all winners across all accolades (for showcase)
+  getWinners: () => fetchAPI<{ winners: AccoladeNomination[]; selections: any[] }>('/accolades/winners'),
+
+  // ==========================================================================
+  // SECTIONS (festival program tracks - non-competitive)
+  // ==========================================================================
+  
+  // Create section
+  createSection: (data: {
+    event_id: string;
+    name: { en: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    sort_order?: number;
+  }) => fetchAPI<AccoladeSection>('/accolades/sections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update section
+  updateSection: (id: string, data: {
+    name?: { en?: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    sort_order?: number;
+  }) => fetchAPI<AccoladeSection>(`/accolades/sections/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete section
+  deleteSection: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/sections/${id}`, {
+    method: 'DELETE',
+  }),
+  
+  // ==========================================================================
+  // SECTION SELECTIONS (adding movies to sections)
+  // ==========================================================================
+  
+  // Add movie to section
+  addMovieToSection: (data: {
+    section_id: string;
+    edition_id: string;
+    movie_id: string;
+    notes?: { en?: string; lo?: string };
+    sort_order?: number;
+  }) => fetchAPI<AccoladeSectionSelection>('/accolades/sections/selections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Remove movie from section
+  removeMovieFromSection: (selectionId: string) => fetchAPI<{ success: boolean }>(`/accolades/sections/selections/${selectionId}`, {
+    method: 'DELETE',
+  }),
 };
+
+// Backward compatibility alias
+export const awardsAPI = accoladesAPI;
 
 // Homepage API methods
 export const homepageAPI = {

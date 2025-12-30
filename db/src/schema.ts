@@ -618,14 +618,14 @@ export type HomepageSettings = typeof homepageSettings.$inferSelect;
 export type NewHomepageSettings = typeof homepageSettings.$inferInsert;
 
 // =============================================================================
-// AWARDS SYSTEM
+// ACCOLADES SYSTEM
 // =============================================================================
 
-// Award nomination type enum - what kind of nomination this is
-export const awardNomineeTypeEnum = pgEnum('award_nominee_type', ['person', 'movie']);
+// Accolade nomination type enum - what kind of nomination this is
+export const accoladeNomineeTypeEnum = pgEnum('accolade_nominee_type', ['person', 'movie']);
 
-// Award shows table - The award ceremony/festival (e.g., "Luang Prabang Film Festival")
-export const awardShows = pgTable('award_shows', {
+// Accolade events table - The award ceremony/festival (e.g., "Luang Prabang Film Festival")
+export const accoladeEvents = pgTable('accolade_events', {
   id: uuid('id').defaultRandom().primaryKey(),
   slug: text('slug').unique(), // Vanity URL (e.g., 'lpff')
   country: text('country'), // ISO 3166-1 country code
@@ -636,22 +636,22 @@ export const awardShows = pgTable('award_shows', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Award show translations table
-export const awardShowTranslations = pgTable('award_show_translations', {
-  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
+// Accolade event translations table
+export const accoladeEventTranslations = pgTable('accolade_event_translations', {
+  eventId: uuid('event_id').references(() => accoladeEvents.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  pk: primaryKey({ columns: [table.showId, table.language] }),
+  pk: primaryKey({ columns: [table.eventId, table.language] }),
 }));
 
-// Award editions table - A specific year/edition of the show (e.g., "2024 LPFF")
-export const awardEditions = pgTable('award_editions', {
+// Accolade editions table - A specific year/edition of the event (e.g., "2024 LPFF")
+export const accoladeEditions = pgTable('accolade_editions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
+  eventId: uuid('event_id').references(() => accoladeEvents.id, { onDelete: 'cascade' }).notNull(),
   year: integer('year').notNull(), // The year of this edition
   editionNumber: integer('edition_number'), // Optional edition number (e.g., "14th Annual")
   startDate: text('start_date'), // ISO date string
@@ -660,9 +660,9 @@ export const awardEditions = pgTable('award_editions', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Award edition translations table
-export const awardEditionTranslations = pgTable('award_edition_translations', {
-  editionId: uuid('edition_id').references(() => awardEditions.id, { onDelete: 'cascade' }).notNull(),
+// Accolade edition translations table
+export const accoladeEditionTranslations = pgTable('accolade_edition_translations', {
+  editionId: uuid('edition_id').references(() => accoladeEditions.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   name: text('name'), // Optional override name (e.g., "Special Anniversary Edition")
   theme: text('theme'), // Optional theme for this edition
@@ -672,19 +672,20 @@ export const awardEditionTranslations = pgTable('award_edition_translations', {
   pk: primaryKey({ columns: [table.editionId, table.language] }),
 }));
 
-// Award categories table - Types of awards (e.g., "Best Director", "Best Actor")
-export const awardCategories = pgTable('award_categories', {
+// Accolade categories table - Types of accolades (e.g., "Best Director", "Best Actor")
+export const accoladeCategories = pgTable('accolade_categories', {
   id: uuid('id').defaultRandom().primaryKey(),
-  showId: uuid('show_id').references(() => awardShows.id, { onDelete: 'cascade' }).notNull(),
-  nomineeType: awardNomineeTypeEnum('nominee_type').notNull(), // 'person' or 'movie'
+  eventId: uuid('event_id').references(() => accoladeEvents.id, { onDelete: 'cascade' }).notNull(),
+  sectionId: uuid('section_id').references(() => accoladeSections.id, { onDelete: 'cascade' }), // Optional - if set, category is section-specific
+  nomineeType: accoladeNomineeTypeEnum('nominee_type').notNull(), // 'person' or 'movie'
   sortOrder: integer('sort_order').default(0), // Display order
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Award category translations table
-export const awardCategoryTranslations = pgTable('award_category_translations', {
-  categoryId: uuid('category_id').references(() => awardCategories.id, { onDelete: 'cascade' }).notNull(),
+// Accolade category translations table
+export const accoladeCategoryTranslations = pgTable('accolade_category_translations', {
+  categoryId: uuid('category_id').references(() => accoladeCategories.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   name: text('name').notNull(),
   description: text('description'),
@@ -694,11 +695,11 @@ export const awardCategoryTranslations = pgTable('award_category_translations', 
   pk: primaryKey({ columns: [table.categoryId, table.language] }),
 }));
 
-// Award nominations table - The actual nominations and winners
-export const awardNominations = pgTable('award_nominations', {
+// Accolade nominations table - The actual nominations and winners
+export const accoladeNominations = pgTable('accolade_nominations', {
   id: uuid('id').defaultRandom().primaryKey(),
-  editionId: uuid('edition_id').references(() => awardEditions.id, { onDelete: 'cascade' }).notNull(),
-  categoryId: uuid('category_id').references(() => awardCategories.id, { onDelete: 'cascade' }).notNull(),
+  editionId: uuid('edition_id').references(() => accoladeEditions.id, { onDelete: 'cascade' }).notNull(),
+  categoryId: uuid('category_id').references(() => accoladeCategories.id, { onDelete: 'cascade' }).notNull(),
   
   // The nominee - either a person OR a movie (based on category's nomineeType)
   personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }), // Nullable
@@ -713,9 +714,9 @@ export const awardNominations = pgTable('award_nominations', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Award nomination translations table - For custom nomination notes/work titles
-export const awardNominationTranslations = pgTable('award_nomination_translations', {
-  nominationId: uuid('nomination_id').references(() => awardNominations.id, { onDelete: 'cascade' }).notNull(),
+// Accolade nomination translations table - For custom nomination notes/work titles
+export const accoladeNominationTranslations = pgTable('accolade_nomination_translations', {
+  nominationId: uuid('nomination_id').references(() => accoladeNominations.id, { onDelete: 'cascade' }).notNull(),
   language: languageEnum('language').notNull(),
   workTitle: text('work_title'), // Custom work title if different from movie title
   notes: text('notes'), // Additional notes about the nomination
@@ -726,23 +727,80 @@ export const awardNominationTranslations = pgTable('award_nomination_translation
   pk: primaryKey({ columns: [table.nominationId, table.language] }),
 }));
 
+// =============================================================================
+// ACCOLADE SECTIONS (for festival program tracks - non-competitive)
+// =============================================================================
+
+// Accolade sections table - Festival program sections (e.g., "Official Selection", "Panorama")
+export const accoladeSections = pgTable('accolade_sections', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventId: uuid('event_id').references(() => accoladeEvents.id, { onDelete: 'cascade' }).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Accolade section translations table
+export const accoladeSectionTranslations = pgTable('accolade_section_translations', {
+  sectionId: uuid('section_id').references(() => accoladeSections.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.sectionId, table.language] }),
+}));
+
+// Accolade section selections - Movies selected for a section in a specific edition
+export const accoladeSectionSelections = pgTable('accolade_section_selections', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sectionId: uuid('section_id').references(() => accoladeSections.id, { onDelete: 'cascade' }).notNull(),
+  editionId: uuid('edition_id').references(() => accoladeEditions.id, { onDelete: 'cascade' }).notNull(),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Accolade section selection translations - Optional notes about a selection
+export const accoladeSectionSelectionTranslations = pgTable('accolade_section_selection_translations', {
+  selectionId: uuid('selection_id').references(() => accoladeSectionSelections.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  notes: text('notes'), // Optional notes about the selection
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.selectionId, table.language] }),
+}));
+
 // Types for TypeScript
-export type AwardShow = typeof awardShows.$inferSelect;
-export type NewAwardShow = typeof awardShows.$inferInsert;
-export type AwardShowTranslation = typeof awardShowTranslations.$inferSelect;
-export type NewAwardShowTranslation = typeof awardShowTranslations.$inferInsert;
+export type AccoladeEvent = typeof accoladeEvents.$inferSelect;
+export type NewAccoladeEvent = typeof accoladeEvents.$inferInsert;
+export type AccoladeEventTranslation = typeof accoladeEventTranslations.$inferSelect;
+export type NewAccoladeEventTranslation = typeof accoladeEventTranslations.$inferInsert;
 
-export type AwardEdition = typeof awardEditions.$inferSelect;
-export type NewAwardEdition = typeof awardEditions.$inferInsert;
-export type AwardEditionTranslation = typeof awardEditionTranslations.$inferSelect;
-export type NewAwardEditionTranslation = typeof awardEditionTranslations.$inferInsert;
+export type AccoladeEdition = typeof accoladeEditions.$inferSelect;
+export type NewAccoladeEdition = typeof accoladeEditions.$inferInsert;
+export type AccoladeEditionTranslation = typeof accoladeEditionTranslations.$inferSelect;
+export type NewAccoladeEditionTranslation = typeof accoladeEditionTranslations.$inferInsert;
 
-export type AwardCategory = typeof awardCategories.$inferSelect;
-export type NewAwardCategory = typeof awardCategories.$inferInsert;
-export type AwardCategoryTranslation = typeof awardCategoryTranslations.$inferSelect;
-export type NewAwardCategoryTranslation = typeof awardCategoryTranslations.$inferInsert;
+export type AccoladeCategory = typeof accoladeCategories.$inferSelect;
+export type NewAccoladeCategory = typeof accoladeCategories.$inferInsert;
+export type AccoladeCategoryTranslation = typeof accoladeCategoryTranslations.$inferSelect;
+export type NewAccoladeCategoryTranslation = typeof accoladeCategoryTranslations.$inferInsert;
 
-export type AwardNomination = typeof awardNominations.$inferSelect;
-export type NewAwardNomination = typeof awardNominations.$inferInsert;
-export type AwardNominationTranslation = typeof awardNominationTranslations.$inferSelect;
-export type NewAwardNominationTranslation = typeof awardNominationTranslations.$inferInsert;
+export type AccoladeNomination = typeof accoladeNominations.$inferSelect;
+export type NewAccoladeNomination = typeof accoladeNominations.$inferInsert;
+export type AccoladeNominationTranslation = typeof accoladeNominationTranslations.$inferSelect;
+export type NewAccoladeNominationTranslation = typeof accoladeNominationTranslations.$inferInsert;
+
+export type AccoladeSection = typeof accoladeSections.$inferSelect;
+export type NewAccoladeSection = typeof accoladeSections.$inferInsert;
+export type AccoladeSectionTranslation = typeof accoladeSectionTranslations.$inferSelect;
+export type NewAccoladeSectionTranslation = typeof accoladeSectionTranslations.$inferInsert;
+
+export type AccoladeSectionSelection = typeof accoladeSectionSelections.$inferSelect;
+export type NewAccoladeSectionSelection = typeof accoladeSectionSelections.$inferInsert;
+export type AccoladeSectionSelectionTranslation = typeof accoladeSectionSelectionTranslations.$inferSelect;
+export type NewAccoladeSectionSelectionTranslation = typeof accoladeSectionSelectionTranslations.$inferInsert;

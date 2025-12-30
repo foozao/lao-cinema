@@ -25,7 +25,7 @@ import shortPackRoutes from './routes/short-packs.js';
 import watchlistRoutes from './routes/watchlist.js';
 import genreRoutes from './routes/genres.js';
 import testErrorRoutes from './routes/test-error.js';
-import awardsRoutes from './routes/awards.js';
+import accoladesRoutes from './routes/accolades.js';
 import movieSubtitleRoutes from './routes/movie-subtitles.js';
 import subtitlesRoutes from './routes/subtitles.js';
 import anonymousIdRoutes from './routes/anonymous-id.js';
@@ -129,7 +129,7 @@ await fastify.register(shortPackRoutes, { prefix: '/api' });
 await fastify.register(watchlistRoutes, { prefix: '/api' });
 await fastify.register(genreRoutes, { prefix: '/api' });
 await fastify.register(testErrorRoutes, { prefix: '/api' });
-await fastify.register(awardsRoutes, { prefix: '/api' });
+await fastify.register(accoladesRoutes, { prefix: '/api' });
 await fastify.register(movieSubtitleRoutes);
 await fastify.register(subtitlesRoutes, { prefix: '/api' });
 

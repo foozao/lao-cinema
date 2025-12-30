@@ -9,7 +9,7 @@ import { awardsAPI, movieAPI } from '@/lib/api/client';
 import { PersonSearch } from '@/components/admin/person-search';
 import { 
   Plus, Pencil, Trash2, ChevronDown, ChevronRight, Trophy, Calendar, 
-  User, Film, Award, ArrowLeft, Check, X
+  User, Film, Award, ArrowLeft, Check, X, Layers
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { getLocalizedText } from '@/lib/i18n';
@@ -21,7 +21,8 @@ import type {
   AwardCategory, 
   AwardNomination,
   AwardCategoryWithNominations,
-  AwardEditionDetail 
+  AwardEditionDetail,
+  AccoladeSection
 } from '@/lib/types';
 
 export default function AdminAwardShowPage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +49,21 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     end_date: '',
   });
 
+  // Section form (for festival program tracks)
+  const [showSectionForm, setShowSectionForm] = useState(false);
+  const [editingSection, setEditingSection] = useState<AccoladeSection | null>(null);
+  const [sectionForm, setSectionForm] = useState({
+    nameEn: '',
+    nameLo: '',
+    descriptionEn: '',
+    descriptionLo: '',
+    sort_order: 0,
+  });
+
+  // Section selection state (adding movies to sections)
+  const [addingSelectionTo, setAddingSelectionTo] = useState<string | null>(null);
+  const [selectionMovieId, setSelectionMovieId] = useState('');
+
   // Category form
   const [categoryForm, setCategoryForm] = useState({
     nameEn: '',
@@ -55,6 +71,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     descriptionEn: '',
     descriptionLo: '',
     nominee_type: 'person' as 'person' | 'movie',
+    section_id: '' as string, // Empty string = event-wide, otherwise section-specific
     sort_order: 0,
   });
 
@@ -139,7 +156,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     try {
       setSaving(true);
       const data = {
-        show_id: show.id,
+        event_id: show.id,
         year: editionForm.year,
         edition_number: editionForm.edition_number ? parseInt(editionForm.edition_number) : undefined,
         name: editionForm.nameEn || editionForm.nameLo
@@ -188,6 +205,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       descriptionEn: '',
       descriptionLo: '',
       nominee_type: 'person',
+      section_id: '',
       sort_order: 0,
     });
     setEditingCategory(null);
@@ -202,6 +220,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       descriptionEn: category.description?.en || '',
       descriptionLo: category.description?.lo || '',
       nominee_type: category.nominee_type,
+      section_id: category.section_id || '',
       sort_order: category.sort_order,
     });
     setShowCategoryForm(true);
@@ -214,7 +233,8 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     try {
       setSaving(true);
       const data = {
-        show_id: show.id,
+        event_id: show.id,
+        section_id: categoryForm.section_id || undefined, // Empty string becomes undefined (event-wide)
         name: { en: categoryForm.nameEn, lo: categoryForm.nameLo || undefined },
         description: categoryForm.descriptionEn || categoryForm.descriptionLo
           ? { en: categoryForm.descriptionEn || undefined, lo: categoryForm.descriptionLo || undefined }
@@ -224,7 +244,10 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       };
 
       if (editingCategory) {
-        await awardsAPI.updateCategory(editingCategory.id, data);
+        await awardsAPI.updateCategory(editingCategory.id, {
+          ...data,
+          section_id: categoryForm.section_id || null, // For update, null = event-wide
+        });
       } else {
         await awardsAPI.createCategory(data);
       }
@@ -254,6 +277,110 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       console.error('Failed to delete category:', error);
       alert('Failed to delete category');
+    }
+  };
+
+  // Section handlers (for festival program tracks)
+  const resetSectionForm = () => {
+    setSectionForm({
+      nameEn: '',
+      nameLo: '',
+      descriptionEn: '',
+      descriptionLo: '',
+      sort_order: 0,
+    });
+    setEditingSection(null);
+    setShowSectionForm(false);
+  };
+
+  const handleEditSection = (section: AccoladeSection) => {
+    setEditingSection(section);
+    setSectionForm({
+      nameEn: section.name.en || '',
+      nameLo: section.name.lo || '',
+      descriptionEn: section.description?.en || '',
+      descriptionLo: section.description?.lo || '',
+      sort_order: section.sort_order,
+    });
+    setShowSectionForm(true);
+  };
+
+  const handleSubmitSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!show || !sectionForm.nameEn) return;
+
+    try {
+      setSaving(true);
+      const data = {
+        event_id: show.id,
+        name: { en: sectionForm.nameEn, lo: sectionForm.nameLo || undefined },
+        description: sectionForm.descriptionEn || sectionForm.descriptionLo
+          ? { en: sectionForm.descriptionEn || undefined, lo: sectionForm.descriptionLo || undefined }
+          : undefined,
+        sort_order: sectionForm.sort_order,
+      };
+
+      if (editingSection) {
+        await awardsAPI.updateSection(editingSection.id, data);
+      } else {
+        await awardsAPI.createSection(data);
+      }
+
+      await loadShow();
+      resetSectionForm();
+    } catch (error) {
+      console.error('Failed to save section:', error);
+      alert('Failed to save section');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSection = async (section: AccoladeSection) => {
+    if (!confirm(`Delete "${section.name.en}"? This will delete all selections in this section.`)) return;
+
+    try {
+      await awardsAPI.deleteSection(section.id);
+      await loadShow();
+    } catch (error) {
+      console.error('Failed to delete section:', error);
+      alert('Failed to delete section');
+    }
+  };
+
+  // Section selection handlers (adding movies to sections)
+  const handleAddMovieToSection = async (sectionId: string) => {
+    if (!selectedEdition || !selectionMovieId) return;
+    
+    try {
+      setSaving(true);
+      await awardsAPI.addMovieToSection({
+        section_id: sectionId,
+        edition_id: selectedEdition.id,
+        movie_id: selectionMovieId,
+      });
+      await loadEdition(selectedEdition.id);
+      setAddingSelectionTo(null);
+      setSelectionMovieId('');
+    } catch (error) {
+      console.error('Failed to add movie to section:', error);
+      alert('Failed to add movie to section');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveMovieFromSection = async (selectionId: string) => {
+    if (!confirm('Remove this film from the section?')) return;
+    
+    try {
+      await awardsAPI.removeMovieFromSection(selectionId);
+      if (selectedEdition) {
+        await loadEdition(selectedEdition.id);
+      }
+    } catch (error) {
+      console.error('Failed to remove movie from section:', error);
+      alert('Failed to remove movie from section');
     }
   };
 
@@ -368,11 +495,11 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
   if (!show) {
     return (
       <div className="p-6">
-        <p className="text-red-600">Award show not found</p>
-        <Link href="/admin/awards">
+        <p className="text-red-600">Accolade event not found</p>
+        <Link href="/admin/accolades">
           <Button variant="outline" className="mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Awards
+            Back to Accolades
           </Button>
         </Link>
       </div>
@@ -552,6 +679,21 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                       <option value="movie">Movie (Best Film, etc.)</option>
                     </select>
                   </div>
+                  <div>
+                    <Label className="text-xs">Scope</Label>
+                    <select
+                      value={categoryForm.section_id}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, section_id: e.target.value })}
+                      className="w-full h-8 px-2 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="">Event-wide (General)</option>
+                      {show.sections?.map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name.en} (Section)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving || !categoryForm.nameEn}>
                       {saving ? 'Saving...' : editingCategory ? 'Update' : 'Add'}
@@ -566,23 +708,119 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
               {(show.categories?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No categories yet</p>
               ) : (
-                show.categories?.map((category) => (
-                  <div key={category.id} className="p-3 bg-gray-50 rounded-lg">
+                show.categories?.map((category) => {
+                  const section = category.section_id 
+                    ? show.sections?.find(s => s.id === category.section_id) 
+                    : null;
+                  return (
+                    <div key={category.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {category.nominee_type === 'person' ? (
+                            <User className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <Film className="w-4 h-4 text-gray-500" />
+                          )}
+                          <span className="font-medium text-sm">{category.name.en}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => handleEditCategory(category)}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteCategory(category)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      {section && (
+                        <p className="text-xs text-amber-700 mt-1 ml-6 flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          {section.name.en}
+                        </p>
+                      )}
+                      {!section && category.name.lo && (
+                        <p className="text-xs text-gray-600 mt-1 ml-6">{category.name.lo}</p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Sections (Festival Program Tracks) */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                Sections
+              </CardTitle>
+              <Button size="sm" onClick={() => setShowSectionForm(true)}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-gray-500 mb-2">
+                Optional: For festival program tracks like &quot;Official Selection&quot;, &quot;Panorama&quot;, etc.
+              </p>
+              {showSectionForm && (
+                <form onSubmit={handleSubmitSection} className="p-3 bg-gray-50 rounded-lg space-y-3 mb-4">
+                  <div>
+                    <Label className="text-xs">Name (English) *</Label>
+                    <Input
+                      value={sectionForm.nameEn}
+                      onChange={(e) => setSectionForm({ ...sectionForm, nameEn: e.target.value })}
+                      placeholder="e.g., Official Selection"
+                      className="h-8"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Name (Lao)</Label>
+                    <Input
+                      value={sectionForm.nameLo}
+                      onChange={(e) => setSectionForm({ ...sectionForm, nameLo: e.target.value })}
+                      placeholder="ຊື່ພາກ"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm" disabled={saving || !sectionForm.nameEn}>
+                      {saving ? 'Saving...' : editingSection ? 'Update' : 'Add'}
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={resetSectionForm}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {(show.sections?.length ?? 0) === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">No sections yet</p>
+              ) : (
+                show.sections?.map((section: AccoladeSection) => (
+                  <div key={section.id} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {category.nominee_type === 'person' ? (
-                          <User className="w-4 h-4 text-gray-500" />
-                        ) : (
-                          <Film className="w-4 h-4 text-gray-500" />
-                        )}
-                        <span className="font-medium text-sm">{category.name.en}</span>
+                        <Layers className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-sm">{section.name.en}</span>
                       </div>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0"
-                          onClick={() => handleEditCategory(category)}
+                          onClick={() => handleEditSection(section)}
                         >
                           <Pencil className="w-3 h-3" />
                         </Button>
@@ -590,14 +828,14 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteCategory(category)}
+                          onClick={() => handleDeleteSection(section)}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
-                    {category.name.lo && (
-                      <p className="text-xs text-gray-600 mt-1 ml-6">{category.name.lo}</p>
+                    {section.name.lo && (
+                      <p className="text-xs text-gray-600 mt-1 ml-6">{section.name.lo}</p>
                     )}
                   </div>
                 ))
@@ -642,12 +880,268 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {selectedEdition.categories.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    No categories defined. Add categories in the sidebar first.
-                  </p>
-                ) : (
-                  selectedEdition.categories.map((category) => (
+                {/* Sections (Festival Program Tracks) */}
+                {(selectedEdition.sections?.length ?? 0) > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                      <Layers className="w-4 h-4" />
+                      Festival Sections
+                    </h3>
+                    {selectedEdition.sections?.map((section) => (
+                      <div key={section.id} className="border rounded-lg">
+                        <div className="p-4 bg-blue-50 border-b flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-5 h-5 text-blue-600" />
+                            <h4 className="font-semibold">{section.name.en}</h4>
+                            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
+                              {section.selections.length} film{section.selections.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAddingSelectionTo(
+                              addingSelectionTo === section.id ? null : section.id
+                            )}
+                          >
+                            {addingSelectionTo === section.id ? (
+                              <>
+                                <X className="w-4 h-4 mr-1" />
+                                Cancel
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Film
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Add movie to section form */}
+                        {addingSelectionTo === section.id && (
+                          <div className="p-4 border-b bg-blue-50/50 space-y-3">
+                            <div>
+                              <Label className="text-sm">Select Movie</Label>
+                              <select
+                                value={selectionMovieId}
+                                onChange={(e) => setSelectionMovieId(e.target.value)}
+                                className="w-full h-9 px-3 border border-gray-300 rounded-md text-sm"
+                              >
+                                <option value="">Select a movie...</option>
+                                {movies.map((movie) => (
+                                  <option key={movie.id} value={movie.id}>
+                                    {movie.title?.en || movie.title?.lo || movie.original_title}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                disabled={saving || !selectionMovieId}
+                                onClick={() => handleAddMovieToSection(section.id)}
+                              >
+                                {saving ? 'Adding...' : 'Add Film'}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => {
+                                  setAddingSelectionTo(null);
+                                  setSelectionMovieId('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Selection list */}
+                        <div className="divide-y">
+                          {section.selections.length === 0 ? (
+                            <p className="p-4 text-sm text-gray-500 text-center">
+                              No films in this section yet
+                            </p>
+                          ) : (
+                            section.selections.map((sel) => (
+                              <div key={sel.id} className="p-3 flex items-center gap-3 hover:bg-gray-50">
+                                {(() => {
+                                  const posterUrl = sel.movie?.poster_path ? getPosterUrl(sel.movie.poster_path) : null;
+                                  return posterUrl ? (
+                                    <img src={posterUrl} alt="" className="w-10 h-14 object-cover rounded" />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center">
+                                      <Film className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                  );
+                                })()}
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium">
+                                    {sel.movie?.title?.en || sel.movie?.title?.lo || 'Unknown'}
+                                  </span>
+                                  {sel.movie?.release_date && (
+                                    <span className="text-gray-500 text-sm ml-2">
+                                      ({new Date(sel.movie.release_date).getFullYear()})
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleRemoveMovieFromSection(sel.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Section-specific categories/awards */}
+                        {selectedEdition.categories.filter(c => c.section_id === section.id).length > 0 && (
+                          <div className="border-t">
+                            <div className="p-3 bg-amber-50 border-b">
+                              <h5 className="text-sm font-medium text-amber-800 flex items-center gap-2">
+                                <Award className="w-4 h-4" />
+                                Awards in this Section
+                              </h5>
+                            </div>
+                            {selectedEdition.categories
+                              .filter(c => c.section_id === section.id)
+                              .map((category) => (
+                                <div key={category.id} className="p-3 border-b last:border-b-0">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-medium text-sm">{category.name.en}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7"
+                                      onClick={() => setAddingNominationTo(
+                                        addingNominationTo === category.id ? null : category.id
+                                      )}
+                                    >
+                                      {addingNominationTo === category.id ? (
+                                        <><X className="w-3 h-3 mr-1" />Cancel</>
+                                      ) : (
+                                        <><Plus className="w-3 h-3 mr-1" />Add</>
+                                      )}
+                                    </Button>
+                                  </div>
+                                  
+                                  {/* Nomination form for section-specific category */}
+                                  {addingNominationTo === category.id && (
+                                    <div className="p-3 mb-3 bg-amber-50/50 rounded space-y-2">
+                                      {category.nominee_type === 'person' ? (
+                                        <>
+                                          <div>
+                                            <Label className="text-xs">Select Person</Label>
+                                            <PersonSearch
+                                              onSelect={(person) => setNominationForm({ ...nominationForm, person })}
+                                              placeholder="Search for a person..."
+                                            />
+                                            {nominationForm.person && (
+                                              <div className="mt-1 p-2 bg-white rounded border flex items-center gap-2 text-sm">
+                                                <Check className="w-3 h-3 text-green-600" />
+                                                <span>{nominationForm.person.name.en || nominationForm.person.name.lo}</span>
+                                                <Button variant="ghost" size="sm" className="ml-auto h-5 w-5 p-0" onClick={() => setNominationForm({ ...nominationForm, person: null })}>
+                                                  <X className="w-3 h-3" />
+                                                </Button>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs">For Movie (optional)</Label>
+                                            <select
+                                              value={nominationForm.for_movie_id}
+                                              onChange={(e) => setNominationForm({ ...nominationForm, for_movie_id: e.target.value })}
+                                              className="w-full h-8 px-2 border border-gray-300 rounded-md text-xs"
+                                            >
+                                              <option value="">Select a movie...</option>
+                                              {movies.map((movie) => (
+                                                <option key={movie.id} value={movie.id}>{movie.title?.en || movie.title?.lo || movie.original_title}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div>
+                                          <Label className="text-xs">Select Movie</Label>
+                                          <select
+                                            value={nominationForm.movie_id}
+                                            onChange={(e) => setNominationForm({ ...nominationForm, movie_id: e.target.value })}
+                                            className="w-full h-8 px-2 border border-gray-300 rounded-md text-xs"
+                                          >
+                                            <option value="">Select a movie...</option>
+                                            {movies.map((movie) => (
+                                              <option key={movie.id} value={movie.id}>{movie.title?.en || movie.title?.lo || movie.original_title}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      )}
+                                      <div className="flex gap-2 pt-1">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 text-xs"
+                                          disabled={saving || (category.nominee_type === 'person' ? !nominationForm.person : !nominationForm.movie_id)}
+                                          onClick={() => handleSubmitNomination(category.id, category.nominee_type)}
+                                        >
+                                          {saving ? 'Saving...' : 'Add Nomination'}
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={resetNominationForm}>
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {category.nominations.length === 0 && addingNominationTo !== category.id ? (
+                                    <p className="text-xs text-gray-500">No nominations yet</p>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      {category.nominations.map((nom) => (
+                                        <div key={nom.id} className="text-sm flex items-center gap-2">
+                                          {nom.is_winner && <Trophy className="w-3 h-3 text-yellow-500" />}
+                                          <span>{nom.nominee?.name?.en || nom.nominee?.title?.en || 'Unknown'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Event-wide Categories (Awards/Nominations) - excludes section-specific ones */}
+                {(() => {
+                  const eventWideCategories = selectedEdition.categories.filter(c => !c.section_id);
+                  const hasAnySections = (selectedEdition.sections?.length ?? 0) > 0;
+                  
+                  if (eventWideCategories.length === 0 && !hasAnySections) {
+                    return (
+                      <p className="text-center text-gray-500 py-8">
+                        No categories or sections defined. Add them in the sidebar first.
+                      </p>
+                    );
+                  }
+                  
+                  if (eventWideCategories.length === 0) return null;
+                  
+                  return (
+                    <div className="space-y-4">
+                      {hasAnySections && (
+                        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2 mt-6">
+                          <Award className="w-4 h-4" />
+                          General Awards
+                        </h3>
+                      )}
+                      {eventWideCategories.map((category) => (
                     <div key={category.id} className="border rounded-lg">
                       <div className="p-4 bg-gray-50 border-b flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -892,8 +1386,10 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                         )}
                       </div>
                     </div>
-                  ))
-                )}
+                  ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}

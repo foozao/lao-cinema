@@ -195,12 +195,12 @@ export default function AdminPage() {
         />
 
         <DashboardCard
-          href="/admin/awards"
+          href="/admin/accolades"
           icon={Trophy}
           color="orange"
-          title={t('awards')}
-          description={t('manageAwards')}
-          content={t('awardsDescription')}
+          title={t('accolades')}
+          description={t('manageAccolades')}
+          content={t('accoladesDescription')}
         />
 
         {user?.role === 'admin' && (

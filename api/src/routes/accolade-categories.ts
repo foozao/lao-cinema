@@ -1,4 +1,4 @@
-// Award Categories routes
+// Accolade Categories routes
 
 import { FastifyInstance } from 'fastify';
 import { sendBadRequest, sendNotFound, sendInternalError, sendCreated } from '../lib/response-helpers.js';
@@ -7,36 +7,51 @@ import { eq, and } from 'drizzle-orm';
 import { requireEditorOrAdmin } from '../lib/auth-middleware.js';
 import { logAuditFromRequest } from '../lib/audit-service.js';
 
-export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
+export default async function accoladeCategoriesRoutes(fastify: FastifyInstance) {
   // Create category
   fastify.post<{
     Body: {
-      show_id: string;
+      event_id: string;
+      section_id?: string; // Optional - if provided, category is scoped to this section
       name: { en: string; lo?: string };
       description?: { en?: string; lo?: string };
       nominee_type: 'person' | 'movie';
       sort_order?: number;
     };
-  }>('/awards/categories', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  }>('/accolades/categories', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
-      const { show_id, name, description, nominee_type, sort_order } = request.body;
+      const { event_id, section_id, name, description, nominee_type, sort_order } = request.body;
       
-      if (!show_id || !name?.en || !nominee_type) {
-        return sendBadRequest(reply, 'show_id, English name, and nominee_type are required');
+      if (!event_id || !name?.en || !nominee_type) {
+        return sendBadRequest(reply, 'event_id, English name, and nominee_type are required');
       }
       
-      const [show] = await db.select().from(schema.awardShows).where(eq(schema.awardShows.id, show_id)).limit(1);
+      const [show] = await db.select().from(schema.accoladeEvents).where(eq(schema.accoladeEvents.id, event_id)).limit(1);
       if (!show) {
-        return sendNotFound(reply, 'Award show not found');
+        return sendNotFound(reply, 'Accolade event not found');
       }
       
-      const [newCategory] = await db.insert(schema.awardCategories).values({
-        showId: show_id,
+      // If section_id provided, verify it exists and belongs to this event
+      if (section_id) {
+        const [section] = await db.select().from(schema.accoladeSections)
+          .where(and(
+            eq(schema.accoladeSections.id, section_id),
+            eq(schema.accoladeSections.eventId, event_id)
+          ))
+          .limit(1);
+        if (!section) {
+          return sendNotFound(reply, 'Section not found or does not belong to this event');
+        }
+      }
+      
+      const [newCategory] = await db.insert(schema.accoladeCategories).values({
+        eventId: event_id,
+        sectionId: section_id || null,
         nomineeType: nominee_type,
         sortOrder: sort_order || 0,
       }).returning();
       
-      await db.insert(schema.awardCategoryTranslations).values({
+      await db.insert(schema.accoladeCategoryTranslations).values({
         categoryId: newCategory.id,
         language: 'en',
         name: name.en,
@@ -44,7 +59,7 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       });
       
       if (name.lo) {
-        await db.insert(schema.awardCategoryTranslations).values({
+        await db.insert(schema.accoladeCategoryTranslations).values({
           categoryId: newCategory.id,
           language: 'lo',
           name: name.lo,
@@ -68,7 +83,8 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       
       return sendCreated(reply, {
         id: newCategory.id,
-        show_id: newCategory.showId,
+        event_id: newCategory.eventId,
+        section_id: newCategory.sectionId,
         name,
         description,
         nominee_type: newCategory.nomineeType,
@@ -76,7 +92,7 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       fastify.log.error(error);
-      return sendInternalError(reply, 'Failed to create award category');
+      return sendInternalError(reply, 'Failed to create accolade category');
     }
   });
 
@@ -84,26 +100,41 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
   fastify.put<{
     Params: { id: string };
     Body: {
+      section_id?: string | null; // Can set to null to make it event-wide
       name?: { en?: string; lo?: string };
       description?: { en?: string; lo?: string };
       nominee_type?: 'person' | 'movie';
       sort_order?: number;
     };
-  }>('/awards/categories/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  }>('/accolades/categories/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       const updates = request.body;
       
-      const [existing] = await db.select().from(schema.awardCategories).where(eq(schema.awardCategories.id, id)).limit(1);
+      const [existing] = await db.select().from(schema.accoladeCategories).where(eq(schema.accoladeCategories.id, id)).limit(1);
       if (!existing) {
-        return sendNotFound(reply, 'Award category not found');
+        return sendNotFound(reply, 'Accolade category not found');
+      }
+      
+      // If section_id provided, verify it exists and belongs to this event
+      if (updates.section_id) {
+        const [section] = await db.select().from(schema.accoladeSections)
+          .where(and(
+            eq(schema.accoladeSections.id, updates.section_id),
+            eq(schema.accoladeSections.eventId, existing.eventId)
+          ))
+          .limit(1);
+        if (!section) {
+          return sendNotFound(reply, 'Section not found or does not belong to this event');
+        }
       }
       
       const categoryUpdates: any = { updatedAt: new Date() };
+      if (updates.section_id !== undefined) categoryUpdates.sectionId = updates.section_id;
       if (updates.nominee_type !== undefined) categoryUpdates.nomineeType = updates.nominee_type;
       if (updates.sort_order !== undefined) categoryUpdates.sortOrder = updates.sort_order;
       
-      await db.update(schema.awardCategories).set(categoryUpdates).where(eq(schema.awardCategories.id, id));
+      await db.update(schema.accoladeCategories).set(categoryUpdates).where(eq(schema.accoladeCategories.id, id));
       
       // Update translations
       if (updates.name || updates.description) {
@@ -112,18 +143,18 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
           const descVal = updates.description?.[lang];
           
           if (nameVal !== undefined || descVal !== undefined) {
-            const [existingTrans] = await db.select().from(schema.awardCategoryTranslations)
-              .where(and(eq(schema.awardCategoryTranslations.categoryId, id), eq(schema.awardCategoryTranslations.language, lang)))
+            const [existingTrans] = await db.select().from(schema.accoladeCategoryTranslations)
+              .where(and(eq(schema.accoladeCategoryTranslations.categoryId, id), eq(schema.accoladeCategoryTranslations.language, lang)))
               .limit(1);
             
             if (existingTrans) {
               const transUpdates: any = { updatedAt: new Date() };
               if (nameVal !== undefined) transUpdates.name = nameVal;
               if (descVal !== undefined) transUpdates.description = descVal || null;
-              await db.update(schema.awardCategoryTranslations).set(transUpdates)
-                .where(and(eq(schema.awardCategoryTranslations.categoryId, id), eq(schema.awardCategoryTranslations.language, lang)));
+              await db.update(schema.accoladeCategoryTranslations).set(transUpdates)
+                .where(and(eq(schema.accoladeCategoryTranslations.categoryId, id), eq(schema.accoladeCategoryTranslations.language, lang)));
             } else if (nameVal) {
-              await db.insert(schema.awardCategoryTranslations).values({
+              await db.insert(schema.accoladeCategoryTranslations).values({
                 categoryId: id,
                 language: lang,
                 name: nameVal,
@@ -135,8 +166,8 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       }
       
       // Log audit event
-      const translations = await db.select().from(schema.awardCategoryTranslations)
-        .where(eq(schema.awardCategoryTranslations.categoryId, id));
+      const translations = await db.select().from(schema.accoladeCategoryTranslations)
+        .where(eq(schema.accoladeCategoryTranslations.categoryId, id));
       const categoryName = translations.find(t => t.language === 'en')?.name || 'Unknown';
       await logAuditFromRequest(
         request,
@@ -149,26 +180,26 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
-      return sendInternalError(reply, 'Failed to update award category');
+      return sendInternalError(reply, 'Failed to update accolade category');
     }
   });
 
   // Delete category
-  fastify.delete<{ Params: { id: string } }>('/awards/categories/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/accolades/categories/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
       const { id } = request.params;
       
-      const [existing] = await db.select().from(schema.awardCategories).where(eq(schema.awardCategories.id, id)).limit(1);
+      const [existing] = await db.select().from(schema.accoladeCategories).where(eq(schema.accoladeCategories.id, id)).limit(1);
       if (!existing) {
-        return sendNotFound(reply, 'Award category not found');
+        return sendNotFound(reply, 'Accolade category not found');
       }
       
       // Get category name for audit log before deletion
-      const translations = await db.select().from(schema.awardCategoryTranslations)
-        .where(eq(schema.awardCategoryTranslations.categoryId, id));
+      const translations = await db.select().from(schema.accoladeCategoryTranslations)
+        .where(eq(schema.accoladeCategoryTranslations.categoryId, id));
       const categoryName = translations.find(t => t.language === 'en')?.name || 'Unknown';
       
-      await db.delete(schema.awardCategories).where(eq(schema.awardCategories.id, id));
+      await db.delete(schema.accoladeCategories).where(eq(schema.accoladeCategories.id, id));
       
       // Log audit event
       await logAuditFromRequest(
@@ -186,7 +217,7 @@ export default async function awardCategoriesRoutes(fastify: FastifyInstance) {
       return { success: true, id };
     } catch (error) {
       fastify.log.error(error);
-      return sendInternalError(reply, 'Failed to delete award category');
+      return sendInternalError(reply, 'Failed to delete accolade category');
     }
   });
 }
