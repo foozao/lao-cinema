@@ -33,7 +33,7 @@ test.describe('Homepage', () => {
     await expect(page).toHaveURL(/\/en/);
   });
 
-  test('should display movies on the homepage', async ({ page }) => {
+  test('should display movies on the homepage', async ({ page, request }) => {
     const movie1 = await seedTestMovie({
       titleEn: 'Test Movie 1',
       titleLo: 'ຮູບເງົາທົດສອບ 1',
@@ -47,9 +47,35 @@ test.describe('Homepage', () => {
     await featureMovie(movie1.id, 0);
     await featureMovie(movie2.id, 1);
 
+    // First, verify the API returns the movies directly (bypasses frontend issues)
+    const apiResponse = await request.get('http://localhost:3011/api/homepage/featured');
+    expect(apiResponse.ok()).toBe(true);
+    const apiData = await apiResponse.json();
+    expect(apiData.movies).toHaveLength(2);
+    expect(apiData.movies[0].title.en).toBe('Test Movie 1');
+
+    // Now test the frontend
     await page.goto('/en');
     
-    await expect(page.getByText('Test Movie 1')).toBeVisible({ timeout: 10000 });
+    // Wait for loading to complete - either movies appear or error state
+    await page.waitForLoadState('networkidle');
+    
+    // Check for movie link or error state
+    const hasMovies = await page.locator(`a[href*="/movies/"]`).count() > 0;
+    const hasError = await page.locator('text=No films available').isVisible().catch(() => false);
+    const hasNetworkError = await page.locator('text=Unable to connect').isVisible().catch(() => false);
+    
+    // If frontend shows error but API works, there's a frontend issue
+    if (!hasMovies && (hasError || hasNetworkError)) {
+      console.log('API works but frontend shows error - checking network...');
+      // This is useful for debugging frontend/API connection issues
+    }
+    
+    // Verify at least one movie appears
+    await expect(page.locator(`a[href*="/movies/"]`).first()).toBeVisible({ timeout: 10000 });
+    
+    // Verify the specific movie title (use .last() to get desktop layout - .first() gets mobile which is hidden)
+    await expect(page.getByText('Test Movie 1').last()).toBeVisible();
   });
 
   test('should navigate to movie detail page when clicking a movie', async ({ page }) => {
