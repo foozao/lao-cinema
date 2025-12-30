@@ -6,6 +6,7 @@ import { initSentry } from './lib/sentry.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import { csrfProtection } from './lib/csrf-protection.js';
 import movieRoutes from './routes/movies.js';
 import peopleRoutes from './routes/people.js';
 import personImageRoutes from './routes/person-images.js';
@@ -63,6 +64,9 @@ await fastify.register(cors, {
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true,
 });
+
+// Register CSRF protection (after CORS, before routes)
+fastify.addHook('preHandler', csrfProtection);
 
 // Health check
 fastify.get('/health', async () => {

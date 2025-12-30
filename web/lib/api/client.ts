@@ -1,6 +1,7 @@
 // API client for backend communication
 
 import { API_BASE_URL } from '../config';
+import { getCsrfToken } from '../csrf';
 import type {
   Movie,
   Person,
@@ -55,6 +56,15 @@ async function fetchAPI<T>(
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
+  
+  // Add CSRF token for state-changing requests
+  const method = options.method?.toUpperCase() || 'GET';
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
   
   const response = await fetch(url, {
     ...options,

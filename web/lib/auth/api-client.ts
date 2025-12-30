@@ -6,6 +6,7 @@
  */
 
 import { API_BASE_URL } from '@/lib/config';
+import { getCsrfToken } from '@/lib/csrf';
 import type {
   User,
   AuthResponse,
@@ -42,6 +43,15 @@ async function authFetch(
     headers['Content-Type'] = 'application/json';
   }
   
+  // Add CSRF token for state-changing requests
+  const method = options.method?.toUpperCase() || 'GET';
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  
   return fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
@@ -57,13 +67,9 @@ async function authFetch(
  * Register a new user
  */
 export async function register(credentials: RegisterCredentials): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await authFetch('/auth/register', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(credentials),
-    credentials: 'include', // Receive and store cookie
   });
   
   if (!response.ok) {
@@ -83,13 +89,9 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
  * Login with email and password
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await authFetch('/auth/login', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(credentials),
-    credentials: 'include', // Receive and store cookie
   });
   
   if (!response.ok) {
@@ -111,9 +113,8 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 export async function logout(): Promise<void> {
   if (!isAuthenticatedState) return;
 
-  await fetch(`${API_BASE_URL}/auth/logout`, {
+  await authFetch('/auth/logout', {
     method: 'POST',
-    credentials: 'include', // Send cookie, server will clear it
   });
   
   // Mark as not authenticated (cookie is cleared by server)
@@ -126,9 +127,8 @@ export async function logout(): Promise<void> {
 export async function logoutAll(): Promise<void> {
   if (!isAuthenticatedState) return;
 
-  await fetch(`${API_BASE_URL}/auth/logout-all`, {
+  await authFetch('/auth/logout-all', {
     method: 'POST',
-    credentials: 'include',
   });
   
   // Mark as not authenticated (cookie is cleared by server)
@@ -139,9 +139,7 @@ export async function logoutAll(): Promise<void> {
  * Get current user
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
-    credentials: 'include',
-  });
+  const response = await authFetch('/auth/me');
   
   if (!response.ok) {
     if (response.status === 401) {
@@ -169,13 +167,9 @@ export async function getCurrentUser(): Promise<User> {
  * Update user profile
  */
 export async function updateProfile(data: UpdateProfileData): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+  const response = await authFetch('/auth/me', {
     method: 'PATCH',
     body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -191,13 +185,9 @@ export async function updateProfile(data: UpdateProfileData): Promise<User> {
  * Change password
  */
 export async function changePassword(data: ChangePasswordData): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/me/password`, {
+  const response = await authFetch('/auth/me/password', {
     method: 'PATCH',
     body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -211,13 +201,9 @@ export async function changePassword(data: ChangePasswordData): Promise<void> {
  * Requires password confirmation, resets email verified status
  */
 export async function changeEmail(data: ChangeEmailData): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/auth/me/email`, {
+  const response = await authFetch('/auth/me/email', {
     method: 'PATCH',
     body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -233,13 +219,9 @@ export async function changeEmail(data: ChangeEmailData): Promise<User> {
  * Delete account
  */
 export async function deleteAccount(password: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+  const response = await authFetch('/auth/me', {
     method: 'DELETE',
     body: JSON.stringify({ password }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
   });
   
   // Mark as not authenticated regardless of response
@@ -259,9 +241,7 @@ export async function deleteAccount(password: string): Promise<void> {
  * Get user statistics
  */
 export async function getUserStats(): Promise<UserStats> {
-  const response = await fetch(`${API_BASE_URL}/users/me/stats`, {
-    credentials: 'include',
-  });
+  const response = await authFetch('/users/me/stats');
   
   if (!response.ok) {
     const error = await response.json();
@@ -276,13 +256,9 @@ export async function getUserStats(): Promise<UserStats> {
  * Migrate anonymous data to authenticated account
  */
 export async function migrateAnonymousData(anonymousId: string): Promise<MigrationResult> {
-  const response = await fetch(`${API_BASE_URL}/users/migrate`, {
+  const response = await authFetch('/users/migrate', {
     method: 'POST',
     body: JSON.stringify({ anonymousId }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
   });
   
   if (!response.ok) {
