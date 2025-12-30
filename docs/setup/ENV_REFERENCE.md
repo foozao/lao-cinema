@@ -27,6 +27,10 @@ cp db/.env.example db/.env
 | `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:3001/api` | Backend API base URL |
 | `NEXT_PUBLIC_SITE_URL` | No | `https://laocinema.com` | Site URL for SEO, emails, OAuth callbacks |
 | `NEXT_PUBLIC_TMDB_API_KEY` | No | - | Client-side TMDB key (less secure, avoid if possible) |
+| `NEXT_PUBLIC_SENTRY_DSN` | No | - | Sentry error monitoring DSN (client-side) |
+| `SENTRY_ORG` | CI/CD | - | Sentry organization for source map uploads |
+| `SENTRY_PROJECT` | CI/CD | - | Sentry project name |
+| `SENTRY_AUTH_TOKEN` | CI/CD | - | Sentry auth token for CI/CD |
 
 ### Production (Cloud Run)
 
@@ -53,6 +57,14 @@ Roles: `admin` (full access) or `viewer` (no admin pages)
 | `LOG_LEVEL` | No | `info` | Logging level (`debug`, `info`, `warn`, `error`) |
 | `CORS_ORIGIN` | No | `http://localhost:3000` | Allowed CORS origin |
 | `VIDEO_BASE_URL` | Yes | - | Base URL for video files (see below) |
+| `VIDEO_TOKEN_SECRET` | Yes | - | Secret for signing video access tokens (32+ chars) |
+| `VIDEO_SERVER_URL` | Yes | - | Video server URL for generating signed URLs |
+| `FRONTEND_URL` | Yes | `http://localhost:3000` | Frontend URL for email links |
+| `BREVO_API_KEY` | For email | - | Brevo (Sendinblue) API key for transactional emails |
+| `BREVO_SENDER_EMAIL` | For email | - | Email sender address (e.g., `noreply@mail.laocinema.com`) |
+| `BREVO_SENDER_NAME` | For email | `Lao Cinema` | Email sender display name |
+| `MAX_RENTALS_PER_MOVIE` | No | `50` | Pre-alpha rental limit per movie (0 to disable) |
+| `SENTRY_DSN` | No | - | Sentry error monitoring DSN |
 
 ### Video URL Configuration
 
