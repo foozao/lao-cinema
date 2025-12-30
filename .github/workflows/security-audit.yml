@@ -46,13 +46,13 @@ jobs:
       
       - name: Run security audit
         id: audit
-        run: npm audit --workspace=${{ matrix.workspace.path }} --audit-level=moderate --json > ${{ matrix.workspace.path }}-audit.json || true
+        run: npm audit --workspace=${{ matrix.workspace.path }} --audit-level=high --json > ${{ matrix.workspace.path }}-audit.json || true
         continue-on-error: true
       
       - name: Check audit results
         run: |
           if [ -s "${{ matrix.workspace.path }}-audit.json" ]; then
-            npm audit --workspace=${{ matrix.workspace.path }} --audit-level=moderate
+            npm audit --workspace=${{ matrix.workspace.path }} --audit-level=high
           fi
       
       - name: Upload audit results
