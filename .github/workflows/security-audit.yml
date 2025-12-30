@@ -26,10 +26,10 @@ jobs:
     strategy:
       matrix:
         workspace:
-          - { name: 'API', path: './api' }
-          - { name: 'Web', path: './web' }
-          - { name: 'Database', path: './db' }
-          - { name: 'Video Server', path: './video-server' }
+          - { name: 'API', path: 'api' }
+          - { name: 'Web', path: 'web' }
+          - { name: 'Database', path: 'db' }
+          - { name: 'Video-Server', path: 'video-server' }
     
     steps:
       - name: Checkout code
@@ -40,23 +40,27 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: '${{ matrix.workspace.path }}/package-lock.json'
       
       - name: Install dependencies
-        working-directory: ${{ matrix.workspace.path }}
         run: npm ci
       
       - name: Run security audit
-        working-directory: ${{ matrix.workspace.path }}
-        run: npm audit --audit-level=moderate
-        continue-on-error: false
+        id: audit
+        run: npm audit --workspace=${{ matrix.workspace.path }} --audit-level=moderate --json > ${{ matrix.workspace.path }}-audit.json || true
+        continue-on-error: true
+      
+      - name: Check audit results
+        run: |
+          if [ -s "${{ matrix.workspace.path }}-audit.json" ]; then
+            npm audit --workspace=${{ matrix.workspace.path }} --audit-level=moderate
+          fi
       
       - name: Upload audit results
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audit-results-${{ matrix.workspace.name }}
-          path: ${{ matrix.workspace.path }}/npm-audit.json
+          path: ${{ matrix.workspace.path }}-audit.json
           retention-days: 30
 
   dependency-review:
