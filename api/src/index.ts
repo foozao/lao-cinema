@@ -49,8 +49,37 @@ await fastify.register(helmet, {
     preload: true,
   } : false,
   
-  // Content Security Policy - disabled for now, configure as needed
-  contentSecurityPolicy: false,
+  // Content Security Policy - strict policy for JSON API
+  contentSecurityPolicy: {
+    directives: {
+      // Default: block everything unless explicitly allowed
+      defaultSrc: ["'none'"],
+      
+      // API may need to connect to itself or external services
+      connectSrc: ["'self'"],
+      
+      // No scripts, styles, images, fonts, etc. (JSON API only)
+      scriptSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      fontSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      
+      // Prevent API from being embedded in frames
+      frameAncestors: ["'none'"],
+      
+      // Form actions not applicable (API doesn't serve forms)
+      formAction: ["'none'"],
+      
+      // Base URI - only allow same origin
+      baseUri: ["'self'"],
+      
+      // Upgrade insecure requests in production
+      ...(isProduction ? { upgradeInsecureRequests: [] } : {}),
+    },
+  },
   
   // Other security headers (enabled in all environments)
   xFrameOptions: { action: 'deny' },
