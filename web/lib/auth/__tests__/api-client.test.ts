@@ -2,14 +2,15 @@
  * Auth API Client Tests
  *
  * Tests the authentication API client functions.
+ * Note: HttpOnly cookie behavior is tested via integration tests.
+ * These unit tests verify API request formatting.
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { setupLocalStorageMock, setupFetchMock } from '../../__tests__/test-utils';
+import { setupFetchMock } from '../../__tests__/test-utils';
 
 // Setup mocks
 const mockFetch = setupFetchMock();
-const localStorageMock = setupLocalStorageMock(true);
 
 // Import after mocks
 import {
@@ -24,17 +25,17 @@ import {
   getUserStats,
   migrateAnonymousData,
   isAuthenticated,
-  getRawSessionToken,
+  setAuthenticatedState,
 } from '../api-client';
 
 describe('Auth API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    localStorageMock.clear();
+    setAuthenticatedState(false);
   });
 
   describe('register', () => {
-    it('should register user and store token', async () => {
+    it('should register user with credentials: include', async () => {
       const mockResponse = {
         user: { id: 'user-123', email: 'test@example.com' },
         session: { token: 'session-token-123', expiresAt: new Date().toISOString() },
@@ -54,13 +55,10 @@ describe('Auth API Client', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+          credentials: 'include',
         })
       );
       expect(result).toEqual(mockResponse);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'lao_cinema_session_token',
-        'session-token-123'
-      );
     });
 
     it('should throw on registration failure', async () => {
@@ -76,7 +74,7 @@ describe('Auth API Client', () => {
   });
 
   describe('login', () => {
-    it('should login and store token', async () => {
+    it('should login with credentials: include', async () => {
       const mockResponse = {
         user: { id: 'user-123', email: 'test@example.com' },
         session: { token: 'login-token-456', expiresAt: new Date().toISOString() },
@@ -91,11 +89,14 @@ describe('Auth API Client', () => {
         password: 'password123',
       });
 
-      expect(result).toEqual(mockResponse);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'lao_cinema_session_token',
-        'login-token-456'
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/login'),
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+        })
       );
+      expect(result).toEqual(mockResponse);
     });
 
     it('should throw on invalid credentials', async () => {
@@ -111,8 +112,8 @@ describe('Auth API Client', () => {
   });
 
   describe('logout', () => {
-    it('should logout and remove token', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'existing-token');
+    it('should logout with credentials: include', async () => {
+      setAuthenticatedState(true);
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
@@ -122,26 +123,25 @@ describe('Auth API Client', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/auth/logout'),
-        expect.objectContaining({ method: 'POST' })
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+        })
       );
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
     });
 
-    it('should remove token even on API failure', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'existing-token');
-      mockFetch.mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ message: 'Server error' }),
-      });
+    it('should handle logout when not authenticated', async () => {
+      setAuthenticatedState(false);
 
       await logout();
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
+
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
   describe('logoutAll', () => {
-    it('should logout all sessions and remove token', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'existing-token');
+    it('should logout all sessions with credentials: include', async () => {
+      setAuthenticatedState(true);
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
@@ -151,15 +151,16 @@ describe('Auth API Client', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/auth/logout-all'),
-        expect.objectContaining({ method: 'POST' })
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+        })
       );
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
     });
   });
 
   describe('getCurrentUser', () => {
-    it('should fetch current user with auth header', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should fetch current user with credentials: include', async () => {
       const mockUser = { id: 'user-123', email: 'test@example.com' };
       mockFetch.mockResolvedValue({
         ok: true,
@@ -171,16 +172,13 @@ describe('Auth API Client', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/auth/me'),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer auth-token',
-          }),
+          credentials: 'include',
         })
       );
       expect(result).toEqual(mockUser);
     });
 
-    it('should remove token on 401 response', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'expired-token');
+    it('should throw on 401 response', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
@@ -188,13 +186,11 @@ describe('Auth API Client', () => {
       });
 
       await expect(getCurrentUser()).rejects.toThrow('Session expired');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
     });
   });
 
   describe('updateProfile', () => {
-    it('should update profile', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should update profile with credentials: include', async () => {
       const updatedUser = { id: 'user-123', displayName: 'New Name' };
       mockFetch.mockResolvedValue({
         ok: true,
@@ -207,6 +203,7 @@ describe('Auth API Client', () => {
         expect.stringContaining('/auth/me'),
         expect.objectContaining({
           method: 'PATCH',
+          credentials: 'include',
           body: JSON.stringify({ displayName: 'New Name' }),
         })
       );
@@ -215,8 +212,7 @@ describe('Auth API Client', () => {
   });
 
   describe('changePassword', () => {
-    it('should change password', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should change password with credentials: include', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
@@ -231,12 +227,12 @@ describe('Auth API Client', () => {
         expect.stringContaining('/auth/me/password'),
         expect.objectContaining({
           method: 'PATCH',
+          credentials: 'include',
         })
       );
     });
 
     it('should throw on wrong current password', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
       mockFetch.mockResolvedValue({
         ok: false,
         json: () => Promise.resolve({ message: 'Incorrect password' }),
@@ -249,8 +245,7 @@ describe('Auth API Client', () => {
   });
 
   describe('deleteAccount', () => {
-    it('should delete account and remove token', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should delete account with credentials: include', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
@@ -262,16 +257,15 @@ describe('Auth API Client', () => {
         expect.stringContaining('/auth/me'),
         expect.objectContaining({
           method: 'DELETE',
+          credentials: 'include',
           body: JSON.stringify({ password: 'password123' }),
         })
       );
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('lao_cinema_session_token');
     });
   });
 
   describe('getUserStats', () => {
-    it('should fetch user stats', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should fetch user stats with credentials: include', async () => {
       const mockStats = { totalRentals: 5, activeRentals: 2 };
       mockFetch.mockResolvedValue({
         ok: true,
@@ -282,15 +276,16 @@ describe('Auth API Client', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/users/me/stats'),
-        expect.any(Object)
+        expect.objectContaining({
+          credentials: 'include',
+        })
       );
       expect(result).toEqual(mockStats);
     });
   });
 
   describe('migrateAnonymousData', () => {
-    it('should migrate anonymous data', async () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'auth-token');
+    it('should migrate anonymous data with credentials: include', async () => {
       const mockResult = { migratedRentals: 2, migratedProgress: 1 };
       mockFetch.mockResolvedValue({
         ok: true,
@@ -303,6 +298,7 @@ describe('Auth API Client', () => {
         expect.stringContaining('/users/migrate'),
         expect.objectContaining({
           method: 'POST',
+          credentials: 'include',
           body: JSON.stringify({ anonymousId: 'anon-123' }),
         })
       );
@@ -311,31 +307,26 @@ describe('Auth API Client', () => {
   });
 
   describe('isAuthenticated', () => {
-    it('should return true when token exists', () => {
-      localStorageMock.setItem('lao_cinema_session_token', 'some-token');
-      localStorageMock.getItem.mockReturnValue('some-token');
+    it('should return true when authenticated', () => {
+      setAuthenticatedState(true);
 
       expect(isAuthenticated()).toBe(true);
     });
 
-    it('should return false when no token', () => {
-      localStorageMock.getItem.mockReturnValue(null);
+    it('should return false when not authenticated', () => {
+      setAuthenticatedState(false);
 
       expect(isAuthenticated()).toBe(false);
     });
   });
 
-  describe('getRawSessionToken', () => {
-    it('should return session token', () => {
-      localStorageMock.getItem.mockReturnValue('raw-token-123');
+  describe('setAuthenticatedState', () => {
+    it('should update auth state', () => {
+      setAuthenticatedState(true);
+      expect(isAuthenticated()).toBe(true);
 
-      expect(getRawSessionToken()).toBe('raw-token-123');
-    });
-
-    it('should return null when no token', () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      expect(getRawSessionToken()).toBeNull();
+      setAuthenticatedState(false);
+      expect(isAuthenticated()).toBe(false);
     });
   });
 });

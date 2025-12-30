@@ -4,7 +4,7 @@
  * Handles login, logout, and session management.
  */
 
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
 import { sendBadRequest, sendUnauthorized, sendInternalError } from '../lib/response-helpers.js';
 import { 
   authenticateUser, 
@@ -14,6 +14,49 @@ import {
 } from '../lib/auth-service.js';
 import { requireAuth } from '../lib/auth-middleware.js';
 import { checkRateLimit, recordAttempt, resetRateLimit, RATE_LIMITS } from '../lib/rate-limiter.js';
+
+// Cookie configuration
+const SESSION_COOKIE_NAME = 'session';
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Set HttpOnly session cookie
+ */
+function setSessionCookie(reply: FastifyReply, token: string, expiresAt: Date): void {
+  const cookieOptions = [
+    `${SESSION_COOKIE_NAME}=${token}`,
+    `Path=/`,
+    `HttpOnly`,
+    `SameSite=Lax`,
+    `Expires=${expiresAt.toUTCString()}`,
+  ];
+  
+  // Only set Secure flag in production (HTTPS required)
+  if (isProduction) {
+    cookieOptions.push('Secure');
+  }
+  
+  reply.header('Set-Cookie', cookieOptions.join('; '));
+}
+
+/**
+ * Clear session cookie
+ */
+function clearSessionCookie(reply: FastifyReply): void {
+  const cookieOptions = [
+    `${SESSION_COOKIE_NAME}=`,
+    `Path=/`,
+    `HttpOnly`,
+    `SameSite=Lax`,
+    `Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+  ];
+  
+  if (isProduction) {
+    cookieOptions.push('Secure');
+  }
+  
+  reply.header('Set-Cookie', cookieOptions.join('; '));
+}
 
 export default async function authSessionRoutes(fastify: FastifyInstance) {
   
@@ -64,7 +107,10 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
         request.headers['user-agent']
       );
       
-      // Return user and session
+      // Set HttpOnly cookie for web clients
+      setSessionCookie(reply, session.token, session.expiresAt);
+      
+      // Return user and session (token still returned for mobile clients)
       return reply.send({
         user: {
           id: user.id,
@@ -92,8 +138,25 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
    * Logout (delete current session)
    */
   fastify.post('/auth/logout', { preHandler: requireAuth }, async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    const token = authHeader?.substring(7);
+    // Extract token from cookie or Authorization header
+    let token: string | null = null;
+    
+    // Check cookie first
+    const cookieHeader = request.headers.cookie;
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        if (key && value) acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+      token = cookies[SESSION_COOKIE_NAME] || null;
+    }
+    
+    // Fall back to Authorization header
+    if (!token) {
+      const authHeader = request.headers.authorization;
+      token = authHeader?.substring(7) || null;
+    }
     
     if (!token) {
       return sendBadRequest(reply, 'No session token provided');
@@ -101,6 +164,9 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
     
     try {
       await deleteSession(token);
+      
+      // Clear the cookie
+      clearSessionCookie(reply);
       
       return reply.send({
         success: true,
@@ -119,6 +185,9 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
   fastify.post('/auth/logout-all', { preHandler: requireAuth }, async (request, reply) => {
     try {
       await deleteAllUserSessions(request.userId!);
+      
+      // Clear the cookie
+      clearSessionCookie(reply);
       
       return reply.send({
         success: true,

@@ -4,9 +4,51 @@
  * Tests the authentication context provider and hook.
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
+
+// Mock BroadcastChannel
+class MockBroadcastChannel {
+  name: string;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  private static channels: Map<string, MockBroadcastChannel[]> = new Map();
+
+  constructor(name: string) {
+    this.name = name;
+    // Register this channel
+    if (!MockBroadcastChannel.channels.has(name)) {
+      MockBroadcastChannel.channels.set(name, []);
+    }
+    MockBroadcastChannel.channels.get(name)!.push(this);
+  }
+
+  postMessage(message: any) {
+    // Simulate broadcasting to all other channels with the same name
+    const channels = MockBroadcastChannel.channels.get(this.name) || [];
+    channels.forEach(channel => {
+      if (channel !== this && channel.onmessage) {
+        channel.onmessage(new MessageEvent('message', { data: message }));
+      }
+    });
+  }
+
+  close() {
+    const channels = MockBroadcastChannel.channels.get(this.name);
+    if (channels) {
+      const index = channels.indexOf(this);
+      if (index > -1) {
+        channels.splice(index, 1);
+      }
+    }
+  }
+
+  static reset() {
+    this.channels.clear();
+  }
+}
+
+(global as any).BroadcastChannel = MockBroadcastChannel;
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -31,6 +73,7 @@ jest.mock('../api-client', () => ({
   getCurrentUser: jest.fn(),
   migrateAnonymousData: jest.fn(),
   isAuthenticated: jest.fn(),
+  setAuthenticatedState: jest.fn(),
 }));
 
 // Import mocked modules to get references
@@ -70,6 +113,12 @@ describe('Auth Context', () => {
     jest.clearAllMocks();
     mockIsAuthenticated.mockReturnValue(false);
     mockGetAnonymousId.mockReturnValue('anon-test-123');
+    mockGetCurrentUser.mockRejectedValue(new Error('Not authenticated'));
+    MockBroadcastChannel.reset();
+  });
+
+  afterEach(() => {
+    MockBroadcastChannel.reset();
   });
 
   describe('Initial State', () => {
@@ -422,6 +471,124 @@ describe('Auth Context', () => {
       }).toThrow('useAuth must be used within an AuthProvider');
 
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Cross-Tab Session Sync', () => {
+    it('should sync logout across tabs', async () => {
+      // Start with authenticated user
+      mockGetCurrentUser.mockResolvedValue(mockUser);
+
+      // Render two hooks simulating two tabs
+      const { result: tab1 } = renderHook(() => useAuth(), { wrapper });
+      const { result: tab2 } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(tab1.current.user).toEqual(mockUser);
+        expect(tab2.current.user).toEqual(mockUser);
+      });
+
+      // Logout in tab1
+      mockLogout.mockResolvedValue(undefined);
+      await act(async () => {
+        await tab1.current.logout();
+      });
+
+      // Tab2 should also be logged out
+      await waitFor(() => {
+        expect(tab2.current.user).toBeNull();
+        expect(tab2.current.isAuthenticated).toBe(false);
+      });
+    });
+
+    it('should sync login across tabs', async () => {
+      // Start both tabs as unauthenticated
+      const { result: tab1 } = renderHook(() => useAuth(), { wrapper });
+      const { result: tab2 } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(tab1.current.user).toBeNull();
+        expect(tab2.current.user).toBeNull();
+      });
+
+      // Login in tab1
+      mockLogin.mockResolvedValue({
+        user: mockUser,
+        session: { token: 'session-token', expiresAt: new Date().toISOString() },
+      });
+      mockMigrateAnonymousData.mockResolvedValue({ message: 'Migrated' });
+
+      await act(async () => {
+        await tab1.current.login({
+          email: 'test@example.com',
+          password: 'password123',
+        });
+      });
+
+      // Tab2 should also have the user
+      await waitFor(() => {
+        expect(tab2.current.user).toEqual(mockUser);
+        expect(tab2.current.isAuthenticated).toBe(true);
+      });
+    });
+
+    it('should sync registration across tabs', async () => {
+      // Start both tabs as unauthenticated
+      const { result: tab1 } = renderHook(() => useAuth(), { wrapper });
+      const { result: tab2 } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(tab1.current.user).toBeNull();
+        expect(tab2.current.user).toBeNull();
+      });
+
+      // Register in tab1
+      mockRegister.mockResolvedValue({
+        user: mockUser,
+        session: { token: 'session-token', expiresAt: new Date().toISOString() },
+      });
+      mockMigrateAnonymousData.mockResolvedValue({ message: 'Migrated' });
+
+      await act(async () => {
+        await tab1.current.register({
+          email: 'new@example.com',
+          password: 'password123',
+        });
+      });
+
+      // Tab2 should also have the user
+      await waitFor(() => {
+        expect(tab2.current.user).toEqual(mockUser);
+        expect(tab2.current.isAuthenticated).toBe(true);
+      });
+    });
+
+    it('should generate new anonymous ID on cross-tab logout', async () => {
+      // Start with authenticated user
+      mockGetCurrentUser.mockResolvedValue(mockUser);
+
+      const { result: tab1 } = renderHook(() => useAuth(), { wrapper });
+      const { result: tab2 } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(tab1.current.user).toEqual(mockUser);
+        expect(tab2.current.user).toEqual(mockUser);
+      });
+
+      // Setup new anonymous ID for tab2
+      const newAnonymousId = 'new-anon-id';
+      mockGetAnonymousId.mockReturnValue(newAnonymousId);
+
+      // Logout in tab1
+      mockLogout.mockResolvedValue(undefined);
+      await act(async () => {
+        await tab1.current.logout();
+      });
+
+      // Tab2 should have new anonymous ID
+      await waitFor(() => {
+        expect(tab2.current.anonymousId).toBe(newAnonymousId);
+      });
     });
   });
 });

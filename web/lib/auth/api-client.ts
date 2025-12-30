@@ -22,38 +22,17 @@ import type {
 // HELPER FUNCTIONS
 // =============================================================================
 
-/**
- * Get session token from localStorage
- */
-function getSessionToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('lao_cinema_session_token');
-}
-
-/**
- * Store session token in localStorage
- */
-function setSessionToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('lao_cinema_session_token', token);
-}
-
-/**
- * Remove session token from localStorage
- */
-function removeSessionToken(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('lao_cinema_session_token');
-}
+// Track authentication state (cookie presence can't be read from JS due to HttpOnly)
+let isAuthenticatedState = false;
 
 /**
  * Make authenticated API request
+ * Uses HttpOnly cookies (browser sends automatically with credentials: 'include')
  */
 async function authFetch(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = getSessionToken();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -63,13 +42,10 @@ async function authFetch(
     headers['Content-Type'] = 'application/json';
   }
   
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
   return fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Send cookies with request
   });
 }
 
@@ -87,6 +63,7 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(credentials),
+    credentials: 'include', // Receive and store cookie
   });
   
   if (!response.ok) {
@@ -96,8 +73,8 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
   
   const data: AuthResponse = await response.json();
   
-  // Store session token
-  setSessionToken(data.session.token);
+  // Mark as authenticated (cookie is set by server)
+  isAuthenticatedState = true;
   
   return data;
 }
@@ -112,6 +89,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(credentials),
+    credentials: 'include', // Receive and store cookie
   });
   
   if (!response.ok) {
@@ -121,8 +99,8 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   
   const data: AuthResponse = await response.json();
   
-  // Store session token
-  setSessionToken(data.session.token);
+  // Mark as authenticated (cookie is set by server)
+  isAuthenticatedState = true;
   
   return data;
 }
@@ -131,57 +109,53 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
  * Logout (delete current session)
  */
 export async function logout(): Promise<void> {
-  const token = getRawSessionToken();
-  if (!token) return;
+  if (!isAuthenticatedState) return;
 
   await fetch(`${API_BASE_URL}/auth/logout`, {
     method: 'POST',
+    credentials: 'include', // Send cookie, server will clear it
   });
   
-  // Remove token regardless of response
-  removeSessionToken();
+  // Mark as not authenticated (cookie is cleared by server)
+  isAuthenticatedState = false;
 }
 
 /**
  * Logout from all devices
  */
 export async function logoutAll(): Promise<void> {
-  const token = getRawSessionToken();
-  if (!token) return;
+  if (!isAuthenticatedState) return;
 
   await fetch(`${API_BASE_URL}/auth/logout-all`, {
     method: 'POST',
+    credentials: 'include',
   });
   
-  // Remove token regardless of response
-  removeSessionToken();
+  // Mark as not authenticated (cookie is cleared by server)
+  isAuthenticatedState = false;
 }
 
 /**
  * Get current user
  */
 export async function getCurrentUser(): Promise<User> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   
   if (!response.ok) {
     if (response.status === 401) {
-      // Invalid/expired token
-      removeSessionToken();
+      // Invalid/expired session
+      isAuthenticatedState = false;
       throw new Error('Session expired');
     }
     
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch user');
   }
+  
+  // If we got here, we're authenticated
+  isAuthenticatedState = true;
   
   const data = await response.json();
   return data.user;
@@ -195,18 +169,13 @@ export async function getCurrentUser(): Promise<User> {
  * Update user profile
  */
 export async function updateProfile(data: UpdateProfileData): Promise<User> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -222,18 +191,13 @@ export async function updateProfile(data: UpdateProfileData): Promise<User> {
  * Change password
  */
 export async function changePassword(data: ChangePasswordData): Promise<void> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/auth/me/password`, {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -247,18 +211,13 @@ export async function changePassword(data: ChangePasswordData): Promise<void> {
  * Requires password confirmation, resets email verified status
  */
 export async function changeEmail(data: ChangeEmailData): Promise<User> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/auth/me/email`, {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -274,22 +233,17 @@ export async function changeEmail(data: ChangeEmailData): Promise<User> {
  * Delete account
  */
 export async function deleteAccount(password: string): Promise<void> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'DELETE',
     body: JSON.stringify({ password }),
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   
-  // Remove token regardless of response
-  removeSessionToken();
+  // Mark as not authenticated regardless of response
+  isAuthenticatedState = false;
   
   if (!response.ok) {
     const error = await response.json();
@@ -305,15 +259,8 @@ export async function deleteAccount(password: string): Promise<void> {
  * Get user statistics
  */
 export async function getUserStats(): Promise<UserStats> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/users/me/stats`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -329,18 +276,13 @@ export async function getUserStats(): Promise<UserStats> {
  * Migrate anonymous data to authenticated account
  */
 export async function migrateAnonymousData(anonymousId: string): Promise<MigrationResult> {
-  const token = getRawSessionToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
   const response = await fetch(`${API_BASE_URL}/users/migrate`, {
     method: 'POST',
     body: JSON.stringify({ anonymousId }),
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   
   if (!response.ok) {
@@ -356,15 +298,16 @@ export async function migrateAnonymousData(anonymousId: string): Promise<Migrati
 // =============================================================================
 
 /**
- * Check if user is authenticated (has valid token)
+ * Check if user is authenticated
+ * Note: This is based on local state - call getCurrentUser() to verify with server
  */
 export function isAuthenticated(): boolean {
-  return !!getSessionToken();
+  return isAuthenticatedState;
 }
 
 /**
- * Get raw session token (for direct API calls)
+ * Set authentication state (used by AuthContext after verifying session)
  */
-export function getRawSessionToken(): string | null {
-  return getSessionToken();
+export function setAuthenticatedState(authenticated: boolean): void {
+  isAuthenticatedState = authenticated;
 }

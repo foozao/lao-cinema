@@ -5,7 +5,6 @@
  * Requires admin authentication.
  */
 
-import { getRawSessionToken } from '../auth/api-client';
 import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
@@ -58,19 +57,14 @@ export interface AuditLogsResponse {
 
 /**
  * Make authenticated API request
+ * Uses HttpOnly cookies for authentication
  */
 async function authFetch<T>(endpoint: string): Promise<T> {
-  const token = getRawSessionToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-  
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
+    credentials: 'include', // Send HttpOnly cookies for auth
   });
   
   if (!response.ok) {

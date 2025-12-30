@@ -1,4 +1,4 @@
-import { getRawSessionToken } from '../auth/api-client';
+import { isAuthenticated } from '../auth/api-client';
 import { getAnonymousId } from '../anonymous-id';
 import { API_BASE_URL } from '../config';
 
@@ -32,12 +32,8 @@ export async function getSignedVideoUrl(
     'Content-Type': 'application/json',
   };
   
-  // Add auth token if available (logged-in users)
-  const token = getRawSessionToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  } else {
-    // Add anonymous ID if not logged in
+  // Add anonymous ID if not logged in (logged-in users use HttpOnly cookies)
+  if (!isAuthenticated()) {
     const anonymousId = getAnonymousId();
     headers['x-anonymous-id'] = anonymousId;
   }
@@ -45,6 +41,7 @@ export async function getSignedVideoUrl(
   const response = await fetch(url, {
     method: 'POST',
     headers,
+    credentials: 'include', // Send HttpOnly cookies for auth
     body: JSON.stringify({
       movieId,
       videoSourceId,

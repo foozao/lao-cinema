@@ -26,17 +26,42 @@ declare module 'fastify' {
 // =============================================================================
 
 /**
+ * Extract session token from request
+ * Priority: 1. HttpOnly cookie (web), 2. Bearer token (mobile)
+ */
+function extractSessionToken(request: FastifyRequest): string | null {
+  // 1. Check HttpOnly cookie first (web clients)
+  const cookieHeader = request.headers.cookie;
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      if (key && value) acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    if (cookies['session']) {
+      return cookies['session'];
+    }
+  }
+  
+  // 2. Fall back to Authorization header (mobile clients)
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  
+  return null;
+}
+
+/**
  * Extract user from session token (optional)
  * Adds user to request if valid session token is provided
  * Does not block request if no token is provided
  */
 export async function optionalAuth(request: FastifyRequest, reply: FastifyReply) {
-  // Try to get token from Authorization header
-  const authHeader = request.headers.authorization;
+  const token = extractSessionToken(request);
   
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    
+  if (token) {
     try {
       const session = await findSessionByToken(token);
       
@@ -60,18 +85,17 @@ export async function optionalAuth(request: FastifyRequest, reply: FastifyReply)
 /**
  * Require authenticated user
  * Blocks request if no valid session token is provided
+ * Supports both HttpOnly cookie (web) and Bearer token (mobile)
  */
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
-  const authHeader = request.headers.authorization;
+  const token = extractSessionToken(request);
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return reply.status(401).send({
       error: 'Unauthorized',
       message: 'Authentication required',
     });
   }
-  
-  const token = authHeader.substring(7);
   
   try {
     const session = await findSessionByToken(token);

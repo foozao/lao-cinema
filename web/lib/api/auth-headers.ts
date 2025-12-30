@@ -1,20 +1,21 @@
 /**
- * Shared utility for building authenticated API request headers
+ * Shared utility for building API request headers
  * 
- * Handles both authenticated users (with session tokens) and anonymous users
- * (with anonymous IDs) for dual-mode API support.
+ * Authentication is now handled via HttpOnly cookies (credentials: 'include').
+ * Anonymous users are identified via X-Anonymous-Id header.
  */
 
 import { getAnonymousId } from '../anonymous-id';
-import { getRawSessionToken } from '../auth/api-client';
+import { isAuthenticated } from '../auth/api-client';
 
 /**
- * Build headers for authenticated API requests
+ * Build headers for API requests
  * 
  * Automatically includes:
  * - Content-Type: application/json
- * - Authorization: Bearer {token} (if user is logged in)
- * - X-Anonymous-Id: {id} (if user is anonymous)
+ * - X-Anonymous-Id: {id} (if user is not authenticated)
+ * 
+ * Note: Session auth is handled via HttpOnly cookies (use credentials: 'include')
  * 
  * @returns Headers object ready for fetch requests
  */
@@ -23,12 +24,9 @@ export function getAuthHeaders(): Record<string, string> {
     'Content-Type': 'application/json',
   };
   
-  const token = getRawSessionToken();
-  if (token) {
-    // Authenticated user - send session token
-    headers['Authorization'] = `Bearer ${token}`;
-  } else {
-    // Anonymous user - send anonymous ID
+  // Only send anonymous ID if not authenticated
+  // (authenticated users use HttpOnly cookies automatically)
+  if (!isAuthenticated()) {
     const anonymousId = getAnonymousId();
     if (anonymousId) {
       headers['X-Anonymous-Id'] = anonymousId;

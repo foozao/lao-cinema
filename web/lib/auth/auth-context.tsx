@@ -7,11 +7,21 @@
  * Supports both authenticated users and anonymous users.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAnonymousId, clearAnonymousId } from '../anonymous-id';
 import * as authApi from './api-client';
 import type { User, LoginCredentials, RegisterCredentials } from './types';
+
+// =============================================================================
+// CROSS-TAB SESSION SYNC
+// =============================================================================
+
+const AUTH_CHANNEL_NAME = 'lao-cinema-auth';
+
+type AuthBroadcastMessage = 
+  | { type: 'logout' }
+  | { type: 'login'; user: User };
 
 // =============================================================================
 // TYPES
@@ -44,30 +54,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [anonymousId, setAnonymousId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const channelRef = useRef<BroadcastChannel | null>(null);
   
-  // Initialize: Get anonymous ID and check for existing session
+  // Initialize: Get anonymous ID, check for existing session, setup cross-tab sync
   useEffect(() => {
     const initialize = async () => {
       // Always get/create anonymous ID
       const anonId = getAnonymousId();
       setAnonymousId(anonId);
       
-      // Check if user is authenticated
-      if (authApi.isAuthenticated()) {
-        try {
-          const currentUser = await authApi.getCurrentUser();
-          setUser(currentUser);
-        } catch (error) {
-          console.error('Failed to fetch current user:', error);
-          // Session expired or invalid
-          setUser(null);
-        }
+      // Try to fetch current user (cookie is sent automatically)
+      // This works because HttpOnly cookies are sent with credentials: 'include'
+      try {
+        const currentUser = await authApi.getCurrentUser();
+        setUser(currentUser);
+        authApi.setAuthenticatedState(true);
+      } catch (error) {
+        // No valid session - user is not authenticated
+        setUser(null);
+        authApi.setAuthenticatedState(false);
       }
       
       setIsLoading(false);
     };
     
     initialize();
+    
+    // Setup BroadcastChannel for cross-tab session sync
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      channelRef.current = new BroadcastChannel(AUTH_CHANNEL_NAME);
+      
+      channelRef.current.onmessage = (event: MessageEvent<AuthBroadcastMessage>) => {
+        const message = event.data;
+        
+        if (message.type === 'logout') {
+          // Another tab logged out - clear local state
+          setUser(null);
+          authApi.setAuthenticatedState(false);
+          // Generate new anonymous ID
+          const newAnonId = getAnonymousId();
+          setAnonymousId(newAnonId);
+        } else if (message.type === 'login') {
+          // Another tab logged in - update local state
+          setUser(message.user);
+          authApi.setAuthenticatedState(true);
+        }
+      };
+    }
+    
+    // Cleanup
+    return () => {
+      channelRef.current?.close();
+    };
   }, []);
   
   // =============================================================================
@@ -82,6 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { user: newUser } = await authApi.register(credentials);
       setUser(newUser);
+      
+      // Broadcast login to other tabs
+      channelRef.current?.postMessage({ type: 'login', user: newUser });
       
       // Migrate database records from anonymousId to userId
       if (anonymousId) {
@@ -110,6 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { user: authenticatedUser } = await authApi.login(credentials);
       setUser(authenticatedUser);
+      
+      // Broadcast login to other tabs
+      channelRef.current?.postMessage({ type: 'login', user: authenticatedUser });
       
       // Migrate database records from anonymousId to userId
       if (anonymousId) {
@@ -142,6 +186,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     setUser(null);
+    authApi.setAuthenticatedState(false);
+    
+    // Broadcast logout to other tabs
+    channelRef.current?.postMessage({ type: 'logout' });
     
     // Generate new anonymous ID
     const newAnonId = getAnonymousId();
@@ -155,17 +203,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Refresh current user data
    */
   const refreshUser = useCallback(async () => {
-    if (!authApi.isAuthenticated()) {
-      setUser(null);
-      return;
-    }
-    
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
+      authApi.setAuthenticatedState(true);
     } catch (error) {
       console.error('Failed to refresh user:', error);
       setUser(null);
+      authApi.setAuthenticatedState(false);
     }
   }, []);
   

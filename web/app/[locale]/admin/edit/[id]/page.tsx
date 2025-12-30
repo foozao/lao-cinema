@@ -14,7 +14,6 @@ import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, Trailer, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
 import { movieAPI, castCrewAPI, peopleAPI, movieProductionCompaniesAPI, productionCompaniesAPI } from '@/lib/api/client';
-import { getRawSessionToken } from '@/lib/auth/api-client';
 import { getAuthHeaders } from '@/lib/api/auth-headers';
 import { useAuth } from '@/lib/auth';
 import { EntityHistory } from '@/components/admin/entity-history';
@@ -174,11 +173,10 @@ export default function EditMoviePage() {
       
       if (wasUnavailable && nowAvailable && !subscribersChecked && isAdmin) {
         try {
-          const token = getRawSessionToken();
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-          
-          const response = await fetch(`${API_BASE_URL}/admin/notifications/movies/${movieId}/subscribers`, { headers });
+          const response = await fetch(`${API_BASE_URL}/admin/notifications/movies/${movieId}/subscribers`, {
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Send HttpOnly cookies for auth
+          });
           if (response.ok) {
             const data = await response.json();
             if (data.subscribers && data.subscribers.length > 0) {

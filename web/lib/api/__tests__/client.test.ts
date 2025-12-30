@@ -2,22 +2,14 @@
  * API Client Tests
  *
  * Tests the main API client that communicates with the backend.
+ * Note: Auth is now cookie-based, no token mocking needed.
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { setupFetchMock } from '../../__tests__/test-utils';
 
-// Mock the auth client to control session token
-jest.mock('../../auth/api-client', () => ({
-  __esModule: true,
-  getRawSessionToken: jest.fn(),
-}));
-
 // Setup fetch mock
 const mockFetch = setupFetchMock();
-
-// Import mocked modules
-import { getRawSessionToken } from '../../auth/api-client';
 
 // Import the module under test
 import {
@@ -30,12 +22,9 @@ import {
   shortPacksAPI,
 } from '../client';
 
-const mockGetRawSessionToken = getRawSessionToken as jest.Mock;
-
 describe('API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetRawSessionToken.mockReturnValue(null);
   });
 
   describe('APIError', () => {
@@ -50,8 +39,7 @@ describe('API Client', () => {
   });
 
   describe('fetchAPI (internal)', () => {
-    it('should include auth token when available', async () => {
-      mockGetRawSessionToken.mockReturnValue('test-token');
+    it('should include credentials for cookie-based auth', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ movies: [] }),
@@ -62,15 +50,12 @@ describe('API Client', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
-          }),
+          credentials: 'include',
         })
       );
     });
 
-    it('should not include auth header when no token', async () => {
-      mockGetRawSessionToken.mockReturnValue(null);
+    it('should always use credentials: include', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ movies: [] }),
