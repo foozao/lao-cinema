@@ -34,6 +34,10 @@ export const RATE_LIMITS = {
     maxAttempts: 3,
     windowMinutes: 15,
   },
+  VIDEO_TOKEN: {
+    maxAttempts: 30,
+    windowMinutes: 1,
+  },
 } as const;
 
 function cleanupExpiredEntries(): void {
@@ -45,12 +49,12 @@ function cleanupExpiredEntries(): void {
   }
 }
 
-function getRateLimitKey(type: 'login' | 'forgot-password', identifier: string): string {
+function getRateLimitKey(type: 'login' | 'forgot-password' | 'video-token', identifier: string): string {
   return `${type}:${identifier}`;
 }
 
 export function checkRateLimit(
-  type: 'login' | 'forgot-password',
+  type: 'login' | 'forgot-password' | 'video-token',
   identifier: string,
   config: RateLimitConfig
 ): { allowed: boolean; retryAfter?: Date } {
@@ -73,7 +77,7 @@ export function checkRateLimit(
 }
 
 export function recordAttempt(
-  type: 'login' | 'forgot-password',
+  type: 'login' | 'forgot-password' | 'video-token',
   identifier: string,
   config: RateLimitConfig
 ): void {
@@ -91,7 +95,7 @@ export function recordAttempt(
   }
 }
 
-export function resetRateLimit(type: 'login' | 'forgot-password', identifier: string): void {
+export function resetRateLimit(type: 'login' | 'forgot-password' | 'video-token', identifier: string): void {
   const key = getRateLimitKey(type, identifier);
   rateLimitStore.delete(key);
 }

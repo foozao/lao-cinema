@@ -22,6 +22,7 @@ The video streaming system uses **signed URLs with time-limited tokens** to prev
 - ✅ **HMAC signature** - Cryptographically signed, cannot be forged
 - ✅ **User-bound** - Tokens tied to userId or anonymousId
 - ✅ **No direct access** - Video server rejects requests without valid token
+- ✅ **Rate limiting** - 30 requests per minute per user/anonymous ID
 
 ## Implementation
 
@@ -48,6 +49,7 @@ The video streaming system uses **signed URLs with time-limited tokens** to prev
 **Error Codes**:
 - `RENTAL_REQUIRED` - No valid rental found
 - `VIDEO_NOT_FOUND` - Video source doesn't exist
+- `429 Too Many Requests` - Rate limit exceeded (30 requests/minute)
 
 ### Video Server
 
@@ -156,7 +158,7 @@ allowedHeaders: ['Content-Type', 'Range', 'Authorization'],
 
 1. **Rotate secrets**: Change `VIDEO_TOKEN_SECRET` periodically
 2. **Monitor usage**: Track token generation in analytics
-3. **Rate limiting**: Add rate limits to token endpoint (future)
+3. **Rate limiting**: 30 requests/minute enforced per user/anonymous ID
 4. **Audit logs**: Log token generation for suspicious activity
 5. **HTTPS only**: Use HTTPS in production for token transmission
 
@@ -200,7 +202,7 @@ const { url } = await getSignedVideoUrl(movieId, videoSourceId);
 ## Future Enhancements
 
 - [ ] Token refresh endpoint for long viewing sessions
-- [ ] Rate limiting on token generation
+- [x] Rate limiting on token generation (30 requests/minute implemented)
 - [ ] Analytics tracking for token usage
 - [ ] Watermarking for piracy prevention
 - [ ] DRM integration for additional protection

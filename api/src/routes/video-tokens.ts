@@ -7,6 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { generateVideoToken } from '../lib/video-token.js';
 import { requireAuthOrAnonymous } from '../lib/auth-middleware.js';
 import { checkMovieAccess } from '../lib/rental-access.js';
+import { checkRateLimit, recordAttempt, RATE_LIMITS } from '../lib/rate-limiter.js';
 
 const requestSchema = z.object({
   movieId: z.string().uuid(),
@@ -27,6 +28,26 @@ export default async function videoTokenRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { movieId, videoSourceId } = requestSchema.parse(request.body);
       const { userId, anonymousId } = request;
+
+      // Rate limiting: use userId or anonymousId as identifier
+      const rateLimitIdentifier = userId || anonymousId || request.ip;
+      const rateLimitCheck = checkRateLimit('video-token', rateLimitIdentifier, RATE_LIMITS.VIDEO_TOKEN);
+      
+      if (!rateLimitCheck.allowed) {
+        const retryAfterSeconds = rateLimitCheck.retryAfter 
+          ? Math.ceil((rateLimitCheck.retryAfter.getTime() - Date.now()) / 1000)
+          : 60;
+        
+        reply.header('Retry-After', retryAfterSeconds.toString());
+        return reply.status(429).send({
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter: rateLimitCheck.retryAfter,
+        });
+      }
+      
+      // Record this attempt
+      recordAttempt('video-token', rateLimitIdentifier, RATE_LIMITS.VIDEO_TOKEN);
 
       // 1. Verify the video source exists and belongs to the movie
       const [videoSource] = await db

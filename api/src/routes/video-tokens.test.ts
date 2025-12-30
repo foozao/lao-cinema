@@ -1,9 +1,10 @@
 // Tests for video token routes
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { build, createTestEditor } from '../test/app.js';
 import { createMinimalMovie } from '../test/helpers.js';
 import { db, schema } from '../db/index.js';
 import { generateVideoToken, verifyVideoToken } from '../lib/video-token.js';
+import { clearAllRateLimits } from '../lib/rate-limiter.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('Video Token Routes', () => {
@@ -18,6 +19,9 @@ describe('Video Token Routes', () => {
     // Clean up auth data
     await db.delete(schema.userSessions);
     await db.delete(schema.users);
+    
+    // Clear rate limits
+    clearAllRateLimits();
     
     // Create editor user
     editorAuth = await createTestEditor();
@@ -41,6 +45,10 @@ describe('Video Token Routes', () => {
       quality: '1080p',
     }).returning();
     videoSourceId = videoSource.id;
+  });
+
+  afterEach(() => {
+    clearAllRateLimits();
   });
 
   describe('POST /api/video-tokens', () => {
@@ -289,6 +297,49 @@ describe('Video Token Routes', () => {
       expect(response.statusCode).toBe(403);
       const body = JSON.parse(response.body);
       expect(body.code).toBe('RENTAL_REQUIRED');
+    });
+
+    it('should enforce rate limiting (30 requests per minute)', async () => {
+      // Create a rental for the user
+      await db.insert(schema.rentals).values({
+        movieId,
+        userId: editorAuth.userId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        transactionId: 'test-txn-' + Date.now(),
+        amount: 299, // $2.99 in cents
+        currency: 'USD',
+      });
+
+      // Make 30 requests (should all succeed)
+      for (let i = 0; i < 30; i++) {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/video-tokens',
+          headers: editorAuth.headers,
+          payload: {
+            movieId,
+            videoSourceId,
+          },
+        });
+        expect(response.statusCode).toBe(200);
+      }
+
+      // 31st request should be rate limited
+      const rateLimitedResponse = await app.inject({
+        method: 'POST',
+        url: '/api/video-tokens',
+        headers: editorAuth.headers,
+        payload: {
+          movieId,
+          videoSourceId,
+        },
+      });
+
+      expect(rateLimitedResponse.statusCode).toBe(429);
+      const body = JSON.parse(rateLimitedResponse.body);
+      expect(body.error).toBe('Too Many Requests');
+      expect(body.message).toContain('Rate limit exceeded');
+      expect(rateLimitedResponse.headers['retry-after']).toBeDefined();
     });
   });
 
