@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { FastifyJWT } from '@fastify/jwt';
 
 const TOKEN_SECRET = process.env.VIDEO_TOKEN_SECRET || 'dev-secret-change-in-production';
 const TOKEN_EXPIRY_SECONDS = 15 * 60; // 15 minutes
