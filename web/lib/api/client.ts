@@ -786,4 +786,11 @@ export const trailersAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Reorder trailers
+  reorder: (movieId: string, trailerIds: string[]) =>
+    fetchAPI<Trailer[]>(`/trailers/${movieId}/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ trailer_ids: trailerIds }),
+    }),
 };

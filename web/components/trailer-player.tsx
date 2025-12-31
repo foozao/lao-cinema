@@ -18,8 +18,18 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
     if (trailer.type === 'youtube') {
       return `https://img.youtube.com/vi/${trailer.key}/maxresdefault.jpg`;
     }
-    // For video trailers, try to extract thumbnail from video URL pattern
-    // You can implement a custom thumbnail system later
+    // For self-hosted video trailers, use the thumbnail_url field
+    if (trailer.type === 'video' && trailer.thumbnail_url) {
+      // Build full URL if it's not already a full URL
+      if (trailer.thumbnail_url.startsWith('http')) {
+        return trailer.thumbnail_url;
+      }
+      // Build from base URL - check environment
+      const baseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+        ? 'https://storage.googleapis.com/lao-cinema-trailers'
+        : 'http://localhost:3002';
+      return `${baseUrl}/${trailer.thumbnail_url}`;
+    }
     return null;
   };
 

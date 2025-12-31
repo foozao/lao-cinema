@@ -102,12 +102,23 @@ export function MediaTab({
     }
   };
 
-  const handleSetPrimaryTrailer = (index: number) => {
+  const handleSetPrimaryTrailer = async (index: number) => {
     const newTrailers = [...trailers];
     const [movedTrailer] = newTrailers.splice(index, 1);
     newTrailers.unshift(movedTrailer);
-    onTrailersChange(newTrailers);
-    setHasChanges(true);
+    
+    try {
+      // Persist the new order to the backend
+      const trailerIds = newTrailers.map(t => t.id);
+      await trailersAPI.reorder(movieId, trailerIds);
+      
+      // Update local state
+      onTrailersChange(newTrailers);
+      showTrailerAdded('Primary trailer updated!');
+    } catch (error) {
+      console.error('Failed to reorder trailers:', error);
+      alert('Failed to set primary trailer. Please try again.');
+    }
   };
 
   const handleStartEdit = (trailer: Trailer) => {
