@@ -195,7 +195,7 @@ Should return:
 ### 2. Test Movie Import
 
 1. Go to http://localhost:3000/admin/import
-2. Enter a TMDB ID (e.g., `550` for Fight Club)
+2. Enter a TMDB ID (e.g., `15` for Citizen Kane)
 3. Click "Fetch"
 4. Review the preview
 5. Click "Import Movie"
@@ -269,8 +269,8 @@ lao-cinema/
 curl -X POST http://localhost:3001/api/movies \
   -H "Content-Type: application/json" \
   -d '{
-    "tmdb_id": 550,
-    "title": {"en": "Fight Club", "lo": "ສະໂມສອນ"},
+    "tmdb_id": 15,
+    "title": {"en": "Citizen Kane", "lo": "ສະໂມສອນ"},
     "overview": {"en": "An insomniac...", "lo": "..."},
     "release_date": "1999-10-15",
     "adult": false,

@@ -212,9 +212,9 @@ To verify safe sync is working:
 
 ```bash
 # In admin import page:
-1. Import movie (e.g., TMDB ID 550 - Fight Club)
+1. Import movie (e.g., TMDB ID 15 - Citizen Kane)
 2. Edit movie, add Lao translations
-3. Re-import same TMDB ID 550
+3. Re-import same TMDB ID 15
 4. Check that Lao translations remain
 ```
 

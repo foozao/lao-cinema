@@ -294,11 +294,11 @@ Prod environment: https://storage.googleapis.com/lao-cinema-videos/... (GCS)
 │    │                         └─ lo: "ສັນຍານ"                    │
 │    │                                                           │
 │    └─> movie_cast ───────> movie_cast_translations             │
-│          │                   ├─ en: "Tyler Durden"             │
+│          │                   ├─ en: "Charles Foster Kane"      │
 │          │                   └─ lo: "ໄທເລີ ເດີເດັນ"              │
 │          │                                                     │
 │          └─> people ─────> people_translations                 │
-│                              ├─ en: "Brad Pitt"                │
+│                              ├─ en: "Orson Welles"             │
 │                              └─ lo: "ແບຣດ ພິດ"                  │
 └───────────────────────────────────────────────────────────────┘
                               │

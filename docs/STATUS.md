@@ -236,7 +236,7 @@ cd web && npm run dev
 
 2. **Import a Movie**:
    - Navigate to `/admin/import`
-   - Find TMDB ID from themoviedb.org URL (e.g., `550` for Fight Club)
+   - Find TMDB ID from themoviedb.org URL (e.g., `15` for Citizen Kane)
    - Enter ID and click "Fetch"
    - Review imported data (English only)
    - Click "Import Movie" to save to database

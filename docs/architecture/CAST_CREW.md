@@ -101,7 +101,7 @@ When importing a movie, the preview now shows:
 
 **Cast:**
 ```
-Brad Pitt, Edward Norton, Helena Bonham Carter, Meat Loaf, Jared Leto and 15 more
+Orson Welles, Joseph Cotten, Dorothy Comingore, Ray Collins, George Coulouris and 15 more
 ```
 
 **Crew:**
@@ -118,14 +118,14 @@ Ross Grayson Bell - Producer
 - **Lao translations**: Added manually in edit form
 - Names are stored as `LocalizedText` objects
 
-## Example: Fight Club (TMDB ID: 550)
+## Example: Citizen Kane (TMDB ID: 15)
 
 **Cast (20 actors):**
-1. Brad Pitt as Tyler Durden
-2. Edward Norton as The Narrator
-3. Helena Bonham Carter as Marla Singer
-4. Meat Loaf as Robert 'Bob' Paulsen
-5. Jared Leto as Angel Face
+1. Orson Welles as Charles Foster Kane
+2. Joseph Cotten as Jedediah Leland
+3. Dorothy Comingore as Susan Alexander Kane
+4. Ray Collins as Jim W. Gettys
+5. George Coulouris as Walter Parks Thatcher
 ... (15 more)
 
 **Crew (filtered):**
@@ -223,7 +223,7 @@ CREATE TABLE movie_crew_translations (
 Import any movie to see cast/crew:
 ```bash
 # Example movies with great casts:
-550  - Fight Club
+15   - Citizen Kane
 13   - Forrest Gump
 238  - The Godfather
 680  - Pulp Fiction

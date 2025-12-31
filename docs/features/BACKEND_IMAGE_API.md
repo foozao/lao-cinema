@@ -212,7 +212,7 @@ GET /api/movies/abc-123
 ```json
 {
   "id": "abc-123",
-  "title": { "en": "Fight Club" },
+  "title": { "en": "Citizen Kane" },
   "images": [
     {
       "id": "img-uuid-1",
@@ -248,7 +248,7 @@ PUT /api/movies/abc-123
 Content-Type: application/json
 
 {
-  "title": { "en": "Fight Club", "lo": "..." },
+  "title": { "en": "Citizen Kane", "lo": "..." },
   "images": [
     {
       "type": "poster",

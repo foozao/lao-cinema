@@ -67,7 +67,7 @@ Record of deliberate architectural choices and their rationale. **Read this befo
 **Decision**: Store cast/crew as references to a shared `people` table, not embedded in movies.
 
 **Rationale**:
-- **Deduplication**: Same actor appears in multiple movies (Brad Pitt shouldn't be stored 50 times)
+- **Deduplication**: Same actor appears in multiple movies (Orson Welles shouldn't be stored 50 times)
 - **Person pages**: Enables `/people/:id` pages showing filmography
 - **TMDB compatibility**: TMDB uses person IDs; we can sync updates
 - **Translations**: Person name translations stored once, applied everywhere

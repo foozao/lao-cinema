@@ -15,7 +15,7 @@ We now fetch **all available posters, backdrops, and logos** from TMDB instead o
 
 **Example Usage:**
 ```typescript
-const images = await tmdbClient.getMovieImages(550); // Fight Club
+const images = await tmdbClient.getMovieImages(15); // Citizen Kane
 console.log(images.posters.length); // e.g., 47 posters
 console.log(images.backdrops.length); // e.g., 23 backdrops
 ```
@@ -119,7 +119,7 @@ getImageUrl(filePath, 'poster', 'medium')
 
 When you import a movie via the admin panel:
 
-1. **Fetch from TMDB** - Enter TMDB ID (e.g., `550` for Fight Club)
+1. **Fetch from TMDB** - Enter TMDB ID (e.g., `15` for Citizen Kane)
 2. **Review Preview** - See how many images were fetched:
    ```
    Images Fetched:
@@ -248,7 +248,7 @@ When the backend API is built, the images should be:
    ```json
    {
      "id": "uuid",
-     "title": { "en": "Fight Club", "lo": "..." },
+     "title": { "en": "Citizen Kane", "lo": "..." },
      "poster_path": "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
      "images": [
        {
@@ -293,7 +293,7 @@ To test the implementation:
 
 2. Go to Admin Import: `http://localhost:3000/en/admin/import`
 
-3. Import a popular movie (e.g., TMDB ID `550` for Fight Club)
+3. Import a popular movie (e.g., TMDB ID `15` for Citizen Kane)
 
 4. Check the preview - you should see:
    - Images Fetched count (Posters, Backdrops, Logos)

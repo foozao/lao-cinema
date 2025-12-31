@@ -123,7 +123,7 @@ export default function ImportFromTMDBPage() {
                   type="text"
                   value={tmdbId}
                   onChange={(e) => setTmdbId(e.target.value)}
-                  placeholder="e.g., 1126026 for The Signal"
+                  placeholder="e.g., 15 (Citizen Kane)"
                   required
                 />
                 <Button type="submit" disabled={loading}>

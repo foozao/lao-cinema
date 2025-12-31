@@ -257,11 +257,11 @@ export function MediaTab({
               name="video_url"
               value={formData.video_url}
               onChange={onFormChange}
-              placeholder="the-signal"
+              placeholder="movie-name"
               className="font-mono"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter just the video folder name (e.g., <code className="bg-gray-100 px-1 rounded">the-signal</code>). The full URL is constructed automatically.
+              Enter just the video folder name (e.g., <code className="bg-gray-100 px-1 rounded">movie-name</code>). The full URL is constructed automatically.
             </p>
             {formData.video_url && (
               <div className="mt-2 p-3 bg-gray-50 rounded-md border text-xs space-y-1">
@@ -434,7 +434,7 @@ export function MediaTab({
                     <Label htmlFor="trailer_slug" className="text-xs">Trailer Slug</Label>
                     <Input
                       id="trailer_slug"
-                      placeholder="e.g., the-signal-trailer"
+                      placeholder="e.g., movie-name-trailer"
                       className="text-sm font-mono"
                     />
                     <p className="text-xs text-gray-600 mt-1">
@@ -784,7 +784,7 @@ export function MediaTab({
                   id="edit_trailer_slug"
                   value={editForm.slug}
                   onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
-                  placeholder="e.g., the-signal-trailer"
+                  placeholder="e.g., movie-name-trailer"
                   className="font-mono"
                 />
                 <p className="text-xs text-gray-500 mt-1">

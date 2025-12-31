@@ -225,7 +225,7 @@ JOIN movie_translations mt ON mt.movie_id = m.id
 JOIN movie_cast mc ON mc.movie_id = m.id
 JOIN people p ON p.id = mc.person_id
 JOIN people_translations pt ON pt.person_id = p.id
-WHERE pt.name ILIKE '%Brad Pitt%'
+WHERE pt.name ILIKE '%Orson Welles%'
   AND mt.language = 'en'
   AND pt.language = 'en';
 ```
@@ -279,7 +279,7 @@ function PersonCard({ person, role, locale }: PersonCardProps) {
 ## Benefits
 
 ### 1. No Data Duplication
-- Brad Pitt's biography stored once, not in every movie
+- Orson Welles' biography stored once, not in every movie
 - Update person info in one place, reflects everywhere
 
 ### 2. Rich Person Profiles
@@ -332,7 +332,7 @@ function PersonCard({ person, role, locale }: PersonCardProps) {
 
 ### Advanced Queries
 
-- "Movies with both Brad Pitt and Edward Norton"
+- "Movies with both Orson Welles and Joseph Cotten"
 - "All movies directed by David Fincher"
 - "Top 10 most popular actors in catalog"
 

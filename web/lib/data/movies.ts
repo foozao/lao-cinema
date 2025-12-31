@@ -13,7 +13,7 @@ export const genres: Genre[] = [
 // Sample movie data
 export const sampleMovie: Movie = {
   id: '1',
-  tmdb_id: undefined, // Add a TMDB ID here to enable sync (e.g., 550 for Fight Club)
+  tmdb_id: undefined, // Add a TMDB ID here to enable sync (e.g., 15 for Citizen Kane)
   imdb_id: undefined,
   tmdb_last_synced: undefined,
   tmdb_sync_enabled: false,

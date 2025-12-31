@@ -238,9 +238,9 @@ Create a movie (typically from TMDB import).
 **Body:**
 ```json
 {
-  "tmdb_id": 550,
-  "original_title": "Fight Club",
-  "title": { "en": "Fight Club", "lo": "..." },
+  "tmdb_id": 15,
+  "original_title": "Citizen Kane",
+  "title": { "en": "Citizen Kane", "lo": "..." },
   "overview": { "en": "...", "lo": "..." },
   "tagline": { "en": "...", "lo": "..." },
   "poster_path": "/abc.jpg",
@@ -275,7 +275,7 @@ Add cast member to movie.
 ```json
 {
   "person_id": 123,
-  "character": { "en": "Tyler Durden", "lo": "..." },
+  "character": { "en": "Charles Foster Kane", "lo": "..." },
   "order": 0
 }
 ```
@@ -329,7 +329,7 @@ Get all people. Optional `?search=name&limit=20`.
   "people": [
     {
       "id": 123,
-      "name": { "en": "Brad Pitt", "lo": "..." },
+      "name": { "en": "Orson Welles", "lo": "..." },
       "profile_path": "/abc.jpg",
       "known_for_department": "Acting",
       "departments": ["Acting", "Directing"],

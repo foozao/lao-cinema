@@ -92,7 +92,7 @@ it('should handle bilingual content correctly', async () => {
 ## Test Helpers
 
 ### `createSampleMovie()`
-Creates a full movie with all TMDB data (Fight Club example):
+Creates a full movie with all TMDB data (Citizen Kane example):
 - TMDB ID, IMDB ID
 - Bilingual title and overview
 - Genres, cast, crew

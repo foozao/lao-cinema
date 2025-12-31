@@ -98,8 +98,8 @@ POST /api/movies
 Content-Type: application/json
 
 {
-  "tmdb_id": 550,
-  "title": { "en": "Fight Club", "lo": "..." },
+  "tmdb_id": 15,
+  "title": { "en": "Citizen Kane", "lo": "..." },
   "overview": { "en": "...", "lo": "..." },
   "release_date": "1999-10-15",
   "adult": false,

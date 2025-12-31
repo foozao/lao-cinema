@@ -164,7 +164,7 @@ export function ContentTab({
               name="slug"
               value={formData.slug}
               onChange={onSlugChange}
-              placeholder="the-signal"
+              placeholder="movie-name"
               className={slugError ? 'border-red-500' : ''}
             />
             {slugError ? (
@@ -174,7 +174,7 @@ export function ContentTab({
               </p>
             ) : (
               <p className="text-xs text-gray-500 mt-1">
-                Custom URL path for this movie (e.g., &quot;the-signal&quot; → /movies/the-signal). Leave empty to use ID.
+                Custom URL path for this movie (e.g., &quot;movie-name&quot; → /movies/movie-name). Leave empty to use ID.
               </p>
             )}
           </div>

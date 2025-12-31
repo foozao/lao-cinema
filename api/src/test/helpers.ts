@@ -7,24 +7,24 @@ import type { Movie } from '../db/schema.js';
  */
 export function createSampleMovie(overrides?: any): any {
   return {
-    tmdb_id: 550,
-    imdb_id: 'tt0137523',
-    original_title: 'Fight Club',
+    tmdb_id: 15,
+    imdb_id: 'tt0033467',
+    original_title: 'Citizen Kane',
     original_language: 'en',
     poster_path: '/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',
     backdrop_path: '/fCayJrkfRaCRCTh8GqN30f8oyQF.jpg',
-    release_date: '1999-10-15',
-    runtime: 139,
+    release_date: '1941-05-01',
+    runtime: 119,
     vote_average: 8.4,
     vote_count: 26000,
     popularity: 61.416,
     adult: false,
     title: {
-      en: 'Fight Club',
+      en: 'Citizen Kane',
       lo: 'ສະໂມສອນ',
     },
     overview: {
-      en: 'A ticking-time-bomb insomniac and a slippery soap salesman channel primal male aggression into a shocking new form of therapy.',
+      en: 'Newspaper magnate Charles Foster Kane is taken from his mother as a boy and made the ward of a rich industrialist.',
       lo: 'ເລື່ອງຂອງຊາຍຄົນໜຶ່ງທີ່ມີອາການນອນບໍ່ຫລັບ...',
     },
     genres: [
@@ -36,11 +36,11 @@ export function createSampleMovie(overrides?: any): any {
     cast: [
       {
         person: {
-          id: 819,
-          name: { en: 'Edward Norton', lo: 'ເອັດເວີດ ນໍຕັນ' },
-          profile_path: '/5XBzD5WuTyVQZeS4VI25z2moMeY.jpg',
+          id: 40,
+          name: { en: 'Orson Welles', lo: 'ອໍສັນ ເວລສ໌' },
+          profile_path: '/oTBfvS3xfVl1MYJTukCykXkU0a.jpg',
         },
-        character: { en: 'The Narrator', lo: 'ຜູ້ບັນຍາຍ' },
+        character: { en: 'Charles Foster Kane', lo: 'ຊາລສ໌ ຟໍສເຕີ ເຄນ' },
         order: 0,
       },
     ],

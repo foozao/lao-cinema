@@ -47,7 +47,7 @@ const tmdbData = await tmdbClient.getMovieDetails(550);
 const movie = mapTMDBToMovie(tmdbData);
 
 // Search for movies
-const results = await tmdbClient.searchMovies('Fight Club');
+const results = await tmdbClient.searchMovies('Citizen Kane');
 ```
 
 ## Architecture

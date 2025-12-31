@@ -82,7 +82,7 @@ If a movie has a TMDB ID, you can sync updates:
 
 ## Workflow Example
 
-### Importing "Fight Club" (TMDB ID: 550)
+### Importing "Citizen Kane" (TMDB ID: 15)
 
 1. **Import:**
    ```
@@ -90,7 +90,7 @@ If a movie has a TMDB ID, you can sync updates:
    ```
 
 2. **Result:**
-   - English title: "Fight Club"
+   - English title: "Citizen Kane"
    - English overview: "A ticking-time-bomb insomniac..."
    - Budget: $63,000,000
    - Revenue: $100,853,753

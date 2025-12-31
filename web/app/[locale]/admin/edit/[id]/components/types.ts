@@ -7,9 +7,9 @@ import type { Movie, ExternalPlatform, Trailer } from '@/lib/types';
 /**
  * Extract video slug from a full URL.
  * Handles formats like:
- * - "the-signal" (already a slug)
- * - "http://localhost:3002/videos/hls/the-signal/master.m3u8"
- * - "https://storage.googleapis.com/lao-cinema-videos/hls/the-signal/master.m3u8"
+ * - "movie-name" (already a slug)
+ * - "http://localhost:3002/videos/hls/movie-name/master.m3u8"
+ * - "https://storage.googleapis.com/lao-cinema-videos/hls/movie-name/master.m3u8"
  */
 export function extractVideoSlug(url: string): string {
   if (!url) return '';
@@ -51,10 +51,10 @@ export function buildVideoUrlPreview(slug: string): { local: string; production:
 /**
  * Extract trailer slug from a full URL.
  * Handles formats like:
- * - "the-signal" (already a slug)
- * - "http://localhost:3002/trailers/hls/the-signal/master.m3u8"
- * - "https://storage.googleapis.com/lao-cinema-videos/trailers/hls/the-signal/master.m3u8"
- * - "http://localhost:3002/trailers/the-signal.mp4"
+ * - "movie-name" (already a slug)
+ * - "http://localhost:3002/trailers/hls/movie-name/master.m3u8"
+ * - "https://storage.googleapis.com/lao-cinema-videos/trailers/hls/movie-name/master.m3u8"
+ * - "http://localhost:3002/trailers/movie-name.mp4"
  */
 export function extractTrailerSlug(url: string): string {
   if (!url) return '';

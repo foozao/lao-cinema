@@ -82,8 +82,8 @@ describe('Movie Routes', () => {
       expect(response.statusCode).toBe(201);
       const body = JSON.parse(response.body);
       expect(body.id).toBeDefined();
-      expect(body.tmdb_id).toBe(550);
-      expect(body.title.en).toBe('Fight Club');
+      expect(body.tmdb_id).toBe(15);
+      expect(body.title.en).toBe('Citizen Kane');
       expect(body.title.lo).toBe('ສະໂມສອນ');
       expect(body.genres).toHaveLength(1);
       expect(body.cast).toHaveLength(1);
