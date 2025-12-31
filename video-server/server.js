@@ -112,6 +112,12 @@ fastify.addHook('onRequest', async (request, reply) => {
   if (request.url === '/videos/' || request.url === '/trailers/' || request.url === '/health' || request.url === '/') {
     return;
   }
+  
+  // Skip validation for trailer thumbnails (images are public)
+  const urlPath = request.url.split('?')[0].toLowerCase();
+  if (isTrailerRequest && (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg') || urlPath.endsWith('.png') || urlPath.endsWith('.webp'))) {
+    return;
+  }
 
   try {
     const url = new URL(request.url, `http://${request.hostname}`);

@@ -139,6 +139,7 @@ export default function EditMoviePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/genres`, {
         headers: getAuthHeaders(),
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();
