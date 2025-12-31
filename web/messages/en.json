@@ -915,5 +915,13 @@
     "authRequiredMessage": "Create an account or login to save movies to your watchlist.",
     "createAccount": "Create Account",
     "signIn": "Sign In"
+  },
+  "accolades": {
+    "filmAccolades": "Film Accolades",
+    "castCrewAccolades": "Cast & Crew Accolades",
+    "winner": "Winner",
+    "nominee": "Nominee",
+    "officialSelection": "Official Selection",
+    "section": "Section:"
   }
 }

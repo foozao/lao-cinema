@@ -15,6 +15,7 @@ import movieUpdateRoutes from './movie-update.js';
 import movieCastRoutes from './movie-cast.js';
 import movieCrewRoutes from './movie-crew.js';
 import movieImageRoutes from './movie-images.js';
+import movieAccoladesRoutes from './movie-accolades.js';
 import { sendBadRequest, sendUnauthorized, sendForbidden, sendNotFound, sendConflict, sendInternalError, sendCreated } from '../lib/response-helpers.js';
 
 export default async function movieRoutes(fastify: FastifyInstance) {
@@ -25,6 +26,7 @@ export default async function movieRoutes(fastify: FastifyInstance) {
   await movieCastRoutes(fastify);
   await movieCrewRoutes(fastify);
   await movieImageRoutes(fastify);
+  await movieAccoladesRoutes(fastify);
 }
 
 // Re-export schemas for backwards compatibility

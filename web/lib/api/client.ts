@@ -137,6 +137,10 @@ export const movieAPI = {
     fetchAPI<{ success: boolean; message: string }>(`/movies/${movieId}/images/${imageId}`, {
       method: 'DELETE',
     }),
+
+  // Get accolades for a movie
+  getAccolades: (movieId: string) =>
+    fetchAPI<{ film_accolades: any[]; cast_crew_accolades: any[] }>(`/movies/${movieId}/accolades`),
 };
 
 // People API methods

@@ -410,6 +410,44 @@ export interface AccoladeSectionSelection {
   sort_order: number;
 }
 
+// Movie accolade (for display on movie detail page)
+export interface MovieAccolade {
+  id: string;
+  type: 'nomination' | 'selection';
+  is_winner: boolean;
+  show: {
+    id: string;
+    slug?: string;
+    name: LocalizedText;
+  } | null;
+  edition: {
+    id: string;
+    year: number;
+    edition_number?: number;
+  } | null;
+  category?: {
+    id: string;
+    name: LocalizedText;
+  } | null;
+  section?: {
+    id: string;
+    name: LocalizedText;
+  } | null;
+  person?: {
+    id: number;
+    name: LocalizedText;
+    profile_path?: string;
+  } | null;
+  recognition_type?: LocalizedText;
+  notes?: LocalizedText;
+}
+
+// Response type for movie accolades endpoint
+export interface MovieAccoladesResponse {
+  film_accolades: MovieAccolade[];
+  cast_crew_accolades: MovieAccolade[];
+}
+
 // Backward compatibility aliases
 export type AwardNomineeType = AccoladeNomineeType;
 export type AwardShow = AccoladeEvent;

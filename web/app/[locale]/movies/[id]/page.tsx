@@ -26,6 +26,7 @@ import { NotifyMeButton } from '@/components/notify-me-button';
 import { WatchlistButton } from '@/components/watchlist-button';
 import type { Movie } from '@/lib/types';
 import { TEXT_LIMITS } from '@/lib/config';
+import { MovieAccolades } from '@/components/movie-accolades';
 
 export default function MoviePage() {
   const params = useParams();
@@ -635,6 +636,11 @@ export default function MoviePage() {
                 </div>
               </div>
             )}
+
+            {/* Accolades */}
+            <div className="mt-8">
+              <MovieAccolades movieId={movie.id} />
+            </div>
           </div>
 
           {/* Sidebar */}
