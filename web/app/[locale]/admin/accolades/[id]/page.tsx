@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { awardsAPI, movieAPI } from '@/lib/api/client';
 import { PersonSearch } from '@/components/admin/person-search';
+import { SimpleImageUploader } from '@/components/admin/simple-image-uploader';
 import { 
   Plus, Pencil, Trash2, ChevronDown, ChevronRight, Trophy, Calendar, 
   User, Film, Award, ArrowLeft, Check, X, Layers

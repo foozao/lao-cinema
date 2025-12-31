@@ -140,11 +140,10 @@ export default async function accoladeEventsRoutes(fastify: FastifyInstance) {
       country?: string;
       city?: string;
       website_url?: string;
-      logo_path?: string;
     };
   }>('/accolades/events', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
-      const { slug, name, description, country, city, website_url, logo_path } = request.body;
+      const { slug, name, description, country, city, website_url } = request.body;
       
       if (!name?.en) {
         return sendBadRequest(reply, 'English name is required');
@@ -155,7 +154,6 @@ export default async function accoladeEventsRoutes(fastify: FastifyInstance) {
         country: country || null,
         city: city || null,
         websiteUrl: website_url || null,
-        logoPath: logo_path || null,
       }).returning();
       
       // Insert translations
@@ -216,7 +214,6 @@ export default async function accoladeEventsRoutes(fastify: FastifyInstance) {
       country?: string;
       city?: string;
       website_url?: string;
-      logo_path?: string;
     };
   }>('/accolades/events/:id', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
@@ -234,7 +231,6 @@ export default async function accoladeEventsRoutes(fastify: FastifyInstance) {
       if (updates.country !== undefined) eventUpdates.country = updates.country || null;
       if (updates.city !== undefined) eventUpdates.city = updates.city || null;
       if (updates.website_url !== undefined) eventUpdates.websiteUrl = updates.website_url || null;
-      if (updates.logo_path !== undefined) eventUpdates.logoPath = updates.logo_path || null;
       
       await db.update(schema.accoladeEvents).set(eventUpdates).where(eq(schema.accoladeEvents.id, id));
       
