@@ -60,34 +60,66 @@ export function useRentalStatus(
     }
 
     try {
-      const valid = await isRentalValid(movieId);
+      // Single API call - get rental status once and reuse
+      const rentalStatus = await getRentalStatus(movieId);
+      const { rental, expired, expiredAt } = rentalStatus;
+      
+      const valid = rental !== null && !expired;
       setHasValidRental(valid);
       
-      if (valid) {
-        const time = await getFormattedRemainingTime(movieId);
-        setRemainingTime(time);
+      if (valid && rental) {
+        // Calculate remaining time from rental data
+        const now = Date.now();
+        const expiryTime = new Date(rental.expiresAt).getTime();
+        const remaining = expiryTime - now;
+        
+        // Format remaining time
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          
+          if (hours > 0) {
+            setRemainingTime(`${hours}h ${minutes}m`);
+          } else {
+            setRemainingTime(`${minutes}m`);
+          }
+        } else {
+          setRemainingTime('Expired');
+        }
+        
         setRecentlyExpired(null);
         
         // Check if this is a pack rental and get pack name
-        try {
-          const rentalStatus = await getRentalStatus(movieId);
-          if (rentalStatus.rental && rentalStatus.rental.shortPackId && packs.length > 0) {
-            const pack = packs.find(p => p.id === rentalStatus.rental!.shortPackId);
-            if (pack) {
-              setRentalPackName(getLocalizedText(pack.title, locale));
-            }
+        if (rental.shortPackId && packs.length > 0) {
+          const pack = packs.find(p => p.id === rental.shortPackId);
+          if (pack) {
+            setRentalPackName(getLocalizedText(pack.title, locale));
           } else {
             setRentalPackName(null);
           }
-        } catch (err) {
-          console.error('Failed to check rental pack:', err);
+        } else {
+          setRentalPackName(null);
         }
       } else {
-        // Check if rental recently expired
-        const expired = await getRecentlyExpiredRental(movieId);
-        setRecentlyExpired(expired);
+        // Check if rental recently expired (within 12 hours)
+        if (expired && expiredAt) {
+          const now = Date.now();
+          const expiryTime = new Date(expiredAt).getTime();
+          const recentlyExpiredWindow = 12 * 60 * 60 * 1000; // 12 hours
+          
+          if (now < expiryTime + recentlyExpiredWindow) {
+            setRecentlyExpired({ expiredAt: new Date(expiredAt) });
+          } else {
+            setRecentlyExpired(null);
+          }
+        } else {
+          setRecentlyExpired(null);
+        }
+        
         setRentalPackName(null);
       }
+    } catch (err) {
+      console.error('Failed to check rental status:', err);
     } finally {
       setIsLoading(false);
     }
