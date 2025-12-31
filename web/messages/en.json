@@ -5,7 +5,9 @@
     "noResults": "No results found",
     "goHome": "Go Home",
     "readMore": "Read More",
-    "showLess": "Show Less"
+    "showLess": "Show Less",
+    "back": "Back",
+    "watchOn": "Watch on Lao Cinema"
   },
   "errors": {
     "pageNotFound": "Page Not Found",
@@ -101,6 +103,7 @@
     "playTrailer": "Play Trailer",
     "viewAll": "View All",
     "originalTitle": "Original Title",
+    "trailerFor": "Trailer for",
     "as": "as",
     "info": "Info",
     "viewFullDetails": "View Full Details",

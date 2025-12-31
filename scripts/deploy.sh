@@ -69,8 +69,8 @@ set_environment_domains() {
         SERVICE_WEB="lao-cinema-web"
         SERVICE_API="lao-cinema-api"
         SERVICE_VIDEO="lao-cinema-video"
-        # Use CLOUD_DB_PASS_PRODUCTION env var (fallback to CLOUD_DB_PASS)
-        CLOUD_DB_PASS="${CLOUD_DB_PASS_PRODUCTION:-$CLOUD_DB_PASS}"
+        # Use Cloud Run secret for DB password
+        DB_SECRET_NAME="db-pass-production"
     elif [ "$DEPLOY_ENV" = "staging" ]; then
         CUSTOM_WEB_DOMAIN="https://staging.laocinema.com"
         CUSTOM_API_DOMAIN="https://api.staging.laocinema.com"
@@ -81,8 +81,8 @@ set_environment_domains() {
         SERVICE_WEB="lao-cinema-web-staging"
         SERVICE_API="lao-cinema-api-staging"
         SERVICE_VIDEO="lao-cinema-video-staging"
-        # Use CLOUD_DB_PASS_STAGING env var (fallback to CLOUD_DB_PASS)
-        CLOUD_DB_PASS="${CLOUD_DB_PASS_STAGING:-$CLOUD_DB_PASS}"
+        # Use Cloud Run secret for DB password
+        DB_SECRET_NAME="db-pass-staging"
     else
         # preview (default)
         CUSTOM_WEB_DOMAIN="https://preview.laocinema.com"
@@ -94,7 +94,8 @@ set_environment_domains() {
         SERVICE_WEB="lao-cinema-web-preview"
         SERVICE_API="lao-cinema-api-preview"
         SERVICE_VIDEO="lao-cinema-video-preview"
-        # Use CLOUD_DB_PASS env var
+        # Use Cloud Run secret for DB password
+        DB_SECRET_NAME="db-pass-preview"
     fi
 }
 
@@ -104,7 +105,8 @@ set_environment_domains() {
 DEPLOY_API=false
 DEPLOY_WEB=false
 DEPLOY_VIDEO=false
-DB_UPDATE=false         # Push schema changes to Cloud SQL
+DB_UPDATE=false         # Push schema changes to Cloud SQL (drizzle-kit push)
+DB_MIGRATE=false        # Run migrations on Cloud SQL (recommended)
 DB_WIPE=false           # Replace Cloud SQL with local database
 SYNC_CONTENT=false      # Sync content (movies, awards, etc.) to Cloud SQL
 DEPLOY_ENV="preview"    # Environment: preview, staging, production
@@ -140,7 +142,8 @@ STAGED DEPLOYMENT OPTIONS:
     --rollback        Rollback to previous revision
 
 DATABASE OPTIONS:
-    --db-update       Push schema changes to Cloud SQL (drizzle-kit push)
+    --db-migrate      Run migrations on Cloud SQL (recommended, non-interactive)
+    --db-update       Push schema changes to Cloud SQL (drizzle-kit push, may prompt)
     --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL
     --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)
 
@@ -226,6 +229,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --rollback)
             DEPLOY_MODE="rollback"
+            shift
+            ;;
+        --db-migrate)
+            DB_MIGRATE=true
             shift
             ;;
         --db-update)
@@ -532,7 +539,7 @@ else
         --update-env-vars="INSTANCE_CONNECTION_NAME=$CONNECTION_NAME" \
         --update-env-vars="DB_NAME=laocinema" \
         --update-env-vars="DB_USER=laocinema" \
-        --update-env-vars="DB_PASS=${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS not set}" \
+        --update-secrets="DB_PASS=${DB_SECRET_NAME}:latest" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/$VIDEO_BUCKET/hls" \
         --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream.preview.laocinema.com}" \
         --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
@@ -711,6 +718,16 @@ if [ "$DB_WIPE" = true ] && [ "$DB_UPDATE" = true ]; then
     exit 1
 fi
 
+if [ "$DB_WIPE" = true ] && [ "$DB_MIGRATE" = true ]; then
+    log_error "Cannot use --db-migrate and --db-wipe together"
+    exit 1
+fi
+
+if [ "$DB_UPDATE" = true ] && [ "$DB_MIGRATE" = true ]; then
+    log_error "Cannot use --db-update and --db-migrate together"
+    exit 1
+fi
+
 if [ "$DB_WIPE" = true ] && [ "$SYNC_CONTENT" = true ]; then
     log_error "Cannot use --sync-content and --db-wipe together (--db-wipe already syncs everything)"
     exit 1
@@ -753,6 +770,45 @@ if [ "$DB_UPDATE" = true ]; then
     kill $PROXY_PID 2>/dev/null
     
     log_info "✓ Schema updated successfully"
+fi
+
+# Run database migrations
+if [ "$DB_MIGRATE" = true ]; then
+    log_info "========================================="
+    log_info "Running migrations on Cloud SQL..."
+    log_info "========================================="
+    
+    # Check if cloud-sql-proxy is available
+    if ! command -v cloud-sql-proxy &> /dev/null; then
+        log_error "cloud-sql-proxy not found. Install it first:"
+        log_error "  curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64"
+        log_error "  chmod +x cloud-sql-proxy"
+        exit 1
+    fi
+    
+    # Start Cloud SQL proxy
+    log_info "Starting Cloud SQL proxy..."
+    ./cloud-sql-proxy $CONNECTION_NAME --port=5433 &
+    PROXY_PID=$!
+    sleep 3
+    
+    if ! kill -0 $PROXY_PID 2>/dev/null; then
+        log_error "Cloud SQL proxy failed to start"
+        exit 1
+    fi
+    log_info "✓ Cloud SQL proxy started (PID: $PROXY_PID)"
+    
+    # Run migrations
+    log_info "Running migrations..."
+    cd db
+    DATABASE_URL="postgresql://${CLOUD_DB_USER:-laocinema}:${CLOUD_DB_PASS}@127.0.0.1:5433/${CLOUD_DB_NAME:-laocinema}" npm run db:migrate
+    cd ..
+    
+    # Stop proxy
+    log_info "Stopping Cloud SQL proxy..."
+    kill $PROXY_PID 2>/dev/null
+    
+    log_info "✓ Migrations completed successfully"
 fi
 
 # Sync content to Cloud SQL

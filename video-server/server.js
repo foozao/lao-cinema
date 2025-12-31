@@ -77,6 +77,18 @@ async function verifyVideoToken(token) {
   return result;
 }
 
+// Trailer token validation via API
+async function verifyTrailerToken(token) {
+  const response = await fetch(`${API_URL}/api/trailer-tokens/validate?token=${encodeURIComponent(token)}`);
+  const result = await response.json();
+  
+  if (!result.valid) {
+    throw new Error(result.error || 'Invalid token');
+  }
+  
+  return result.payload;
+}
+
 // Register CORS - allow requests from web app with credentials (cookies)
 fastify.register(require('@fastify/cors'), {
   origin: CORS_ORIGINS,
@@ -86,35 +98,54 @@ fastify.register(require('@fastify/cors'), {
   credentials: true,
 });
 
-// Token validation hook for video files
+// Token validation hook for video and trailer files
 fastify.addHook('onRequest', async (request, reply) => {
-  // Only validate token for video file requests
-  if (!request.url.startsWith('/videos/')) {
+  // Only validate token for video and trailer file requests
+  const isVideoRequest = request.url.startsWith('/videos/');
+  const isTrailerRequest = request.url.startsWith('/trailers/');
+  
+  if (!isVideoRequest && !isTrailerRequest) {
     return;
   }
 
   // Skip validation for health check and root
-  if (request.url === '/videos/' || request.url === '/health' || request.url === '/') {
+  if (request.url === '/videos/' || request.url === '/trailers/' || request.url === '/health' || request.url === '/') {
     return;
   }
 
   try {
     const url = new URL(request.url, `http://${request.hostname}`);
     const token = url.searchParams.get('token');
-    const requestedPath = url.pathname.replace('/videos/', '');
     
-    // Extract movie directory from requested path (e.g., "hls/chanthaly" from "hls/chanthaly/stream_0/seg.ts")
-    const pathParts = requestedPath.split('/');
-    const movieDir = pathParts.slice(0, 2).join('/'); // "hls/chanthaly"
-    const cookieName = `video_session_${movieDir.replace(/\//g, '_')}`;
+    // Determine content type and extract path
+    let requestedPath, contentDir, cookieName, apiEndpoint;
+    
+    if (isVideoRequest) {
+      requestedPath = url.pathname.replace('/videos/', '');
+      const pathParts = requestedPath.split('/');
+      contentDir = pathParts.slice(0, 2).join('/'); // "hls/chanthaly"
+      cookieName = `video_session_${contentDir.replace(/\//g, '_')}`;
+      apiEndpoint = '/api/video-tokens/validate';
+    } else {
+      // Trailer request - keep "trailers/" prefix for consistency with token
+      requestedPath = url.pathname.replace(/^\//, ''); // Just remove leading slash: "trailers/hls/..."
+      const pathParts = requestedPath.replace('trailers/', '').split('/');
+      contentDir = pathParts.slice(0, 2).join('/'); // "hls/chanthaly"
+      cookieName = `trailer_session_${contentDir.replace(/\//g, '_')}`;
+      apiEndpoint = '/api/trailer-tokens/validate';
+    }
 
     if (token) {
       // Verify token via API and create session cookie
-      const payload = await verifyVideoToken(token);
-      const tokenDir = payload.videoPath.replace(/\/[^/]+$/, ''); // Remove filename
+      const payload = isVideoRequest 
+        ? await verifyVideoToken(token)
+        : await verifyTrailerToken(token);
       
-      // Validate path matches token
-      if (!requestedPath.startsWith(tokenDir + '/') && requestedPath !== payload.videoPath) {
+      const tokenPath = isVideoRequest ? payload.videoPath : payload.trailerPath;
+      const tokenDir = tokenPath.replace(/\/[^/]+$/, ''); // Remove filename
+      
+      // Validate path matches token (both should now have same format)
+      if (!requestedPath.startsWith(tokenDir + '/') && requestedPath !== tokenPath) {
         return reply.status(403).type('application/problem+json').send({
           type: 'about:blank',
           title: 'Forbidden',
@@ -125,16 +156,21 @@ fastify.addHook('onRequest', async (request, reply) => {
       }
 
       // Generate and set session cookie for subsequent segment requests
-      const sessionCookie = generateSessionCookie(movieDir);
-      reply.header('Set-Cookie', `${cookieName}=${sessionCookie}; Path=/videos/${movieDir}; HttpOnly; SameSite=None; Secure=false; Max-Age=${SESSION_DURATION_MS / 1000}`);
+      const sessionCookie = generateSessionCookie(contentDir);
+      const cookiePath = isVideoRequest ? `/videos/${contentDir}` : `/trailers/${contentDir}`;
+      reply.header('Set-Cookie', `${cookieName}=${sessionCookie}; Path=${cookiePath}; HttpOnly; SameSite=None; Secure=false; Max-Age=${SESSION_DURATION_MS / 1000}`);
       
-      request.videoToken = payload;
+      if (isVideoRequest) {
+        request.videoToken = payload;
+      } else {
+        request.trailerToken = payload;
+      }
     } else {
       // No token - check for valid session cookie (for HLS segments)
       const cookies = parseCookies(request.headers.cookie);
       const sessionCookie = cookies[cookieName];
       
-      if (!sessionCookie || !verifySessionCookie(sessionCookie, movieDir)) {
+      if (!sessionCookie || !verifySessionCookie(sessionCookie, contentDir)) {
         return reply.status(401).type('application/problem+json').send({
           type: 'about:blank',
           title: 'Unauthorized',
@@ -145,7 +181,11 @@ fastify.addHook('onRequest', async (request, reply) => {
       }
       
       // Valid session cookie, allow access
-      request.videoSession = { movieDir };
+      if (isVideoRequest) {
+        request.videoSession = { movieDir: contentDir };
+      } else {
+        request.trailerSession = { trailerDir: contentDir };
+      }
     }
   } catch (error) {
     return reply.status(401).type('application/problem+json').send({

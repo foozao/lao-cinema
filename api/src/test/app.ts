@@ -15,6 +15,7 @@ import auditLogRoutes from '../routes/audit-logs.js';
 import notificationRoutes from '../routes/notifications.js';
 import shortPackRoutes from '../routes/short-packs.js';
 import trailersRoutes from '../routes/trailers.js';
+import trailerTokenRoutes from '../routes/trailer-tokens.js';
 import videoTokenRoutes from '../routes/video-tokens.js';
 import genreRoutes from '../routes/genres.js';
 import movieGenresRoutes from '../routes/movie-genres.js';
@@ -35,6 +36,7 @@ interface BuildOptions {
   includeNotifications?: boolean;
   includeShortPacks?: boolean;
   includeTrailers?: boolean;
+  includeTrailerTokens?: boolean;
   includeVideoTokens?: boolean;
   includeUserData?: boolean;
   includeGenres?: boolean;
@@ -117,6 +119,17 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(trailersRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includeTrailerTokens) {
+    // Trailer tokens require auth/anonymous middleware (no rentals needed)
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    if (!options.includeTrailers) {
+      await app.register(trailersRoutes, { prefix: '/api' });
+    }
+    await app.register(trailerTokenRoutes, { prefix: '/api' });
   }
   
   if (options.includeVideoTokens) {

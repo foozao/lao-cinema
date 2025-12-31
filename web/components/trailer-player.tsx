@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Play, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Play, X, Loader2 } from 'lucide-react';
 import type { Trailer } from '@/lib/types';
+import { getSignedTrailerUrl } from '@/lib/api/trailer-tokens-client';
 
 interface TrailerPlayerProps {
   trailer: Trailer;
@@ -11,6 +12,9 @@ interface TrailerPlayerProps {
 
 export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loadingToken, setLoadingToken] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Get thumbnail based on trailer type
@@ -34,6 +38,51 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
   };
 
   const thumbnail = getThumbnail();
+
+  // Request signed URL when playing starts (for self-hosted trailers)
+  useEffect(() => {
+    if (isPlaying && trailer.type === 'video' && !signedUrl && !loadingToken) {
+      setLoadingToken(true);
+      setTokenError(null);
+      
+      getSignedTrailerUrl(trailer.id)
+        .then(response => {
+          setSignedUrl(response.url);
+          setLoadingToken(false);
+        })
+        .catch(error => {
+          console.error('Failed to get signed trailer URL:', error);
+          setTokenError(error.message || 'Failed to load trailer');
+          setLoadingToken(false);
+        });
+    }
+    // Only run when isPlaying changes or trailer.id changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, trailer.id]);
+
+  // Keyboard controls for play/pause (space bar)
+  useEffect(() => {
+    if (!isPlaying || trailer.type !== 'video') return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle space bar, and only if not typing in an input
+      if (e.code === 'Space' && e.target === document.body) {
+        const video = videoRef.current;
+        // Only control video if it exists and is connected to the DOM
+        if (video && document.contains(video)) {
+          e.preventDefault();
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying, trailer.type]);
 
   if (!isPlaying) {
     return (
@@ -83,20 +132,18 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
 
   return (
     <div className="w-full">
-      {/* Close button */}
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={() => setIsPlaying(false)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-800 hover:bg-gray-700 transition-colors text-sm text-white"
-          aria-label="Close trailer"
-        >
-          <X className="w-4 h-4" />
-          <span>Close</span>
-        </button>
-      </div>
-
       {/* Player based on trailer type */}
       <div className="relative w-full h-0 pb-[56.25%] bg-black rounded-lg overflow-hidden">
+        {/* Close button overlay - only for self-hosted videos */}
+        {trailer.type === 'video' && (
+          <button
+            onClick={() => setIsPlaying(false)}
+            className="absolute top-3 right-3 z-50 p-2 rounded-full bg-black/70 hover:bg-black/90 transition-all text-white backdrop-blur-sm"
+            aria-label="Close trailer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
         {trailer.type === 'youtube' ? (
           // YouTube iframe
           <iframe
@@ -106,11 +153,36 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
             allowFullScreen
             className="absolute top-0 left-0 w-full h-full border-0"
           />
-        ) : (
-          // Video file player
+        ) : loadingToken ? (
+          // Loading state for token request
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <p className="text-sm text-gray-400">Loading trailer...</p>
+            </div>
+          </div>
+        ) : tokenError ? (
+          // Error state
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+            <div className="flex flex-col items-center gap-3 px-4 text-center">
+              <p className="text-sm text-red-400">{tokenError}</p>
+              <button
+                onClick={() => {
+                  setTokenError(null);
+                  setLoadingToken(false);
+                  setSignedUrl(null);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm text-white transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        ) : signedUrl ? (
+          // Video file player with signed URL
           <video
             ref={videoRef}
-            src={trailer.video_url}
+            src={signedUrl}
             className="absolute top-0 left-0 w-full h-full"
             controls
             autoPlay
@@ -119,7 +191,7 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
           >
             Your browser does not support the video tag.
           </video>
-        )}
+        ) : null}
       </div>
     </div>
   );
