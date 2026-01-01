@@ -23,7 +23,8 @@ import type {
   AwardNomination,
   AwardCategoryWithNominations,
   AwardEditionDetail,
-  AccoladeSection
+  AccoladeSection,
+  AwardBody
 } from '@/lib/types';
 
 export default function AdminAwardShowPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +33,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
   const [selectedEdition, setSelectedEdition] = useState<AwardEditionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [movies, setMovies] = useState<any[]>([]);
+  const [awardBodies, setAwardBodies] = useState<AwardBody[]>([]);
 
   // Form states
   const [showEditionForm, setShowEditionForm] = useState(false);
@@ -83,14 +85,20 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     person: null as { id: number; name: { en?: string; lo?: string } } | null,
     movie_id: '',
     for_movie_id: '',
+    award_body_id: '' as string,
     recognition_type_en: '',
     recognition_type_lo: '',
     is_winner: false,
   });
+  
+  // Award body creation state (for creating new ones inline)
+  const [showNewAwardBodyForm, setShowNewAwardBodyForm] = useState(false);
+  const [newAwardBodyName, setNewAwardBodyName] = useState('');
 
   useEffect(() => {
     loadShow();
     loadMovies();
+    loadAwardBodies();
   }, [resolvedParams.id]);
 
   const loadShow = async () => {
@@ -111,6 +119,31 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       setMovies(response.movies || []);
     } catch (error) {
       console.error('Failed to load movies:', error);
+    }
+  };
+  
+  const loadAwardBodies = async () => {
+    try {
+      const response = await awardsAPI.getAwardBodies();
+      setAwardBodies(response.award_bodies || []);
+    } catch (error) {
+      console.error('Failed to load award bodies:', error);
+    }
+  };
+  
+  const handleCreateAwardBody = async () => {
+    if (!newAwardBodyName.trim()) return;
+    try {
+      const newBody = await awardsAPI.createAwardBody({
+        name: { en: newAwardBodyName.trim() },
+      });
+      setAwardBodies([...awardBodies, newBody]);
+      setNominationForm({ ...nominationForm, award_body_id: newBody.id });
+      setNewAwardBodyName('');
+      setShowNewAwardBodyForm(false);
+    } catch (error) {
+      console.error('Failed to create award body:', error);
+      alert('Failed to create award body');
     }
   };
 
@@ -391,12 +424,15 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
       person: null,
       movie_id: '',
       for_movie_id: '',
+      award_body_id: '',
       recognition_type_en: '',
       recognition_type_lo: '',
       is_winner: false,
     });
     setAddingNominationTo(null);
     setEditingNomination(null);
+    setShowNewAwardBodyForm(false);
+    setNewAwardBodyName('');
   };
 
   const handleEditNomination = (nomination: AwardNomination, categoryId: string) => {
@@ -408,6 +444,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
         : null,
       movie_id: nomination.nominee?.type === 'movie' ? String(nomination.nominee.id) : '',
       for_movie_id: nomination.for_movie?.id || '',
+      award_body_id: nomination.award_body?.id || '',
       recognition_type_en: nomination.recognition_type?.en || '',
       recognition_type_lo: nomination.recognition_type?.lo || '',
       is_winner: nomination.is_winner,
@@ -429,6 +466,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
           person_id: nomineeType === 'person' && nominationForm.person ? nominationForm.person.id : undefined,
           movie_id: nomineeType === 'movie' && nominationForm.movie_id ? nominationForm.movie_id : undefined,
           for_movie_id: nominationForm.for_movie_id || undefined,
+          award_body_id: nominationForm.award_body_id || null,
           recognition_type: recognitionType,
           is_winner: nominationForm.is_winner,
         };
@@ -440,6 +478,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
           person_id: nomineeType === 'person' && nominationForm.person ? nominationForm.person.id : undefined,
           movie_id: nomineeType === 'movie' && nominationForm.movie_id ? nominationForm.movie_id : undefined,
           for_movie_id: nominationForm.for_movie_id || undefined,
+          award_body_id: nominationForm.award_body_id || undefined,
           recognition_type: recognitionType,
           is_winner: nominationForm.is_winner,
         };
@@ -1082,7 +1121,72 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                           </select>
                                         </div>
                                       )}
-                                      <div className="flex gap-2 pt-1">
+                                      <div>
+                                        <Label className="text-xs">Award Body (optional)</Label>
+                                        {!showNewAwardBodyForm ? (
+                                          <div className="flex gap-2">
+                                            <select
+                                              value={nominationForm.award_body_id}
+                                              onChange={(e) => setNominationForm({ ...nominationForm, award_body_id: e.target.value })}
+                                              className="flex-1 h-8 px-2 border border-gray-300 rounded-md text-xs"
+                                            >
+                                              <option value="">Official Festival Jury</option>
+                                              {awardBodies.map((body) => (
+                                                <option key={body.id} value={body.id}>
+                                                  {body.abbreviation ? `${body.abbreviation} - ` : ''}{body.name.en || body.name.lo}
+                                                </option>
+                                              ))}
+                                            </select>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => setShowNewAwardBodyForm(true)}
+                                            >
+                                              <Plus className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex gap-2">
+                                            <Input
+                                              value={newAwardBodyName}
+                                              onChange={(e) => setNewAwardBodyName(e.target.value)}
+                                              placeholder="e.g., FIPRESCI"
+                                              className="h-8 text-xs"
+                                              onKeyDown={(e) => e.key === 'Enter' && handleCreateAwardBody()}
+                                            />
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              className="h-8 text-xs"
+                                              onClick={handleCreateAwardBody}
+                                              disabled={!newAwardBodyName.trim()}
+                                            >
+                                              Add
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 w-8 p-0"
+                                              onClick={() => { setShowNewAwardBodyForm(false); setNewAwardBodyName(''); }}
+                                            >
+                                              <X className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-4 pt-1">
+                                        <label className="flex items-center gap-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={nominationForm.is_winner}
+                                            onChange={(e) => setNominationForm({ ...nominationForm, is_winner: e.target.checked })}
+                                            className="rounded"
+                                          />
+                                          <span className="text-xs">Winner</span>
+                                        </label>
                                         <Button
                                           size="sm"
                                           className="h-7 text-xs"
@@ -1103,9 +1207,27 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                   ) : (
                                     <div className="space-y-1">
                                       {category.nominations.map((nom) => (
-                                        <div key={nom.id} className="text-sm flex items-center gap-2">
+                                        <div key={nom.id} className="text-sm flex items-center gap-2 group">
                                           {nom.is_winner && <Trophy className="w-3 h-3 text-yellow-500" />}
-                                          <span>{nom.nominee?.name?.en || nom.nominee?.title?.en || 'Unknown'}</span>
+                                          <span className="flex-1">{nom.nominee?.name?.en || nom.nominee?.title?.en || 'Unknown'}</span>
+                                          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 w-6 p-0"
+                                              onClick={() => handleEditNomination(nom, category.id)}
+                                            >
+                                              <Pencil className="w-3 h-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                              onClick={() => handleDeleteNomination(nom.id)}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
@@ -1244,6 +1366,63 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                               </select>
                             </div>
                           )}
+                          <div>
+                            <Label className="text-sm">Award Body (optional)</Label>
+                            {!showNewAwardBodyForm ? (
+                              <div className="flex gap-2">
+                                <select
+                                  value={nominationForm.award_body_id}
+                                  onChange={(e) => setNominationForm({ ...nominationForm, award_body_id: e.target.value })}
+                                  className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-sm"
+                                >
+                                  <option value="">Official Festival Jury</option>
+                                  {awardBodies.map((body) => (
+                                    <option key={body.id} value={body.id}>
+                                      {body.abbreviation ? `${body.abbreviation} - ` : ''}{body.name.en || body.name.lo}
+                                    </option>
+                                  ))}
+                                </select>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-9"
+                                  onClick={() => setShowNewAwardBodyForm(true)}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Input
+                                  value={newAwardBodyName}
+                                  onChange={(e) => setNewAwardBodyName(e.target.value)}
+                                  placeholder="e.g., FIPRESCI"
+                                  className="h-9"
+                                  onKeyDown={(e) => e.key === 'Enter' && handleCreateAwardBody()}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-9"
+                                  onClick={handleCreateAwardBody}
+                                  disabled={!newAwardBodyName.trim()}
+                                >
+                                  Add
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-9"
+                                  onClick={() => { setShowNewAwardBodyForm(false); setNewAwardBodyName(''); }}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">For independent juries like FIPRESCI, FEDORA, NETPAC. Leave empty for official festival jury.</p>
+                          </div>
                           <div>
                             <Label className="text-sm">Recognition Type (optional)</Label>
                             <div className="grid grid-cols-2 gap-2">

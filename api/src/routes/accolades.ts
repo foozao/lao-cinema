@@ -5,6 +5,7 @@
 // - accolade-categories.ts: Accolade category CRUD (competitive awards)
 // - accolade-sections.ts: Accolade section CRUD (festival program tracks)
 // - accolade-nominations.ts: Accolade nomination CRUD + winners
+// - award-bodies.ts: Award body CRUD (independent juries like FIPRESCI, FEDORA)
 
 import { FastifyInstance } from 'fastify';
 import accoladeEventsRoutes from './accolade-events.js';
@@ -12,6 +13,7 @@ import accoladeEditionsRoutes from './accolade-editions.js';
 import accoladeCategoriesRoutes from './accolade-categories.js';
 import accoladeSectionsRoutes from './accolade-sections.js';
 import accoladeNominationsRoutes from './accolade-nominations.js';
+import awardBodiesRoutes from './award-bodies.js';
 
 export default async function accoladesRoutes(fastify: FastifyInstance) {
   // Register all accolade sub-routes
@@ -20,4 +22,5 @@ export default async function accoladesRoutes(fastify: FastifyInstance) {
   await fastify.register(accoladeCategoriesRoutes);
   await fastify.register(accoladeSectionsRoutes);
   await fastify.register(accoladeNominationsRoutes);
+  await fastify.register(awardBodiesRoutes);
 }

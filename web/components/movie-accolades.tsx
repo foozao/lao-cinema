@@ -116,6 +116,9 @@ export function MovieAccolades({ movieId }: MovieAccoladesProps) {
             const categoryName = accolade.category 
               ? getLocalizedText(accolade.category.name, locale)
               : null;
+            const categorySectionName = accolade.category?.section
+              ? getLocalizedText(accolade.category.section.name, locale)
+              : null;
             const personName = accolade.person 
               ? getLocalizedText(accolade.person.name, locale)
               : null;
@@ -127,11 +130,14 @@ export function MovieAccolades({ movieId }: MovieAccoladesProps) {
                 ) : (
                   <span className="text-gray-400">{t('accolades.nominee')}</span>
                 )}
-                {' · '}
+                {' - '}
                 {categoryName}
+                {categorySectionName && (
+                  <span className="text-gray-500"> ({categorySectionName})</span>
+                )}
                 {personName && (
                   <>
-                    {' · '}
+                    {' - '}
                     <Link
                       href={`/people/${accolade.person?.id}`}
                       className="hover:underline text-blue-400"

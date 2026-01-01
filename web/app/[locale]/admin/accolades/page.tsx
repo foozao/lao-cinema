@@ -9,6 +9,7 @@ import { awardsAPI } from '@/lib/api/client';
 import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { Plus, Pencil, Trash2, ChevronRight, Trophy, Calendar, Globe, ExternalLink } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { CountrySelect } from '@/components/admin/country-select';
 import type { AwardShow } from '@/lib/types';
 
 export default function AdminAwardsPage() {
@@ -215,12 +216,11 @@ export default function AdminAwardsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Country Code</Label>
-                  <Input
+                  <Label>Country</Label>
+                  <CountrySelect
                     value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    placeholder="e.g., LA"
-                    maxLength={2}
+                    onChange={(value) => setFormData({ ...formData, country: value })}
+                    existingCountryCodes={shows.map(s => s.country).filter((c): c is string => !!c)}
                   />
                 </div>
                 <div>

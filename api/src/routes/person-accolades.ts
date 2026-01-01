@@ -1,49 +1,62 @@
-// Movie Accolades routes - Get all accolades for a movie
+// Person Accolades routes - Get all accolades for a person
 
 import { FastifyInstance } from 'fastify';
 import { sendNotFound, sendInternalError } from '../lib/response-helpers.js';
 import { db, schema } from '../db/index.js';
-import { eq, or, desc } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { buildInClause } from '../lib/query-helpers.js';
 import { buildLocalizedText } from '../lib/translation-helpers.js';
 
-export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
-  // Get all accolades for a movie (nominations + selections)
-  // Includes both the movie's own accolades AND accolades of its cast/crew
+export default async function personAccoladesRoutes(fastify: FastifyInstance) {
+  // Get all accolades for a person
+  // Returns two categories:
+  // 1. personal_awards: Awards where the person is the nominee (Best Actor, Best Director, etc.)
+  // 2. film_accolades: Awards won by films they worked on (grouped by film)
   fastify.get<{
     Params: { id: string };
-  }>('/movies/:id/accolades', async (request, reply) => {
+  }>('/people/:id/accolades', async (request, reply) => {
     try {
       const { id } = request.params;
+      const personId = parseInt(id);
       
-      // Verify movie exists
-      const [movie] = await db.select().from(schema.movies).where(eq(schema.movies.id, id)).limit(1);
-      if (!movie) {
-        return sendNotFound(reply, 'Movie not found');
+      if (isNaN(personId)) {
+        return { personal_awards: [], film_accolades: [] };
       }
       
-      // Get cast and crew for this movie
-      const cast = await db.select().from(schema.movieCast).where(eq(schema.movieCast.movieId, id));
-      const crew = await db.select().from(schema.movieCrew).where(eq(schema.movieCrew.movieId, id));
-      const personIds = [...new Set([...cast.map(c => c.personId), ...crew.map(c => c.personId)])];
+      // Verify person exists
+      const [person] = await db.select().from(schema.people).where(eq(schema.people.id, personId)).limit(1);
+      if (!person) {
+        return sendNotFound(reply, 'Person not found');
+      }
+      
+      // Get all movies this person worked on (cast + crew)
+      const cast = await db.select().from(schema.movieCast).where(eq(schema.movieCast.personId, personId));
+      const crew = await db.select().from(schema.movieCrew).where(eq(schema.movieCrew.personId, personId));
+      const movieIds = [...new Set([...cast.map(c => c.movieId), ...crew.map(c => c.movieId)])];
+      
+      if (movieIds.length === 0) {
+        return { personal_awards: [], film_accolades: [] };
+      }
       
       // Get nominations where:
-      // 1. Movie is the nominee (movieId = id)
-      // 2. Movie is the "for movie" (forMovieId = id) - person nominated for work on this movie
+      // 1. Person is the nominee (personId = id) - PERSONAL AWARDS
+      // 2. Movies they worked on are nominees (movieId in movieIds, personId is null) - FILM ACCOLADES
       const nominations = await db.select()
         .from(schema.accoladeNominations)
         .where(or(
-          eq(schema.accoladeNominations.movieId, id),
-          eq(schema.accoladeNominations.forMovieId, id)
+          eq(schema.accoladeNominations.personId, personId),
+          buildInClause(schema.accoladeNominations.movieId, movieIds)
         ));
       
-      // Get section selections for this movie
-      const selections = await db.select()
-        .from(schema.accoladeSectionSelections)
-        .where(eq(schema.accoladeSectionSelections.movieId, id));
+      // Get section selections for movies they worked on
+      const selections = movieIds.length > 0
+        ? await db.select()
+            .from(schema.accoladeSectionSelections)
+            .where(buildInClause(schema.accoladeSectionSelections.movieId, movieIds))
+        : [];
       
       if (nominations.length === 0 && selections.length === 0) {
-        return { film_accolades: [], cast_crew_accolades: [] };
+        return { personal_awards: [], film_accolades: [] };
       }
       
       // Gather all IDs for batch queries
@@ -53,8 +66,8 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
       ])];
       const categoryIds = [...new Set(nominations.map(n => n.categoryId))];
       const sectionIds = [...new Set(selections.map(s => s.sectionId))];
-      const nomineePersonIds = [...new Set(nominations.filter(n => n.personId).map(n => n.personId!))];
       const nominationIds = nominations.map(n => n.id);
+      const awardBodyIds = [...new Set(nominations.filter(n => n.awardBodyId).map(n => n.awardBodyId!))];
       
       // Batch fetch all related data
       const editions = editionIds.length > 0 
@@ -69,8 +82,8 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         ? await db.select().from(schema.accoladeCategoryTranslations).where(buildInClause(schema.accoladeCategoryTranslations.categoryId, categoryIds))
         : [];
       
-      // Get section IDs from both selections AND section-scoped categories
-      const categorySectionIds = categories.filter(c => c.sectionId).map(c => c.sectionId!) as string[];
+      // Get section IDs from both selections AND categories
+      const categorySectionIds = categories.map(c => c.sectionId).filter((id): id is string => id !== null);
       const allSectionIds = [...new Set([...sectionIds, ...categorySectionIds])];
       
       const sections = allSectionIds.length > 0
@@ -85,14 +98,6 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         ? await db.select().from(schema.accoladeNominationTranslations).where(buildInClause(schema.accoladeNominationTranslations.nominationId, nominationIds))
         : [];
       
-      const people = nomineePersonIds.length > 0
-        ? await db.select().from(schema.people).where(buildInClause(schema.people.id, nomineePersonIds))
-        : [];
-      
-      const peopleTrans = nomineePersonIds.length > 0
-        ? await db.select().from(schema.peopleTranslations).where(buildInClause(schema.peopleTranslations.personId, nomineePersonIds))
-        : [];
-      
       // Get show (event) data
       const showIds = [...new Set(editions.map(e => e.eventId))];
       const shows = showIds.length > 0
@@ -100,6 +105,22 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         : [];
       const showTrans = showIds.length > 0
         ? await db.select().from(schema.accoladeEventTranslations).where(buildInClause(schema.accoladeEventTranslations.eventId, showIds))
+        : [];
+      
+      // Get movie data for film accolades
+      const movies = movieIds.length > 0
+        ? await db.select().from(schema.movies).where(buildInClause(schema.movies.id, movieIds))
+        : [];
+      const movieTrans = movieIds.length > 0
+        ? await db.select().from(schema.movieTranslations).where(buildInClause(schema.movieTranslations.movieId, movieIds))
+        : [];
+      
+      // Get award body data
+      const awardBodies = awardBodyIds.length > 0
+        ? await db.select().from(schema.awardBodies).where(buildInClause(schema.awardBodies.id, awardBodyIds))
+        : [];
+      const awardBodyTrans = awardBodyIds.length > 0
+        ? await db.select().from(schema.awardBodyTranslations).where(buildInClause(schema.awardBodyTranslations.awardBodyId, awardBodyIds))
         : [];
       
       // Helper to format an accolade item
@@ -110,7 +131,8 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         categoryId?: string;
         sectionId?: string;
         isWinner?: boolean;
-        personId?: number | null;
+        movieId?: string;
+        awardBodyId?: string | null;
       }): {
         id: string;
         type: 'nomination' | 'selection';
@@ -119,9 +141,10 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         edition: { id: string; year: number; edition_number: number | null } | null;
         category: { id: string; name: Record<string, string>; section?: { id: string; name: Record<string, string> } | null } | null;
         section: { id: string; name: Record<string, string> } | null;
-        person: { id: number; name: Record<string, string>; profile_path: string | null } | null;
+        movie?: { id: string; title: Record<string, string>; poster_path: string | null };
         recognition_type?: Record<string, string>;
         notes?: Record<string, string>;
+        award_body?: { id: string; abbreviation: string | null; name: Record<string, string> } | null;
       } => {
         const edition = editions.find(e => e.id === item.editionId);
         const show = edition ? shows.find(s => s.id === edition.eventId) : null;
@@ -149,6 +172,7 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
           } : null;
         }
         
+        // Section for selections (not from category)
         let section = null;
         if (item.sectionId) {
           const sec = sections.find(s => s.id === item.sectionId);
@@ -159,14 +183,25 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
           } : null;
         }
         
-        let person = null;
-        if (item.personId) {
-          const p = people.find(p => p.id === item.personId);
-          const pTrans = peopleTrans.filter(t => t.personId === item.personId);
-          person = p ? {
-            id: p.id,
-            name: buildLocalizedText(pTrans, 'name'),
-            profile_path: p.profilePath,
+        let movie = undefined;
+        if (item.movieId) {
+          const m = movies.find(m => m.id === item.movieId);
+          const mTrans = movieTrans.filter(t => t.movieId === item.movieId);
+          movie = m ? {
+            id: m.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: m.posterPath,
+          } : undefined;
+        }
+        
+        let awardBody = null;
+        if (item.awardBodyId) {
+          const ab = awardBodies.find(a => a.id === item.awardBodyId);
+          const abTrans = awardBodyTrans.filter(t => t.awardBodyId === item.awardBodyId);
+          awardBody = ab ? {
+            id: ab.id,
+            abbreviation: ab.abbreviation,
+            name: buildLocalizedText(abTrans, 'name'),
           } : null;
         }
         
@@ -186,44 +221,54 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
           } : null,
           category,
           section,
-          person,
+          movie,
+          award_body: awardBody,
         };
       };
       
-      // Separate film accolades from cast/crew accolades
+      // Separate personal awards from film accolades
+      const personalAwards: any[] = [];
       const filmAccolades: any[] = [];
-      const castCrewAccolades: any[] = [];
       
       // Process nominations
       for (const nom of nominations) {
-        // For cast/crew accolades, verify the person is actually in this movie's cast/crew
-        if (nom.forMovieId === id && nom.personId) {
-          if (!personIds.includes(nom.personId)) {
-            // Person not in this movie's cast/crew - skip this accolade
-            continue;
-          }
+        // Personal award: person is the nominee
+        if (nom.personId === personId) {
+          const formatted = formatAccolade({
+            id: nom.id,
+            type: 'nomination',
+            editionId: nom.editionId,
+            categoryId: nom.categoryId,
+            isWinner: nom.isWinner,
+            movieId: nom.forMovieId || undefined,
+            awardBodyId: nom.awardBodyId,
+          });
+          
+          // Add nomination-specific fields
+          const nomTrans = nominationTrans.filter(t => t.nominationId === nom.id);
+          formatted.recognition_type = buildLocalizedText(nomTrans, 'recognitionType');
+          formatted.notes = buildLocalizedText(nomTrans, 'notes');
+          
+          personalAwards.push(formatted);
         }
-        
-        const formatted = formatAccolade({
-          id: nom.id,
-          type: 'nomination',
-          editionId: nom.editionId,
-          categoryId: nom.categoryId,
-          isWinner: nom.isWinner,
-          personId: nom.personId,
-        });
-        
-        // Add nomination-specific fields
-        const nomTrans = nominationTrans.filter(t => t.nominationId === nom.id);
-        formatted.recognition_type = buildLocalizedText(nomTrans, 'recognitionType');
-        formatted.notes = buildLocalizedText(nomTrans, 'notes');
-        
-        // If movie is the nominee, it's a film accolade
-        if (nom.movieId === id) {
+        // Film accolade: movie they worked on is the nominee (and person is NOT the nominee)
+        else if (nom.movieId && movieIds.includes(nom.movieId) && !nom.personId) {
+          const formatted = formatAccolade({
+            id: nom.id,
+            type: 'nomination',
+            editionId: nom.editionId,
+            categoryId: nom.categoryId,
+            isWinner: nom.isWinner,
+            movieId: nom.movieId,
+            awardBodyId: nom.awardBodyId,
+          });
+          
+          // Add nomination-specific fields
+          const nomTrans = nominationTrans.filter(t => t.nominationId === nom.id);
+          formatted.recognition_type = buildLocalizedText(nomTrans, 'recognitionType');
+          formatted.notes = buildLocalizedText(nomTrans, 'notes');
+          
           filmAccolades.push(formatted);
-        } else if (nom.forMovieId === id && nom.personId) {
-          // Person nominated for work on this movie = cast/crew accolade
-          castCrewAccolades.push(formatted);
         }
       }
       
@@ -234,6 +279,7 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
           type: 'selection',
           editionId: sel.editionId,
           sectionId: sel.sectionId,
+          movieId: sel.movieId,
         });
         filmAccolades.push(formatted);
       }
@@ -253,16 +299,16 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
         return yearB - yearA;
       };
       
+      personalAwards.sort(sortAccolades);
       filmAccolades.sort(sortAccolades);
-      castCrewAccolades.sort(sortAccolades);
       
       return { 
-        film_accolades: filmAccolades, 
-        cast_crew_accolades: castCrewAccolades 
+        personal_awards: personalAwards, 
+        film_accolades: filmAccolades 
       };
     } catch (error) {
       fastify.log.error(error);
-      return sendInternalError(reply, 'Failed to fetch movie accolades');
+      return sendInternalError(reply, 'Failed to fetch person accolades');
     }
   });
 }

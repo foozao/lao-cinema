@@ -7,6 +7,7 @@ import { Link } from '@/i18n/routing';
 import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Footer } from '@/components/footer';
+import { PersonAccolades } from '@/components/person-accolades';
 import { Film, User, Share2 } from 'lucide-react';
 import { peopleAPI } from '@/lib/api/client';
 import { getLocalizedText, getBilingualName } from '@/lib/i18n';
@@ -335,6 +336,16 @@ export default function PersonPage() {
             </>
           );
         })()}
+
+            {/* Personal Awards & Recognition */}
+            <div className="mb-8">
+              <PersonAccolades personId={personId} section="personal" />
+            </div>
+
+            {/* Films with Recognition */}
+            <div className="mb-8">
+              <PersonAccolades personId={personId} section="film" />
+            </div>
           </div>
         </div>
       </main>

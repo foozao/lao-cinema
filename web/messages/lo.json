@@ -919,9 +919,13 @@
   "accolades": {
     "filmAccolades": "ການຍ້ອງຍໍຮູບເງົາ",
     "castCrewAccolades": "ການຍ້ອງຍໍນັກສະແດງ ແລະ ທີມງານ",
+    "awardsRecognition": "ລາງວັນ ແລະ ການຍ້ອງຍໍ",
+    "associatedFilmAccolades": "ຮູບເງົາທີ່ໄດ້ຮັບການຍ້ອງຍໍ",
+    "forFilm": "ສຳລັບ",
     "winner": "ຜູ້ຊະນະ",
     "nominee": "ຜູ້ຖືກສະເໜີຊື່",
     "officialSelection": "ການຄັດເລືອກຢ່າງເປັນທາງການ",
+    "selection": "ຄັດເລືອກ",
     "section": "ພາກສ່ວນ:"
   }
 }

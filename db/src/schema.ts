@@ -624,6 +624,33 @@ export type NewHomepageSettings = typeof homepageSettings.$inferInsert;
 // Accolade nomination type enum - what kind of nomination this is
 export const accoladeNomineeTypeEnum = pgEnum('accolade_nominee_type', ['person', 'movie']);
 
+// Award body type enum - what kind of organization gives the award
+export const awardBodyTypeEnum = pgEnum('award_body_type', ['jury', 'critics', 'foundation', 'audience', 'sponsor']);
+
+// Award bodies table - Independent juries/organizations that give awards (e.g., FIPRESCI, FEDORA, NETPAC)
+// These are NOT tied to a specific festival - the same body can give awards at multiple festivals
+export const awardBodies = pgTable('award_bodies', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  abbreviation: text('abbreviation'), // Short name (e.g., "FIPRESCI", "FEDORA")
+  type: awardBodyTypeEnum('type'), // Optional classification
+  websiteUrl: text('website_url'),
+  logoPath: text('logo_path'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Award body translations table
+export const awardBodyTranslations = pgTable('award_body_translations', {
+  awardBodyId: uuid('award_body_id').references(() => awardBodies.id, { onDelete: 'cascade' }).notNull(),
+  language: languageEnum('language').notNull(),
+  name: text('name').notNull(), // Full name (e.g., "International Federation of Film Critics")
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.awardBodyId, table.language] }),
+}));
+
 // Accolade events table - The award ceremony/festival (e.g., "Luang Prabang Film Festival")
 export const accoladeEvents = pgTable('accolade_events', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -700,6 +727,7 @@ export const accoladeNominations = pgTable('accolade_nominations', {
   id: uuid('id').defaultRandom().primaryKey(),
   editionId: uuid('edition_id').references(() => accoladeEditions.id, { onDelete: 'cascade' }).notNull(),
   categoryId: uuid('category_id').references(() => accoladeCategories.id, { onDelete: 'cascade' }).notNull(),
+  awardBodyId: uuid('award_body_id').references(() => awardBodies.id, { onDelete: 'set null' }), // Optional - who gave the award (null = official festival jury)
   
   // The nominee - either a person OR a movie (based on category's nomineeType)
   personId: integer('person_id').references(() => people.id, { onDelete: 'cascade' }), // Nullable
@@ -775,6 +803,11 @@ export const accoladeSectionSelectionTranslations = pgTable('accolade_section_se
 }));
 
 // Types for TypeScript
+export type AwardBody = typeof awardBodies.$inferSelect;
+export type NewAwardBody = typeof awardBodies.$inferInsert;
+export type AwardBodyTranslation = typeof awardBodyTranslations.$inferSelect;
+export type NewAwardBodyTranslation = typeof awardBodyTranslations.$inferInsert;
+
 export type AccoladeEvent = typeof accoladeEvents.$inferSelect;
 export type NewAccoladeEvent = typeof accoladeEvents.$inferInsert;
 export type AccoladeEventTranslation = typeof accoladeEventTranslations.$inferSelect;

@@ -14,7 +14,11 @@
 set -e
 
 # Force gsutil to use Python 3.9 (compatible with gsutil, avoids Python 3.13 issues)
-export CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.9 2>/dev/null || true
+if [ -f /opt/homebrew/bin/python3.9 ]; then
+    export CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.9
+elif [ -f /usr/local/bin/python3.9 ]; then
+    export CLOUDSDK_PYTHON=/usr/local/bin/python3.9
+fi
 
 # Configuration
 PROJECT_ID="lao-cinema"
@@ -151,7 +155,7 @@ fi
 # VIDEO UPLOAD
 # ========================================
 upload_videos() {
-    local VIDEOS_DIR="video-server/videos/hls"
+    local VIDEOS_DIR="$SCRIPT_DIR/../video-server/videos/hls"
     local specific_movie="$1"
     
     upload_video_folder() {
@@ -166,10 +170,10 @@ upload_videos() {
         log_info "Uploading $movie_id..."
         
         if [ -n "$DRY_RUN" ]; then
-            gsutil -m rsync -r -c -n "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
+            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c -n "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
         else
-            gsutil -m rsync -r -c "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
-            gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" \
+            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
+            gsutil -o "GSUtil:parallel_process_count=1" -m setmeta -h "Cache-Control:public, max-age=31536000" \
                 "gs://$BUCKET_NAME/hls/$movie_id/**" 2>/dev/null || true
         fi
         
@@ -211,7 +215,7 @@ upload_videos() {
 # IMAGE UPLOAD
 # ========================================
 upload_images() {
-    local IMAGE_DIR="video-server/public"
+    local IMAGE_DIR="$SCRIPT_DIR/../video-server/public"
     local SUPPORTED_CATEGORIES=("logos" "posters" "backdrops" "profiles")
     local category="$1"
     

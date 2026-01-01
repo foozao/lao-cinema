@@ -20,6 +20,7 @@ import videoTokenRoutes from '../routes/video-tokens.js';
 import genreRoutes from '../routes/genres.js';
 import movieGenresRoutes from '../routes/movie-genres.js';
 import accoladesRoutes from '../routes/accolades.js';
+import personAccoladesRoutes from '../routes/person-accolades.js';
 import movieSubtitleRoutes from '../routes/movie-subtitles.js';
 import anonymousIdRoutes from '../routes/anonymous-id.js';
 import { db, schema } from '../db/index.js';
@@ -173,6 +174,11 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(accoladesRoutes, { prefix: '/api' });
+  }
+  
+  if (options.includePeople) {
+    // Person accolades route is public (read-only)
+    await app.register(personAccoladesRoutes, { prefix: '/api' });
   }
   
   if (options.includeSubtitles) {

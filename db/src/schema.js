@@ -514,6 +514,29 @@ const userWatchlist = pgTable("user_watchlist", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 const accoladeNomineeTypeEnum = pgEnum("accolade_nominee_type", ["person", "movie"]);
+const awardBodyTypeEnum = pgEnum("award_body_type", ["jury", "critics", "foundation", "audience", "sponsor"]);
+const awardBodies = pgTable("award_bodies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  abbreviation: text("abbreviation"),
+  // Short name (e.g., "FIPRESCI", "FEDORA")
+  type: awardBodyTypeEnum("type"),
+  // Optional classification
+  websiteUrl: text("website_url"),
+  logoPath: text("logo_path"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+const awardBodyTranslations = pgTable("award_body_translations", {
+  awardBodyId: uuid("award_body_id").references(() => awardBodies.id, { onDelete: "cascade" }).notNull(),
+  language: languageEnum("language").notNull(),
+  name: text("name").notNull(),
+  // Full name (e.g., "International Federation of Film Critics")
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  pk: primaryKey({ columns: [table.awardBodyId, table.language] })
+}));
 const accoladeEvents = pgTable("accolade_events", {
   id: uuid("id").defaultRandom().primaryKey(),
   slug: text("slug").unique(),
@@ -588,6 +611,8 @@ const accoladeNominations = pgTable("accolade_nominations", {
   id: uuid("id").defaultRandom().primaryKey(),
   editionId: uuid("edition_id").references(() => accoladeEditions.id, { onDelete: "cascade" }).notNull(),
   categoryId: uuid("category_id").references(() => accoladeCategories.id, { onDelete: "cascade" }).notNull(),
+  awardBodyId: uuid("award_body_id").references(() => awardBodies.id, { onDelete: "set null" }),
+  // Optional - who gave the award (null = official festival jury)
   // The nominee - either a person OR a movie (based on category's nomineeType)
   personId: integer("person_id").references(() => people.id, { onDelete: "cascade" }),
   // Nullable
@@ -670,6 +695,9 @@ export {
   auditLogs,
   authProviderEnum,
   availabilityStatusEnum,
+  awardBodies,
+  awardBodyTranslations,
+  awardBodyTypeEnum,
   emailVerificationTokens,
   genreTranslations,
   genres,

@@ -15,6 +15,7 @@ import type {
   AccoladeEditionDetail,
   AccoladeSection,
   AccoladeSectionSelection,
+  AwardBody,
   Trailer,
   SubtitleTrack,
   MovieImage,
@@ -160,6 +161,10 @@ export const peopleAPI = {
   
   // Get person by ID
   getById: (id: string | number) => fetchAPI<Person>(`/people/${id}`),
+  
+  // Get accolades for a person
+  getAccolades: (personId: string | number) =>
+    fetchAPI<{ personal_awards: any[]; film_accolades: any[] }>(`/people/${personId}/accolades`),
   
   // Create person
   create: (data: {
@@ -561,6 +566,7 @@ export const accoladesAPI = {
   createNomination: (data: {
     edition_id: string;
     category_id: string;
+    award_body_id?: string;
     person_id?: number;
     movie_id?: string;
     for_movie_id?: string;
@@ -576,6 +582,7 @@ export const accoladesAPI = {
   
   // Update nomination
   updateNomination: (id: string, data: {
+    award_body_id?: string | null;
     person_id?: number;
     movie_id?: string;
     for_movie_id?: string;
@@ -651,6 +658,45 @@ export const accoladesAPI = {
   
   // Remove movie from section
   removeMovieFromSection: (selectionId: string) => fetchAPI<{ success: boolean }>(`/accolades/sections/selections/${selectionId}`, {
+    method: 'DELETE',
+  }),
+
+  // ==========================================================================
+  // AWARD BODIES (independent juries like FIPRESCI, FEDORA, etc.)
+  // ==========================================================================
+  
+  // Get all award bodies
+  getAwardBodies: () => fetchAPI<{ award_bodies: AwardBody[] }>('/accolades/award-bodies'),
+  
+  // Get single award body
+  getAwardBody: (id: string) => fetchAPI<AwardBody>(`/accolades/award-bodies/${id}`),
+  
+  // Create award body
+  createAwardBody: (data: {
+    abbreviation?: string;
+    name: { en: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    type?: 'jury' | 'critics' | 'foundation' | 'audience' | 'sponsor';
+    website_url?: string;
+  }) => fetchAPI<AwardBody>('/accolades/award-bodies', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  
+  // Update award body
+  updateAwardBody: (id: string, data: {
+    abbreviation?: string;
+    name?: { en?: string; lo?: string };
+    description?: { en?: string; lo?: string };
+    type?: 'jury' | 'critics' | 'foundation' | 'audience' | 'sponsor' | null;
+    website_url?: string;
+  }) => fetchAPI<AwardBody>(`/accolades/award-bodies/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  // Delete award body
+  deleteAwardBody: (id: string) => fetchAPI<{ success: boolean }>(`/accolades/award-bodies/${id}`, {
     method: 'DELETE',
   }),
 };

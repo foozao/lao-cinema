@@ -530,6 +530,14 @@ if [ -z "$CONNECTION_NAME" ]; then
 else
     # Deploy with Cloud SQL connection via unix socket
     # Set env vars individually to avoid delimiter issues
+    
+    # Use Secret Manager for VIDEO_TOKEN_SECRET in staging/production
+    if [ "$DEPLOY_ENV" = "preview" ]; then
+        VIDEO_TOKEN_FLAG="--update-env-vars=VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}"
+    else
+        VIDEO_TOKEN_FLAG="--update-secrets=VIDEO_TOKEN_SECRET=video-token-secret:latest"
+    fi
+    
     gcloud run deploy $SERVICE_API \
         --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/api:$DEPLOY_ENV \
         --region=$REGION \
@@ -542,7 +550,7 @@ else
         --update-secrets="DB_PASS=${DB_SECRET_NAME}:latest" \
         --update-env-vars="VIDEO_BASE_URL=https://storage.googleapis.com/$VIDEO_BUCKET/hls" \
         --update-env-vars="VIDEO_SERVER_URL=${CUSTOM_VIDEO_DOMAIN:-https://stream.preview.laocinema.com}" \
-        --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
+        $VIDEO_TOKEN_FLAG \
         --update-env-vars="MAX_RENTALS_PER_MOVIE=20" \
         --update-env-vars="SENTRY_DSN=${SENTRY_API_DSN:-}" \
         --update-env-vars="NODE_ENV=production" \
@@ -616,6 +624,13 @@ if [ "$DEPLOY_VIDEO" = true ]; then
     # Get the API URL for token validation (use internal Cloud Run URL for low latency)
     VIDEO_API_URL="$API_URL"
     
+    # Use Secret Manager for VIDEO_TOKEN_SECRET in staging/production
+    if [ "$DEPLOY_ENV" = "preview" ]; then
+        VIDEO_TOKEN_FLAG="--update-env-vars=VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}"
+    else
+        VIDEO_TOKEN_FLAG="--update-secrets=VIDEO_TOKEN_SECRET=video-token-secret:latest"
+    fi
+    
     gcloud run deploy $SERVICE_VIDEO \
         --image=$REGION-docker.pkg.dev/$PROJECT_ID/lao-cinema/video-server:$DEPLOY_ENV \
         --region=$REGION \
@@ -628,7 +643,7 @@ if [ "$DEPLOY_VIDEO" = true ]; then
         --update-env-vars="VIDEOS_PATH=/mnt/gcs" \
         --update-env-vars="PUBLIC_PATH=/mnt/gcs" \
         --update-env-vars="API_URL=$VIDEO_API_URL" \
-        --update-env-vars="VIDEO_TOKEN_SECRET=${VIDEO_TOKEN_SECRET:?Error: VIDEO_TOKEN_SECRET not set}" \
+        $VIDEO_TOKEN_FLAG \
         --update-env-vars="CORS_ORIGINS=${CUSTOM_WEB_DOMAIN:-https://preview.laocinema.com}" \
         --memory=512Mi \
         --cpu=1 \

@@ -15,6 +15,7 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
     Body: {
       edition_id: string;
       category_id: string;
+      award_body_id?: string;
       person_id?: number;
       movie_id?: string;
       for_movie_id?: string;
@@ -26,7 +27,7 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
     };
   }>('/accolades/nominations', { preHandler: [requireEditorOrAdmin] }, async (request, reply) => {
     try {
-      const { edition_id, category_id, person_id, movie_id, for_movie_id, work_title, notes, recognition_type, is_winner, sort_order } = request.body;
+      const { edition_id, category_id, award_body_id, person_id, movie_id, for_movie_id, work_title, notes, recognition_type, is_winner, sort_order } = request.body;
       
       if (!edition_id || !category_id) {
         return sendBadRequest(reply, 'edition_id and category_id are required');
@@ -47,9 +48,18 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
         return sendNotFound(reply, 'Accolade category not found');
       }
       
+      // Verify award body exists if provided
+      if (award_body_id) {
+        const [awardBody] = await db.select().from(schema.awardBodies).where(eq(schema.awardBodies.id, award_body_id)).limit(1);
+        if (!awardBody) {
+          return sendNotFound(reply, 'Award body not found');
+        }
+      }
+      
       const [newNomination] = await db.insert(schema.accoladeNominations).values({
         editionId: edition_id,
         categoryId: category_id,
+        awardBodyId: award_body_id || null,
         personId: person_id || null,
         movieId: movie_id || null,
         forMovieId: for_movie_id || null,
@@ -97,6 +107,7 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
         id: newNomination.id,
         edition_id: newNomination.editionId,
         category_id: newNomination.categoryId,
+        award_body_id: newNomination.awardBodyId,
         person_id: newNomination.personId,
         movie_id: newNomination.movieId,
         for_movie_id: newNomination.forMovieId,
@@ -115,6 +126,7 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
   fastify.put<{
     Params: { id: string };
     Body: {
+      award_body_id?: string | null;
       person_id?: number;
       movie_id?: string;
       for_movie_id?: string;
@@ -134,7 +146,16 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
         return sendNotFound(reply, 'Nomination not found');
       }
       
+      // Verify award body exists if provided
+      if (updates.award_body_id) {
+        const [awardBody] = await db.select().from(schema.awardBodies).where(eq(schema.awardBodies.id, updates.award_body_id)).limit(1);
+        if (!awardBody) {
+          return sendNotFound(reply, 'Award body not found');
+        }
+      }
+      
       const nominationUpdates: any = { updatedAt: new Date() };
+      if (updates.award_body_id !== undefined) nominationUpdates.awardBodyId = updates.award_body_id || null;
       if (updates.person_id !== undefined) nominationUpdates.personId = updates.person_id || null;
       if (updates.movie_id !== undefined) nominationUpdates.movieId = updates.movie_id || null;
       if (updates.for_movie_id !== undefined) nominationUpdates.forMovieId = updates.for_movie_id || null;
@@ -273,6 +294,15 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
         ? await db.select().from(schema.accoladeSectionTranslations).where(buildInClause(schema.accoladeSectionTranslations.sectionId, sectionIds))
         : [];
       
+      // Get award body data
+      const awardBodyIds = [...new Set(winners.filter(w => w.awardBodyId).map(w => w.awardBodyId!))];
+      const awardBodies = awardBodyIds.length > 0
+        ? await db.select().from(schema.awardBodies).where(buildInClause(schema.awardBodies.id, awardBodyIds))
+        : [];
+      const awardBodyTrans = awardBodyIds.length > 0
+        ? await db.select().from(schema.awardBodyTranslations).where(buildInClause(schema.awardBodyTranslations.awardBodyId, awardBodyIds))
+        : [];
+      
       // Format response
       const formattedWinners = winners.map(winner => {
         const edition = editions.find(e => e.id === winner.editionId);
@@ -313,12 +343,26 @@ export default async function accoladeNominationsRoutes(fastify: FastifyInstance
           } : null;
         }
         
+        // Get award body if present
+        let awardBody = null;
+        if (winner.awardBodyId) {
+          const body = awardBodies.find(b => b.id === winner.awardBodyId);
+          const bodyTrans = awardBodyTrans.filter(t => t.awardBodyId === winner.awardBodyId);
+          awardBody = body ? {
+            id: body.id,
+            abbreviation: body.abbreviation,
+            name: buildLocalizedText(bodyTrans, 'name'),
+            type: body.type,
+          } : null;
+        }
+        
         return {
           id: winner.id,
           nominee,
           for_movie: forMovie,
           is_winner: winner.isWinner,
           recognition_type: buildLocalizedText(nomTrans, 'recognitionType'),
+          award_body: awardBody,
           show: show ? {
             id: show.id,
             name: buildLocalizedText(showTrans.filter(t => t.eventId === show.id), 'name'),

@@ -348,6 +348,17 @@ export interface AccoladeNominee {
   poster_path?: string; // For movie
 }
 
+// Award body (independent jury/organization that gives awards)
+export interface AwardBody {
+  id: string;
+  abbreviation?: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  type?: 'jury' | 'critics' | 'foundation' | 'audience' | 'sponsor';
+  website_url?: string;
+  logo_path?: string;
+}
+
 // Accolade nomination
 export interface AccoladeNomination {
   id: string;
@@ -357,6 +368,7 @@ export interface AccoladeNomination {
     title: LocalizedText;
     poster_path?: string;
   } | null;
+  award_body?: AwardBody | null;
   work_title?: LocalizedText;
   notes?: LocalizedText;
   recognition_type?: LocalizedText;
@@ -428,6 +440,10 @@ export interface MovieAccolade {
   category?: {
     id: string;
     name: LocalizedText;
+    section?: {
+      id: string;
+      name: LocalizedText;
+    } | null;
   } | null;
   section?: {
     id: string;

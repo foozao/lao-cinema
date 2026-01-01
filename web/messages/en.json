@@ -919,9 +919,13 @@
   "accolades": {
     "filmAccolades": "Film Accolades",
     "castCrewAccolades": "Cast & Crew Accolades",
+    "awardsRecognition": "Awards & Recognition",
+    "associatedFilmAccolades": "Films with Recognition",
+    "forFilm": "for",
     "winner": "Winner",
     "nominee": "Nominee",
     "officialSelection": "Official Selection",
+    "selection": "Selection",
     "section": "Section:"
   }
 }
