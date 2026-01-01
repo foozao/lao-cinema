@@ -6,7 +6,7 @@
  */
 
 import { db, schema } from '../db/index.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, sql, SQL } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 
 // =============================================================================
@@ -116,12 +116,55 @@ export async function logAuditFromRequest(
 }
 
 /**
+ * Build WHERE conditions from filter
+ */
+function buildFilterConditions(filter: AuditLogFilter): SQL[] {
+  const conditions: SQL[] = [];
+  
+  if (filter.userId) {
+    conditions.push(eq(schema.auditLogs.userId, filter.userId));
+  }
+  if (filter.action) {
+    conditions.push(eq(schema.auditLogs.action, filter.action));
+  }
+  if (filter.entityType) {
+    conditions.push(eq(schema.auditLogs.entityType, filter.entityType));
+  }
+  if (filter.entityId) {
+    conditions.push(eq(schema.auditLogs.entityId, filter.entityId));
+  }
+  if (filter.startDate) {
+    conditions.push(gte(schema.auditLogs.createdAt, filter.startDate));
+  }
+  if (filter.endDate) {
+    conditions.push(lte(schema.auditLogs.createdAt, filter.endDate));
+  }
+  
+  return conditions;
+}
+
+/**
+ * Get total count of audit logs matching filter
+ */
+export async function getAuditLogsCount(filter: AuditLogFilter = {}): Promise<number> {
+  const conditions = buildFilterConditions(filter);
+  
+  const [result] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.auditLogs)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+  
+  return result?.count ?? 0;
+}
+
+/**
  * Get audit logs with optional filters
  */
 export async function getAuditLogs(filter: AuditLogFilter = {}) {
   const { limit = 100, offset = 0 } = filter;
+  const conditions = buildFilterConditions(filter);
   
-  let query = db
+  const logs = await db
     .select({
       id: schema.auditLogs.id,
       userId: schema.auditLogs.userId,
@@ -138,11 +181,8 @@ export async function getAuditLogs(filter: AuditLogFilter = {}) {
       createdAt: schema.auditLogs.createdAt,
     })
     .from(schema.auditLogs)
-    .leftJoin(schema.users, eq(schema.auditLogs.userId, schema.users.id));
-
-  // Apply filters (would need to use .where() with conditions)
-  // For now, return all logs ordered by date
-  const logs = await query
+    .leftJoin(schema.users, eq(schema.auditLogs.userId, schema.users.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(schema.auditLogs.createdAt))
     .limit(limit)
     .offset(offset);
@@ -168,6 +208,9 @@ export async function getEntityAuditHistory(
       userEmail: schema.users.email,
       userDisplayName: schema.users.displayName,
       action: schema.auditLogs.action,
+      entityType: schema.auditLogs.entityType,
+      entityId: schema.auditLogs.entityId,
+      entityName: schema.auditLogs.entityName,
       changes: schema.auditLogs.changes,
       createdAt: schema.auditLogs.createdAt,
     })

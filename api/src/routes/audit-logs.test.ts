@@ -1,12 +1,299 @@
 /**
  * Audit Logs Tests
  * 
- * Tests the createChangesObject helper function for change tracking.
- * Route tests are skipped due to test infrastructure limitations with schema re-exports.
+ * Tests for audit log routes and helper functions.
  */
 
-import { describe, it, expect } from 'vitest';
-import { createChangesObject } from '../lib/audit-service.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { build, createTestAdmin, createTestEditor } from '../test/app.js';
+import { db, schema } from '../db/index.js';
+import { createChangesObject, logAudit } from '../lib/audit-service.js';
+import type { FastifyInstance } from 'fastify';
+
+// =============================================================================
+// ROUTE TESTS
+// =============================================================================
+
+describe('Audit Logs Routes', () => {
+  let app: FastifyInstance;
+  let adminAuth: { headers: { authorization: string }; userId: string };
+  let editorAuth: { headers: { authorization: string }; userId: string };
+
+  beforeEach(async () => {
+    app = await build({ includeAuditLogs: true, includeAuth: true });
+    
+    // Clean up
+    await db.delete(schema.auditLogs);
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+    
+    // Create test users
+    adminAuth = await createTestAdmin();
+    editorAuth = await createTestEditor();
+  });
+
+  afterEach(async () => {
+    await db.delete(schema.auditLogs);
+    await db.delete(schema.userSessions);
+    await db.delete(schema.users);
+  });
+
+  describe('GET /api/audit-logs', () => {
+    it('should return empty array when no logs exist', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toEqual([]);
+      expect(body.pagination.total).toBe(0);
+    });
+
+    it('should return audit logs with pagination', async () => {
+      // Create test audit logs
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'test-movie-1',
+        entityName: 'Test Movie 1',
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'update',
+        entityType: 'movie',
+        entityId: 'test-movie-2',
+        entityName: 'Test Movie 2',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(2);
+      expect(body.pagination.total).toBe(2);
+      expect(body.pagination.hasMore).toBe(false);
+    });
+
+    it('should filter by action', async () => {
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'test-1',
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'delete',
+        entityType: 'movie',
+        entityId: 'test-2',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?action=create',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(1);
+      expect(body.logs[0].action).toBe('create');
+      expect(body.pagination.total).toBe(1);
+    });
+
+    it('should filter by entityType', async () => {
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'test-1',
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'person',
+        entityId: 'test-2',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?entityType=person',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(1);
+      expect(body.logs[0].entityType).toBe('person');
+    });
+
+    it('should filter by entityId', async () => {
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'specific-id',
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'update',
+        entityType: 'movie',
+        entityId: 'other-id',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?entityId=specific-id',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(1);
+      expect(body.logs[0].entityId).toBe('specific-id');
+    });
+
+    it('should respect limit and offset', async () => {
+      // Create 5 audit logs
+      for (let i = 0; i < 5; i++) {
+        await logAudit({
+          userId: adminAuth.userId,
+          action: 'create',
+          entityType: 'movie',
+          entityId: `test-${i}`,
+        });
+      }
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?limit=2&offset=1',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(2);
+      expect(body.pagination.total).toBe(5);
+      expect(body.pagination.limit).toBe(2);
+      expect(body.pagination.offset).toBe(1);
+      expect(body.pagination.hasMore).toBe(true);
+    });
+
+    it('should reject limit over 500', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?limit=501',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should reject invalid date format', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs?startDate=invalid-date',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.detail).toContain('Invalid startDate');
+    });
+
+    it('should require admin role', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs',
+        headers: editorAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('should require authentication', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs',
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe('GET /api/audit-logs/:entityType/:entityId', () => {
+    it('should return logs for specific entity', async () => {
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'target-movie',
+        entityName: 'Target Movie',
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'update',
+        entityType: 'movie',
+        entityId: 'target-movie',
+        entityName: 'Target Movie',
+        changes: { title_en: { before: 'Old', after: 'New' } },
+      });
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'other-movie',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/audit-logs/movie/target-movie',
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(2);
+      expect(body.logs.every((l: any) => l.entityId === 'target-movie')).toBe(true);
+    });
+  });
+
+  describe('GET /api/audit-logs/user/:userId', () => {
+    it('should return logs for specific user', async () => {
+      await logAudit({
+        userId: adminAuth.userId,
+        action: 'create',
+        entityType: 'movie',
+        entityId: 'test-1',
+      });
+      await logAudit({
+        userId: editorAuth.userId,
+        action: 'update',
+        entityType: 'movie',
+        entityId: 'test-2',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/audit-logs/user/${adminAuth.userId}`,
+        headers: adminAuth.headers,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.logs).toHaveLength(1);
+      expect(body.logs[0].userId).toBe(adminAuth.userId);
+    });
+  });
+});
 
 // =============================================================================
 // UNIT TESTS FOR createChangesObject
