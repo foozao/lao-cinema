@@ -4,7 +4,7 @@
  * Handles rental management for both authenticated and anonymous users.
  */
 
-import { getAuthHeaders } from './auth-headers';
+import { getAuthHeaders, getAuthHeadersAsync } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
 import { ensureCsrfToken } from '@/lib/csrf';
 
@@ -68,8 +68,10 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
     url.searchParams.set('includeRecent', 'true');
   }
   
+  // Use async version to ensure anonymous ID is available
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(url.toString(), {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   
@@ -86,8 +88,10 @@ export async function getRentals(includeRecent = false, includeAll = false): Pro
  * Check rental status for a specific movie
  */
 export async function getRentalStatus(movieId: string): Promise<RentalStatusResponse> {
+  // Use async version to ensure anonymous ID is available
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   
@@ -109,9 +113,11 @@ export async function createRental(
   // Ensure CSRF token exists before making POST request
   await ensureCsrfToken();
   
+  // Use async version to ensure anonymous ID is available
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/${movieId}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(data),
     credentials: 'include',
   });
@@ -144,12 +150,10 @@ export async function updatePackPosition(
   rentalId: string,
   currentShortId: string
 ): Promise<void> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/position`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
+    headers,
     credentials: 'include',
     body: JSON.stringify({ currentShortId }),
   });
@@ -201,8 +205,9 @@ export interface PackRentalStatusResponse {
  * Check rental status for a specific pack
  */
 export async function getPackRentalStatus(packId: string): Promise<PackRentalStatusResponse> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   
@@ -224,9 +229,10 @@ export async function createPackRental(
   // Ensure CSRF token exists before making POST request
   await ensureCsrfToken();
   
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/packs/${packId}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(data),
     credentials: 'include',
   });
@@ -243,8 +249,9 @@ export async function createPackRental(
  * Check if user has access to a movie (via direct rental or pack rental)
  */
 export async function checkMovieAccess(movieId: string): Promise<AccessCheckResponse> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/access/${movieId}`, {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   

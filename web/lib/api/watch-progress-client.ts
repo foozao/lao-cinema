@@ -4,7 +4,7 @@
  * Handles watch progress tracking for both authenticated and anonymous users.
  */
 
-import { getAuthHeaders } from './auth-headers';
+import { getAuthHeadersAsync } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
 
 // =============================================================================
@@ -48,8 +48,9 @@ export interface UpdateProgressRequest {
  * Get all watch progress for current user/anonymous
  */
 export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/watch-progress`, {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   
@@ -65,8 +66,9 @@ export async function getAllWatchProgress(): Promise<WatchProgressResponse> {
  * Get watch progress for a specific movie
  */
 export async function getWatchProgress(movieId: string): Promise<SingleProgressResponse> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   
@@ -85,9 +87,10 @@ export async function updateWatchProgress(
   movieId: string,
   data: UpdateProgressRequest
 ): Promise<{ progress: WatchProgress }> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(data),
     credentials: 'include',
   });
@@ -104,9 +107,10 @@ export async function updateWatchProgress(
  * Delete watch progress for a movie
  */
 export async function deleteWatchProgress(movieId: string): Promise<void> {
+  const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   

@@ -31,6 +31,7 @@ import accoladesRoutes from './routes/accolades.js';
 import movieSubtitleRoutes from './routes/movie-subtitles.js';
 import subtitlesRoutes from './routes/subtitles.js';
 import anonymousIdRoutes from './routes/anonymous-id.js';
+import csrfRoutes from './routes/csrf.js';
 
 // Initialize Sentry error monitoring (must be before Fastify setup)
 initSentry();
@@ -113,6 +114,7 @@ fastify.get('/robots.txt', async (request, reply) => {
 
 // Register routes
 await fastify.register(anonymousIdRoutes, { prefix: '/api' });
+await fastify.register(csrfRoutes, { prefix: '/api' });
 await fastify.register(authRoutes, { prefix: '/api' });
 await fastify.register(userDataRoutes, { prefix: '/api' });
 await fastify.register(rentalRoutes, { prefix: '/api' });

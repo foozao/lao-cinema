@@ -28,6 +28,7 @@ const EXEMPT_ROUTES = new Set([
   '/health',
   '/robots.txt',
   '/api/anonymous-id', // Anonymous ID generation - must be accessible without tokens
+  '/api/csrf', // CSRF token endpoint - must be accessible to get tokens
 ]);
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -73,11 +74,13 @@ export function setCsrfTokenCookie(reply: FastifyReply, token: string): void {
   const cookieOptions = [
     `${CSRF_COOKIE_NAME}=${token}`,
     `Path=/`,
-    `SameSite=Lax`,
+    // Use SameSite=None in production for cross-domain cookies (web.laocinema.com -> api.laocinema.com)
+    // Use SameSite=Lax in development (localhost:3000 -> localhost:3001)
+    isProduction ? `SameSite=None` : `SameSite=Lax`,
     // Note: NOT HttpOnly - client needs to read this
   ];
 
-  // Only set Secure flag in production (HTTPS required)
+  // Secure flag required for SameSite=None (HTTPS required)
   if (isProduction) {
     cookieOptions.push('Secure');
   }

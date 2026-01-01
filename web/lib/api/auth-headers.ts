@@ -5,7 +5,7 @@
  * Anonymous users are identified via X-Anonymous-Id header.
  */
 
-import { getAnonymousIdSync } from '../anonymous-id';
+import { getAnonymousIdSync, getAnonymousId } from '../anonymous-id';
 import { isAuthenticated } from '../auth/api-client';
 import { getCsrfToken } from '../csrf';
 
@@ -37,6 +37,35 @@ export function getAuthHeaders(): Record<string, string> {
   // (authenticated users use HttpOnly cookies automatically)
   if (!isAuthenticated()) {
     const anonymousId = getAnonymousIdSync();
+    if (anonymousId) {
+      headers['X-Anonymous-Id'] = anonymousId;
+    }
+  }
+  
+  return headers;
+}
+
+/**
+ * Async version that ensures anonymous ID is fetched if not cached
+ * 
+ * Use this for API calls that need to guarantee the anonymous ID exists.
+ * Falls back to sync version if ID is already cached.
+ */
+export async function getAuthHeadersAsync(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add CSRF token for state-changing requests
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+  
+  // Only send anonymous ID if not authenticated
+  if (!isAuthenticated()) {
+    // Use async version to ensure ID is fetched if not cached
+    const anonymousId = await getAnonymousId();
     if (anonymousId) {
       headers['X-Anonymous-Id'] = anonymousId;
     }

@@ -142,8 +142,9 @@ STAGED DEPLOYMENT OPTIONS:
     --rollback        Rollback to previous revision
 
 DATABASE OPTIONS:
-    --db-migrate      Run migrations on Cloud SQL (recommended, non-interactive)
-    --db-update       Push schema changes to Cloud SQL (drizzle-kit push, may prompt)
+    --db-migrate      Run migrations on Cloud SQL (RECOMMENDED for all environments)
+    --mark-baseline   Mark baseline migration as applied (use after squashing migrations)
+    --db-update       Push schema changes to Cloud SQL (preview only, not recommended)
     --sync-content    Sync content data (movies, awards, etc.) to Cloud SQL
     --db-wipe         Replace Cloud SQL with local database (DESTRUCTIVE)
 
@@ -163,8 +164,8 @@ EXAMPLES:
     # Rollback to previous revision
     $0 --rollback
 
-    # Deploy with database schema update
-    $0 --all --db-update
+    # Deploy with database migrations
+    $0 --all --db-migrate
 
 WORKFLOWS:
     Test-Then-Release:
@@ -233,6 +234,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --db-migrate)
             DB_MIGRATE=true
+            shift
+            ;;
+        --mark-baseline)
+            MARK_BASELINE=true
             shift
             ;;
         --db-update)
@@ -750,6 +755,26 @@ fi
 
 # Update database schema
 if [ "$DB_UPDATE" = true ]; then
+    # Warn against using db:update in production/staging
+    if [ "$DEPLOY_ENV" != "preview" ]; then
+        log_warn "========================================="
+        log_warn "⚠️  WARNING: Using db:update in $DEPLOY_ENV"
+        log_warn "========================================="
+        log_warn "db:update (drizzle-kit push) is NOT recommended for $DEPLOY_ENV"
+        log_warn "Use --db-migrate instead for safer migrations"
+        log_warn ""
+        log_warn "db:update can:"
+        log_warn "  - Drop columns without warning (data loss)"
+        log_warn "  - Skip migration history tracking"
+        log_warn "  - Cause schema drift between environments"
+        echo ""
+        read -p "Type 'yes' to continue with db:update anyway: " confirm
+        if [ "$confirm" != "yes" ]; then
+            log_info "db:update cancelled. Use --db-migrate instead."
+            exit 0
+        fi
+    fi
+    
     log_info "========================================="
     log_info "Updating Cloud SQL schema..."
     log_info "========================================="
@@ -760,6 +785,13 @@ if [ "$DB_UPDATE" = true ]; then
         log_error "  curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64"
         log_error "  chmod +x cloud-sql-proxy"
         exit 1
+    fi
+    
+    # Kill any existing process on port 5433
+    if lsof -ti :5433 > /dev/null 2>&1; then
+        log_warn "Port 5433 in use, killing existing process..."
+        lsof -ti :5433 | xargs kill -9 2>/dev/null
+        sleep 1
     fi
     
     # Start Cloud SQL proxy
@@ -787,6 +819,18 @@ if [ "$DB_UPDATE" = true ]; then
     log_info "✓ Schema updated successfully"
 fi
 
+# Mark baseline migration as applied (for use after squashing migrations)
+if [ "$MARK_BASELINE" = true ]; then
+    log_info "========================================="
+    log_info "Marking baseline migration as applied..."
+    log_info "========================================="
+    ./scripts/mark-baseline-applied.sh --env "$DEPLOY_ENV"
+    if [ $? -ne 0 ]; then
+        log_error "Failed to mark baseline as applied"
+        exit 1
+    fi
+fi
+
 # Run database migrations
 if [ "$DB_MIGRATE" = true ]; then
     log_info "========================================="
@@ -799,6 +843,13 @@ if [ "$DB_MIGRATE" = true ]; then
         log_error "  curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64"
         log_error "  chmod +x cloud-sql-proxy"
         exit 1
+    fi
+    
+    # Kill any existing process on port 5433
+    if lsof -ti :5433 > /dev/null 2>&1; then
+        log_warn "Port 5433 in use, killing existing process..."
+        lsof -ti :5433 | xargs kill -9 2>/dev/null
+        sleep 1
     fi
     
     # Start Cloud SQL proxy
@@ -833,7 +884,7 @@ if [ "$SYNC_CONTENT" = true ]; then
     log_info "========================================="
     
     # Run content sync script
-    ./scripts/sync-content-to-cloud.sh
+    ./scripts/db/sync-content-to-cloud.sh --env "$DEPLOY_ENV"
     
     if [ $? -ne 0 ]; then
         log_error "Content sync failed"

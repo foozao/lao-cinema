@@ -101,9 +101,9 @@ export async function buildMovieWithRelations(
         // It's a slug - construct full URL based on environment
         // Trailers are in /trailers/hls (not /videos/trailers/hls)
         const videoBaseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
+        // Handle both production (lao-cinema-videos) and staging (lao-cinema-videos-staging) bucket names
         const trailerBaseUrl = videoBaseUrl
-          .replace('/videos/hls', '/trailers/hls')
-          .replace('lao-cinema-videos/hls', 'lao-cinema-trailers/hls');
+          .replace(/lao-cinema-videos(-staging|-preview)?\/hls/, 'lao-cinema-trailers$1/hls');
         if (t.videoFormat === 'hls') {
           videoUrl = `${trailerBaseUrl}/${t.videoUrl}/master.m3u8`;
           // Construct thumbnail URL if it's a slug or slug/filename pattern

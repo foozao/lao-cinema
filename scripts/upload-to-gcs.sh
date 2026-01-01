@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
         --env) ENV="$2"; shift 2 ;;
         --dry-run) DRY_RUN="true"; shift ;;
         --update-db) UPDATE_DB="true"; shift ;;
-        videos|images)
+        videos|trailers|images)
             if [ -z "$UPLOAD_TYPE" ]; then
                 UPLOAD_TYPE="$1"
             fi
@@ -76,6 +76,10 @@ UPLOAD TYPES:
                           - No argument: upload all movies
                           - With name: upload specific movie
 
+  trailers [trailer-name] Upload trailer files (HLS + thumbnails)
+                          - No argument: upload all trailers
+                          - With name: upload specific trailer
+
   images [category]       Upload image files (logos, posters, backdrops, profiles)
                           - all: upload all categories
                           - Or specify: logos, posters, backdrops, profiles
@@ -89,6 +93,7 @@ EXAMPLES:
   $0 videos                           # Upload all videos to preview
   $0 videos the-signal                # Upload specific movie
   $0 --env staging videos             # Upload to staging
+  $0 --env staging trailers           # Upload trailers to staging
   $0 images all                       # Upload all images
   $0 images posters --dry-run         # Dry run for posters
   $0 images all --update-db           # Upload images and update DB URLs
@@ -108,17 +113,26 @@ case $ENV in
 esac
 
 # Set bucket names based on environment and type
-if [ "$UPLOAD_TYPE" = "videos" ]; then
-    case $ENV in
-        preview|production) BUCKET_NAME="lao-cinema-videos" ;;
-        staging) BUCKET_NAME="lao-cinema-videos-staging" ;;
-    esac
-else
-    case $ENV in
-        preview|production) BUCKET_NAME="lao-cinema-images" ;;
-        staging) BUCKET_NAME="lao-cinema-images-staging" ;;
-    esac
-fi
+case $UPLOAD_TYPE in
+    videos)
+        case $ENV in
+            preview|production) BUCKET_NAME="lao-cinema-videos" ;;
+            staging) BUCKET_NAME="lao-cinema-videos-staging" ;;
+        esac
+        ;;
+    trailers)
+        case $ENV in
+            preview|production) BUCKET_NAME="lao-cinema-trailers" ;;
+            staging) BUCKET_NAME="lao-cinema-trailers-staging" ;;
+        esac
+        ;;
+    images)
+        case $ENV in
+            preview|production) BUCKET_NAME="lao-cinema-images" ;;
+            staging) BUCKET_NAME="lao-cinema-images-staging" ;;
+        esac
+        ;;
+esac
 
 # Check GCP project configuration
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
@@ -144,7 +158,7 @@ if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then
         log_info "Creating bucket gs://$BUCKET_NAME..."
         gsutil mb -p $PROJECT_ID -l asia-southeast1 gs://$BUCKET_NAME
         gsutil uniformbucketlevelaccess set on gs://$BUCKET_NAME
-        [ "$UPLOAD_TYPE" = "images" ] && gsutil iam ch allUsers:objectViewer gs://$BUCKET_NAME
+        [ "$UPLOAD_TYPE" = "images" ] || [ "$UPLOAD_TYPE" = "trailers" ] && gsutil iam ch allUsers:objectViewer gs://$BUCKET_NAME
         log_info "Bucket created successfully"
     fi
 else
@@ -212,12 +226,115 @@ upload_videos() {
 }
 
 # ========================================
+# TRAILER UPLOAD
+# ========================================
+upload_trailers() {
+    local TRAILERS_DIR="$SCRIPT_DIR/../video-server/trailers/hls"
+    local specific_trailer="$1"
+    
+    # Count files by type in a directory
+    count_file_types() {
+        local dir=$1
+        local m3u8_count=$(find "$dir" -type f -name "*.m3u8" 2>/dev/null | wc -l | tr -d ' ')
+        local ts_count=$(find "$dir" -type f -name "*.ts" 2>/dev/null | wc -l | tr -d ' ')
+        local jpg_count=$(find "$dir" -type f -name "*.jpg" 2>/dev/null | wc -l | tr -d ' ')
+        local png_count=$(find "$dir" -type f -name "*.png" 2>/dev/null | wc -l | tr -d ' ')
+        local total=$((m3u8_count + ts_count + jpg_count + png_count))
+        
+        echo "  - Playlists (.m3u8): $m3u8_count"
+        echo "  - Segments (.ts): $ts_count"
+        echo "  - Thumbnails (.jpg): $jpg_count"
+        [ "$png_count" -gt 0 ] && echo "  - Images (.png): $png_count"
+        echo "  - Total: $total files"
+    }
+    
+    upload_trailer_folder() {
+        local source_path=$1
+        local trailer_id=$2
+        
+        if [ ! -d "$source_path" ]; then
+            log_warn "Directory not found: $source_path"
+            return 1
+        fi
+        
+        log_section "🎬 Uploading trailer: $trailer_id"
+        local dir_size=$(du -sh "$source_path" 2>/dev/null | cut -f1 || echo "unknown")
+        echo "Source: $source_path"
+        echo "Size: $dir_size"
+        count_file_types "$source_path"
+        echo ""
+        
+        if [ -n "$DRY_RUN" ]; then
+            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c -n "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
+        else
+            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
+            gsutil -o "GSUtil:parallel_process_count=1" -m setmeta -h "Cache-Control:public, max-age=31536000" \
+                "gs://$BUCKET_NAME/hls/$trailer_id/**" 2>/dev/null || true
+        fi
+        
+        log_info "✅ Uploaded: https://storage.googleapis.com/$BUCKET_NAME/hls/$trailer_id/"
+        echo ""
+    }
+    
+    if [ -n "$specific_trailer" ]; then
+        trailer_path="$TRAILERS_DIR/$specific_trailer"
+        if [ -d "$trailer_path" ]; then
+            upload_trailer_folder "$trailer_path" "$specific_trailer"
+        else
+            log_error "Trailer not found: $trailer_path"
+            echo ""
+            echo "Available trailers:"
+            ls -1 "$TRAILERS_DIR" 2>/dev/null || echo "  (none)"
+            exit 1
+        fi
+    else
+        if [ -d "$TRAILERS_DIR" ]; then
+            log_section "🎬 Uploading all trailers"
+            echo ""
+            
+            # Show summary first
+            local total_m3u8=$(find "$TRAILERS_DIR" -type f -name "*.m3u8" 2>/dev/null | wc -l | tr -d ' ')
+            local total_ts=$(find "$TRAILERS_DIR" -type f -name "*.ts" 2>/dev/null | wc -l | tr -d ' ')
+            local total_jpg=$(find "$TRAILERS_DIR" -type f -name "*.jpg" 2>/dev/null | wc -l | tr -d ' ')
+            local total_size=$(du -sh "$TRAILERS_DIR" 2>/dev/null | cut -f1 || echo "unknown")
+            local trailer_count=$(ls -1d "$TRAILERS_DIR"/*/ 2>/dev/null | wc -l | tr -d ' ')
+            
+            echo "📊 Summary:"
+            echo "  - Trailers: $trailer_count"
+            echo "  - Playlists (.m3u8): $total_m3u8"
+            echo "  - Segments (.ts): $total_ts"
+            echo "  - Thumbnails (.jpg): $total_jpg"
+            echo "  - Total size: $total_size"
+            echo ""
+            
+            for trailer_dir in "$TRAILERS_DIR"/*/; do
+                if [ -d "$trailer_dir" ]; then
+                    trailer_id=$(basename "$trailer_dir")
+                    upload_trailer_folder "$trailer_dir" "$trailer_id"
+                fi
+            done
+        else
+            log_warn "No local trailers found in $TRAILERS_DIR"
+        fi
+    fi
+    
+    echo ""
+    log_info "Trailer upload complete!"
+    log_info "Base URL: https://storage.googleapis.com/$BUCKET_NAME/hls/"
+}
+
+# ========================================
 # IMAGE UPLOAD
 # ========================================
 upload_images() {
     local IMAGE_DIR="$SCRIPT_DIR/../video-server/public"
     local SUPPORTED_CATEGORIES=("logos" "posters" "backdrops" "profiles")
     local category="$1"
+    
+    # Track totals for summary
+    declare -A UPLOAD_COUNTS
+    declare -A UPLOAD_SIZES
+    local TOTAL_FILES=0
     
     upload_category() {
         local cat=$1
@@ -232,10 +349,16 @@ upload_images() {
         
         if [ "$file_count" -eq 0 ]; then
             log_warn "No image files found in $source_path"
+            UPLOAD_COUNTS[$cat]=0
             return 0
         fi
         
         local dir_size=$(du -sh "$source_path" 2>/dev/null | cut -f1 || echo "unknown")
+        
+        # Store for summary
+        UPLOAD_COUNTS[$cat]=$file_count
+        UPLOAD_SIZES[$cat]=$dir_size
+        TOTAL_FILES=$((TOTAL_FILES + file_count))
         
         log_section "📁 Uploading $cat"
         echo "Source: $source_path"
@@ -274,8 +397,22 @@ upload_images() {
         upload_category "$category"
     fi
     
+    # Show summary
     echo ""
     log_info "Image upload complete!"
+    echo ""
+    echo "📊 Summary:"
+    for cat in "${SUPPORTED_CATEGORIES[@]}"; do
+        local count=${UPLOAD_COUNTS[$cat]:-0}
+        local size=${UPLOAD_SIZES[$cat]:-"0"}
+        if [ "$count" -gt 0 ]; then
+            echo "  - $cat: $count files ($size)"
+        else
+            echo "  - $cat: 0 files"
+        fi
+    done
+    echo "  - Total: $TOTAL_FILES files"
+    echo ""
     log_info "Base URL: https://storage.googleapis.com/$BUCKET_NAME/"
     
     # Update database URLs if requested
@@ -333,10 +470,16 @@ EOF
 # ========================================
 # MAIN
 # ========================================
-if [ "$UPLOAD_TYPE" = "videos" ]; then
-    upload_videos "$TARGET"
-else
-    upload_images "$TARGET"
-fi
+case $UPLOAD_TYPE in
+    videos)
+        upload_videos "$TARGET"
+        ;;
+    trailers)
+        upload_trailers "$TARGET"
+        ;;
+    images)
+        upload_images "$TARGET"
+        ;;
+esac
 
 echo ""

@@ -38,13 +38,58 @@ log_section() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
+# Parse arguments
+DEPLOY_ENV="preview"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --env)
+            DEPLOY_ENV="$2"
+            shift 2
+            ;;
+        *)
+            # Legacy: first positional arg is instance name
+            INSTANCE_NAME="$1"
+            shift
+            ;;
+    esac
+done
+
 # Configuration
 PROJECT_ID="lao-cinema"
 REGION="asia-southeast1"
-INSTANCE_NAME="${1:-laocinema-preview}"  # Default to preview, or use first argument
+
+# Set instance name based on environment if not explicitly provided
+if [ -z "$INSTANCE_NAME" ]; then
+    case $DEPLOY_ENV in
+        staging)
+            INSTANCE_NAME="laocinema-staging"
+            ;;
+        production)
+            INSTANCE_NAME="laocinema"
+            ;;
+        *)
+            INSTANCE_NAME="laocinema-preview"
+            ;;
+    esac
+fi
+
 CLOUD_DB_NAME="laocinema"
 CLOUD_DB_USER="laocinema"
-CLOUD_DB_PASS="${CLOUD_DB_PASS:?Error: CLOUD_DB_PASS environment variable is not set}"
+
+# Get password from Secret Manager if not set
+if [ -z "$CLOUD_DB_PASS" ]; then
+    if [ "$DEPLOY_ENV" = "production" ]; then
+        SECRET_NAME="db-pass"
+    else
+        SECRET_NAME="db-pass-staging"
+    fi
+    log_info "Fetching database password from Secret Manager..."
+    CLOUD_DB_PASS=$(gcloud secrets versions access latest --secret="$SECRET_NAME" 2>/dev/null)
+    if [ -z "$CLOUD_DB_PASS" ]; then
+        log_error "Failed to fetch database password from Secret Manager"
+        exit 1
+    fi
+fi
 
 LOCAL_DB_NAME="lao_cinema"
 LOCAL_DB_USER="laocinema"
@@ -238,8 +283,10 @@ if [ -n "$PUSH_SCHEMA" ] && [ -z "$DRY_RUN" ]; then
     fi
     
     log_info "Pushing schema changes to Cloud SQL..."
-    cd "$(dirname "$0")/../db"
-    DATABASE_URL="postgresql://$CLOUD_DB_USER:$CLOUD_DB_PASS@127.0.0.1:5433/$CLOUD_DB_NAME" npm run db:push
+    cd "$(dirname "$0")/../../db"
+    # Use environment variables to avoid password escaping issues
+    export PGPASSWORD="$CLOUD_DB_PASS"
+    DATABASE_URL="postgresql://$CLOUD_DB_USER@127.0.0.1:5433/$CLOUD_DB_NAME" npm run db:push
     
     if [ $? -ne 0 ]; then
         log_error "Failed to push schema changes"

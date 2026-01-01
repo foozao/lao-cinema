@@ -1,7 +1,6 @@
-import { isAuthenticated } from '../auth/api-client';
-import { getAnonymousId } from '../anonymous-id';
+import { getAuthHeadersAsync } from './auth-headers';
 import { API_BASE_URL } from '../config';
-import { getCsrfToken, ensureCsrfToken } from '../csrf';
+import { ensureCsrfToken } from '../csrf';
 
 export interface SignedVideoUrlResponse {
   url: string;
@@ -32,23 +31,8 @@ export async function getSignedVideoUrl(
   
   const url = `${API_BASE_URL}/video-tokens`;
   
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  // Add CSRF token
-  const csrfToken = getCsrfToken();
-  if (csrfToken) {
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-  
-  // Add anonymous ID if not logged in (logged-in users use HttpOnly cookies)
-  if (!isAuthenticated()) {
-    const anonymousId = await getAnonymousId();
-    if (anonymousId) {
-      headers['x-anonymous-id'] = anonymousId;
-    }
-  }
+  // Use async version to ensure anonymous ID is available
+  const headers = await getAuthHeadersAsync();
   
   const response = await fetch(url, {
     method: 'POST',

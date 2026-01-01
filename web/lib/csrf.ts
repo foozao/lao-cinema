@@ -1,43 +1,59 @@
 /**
  * CSRF Token Utilities
  * 
- * Reads CSRF token from cookie and provides it for API requests.
- * Works with double-submit cookie pattern.
+ * Fetches CSRF token from API and stores in memory.
+ * Required for cross-origin requests where cookies can't be read via document.cookie.
  */
 
 import { API_BASE_URL } from './config';
 
+// In-memory token cache (survives page navigation but not refresh)
+let cachedToken: string | null = null;
+
 /**
- * Get CSRF token from cookie
+ * Get CSRF token from memory cache
  */
 export function getCsrfToken(): string | null {
-  if (typeof window === 'undefined') return null;
-
-  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    if (key && value) acc[key] = value;
-    return acc;
-  }, {} as Record<string, string>);
-
-  return cookies['csrf_token'] || null;
+  return cachedToken;
 }
 
 /**
- * Ensure CSRF token exists by making a GET request to the health endpoint
+ * Set CSRF token in memory cache
+ */
+export function setCsrfToken(token: string): void {
+  cachedToken = token;
+}
+
+/**
+ * Clear CSRF token from memory cache
+ */
+export function clearCsrfToken(): void {
+  cachedToken = null;
+}
+
+/**
+ * Fetch CSRF token from API and store in memory
  * This is called automatically before state-changing requests if no token exists
  */
 export async function ensureCsrfToken(): Promise<void> {
   if (typeof window === 'undefined') return;
   
-  // Check if token already exists
-  if (getCsrfToken()) return;
+  // Check if token already exists in memory
+  if (cachedToken) return;
   
-  // Make a GET request to trigger CSRF token generation
+  // Fetch token from API (returns token in response body)
   try {
-    await fetch(`${API_BASE_URL}/../health`, {
+    const response = await fetch(`${API_BASE_URL}/csrf`, {
       method: 'GET',
       credentials: 'include',
     });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.token) {
+        cachedToken = data.token;
+      }
+    }
   } catch (error) {
     console.warn('Failed to fetch CSRF token:', error);
   }
