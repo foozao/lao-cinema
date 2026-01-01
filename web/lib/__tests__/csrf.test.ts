@@ -2,9 +2,11 @@
  * CSRF Token Utilities Tests
  * 
  * Tests CSRF token retrieval and ensureCsrfToken functionality.
+ * CSRF tokens are stored in memory and fetched from the API (not cookies)
+ * because cross-origin cookies cannot be read via document.cookie.
  */
 
-import { getCsrfToken, ensureCsrfToken } from '../csrf';
+import { getCsrfToken, setCsrfToken, clearCsrfToken, ensureCsrfToken } from '../csrf';
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -13,87 +15,49 @@ global.fetch = mockFetch;
 describe('CSRF Utilities', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Clear cookies
-    Object.defineProperty(document, 'cookie', {
-      writable: true,
-      value: '',
-    });
+    // Clear the in-memory token cache
+    clearCsrfToken();
   });
 
   describe('getCsrfToken', () => {
-    it('should return null when no cookies exist', () => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: '',
-      });
-      
+    it('should return null when no token is cached', () => {
       expect(getCsrfToken()).toBeNull();
     });
 
-    it('should return null when csrf_token cookie does not exist', () => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: 'other_cookie=value; another=test',
-      });
-      
-      expect(getCsrfToken()).toBeNull();
-    });
-
-    it('should return CSRF token when cookie exists', () => {
+    it('should return token after setCsrfToken is called', () => {
       const expectedToken = 'abc123def456';
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: `csrf_token=${expectedToken}; other=value`,
-      });
+      setCsrfToken(expectedToken);
       
       expect(getCsrfToken()).toBe(expectedToken);
     });
 
-    it('should handle csrf_token as only cookie', () => {
-      const expectedToken = 'single_token_123';
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: `csrf_token=${expectedToken}`,
-      });
+    it('should return null after clearCsrfToken is called', () => {
+      setCsrfToken('some_token');
+      clearCsrfToken();
       
-      expect(getCsrfToken()).toBe(expectedToken);
-    });
-
-    it('should handle cookies with whitespace', () => {
-      const expectedToken = 'token_with_spaces';
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: `  csrf_token=${expectedToken}  ;  other=value  `,
-      });
-      
-      expect(getCsrfToken()).toBe(expectedToken);
+      expect(getCsrfToken()).toBeNull();
     });
   });
 
   describe('ensureCsrfToken', () => {
-    it('should not fetch if CSRF token already exists', async () => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: 'csrf_token=existing_token',
-      });
+    it('should not fetch if CSRF token already exists in cache', async () => {
+      setCsrfToken('existing_token');
       
       await ensureCsrfToken();
       
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should fetch health endpoint if no CSRF token exists', async () => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: '',
+    it('should fetch /api/csrf endpoint if no CSRF token exists', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ token: 'new_token_from_api' }),
       });
-      
-      mockFetch.mockResolvedValueOnce({ ok: true });
       
       await ensureCsrfToken();
       
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/health'),
+        expect.stringContaining('/csrf'),
         expect.objectContaining({
           method: 'GET',
           credentials: 'include',
@@ -101,16 +65,35 @@ describe('CSRF Utilities', () => {
       );
     });
 
-    it('should not throw on fetch error', async () => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: '',
+    it('should cache token from API response', async () => {
+      const expectedToken = 'fetched_token_123';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ token: expectedToken }),
       });
       
+      await ensureCsrfToken();
+      
+      expect(getCsrfToken()).toBe(expectedToken);
+    });
+
+    it('should not throw on fetch error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
       
       // Should not throw
       await expect(ensureCsrfToken()).resolves.toBeUndefined();
+    });
+
+    it('should handle non-ok response gracefully', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+      
+      await ensureCsrfToken();
+      
+      // Token should remain null
+      expect(getCsrfToken()).toBeNull();
     });
   });
 });

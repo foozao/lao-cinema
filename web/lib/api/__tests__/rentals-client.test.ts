@@ -14,6 +14,10 @@ jest.mock('../auth-headers', () => ({
     'Content-Type': 'application/json',
     'Authorization': 'Bearer test-token',
   })),
+  getAuthHeadersAsync: jest.fn(() => Promise.resolve({
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer test-token',
+  })),
 }));
 
 // Setup fetch mock

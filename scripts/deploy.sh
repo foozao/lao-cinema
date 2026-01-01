@@ -107,6 +107,7 @@ DEPLOY_WEB=false
 DEPLOY_VIDEO=false
 DB_UPDATE=false         # Push schema changes to Cloud SQL (drizzle-kit push)
 DB_MIGRATE=false        # Run migrations on Cloud SQL (recommended)
+DB_GENERATE=false       # Generate migrations from schema.ts before running
 DB_WIPE=false           # Replace Cloud SQL with local database
 SYNC_CONTENT=false      # Sync content (movies, awards, etc.) to Cloud SQL
 DEPLOY_ENV="preview"    # Environment: preview, staging, production
@@ -142,6 +143,7 @@ STAGED DEPLOYMENT OPTIONS:
     --rollback        Rollback to previous revision
 
 DATABASE OPTIONS:
+    --db-generate     Generate migration from schema.ts, then run migrations (ONE-STEP WORKFLOW)
     --db-migrate      Run migrations on Cloud SQL (RECOMMENDED for all environments)
     --mark-baseline   Mark baseline migration as applied (use after squashing migrations)
     --db-update       Push schema changes to Cloud SQL (preview only, not recommended)
@@ -166,6 +168,9 @@ EXAMPLES:
 
     # Deploy with database migrations
     $0 --all --db-migrate
+
+    # Generate migration from schema changes and deploy (one-step workflow)
+    $0 --all --db-generate --env staging
 
 WORKFLOWS:
     Test-Then-Release:
@@ -234,6 +239,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --db-migrate)
             DB_MIGRATE=true
+            shift
+            ;;
+        --db-generate)
+            DB_GENERATE=true
+            DB_MIGRATE=true  # Also run migrations after generating
             shift
             ;;
         --mark-baseline)
@@ -755,8 +765,23 @@ fi
 
 # Update database schema
 if [ "$DB_UPDATE" = true ]; then
-    # Warn against using db:update in production/staging
-    if [ "$DEPLOY_ENV" != "preview" ]; then
+    # BLOCK db:update on production entirely
+    if [ "$DEPLOY_ENV" = "production" ]; then
+        log_error "========================================="
+        log_error "🚫 BLOCKED: db:update is disabled for production"
+        log_error "========================================="
+        log_error "db:update (drizzle-kit push) is NEVER allowed in production."
+        log_error ""
+        log_error "Use --db-migrate instead:"
+        log_error "  $0 --db-migrate --env production"
+        log_error ""
+        log_error "If you need to push schema changes without migrations,"
+        log_error "you must do it manually via Cloud SQL proxy."
+        exit 1
+    fi
+    
+    # Warn against using db:update in staging
+    if [ "$DEPLOY_ENV" = "staging" ]; then
         log_warn "========================================="
         log_warn "⚠️  WARNING: Using db:update in $DEPLOY_ENV"
         log_warn "========================================="
@@ -829,6 +854,43 @@ if [ "$MARK_BASELINE" = true ]; then
         log_error "Failed to mark baseline as applied"
         exit 1
     fi
+fi
+
+# Generate migrations from schema.ts (if --db-generate flag is set)
+if [ "$DB_GENERATE" = true ]; then
+    log_info "========================================="
+    log_info "Generating migration from schema.ts..."
+    log_info "========================================="
+    
+    cd db
+    
+    # Check if there are schema changes to migrate
+    log_info "Checking for schema changes..."
+    GENERATE_OUTPUT=$(npm run db:generate 2>&1)
+    GENERATE_EXIT=$?
+    
+    if [ $GENERATE_EXIT -ne 0 ]; then
+        log_error "Migration generation failed:"
+        echo "$GENERATE_OUTPUT"
+        exit 1
+    fi
+    
+    # Check if a new migration was created
+    if echo "$GENERATE_OUTPUT" | grep -q "No schema changes"; then
+        log_info "No schema changes detected - skipping migration generation"
+    else
+        log_info "✓ Migration generated successfully"
+        echo "$GENERATE_OUTPUT" | grep -E "(migration|sql)" || true
+        
+        # Show the generated migration file
+        LATEST_MIGRATION=$(ls -t migrations/*.sql 2>/dev/null | head -1)
+        if [ -n "$LATEST_MIGRATION" ]; then
+            log_info "Generated: $LATEST_MIGRATION"
+            log_warn "⚠️  Remember to commit this migration file!"
+        fi
+    fi
+    
+    cd ..
 fi
 
 # Run database migrations
@@ -978,8 +1040,8 @@ else
     log_info "  Video: $VIDEO_URL"
     echo ""
     log_info "Next steps:"
-    if [ "$DB_UPDATE" = false ] && [ "$DB_WIPE" = false ]; then
-        log_info "1. If schema changed: $0 --db-update"
+    if [ "$DB_UPDATE" = false ] && [ "$DB_WIPE" = false ] && [ "$DB_MIGRATE" = false ]; then
+        log_info "1. If schema changed: $0 --db-migrate --env $DEPLOY_ENV"
     fi
     log_info "2. Test the application: ${CUSTOM_WEB_DOMAIN:-$WEB_URL}"
     log_info "3. Check logs: gcloud run services logs read $SERVICE_API --region=$REGION"
