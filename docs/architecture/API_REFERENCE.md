@@ -873,10 +873,10 @@ Verify email with token from email link.
 
 ---
 
-### Awards (`/api/awards/*`)
+### Accolades (`/api/accolades/*`)
 
-#### `GET /api/awards/shows`
-Get all award shows.
+#### `GET /api/accolades/events`
+Get all accolade events.
 
 **Response:**
 ```json
@@ -899,13 +899,13 @@ Get all award shows.
 
 ---
 
-#### `GET /api/awards/shows/:id`
-Get award show with editions and categories.
+#### `GET /api/accolades/events/:id`
+Get accolade event with editions and categories.
 
 ---
 
-#### `POST /api/awards/shows`
-Create award show. **Editor/Admin only.**
+#### `POST /api/accolades/events`
+Create accolade event. **Editor/Admin only.**
 
 **Body:**
 ```json
@@ -920,23 +920,23 @@ Create award show. **Editor/Admin only.**
 
 ---
 
-#### `PUT /api/awards/shows/:id`
-Update award show. **Editor/Admin only.**
+#### `PUT /api/accolades/events/:id`
+Update accolade event. **Editor/Admin only.**
 
 ---
 
-#### `DELETE /api/awards/shows/:id`
-Delete award show. **Admin only.**
+#### `DELETE /api/accolades/events/:id`
+Delete accolade event. **Admin only.**
 
 ---
 
-#### `GET /api/awards/editions/:id`
+#### `GET /api/accolades/editions/:id`
 Get edition with categories and nominations.
 
 ---
 
-#### `POST /api/awards/shows/:showId/editions`
-Create edition for a show. **Editor/Admin only.**
+#### `POST /api/accolades/editions`
+Create edition for an event. **Editor/Admin only.**
 
 **Body:**
 ```json
@@ -950,7 +950,7 @@ Create edition for a show. **Editor/Admin only.**
 
 ---
 
-#### `POST /api/awards/editions/:editionId/categories`
+#### `POST /api/accolades/categories`
 Add category to edition. **Editor/Admin only.**
 
 **Body:**
@@ -964,7 +964,7 @@ Add category to edition. **Editor/Admin only.**
 
 ---
 
-#### `POST /api/awards/categories/:categoryId/nominations`
+#### `POST /api/accolades/nominations`
 Add nomination to category. **Editor/Admin only.**
 
 **Body:**
@@ -979,7 +979,7 @@ Add nomination to category. **Editor/Admin only.**
 
 ---
 
-#### `PUT /api/awards/nominations/:nominationId/winner`
+#### `POST /api/accolades/nominations/set-winner`
 Set nomination as winner. **Editor/Admin only.**
 
 **Body:**

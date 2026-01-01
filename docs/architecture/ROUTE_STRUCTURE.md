@@ -26,16 +26,18 @@ Large route files are split into focused sub-modules for maintainability. Each m
 
 ---
 
-### Awards (`awards.ts`)
+### Accolades (`accolades.ts`)
 
-**Orchestrator**: `awards.ts` (21 lines)
+**Orchestrator**: `accolades.ts` (27 lines)
 
 | Sub-route File | Purpose | Endpoints |
 |----------------|---------|-----------|
-| `award-shows.ts` | Award show CRUD | `GET/POST /awards/shows`, `GET/PUT/DELETE /awards/shows/:id` |
-| `award-editions.ts` | Edition management | `GET /awards/editions/:id`, `POST /awards/shows/:showId/editions`, `PUT/DELETE /awards/editions/:id` |
-| `award-categories.ts` | Category management | `POST /awards/editions/:editionId/categories`, `PUT/DELETE /awards/categories/:id` |
-| `award-nominations.ts` | Nomination management | `POST /awards/categories/:categoryId/nominations`, `PUT/DELETE /awards/nominations/:id`, `PUT /awards/nominations/:id/winner` |
+| `accolade-events.ts` | Accolade event CRUD | `GET/POST /accolades/events`, `GET/PUT/DELETE /accolades/events/:id` |
+| `accolade-editions.ts` | Edition management | `GET/POST /accolades/editions`, `GET/PUT/DELETE /accolades/editions/:id` |
+| `accolade-categories.ts` | Category management | `POST /accolades/categories`, `PUT/DELETE /accolades/categories/:id` |
+| `accolade-sections.ts` | Section management | Festival program tracks (non-competitive) |
+| `accolade-nominations.ts` | Nomination management | `POST /accolades/nominations`, `PUT/DELETE /accolades/nominations/:id`, `POST /accolades/nominations/set-winner` |
+| `award-bodies.ts` | Award body CRUD | `GET/POST /accolades/award-bodies`, `GET/PUT/DELETE /accolades/award-bodies/:id` |
 
 ---
 
@@ -98,7 +100,7 @@ Test files follow the pattern `<route-name>.test.ts`:
 | Test File | Tests For |
 |-----------|-----------|
 | `auth.test.ts` | All auth routes (registration, login, profile, etc.) |
-| `awards.test.ts` | Awards system |
+| `accolades.test.ts` | Accolades system |
 | `short-packs.test.ts` | Short packs |
 | `movies.test.ts` | Movie CRUD, cast, crew, images |
 | `people.test.ts` | People management |

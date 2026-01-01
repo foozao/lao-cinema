@@ -286,9 +286,9 @@ Use this checklist to verify audit logging coverage:
 - [x] Reorder featured movies (implicit in reorder endpoint)
 - [x] Update homepage settings
 
-### ✅ Awards System
-- [x] Create/update/delete award shows
-- [x] Create/update/delete award editions
+### ✅ Accolades System
+- [x] Create/update/delete accolade events
+- [x] Create/update/delete accolade editions
 - [x] Create/update/delete categories
 - [x] Create/update/delete nominations
 - [x] Set winner
