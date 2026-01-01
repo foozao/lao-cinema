@@ -67,20 +67,41 @@ Large route files are split into focused sub-modules for maintainability. Each m
 
 ---
 
+### Rentals (`rentals.ts`)
+
+**Orchestrator**: `rentals.ts` (18 lines)
+
+| Sub-route File | Purpose | Endpoints |
+|----------------|---------|-----------|
+| `rental-crud.ts` | Basic CRUD | `GET /rentals`, `GET/POST /rentals/:movieId` |
+| `rental-packs.ts` | Pack rentals | `GET/POST /rentals/packs/:packId`, `GET /rentals/access/:movieId`, `PATCH /rentals/:rentalId/position` |
+| `rental-migration.ts` | Data migration | `POST /rentals/migrate` |
+
+---
+
+### People (`people.ts`)
+
+**Orchestrator**: `people.ts` (15 lines)
+
+| Sub-route File | Purpose | Endpoints |
+|----------------|---------|-----------|
+| `people-crud.ts` | Basic CRUD | `GET/POST /people`, `GET/PUT/DELETE /people/:id` |
+| `people-merge.ts` | Merge duplicates | `POST /people/merge` |
+
+---
+
 ## Standalone Route Files
 
 These files are self-contained (not split into sub-modules):
 
 | File | Purpose | Key Endpoints |
 |------|---------|---------------|
-| `people.ts` | People (cast/crew) management | `/people/*` |
 | `genres.ts` | Genre CRUD | `/genres/*` |
 | `movie-genres.ts` | Movie-genre associations | `/movies/:id/genres/*` |
 | `movie-subtitles.ts` | Subtitle tracks | `/movies/:id/subtitles/*` |
 | `movie-production-companies.ts` | Production company links | `/movies/:id/production-companies/*` |
 | `production-companies.ts` | Production company CRUD | `/production-companies/*` |
 | `trailers.ts` | Movie trailers | `/trailers/:movieId/*` |
-| `rentals.ts` | Rental system | `/rentals/*` |
 | `watch-progress.ts` | Watch progress tracking | `/watch-progress/*` |
 | `watchlist.ts` | User watchlist | `/watchlist/*` |
 | `notifications.ts` | Movie notifications | `/notifications/*` |
@@ -131,8 +152,6 @@ Test files follow the pattern `<route-name>.test.ts`:
 
 | File | Lines | Notes |
 |------|-------|-------|
-| `people.ts` | ~600 | Could split into people-crud.ts, people-merge.ts |
-| `rentals.ts` | ~570 | Could split by feature (CRUD, pack rentals) |
 | `production-companies.ts` | ~450 | Manageable but could split |
 
 ---
