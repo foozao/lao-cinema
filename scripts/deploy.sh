@@ -289,6 +289,11 @@ if [ "$DEPLOY_MODE" = "test" ]; then
     log_info "Deploy tag: $DEPLOY_TAG"
 fi
 
+# Check for schema changes without migrations (warning only)
+if [ "$DB_MIGRATE" = true ] || [ "$DB_GENERATE" = true ]; then
+    ./scripts/check-migrations.sh 2>/dev/null || true
+fi
+
 # Check correct GCP project is active
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
 if [ "$CURRENT_PROJECT" != "$PROJECT_ID" ]; then
