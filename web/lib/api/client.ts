@@ -1,7 +1,7 @@
 // API client for backend communication
 
 import { API_BASE_URL } from '../config';
-import { getCsrfToken } from '../csrf';
+import { getCsrfToken, ensureCsrfToken } from '../csrf';
 import type {
   Movie,
   Person,
@@ -63,6 +63,8 @@ async function fetchAPI<T>(
   // Add CSRF token for state-changing requests
   const method = options.method?.toUpperCase() || 'GET';
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    // Ensure CSRF token is fetched before making the request
+    await ensureCsrfToken();
     const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
@@ -781,12 +783,23 @@ export const subtitlesAPI = {
 
   // Upload subtitle file (uses FormData, not JSON)
   upload: async (movieId: string, file: File): Promise<{ url: string; offsetCorrected?: boolean; offsetAmount?: string }> => {
+    // Ensure CSRF token exists before making POST request
+    await ensureCsrfToken();
+    
     const formData = new FormData();
     formData.append('file', file);
 
+    const headers: Record<string, string> = {};
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(`${API_BASE_URL}/upload/subtitle?movieId=${movieId}`, {
       method: 'POST',
+      headers,
       body: formData,
+      credentials: 'include',
     });
 
     if (!response.ok) {

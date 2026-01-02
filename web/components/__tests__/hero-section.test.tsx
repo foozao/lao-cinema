@@ -24,6 +24,26 @@ jest.mock('@/i18n/routing', () => ({
   ),
 }));
 
+// Mock CSRF module (ensureCsrfToken uses fetch which isn't available in jsdom)
+jest.mock('@/lib/csrf', () => ({
+  ensureCsrfToken: jest.fn().mockResolvedValue(undefined),
+  getCsrfToken: jest.fn().mockReturnValue('mock-csrf-token'),
+}));
+
+// Mock anonymous-id module (uses fetch which isn't available in jsdom)
+jest.mock('@/lib/anonymous-id', () => ({
+  getOrCreateAnonymousId: jest.fn().mockResolvedValue('mock-anonymous-id'),
+  getAnonymousId: jest.fn().mockReturnValue('mock-anonymous-id'),
+}));
+
+// Mock trailer-tokens-client (uses fetch/CSRF which aren't available in jsdom)
+jest.mock('@/lib/api/trailer-tokens-client', () => ({
+  getSignedTrailerUrl: jest.fn().mockResolvedValue({
+    url: 'http://localhost:3002/trailers/hls/test-movie/master.m3u8',
+    expiresIn: 7200,
+  }),
+}));
+
 // Mock HLS.js
 const mockHlsInstance = {
   loadSource: jest.fn(),
@@ -296,8 +316,13 @@ describe('HeroSection', () => {
     expect(backdrop).toBeInTheDocument();
   });
 
-  it('cleans up HLS instance on unmount', () => {
+  it('cleans up HLS instance on unmount', async () => {
     const { unmount } = render(<HeroSection movies={[mockMovie]} />);
+    
+    // Wait for HLS to be initialized (after async getSignedTrailerUrl resolves)
+    await waitFor(() => {
+      expect(mockHlsInstance.loadSource).toHaveBeenCalled();
+    });
     
     unmount();
     

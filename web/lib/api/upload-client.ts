@@ -1,5 +1,6 @@
 import { getAuthHeaders } from './auth-headers';
 import { API_BASE_URL } from '../config';
+import { getCsrfToken, ensureCsrfToken } from '../csrf';
 
 export type ImageType = 'poster' | 'backdrop' | 'logo' | 'profile';
 
@@ -10,11 +11,20 @@ export interface UploadImageResponse {
 
 export class UploadClient {
   async uploadImage(file: File, type: ImageType): Promise<UploadImageResponse> {
+    // Ensure CSRF token exists before making POST request
+    await ensureCsrfToken();
+    
     const formData = new FormData();
     formData.append('file', file);
 
     const headers = getAuthHeaders();
     delete headers['Content-Type'];
+    
+    // Add CSRF token
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
 
     const response = await fetch(`${API_BASE_URL}/upload/image?type=${type}`, {
       method: 'POST',

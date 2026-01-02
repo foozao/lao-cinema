@@ -6,6 +6,7 @@
 
 import { getAuthHeadersAsync } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
+import { apiFetch, apiFetchVoid } from './fetch';
 
 // =============================================================================
 // TYPES
@@ -87,37 +88,19 @@ export async function updateWatchProgress(
   movieId: string,
   data: UpdateProgressRequest
 ): Promise<{ progress: WatchProgress }> {
-  const headers = await getAuthHeadersAsync();
-  const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
+  return apiFetch<{ progress: WatchProgress }>(`/watch-progress/${movieId}`, {
     method: 'PUT',
-    headers,
     body: JSON.stringify(data),
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update watch progress');
-  }
-  
-  return response.json();
 }
 
 /**
  * Delete watch progress for a movie
  */
 export async function deleteWatchProgress(movieId: string): Promise<void> {
-  const headers = await getAuthHeadersAsync();
-  const response = await fetch(`${API_BASE_URL}/watch-progress/${movieId}`, {
+  await apiFetchVoid(`/watch-progress/${movieId}`, {
     method: 'DELETE',
-    headers,
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete watch progress');
-  }
 }
 
 /**

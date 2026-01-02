@@ -6,6 +6,7 @@
 
 import { getAuthHeaders } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
+import { apiFetchVoid } from './fetch';
 
 // =============================================================================
 // TYPES
@@ -78,33 +79,19 @@ export async function getWatchlistStatus(movieId: string): Promise<WatchlistStat
  * Add a movie to watchlist
  */
 export async function addToWatchlist(movieId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
+  await apiFetchVoid(`/watchlist/${movieId}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify({}),
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to add to watchlist');
-  }
 }
 
 /**
  * Remove a movie from watchlist
  */
 export async function removeFromWatchlist(movieId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/watchlist/${movieId}`, {
+  await apiFetchVoid(`/watchlist/${movieId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to remove from watchlist');
-  }
 }
 
 /**

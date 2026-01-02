@@ -6,6 +6,7 @@
 
 import { getAuthHeaders } from './auth-headers';
 import { API_BASE_URL } from '@/lib/config';
+import { apiFetch, apiFetchVoid } from './fetch';
 
 // =============================================================================
 // TYPES
@@ -77,33 +78,19 @@ export async function getNotificationStatus(movieId: string): Promise<Notificati
  * Subscribe to notifications for a movie
  */
 export async function subscribeToMovie(movieId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
+  await apiFetchVoid(`/notifications/movies/${movieId}`, {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify({}),
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to subscribe to notifications');
-  }
 }
 
 /**
  * Unsubscribe from notifications for a movie
  */
 export async function unsubscribeFromMovie(movieId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/movies/${movieId}`, {
+  await apiFetchVoid(`/notifications/movies/${movieId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
-    credentials: 'include',
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to unsubscribe from notifications');
-  }
 }
 
 /**

@@ -150,6 +150,9 @@ export async function updatePackPosition(
   rentalId: string,
   currentShortId: string
 ): Promise<void> {
+  // Ensure CSRF token exists before making PATCH request
+  await ensureCsrfToken();
+  
   const headers = await getAuthHeadersAsync();
   const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/position`, {
     method: 'PATCH',
