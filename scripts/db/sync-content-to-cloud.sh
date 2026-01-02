@@ -225,8 +225,7 @@ PGPASSWORD=$LOCAL_DB_PASS pg_dump \
     -p $LOCAL_DB_PORT \
     -U $LOCAL_DB_USER \
     -d $LOCAL_DB_NAME \
-    --clean \
-    --if-exists \
+    --data-only \
     --no-owner \
     --no-privileges \
     $(printf -- "-t %s " "${CONTENT_TABLES[@]}") \
@@ -363,10 +362,10 @@ else
     log_info "✓ Cloud SQL proxy started (PID: $PROXY_PID)"
 fi
 
-# Restore to Cloud SQL
-log_info "Restoring content tables to Cloud SQL..."
+# Truncate content tables before restore (CASCADE handles FK dependencies)
+log_info "Truncating content tables on Cloud SQL..."
 echo ""
-log_warn "This will DROP and RECREATE the following tables:"
+log_warn "This will TRUNCATE the following tables (CASCADE):"
 for table in "${CONTENT_TABLES[@]}"; do
     echo "  - $table"
 done
@@ -376,6 +375,28 @@ for table in "${USER_TABLES[@]}"; do
     echo "  - $table (preserved)"
 done
 echo ""
+
+# Build truncate command - reverse order to handle dependencies
+TRUNCATE_TABLES=$(printf "%s, " "${CONTENT_TABLES[@]}" | sed 's/, $//')
+PGPASSWORD=$CLOUD_DB_PASS psql \
+    -h 127.0.0.1 \
+    -p $PROXY_PORT \
+    -U $CLOUD_DB_USER \
+    -d $CLOUD_DB_NAME \
+    -c "TRUNCATE TABLE $TRUNCATE_TABLES CASCADE;"
+
+if [ $? -ne 0 ]; then
+    log_error "Failed to truncate tables on Cloud SQL"
+    if [ ! -z "$PROXY_PID" ]; then
+        kill $PROXY_PID 2>/dev/null
+    fi
+    rm -f $DUMP_FILE
+    exit 1
+fi
+log_info "✓ Tables truncated successfully"
+
+# Restore data to Cloud SQL
+log_info "Restoring content data to Cloud SQL..."
 
 PGPASSWORD=$CLOUD_DB_PASS psql \
     -h 127.0.0.1 \
