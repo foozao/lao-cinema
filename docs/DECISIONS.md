@@ -264,6 +264,111 @@ rentals: {
 
 ---
 
+## Code Organization
+
+### Why Split Large Route Files (Orchestrator Pattern)?
+
+**Decision**: Split route files exceeding ~300 lines into sub-modules with a thin orchestrator.
+
+**Example**: `rentals.ts` split into:
+- `rentals.ts` (orchestrator, ~18 lines)
+- `rental-crud.ts` (basic CRUD operations)
+- `rental-packs.ts` (pack-specific logic)
+- `rental-migration.ts` (anonymous → authenticated migration)
+
+**Rationale**:
+- **Maintainability**: Easier to navigate, understand, and modify
+- **Single responsibility**: Each file has one concern
+- **Testing**: Can test sub-routes in isolation
+- **Code review**: Smaller diffs, clearer changes
+- **AI assistance**: Fits in context window for AI tools
+
+**Pattern**:
+```typescript
+// rentals.ts (orchestrator)
+import rentalCrudRoutes from './rental-crud.js';
+import rentalPackRoutes from './rental-packs.js';
+
+export default async function rentalRoutes(fastify: FastifyInstance) {
+  await fastify.register(rentalCrudRoutes);
+  await fastify.register(rentalPackRoutes);
+}
+```
+
+**Do NOT**: Let route files grow beyond 400+ lines - split proactively.
+
+---
+
+### Why Negative IDs for Custom Genres Too?
+
+**Decision**: Custom (non-TMDB) genres also use negative IDs, same as manual people.
+
+**Rationale**:
+- **Consistency**: Same pattern as people table
+- **TMDB collision prevention**: TMDB genre IDs are positive
+- **Easy filtering**: `WHERE id < 0` finds all custom entries
+- **Import safety**: TMDB imports won't overwrite custom genres
+
+---
+
+### Why Separate Award/Accolade Terminology?
+
+**Decision**: 
+- **Database**: Uses `award_*` table names (internal)
+- **API/UI**: Uses "Accolades" terminology (external)
+- **Types**: Keep `Award*` TypeScript types (internal)
+
+**Rationale**:
+- **Broader meaning**: "Accolades" includes selections, honorable mentions, not just wins
+- **Database stability**: Renaming tables is risky and unnecessary
+- **User-facing clarity**: "Accolades" is more inclusive than "Awards"
+
+**See**: `.windsurf/workflows/accolades.md` for the rename workflow.
+
+---
+
+### Why Composite Primary Keys for Translations?
+
+**Decision**: Translation tables use `(entity_id, language)` as composite primary key.
+
+**Rationale**:
+- **No auto-increment needed**: Entity + language is naturally unique
+- **Query efficiency**: Primary key covers common lookups
+- **Constraint enforcement**: Database prevents duplicate translations
+- **UPSERT simplicity**: `ON CONFLICT (entity_id, language) DO UPDATE`
+
+**Trade-offs accepted**:
+- Slightly more complex insert syntax
+- Can't reference translation by single ID
+
+---
+
+### Why Audit Logging for Admin Actions?
+
+**Decision**: Log all create/update/delete actions by editors and admins.
+
+**Rationale**:
+- **Accountability**: Know who changed what and when
+- **Debugging**: Trace issues back to specific changes
+- **Rollback info**: Changes object shows before/after values
+- **Compliance**: Audit trail for content moderation
+
+**Logged data**:
+```typescript
+{
+  userId,        // Who made the change
+  action,        // 'create' | 'update' | 'delete'
+  entityType,    // 'movie' | 'person' | 'genre' | ...
+  entityId,      // What was changed
+  entityName,    // Human-readable name
+  changes,       // { field: { before, after } }
+  ipAddress,     // Request origin
+  createdAt,     // When
+}
+```
+
+---
+
 ## Future Considerations
 
 ### Mobile App Strategy
