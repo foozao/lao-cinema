@@ -47,23 +47,22 @@ export default async function accoladeEditionsRoutes(fastify: FastifyInstance) {
         ? await db.select().from(schema.accoladeSectionTranslations).where(buildInClause(schema.accoladeSectionTranslations.sectionId, sectionIds))
         : [];
       
-      // Get section selections for this edition
-      const sectionSelections = sectionIds.length > 0
-        ? await db.select().from(schema.accoladeSectionSelections)
-            .where(and(
-              buildInClause(schema.accoladeSectionSelections.sectionId, sectionIds),
-              eq(schema.accoladeSectionSelections.editionId, id)
-            ))
-            .orderBy(asc(schema.accoladeSectionSelections.sortOrder))
-        : [];
+      // Get all selections for this edition (both section-specific and edition-wide)
+      const allSelections = await db.select().from(schema.accoladeSectionSelections)
+        .where(eq(schema.accoladeSectionSelections.editionId, id))
+        .orderBy(asc(schema.accoladeSectionSelections.sortOrder));
       
-      const selectionIds = sectionSelections.map(s => s.id);
+      // Separate section selections from edition-wide selections
+      const sectionSelections = allSelections.filter(s => s.sectionId !== null);
+      const editionWideSelections = allSelections.filter(s => s.sectionId === null);
+      
+      const selectionIds = allSelections.map(s => s.id);
       const selectionTrans = selectionIds.length > 0
         ? await db.select().from(schema.accoladeSectionSelectionTranslations).where(buildInClause(schema.accoladeSectionSelectionTranslations.selectionId, selectionIds))
         : [];
       
-      // Get movies for section selections
-      const selectionMovieIds = [...new Set(sectionSelections.map(s => s.movieId))];
+      // Get movies for all selections (section-specific and edition-wide)
+      const selectionMovieIds = [...new Set(allSelections.map(s => s.movieId))];
       
       // Get nominations for this edition
       const nominations = await db.select().from(schema.accoladeNominations)
@@ -193,6 +192,28 @@ export default async function accoladeEditionsRoutes(fastify: FastifyInstance) {
         };
       });
       
+      // Build edition-wide selections (no section)
+      const editionWideSelectionsFormatted = editionWideSelections.map(sel => {
+        const selTrans = selectionTrans.filter(t => t.selectionId === sel.id);
+        const movie = movies.find(m => m.id === sel.movieId);
+        const mTrans = movieTrans.filter(t => t.movieId === sel.movieId);
+        
+        return {
+          id: sel.id,
+          section_id: null,
+          edition_id: sel.editionId,
+          movie_id: sel.movieId,
+          movie: movie ? {
+            id: movie.id,
+            title: buildLocalizedText(mTrans, 'title'),
+            poster_path: movie.posterPath,
+            release_date: movie.releaseDate,
+          } : null,
+          notes: buildLocalizedText(selTrans, 'notes'),
+          sort_order: sel.sortOrder,
+        };
+      });
+      
       return {
         id: edition.id,
         show: {
@@ -208,6 +229,7 @@ export default async function accoladeEditionsRoutes(fastify: FastifyInstance) {
         end_date: edition.endDate,
         categories: categoriesWithNominations,
         sections: sectionsWithSelections,
+        selections: editionWideSelectionsFormatted, // Edition-wide film selections
         created_at: edition.createdAt,
         updated_at: edition.updatedAt,
       };

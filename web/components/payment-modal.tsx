@@ -76,9 +76,9 @@ export function PaymentModal({
     setIsProcessing(false);
     
     try {
-      // Try to complete the rental with DEMOCOUPON promo code
+      // Try to complete the rental with PREVIEWCOUPON promo code
       // This will use the free payment provider on the backend
-      await onPaymentComplete('DEMOCOUPON');
+      await onPaymentComplete('PREVIEWCOUPON');
       
       // Only mark as complete if successful
       setIsComplete(true);

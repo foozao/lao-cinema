@@ -192,10 +192,10 @@ export default async function accoladeSectionsRoutes(fastify: FastifyInstance) {
   // SECTION SELECTIONS - Adding movies to sections for specific editions
   // ==========================================================================
 
-  // Add movie to section (create selection)
+  // Add movie to edition (create selection) - section_id is optional for edition-wide selections
   fastify.post<{
     Body: {
-      section_id: string;
+      section_id?: string; // Optional - null means edition-wide selection
       edition_id: string;
       movie_id: string;
       notes?: { en?: string; lo?: string };
@@ -205,14 +205,16 @@ export default async function accoladeSectionsRoutes(fastify: FastifyInstance) {
     try {
       const { section_id, edition_id, movie_id, notes, sort_order } = request.body;
       
-      if (!section_id || !edition_id || !movie_id) {
-        return sendBadRequest(reply, 'section_id, edition_id, and movie_id are required');
+      if (!edition_id || !movie_id) {
+        return sendBadRequest(reply, 'edition_id and movie_id are required');
       }
       
-      // Verify section exists
-      const [section] = await db.select().from(schema.accoladeSections).where(eq(schema.accoladeSections.id, section_id)).limit(1);
-      if (!section) {
-        return sendNotFound(reply, 'Section not found');
+      // Verify section exists (if provided)
+      if (section_id) {
+        const [section] = await db.select().from(schema.accoladeSections).where(eq(schema.accoladeSections.id, section_id)).limit(1);
+        if (!section) {
+          return sendNotFound(reply, 'Section not found');
+        }
       }
       
       // Verify edition exists
@@ -227,9 +229,9 @@ export default async function accoladeSectionsRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Movie not found');
       }
       
-      // Create selection
+      // Create selection (section_id can be null for edition-wide selections)
       const [newSelection] = await db.insert(schema.accoladeSectionSelections).values({
-        sectionId: section_id,
+        sectionId: section_id || null,
         editionId: edition_id,
         movieId: movie_id,
         sortOrder: sort_order || 0,

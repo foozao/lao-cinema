@@ -1,0 +1,1 @@
+ALTER TABLE "accolade_section_selections" ALTER COLUMN "section_id" DROP NOT NULL;

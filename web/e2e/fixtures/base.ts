@@ -6,11 +6,12 @@
  */
 
 import { test as base } from '@playwright/test';
-import { cleanDatabase, closeDatabase } from '../helpers/db';
+import { cleanDatabase, closeDatabase, seedPreviewPromoCode } from '../helpers/db';
 
 export const test = base.extend({
   page: async ({ page }, use) => {
     await cleanDatabase();
+    await seedPreviewPromoCode();
     
     // Skip cinematic loader for all tests to prevent timeouts
     // Set sessionStorage before any navigation

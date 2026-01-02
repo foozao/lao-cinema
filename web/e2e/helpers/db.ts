@@ -363,6 +363,28 @@ export async function addMovieGenre(movieId: string, genreId: number) {
   });
 }
 
+export async function seedPreviewPromoCode() {
+  return withRetry(async (sql) => {
+    // Insert PREVIEWCOUPON promo code for e2e tests (type: free, no restrictions)
+    await sql`
+      INSERT INTO promo_codes (
+        code,
+        discount_type,
+        discount_value,
+        is_active,
+        uses_count
+      ) VALUES (
+        'PREVIEWCOUPON',
+        'free',
+        NULL,
+        true,
+        0
+      )
+      ON CONFLICT (code) DO NOTHING
+    `;
+  });
+}
+
 export async function closeDatabase() {
   // No-op since we use fresh connections per operation now
 }

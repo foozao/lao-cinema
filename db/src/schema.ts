@@ -786,10 +786,10 @@ export const accoladeSectionTranslations = pgTable('accolade_section_translation
   pk: primaryKey({ columns: [table.sectionId, table.language] }),
 }));
 
-// Accolade section selections - Movies selected for a section in a specific edition
+// Accolade film selections - Movies selected for an edition (optionally in a section)
 export const accoladeSectionSelections = pgTable('accolade_section_selections', {
   id: uuid('id').defaultRandom().primaryKey(),
-  sectionId: uuid('section_id').references(() => accoladeSections.id, { onDelete: 'cascade' }).notNull(),
+  sectionId: uuid('section_id').references(() => accoladeSections.id, { onDelete: 'cascade' }), // nullable = edition-wide selection
   editionId: uuid('edition_id').references(() => accoladeEditions.id, { onDelete: 'cascade' }).notNull(),
   movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
   sortOrder: integer('sort_order').default(0),

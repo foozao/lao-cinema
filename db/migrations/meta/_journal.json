@@ -15,6 +15,13 @@
       "when": 1767345263112,
       "tag": "0001_lame_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767353885713,
+      "tag": "0002_harsh_thunderbird",
+      "breakpoints": true
     }
   ]
 }
