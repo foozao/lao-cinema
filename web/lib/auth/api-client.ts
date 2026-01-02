@@ -6,7 +6,7 @@
  */
 
 import { API_BASE_URL } from '@/lib/config';
-import { getCsrfToken } from '@/lib/csrf';
+import { getCsrfToken, ensureCsrfToken } from '@/lib/csrf';
 import type {
   User,
   AuthResponse,
@@ -46,6 +46,8 @@ async function authFetch(
   // Add CSRF token for state-changing requests
   const method = options.method?.toUpperCase() || 'GET';
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    // Ensure CSRF token exists before making request
+    await ensureCsrfToken();
     const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
