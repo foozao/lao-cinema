@@ -124,11 +124,38 @@ export function AdminBreadcrumbs() {
             isLast: true,
           });
         } else if (parts[1] === 'analytics') {
-          breadcrumbs.push({
-            label: t('analytics'),
-            href: '/admin/analytics',
-            isLast: true,
-          });
+          if (parts.length === 2) {
+            breadcrumbs.push({
+              label: t('analytics'),
+              href: '/admin/analytics',
+              isLast: true,
+            });
+          } else if (parts.length === 3) {
+            // Movie analytics detail page
+            const movieId = parts[2];
+            try {
+              const movie = await movieAPI.getById(movieId);
+              breadcrumbs.push(
+                {
+                  label: t('analytics'),
+                  href: '/admin/analytics',
+                  isLast: false,
+                },
+                {
+                  label: getLocalizedText(movie.title, 'en'),
+                  href: `/admin/analytics/${movieId}`,
+                  isLast: true,
+                }
+              );
+            } catch (error) {
+              console.error('Failed to load movie:', error);
+              breadcrumbs.push({
+                label: t('analytics'),
+                href: '/admin/analytics',
+                isLast: true,
+              });
+            }
+          }
         } else if (parts[1] === 'homepage') {
           breadcrumbs.push({
             label: t('homepageSettings'),
@@ -236,6 +263,12 @@ export function AdminBreadcrumbs() {
               });
             }
           }
+        } else if (parts[1] === 'promo-codes') {
+          breadcrumbs.push({
+            label: t('promoCodes'),
+            href: '/admin/promo-codes',
+            isLast: true,
+          });
         }
 
         setSegments(breadcrumbs);

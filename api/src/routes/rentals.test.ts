@@ -220,7 +220,7 @@ describe('Rental Routes', () => {
         expect(body.rental.movieId).toBe(movieId1);
         expect(body.rental.transactionId).toBe('txn_new');
         expect(body.rental.amount).toBe(500);
-        expect(body.rental.currency).toBe('USD');
+        expect(body.rental.currency).toBe('LAK');
         expect(body.rental.expiresAt).toBeDefined();
       });
 

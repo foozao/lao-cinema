@@ -39,6 +39,11 @@ export interface MovieAnalyticsDetail {
   };
   rentals: MovieRentalStats;
   watch: MovieWatchStats;
+  promoCodes: {
+    code: string;
+    discountType: 'percentage' | 'fixed' | 'free';
+    uses: number;
+  }[];
   recentRentals: {
     id: string;
     purchasedAt: string;

@@ -1130,7 +1130,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                               onChange={(e) => setNominationForm({ ...nominationForm, award_body_id: e.target.value })}
                                               className="flex-1 h-8 px-2 border border-gray-300 rounded-md text-xs"
                                             >
-                                              <option value="">Official Festival Jury</option>
+                                              <option value="">Select award body...</option>
                                               {awardBodies.map((body) => (
                                                 <option key={body.id} value={body.id}>
                                                   {body.abbreviation ? `${body.abbreviation} - ` : ''}{body.name.en || body.name.lo}
@@ -1375,7 +1375,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                   onChange={(e) => setNominationForm({ ...nominationForm, award_body_id: e.target.value })}
                                   className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-sm"
                                 >
-                                  <option value="">Official Festival Jury</option>
+                                  <option value="">Select award body...</option>
                                   {awardBodies.map((body) => (
                                     <option key={body.id} value={body.id}>
                                       {body.abbreviation ? `${body.abbreviation} - ` : ''}{body.name.en || body.name.lo}
@@ -1421,7 +1421,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                 </Button>
                               </div>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">For independent juries like FIPRESCI, FEDORA, NETPAC. Leave empty for official festival jury.</p>
+                            <p className="text-xs text-gray-500 mt-1">For independent juries like FIPRESCI, FEDORA, NETPAC, or other awarding bodies. Leave empty if not applicable.</p>
                           </div>
                           <div>
                             <Label className="text-sm">Recognition Type (optional)</Label>

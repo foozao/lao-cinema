@@ -39,6 +39,7 @@ interface PromoCode {
 
 export default function PromoCodesPage() {
   const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -206,14 +207,14 @@ export default function PromoCodesPage() {
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Promo Codes</h1>
+          <h1 className="text-3xl font-bold">{t('promoCodes')}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage promotional discount codes for rentals
+            {t('promoCodesDescription')}
           </p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Create Promo Code
+          {t('createPromoCode')}
         </Button>
       </div>
 
@@ -225,9 +226,9 @@ export default function PromoCodesPage() {
 
       {promoCodes.length === 0 ? (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-muted-foreground">No promo codes yet</p>
+          <p className="text-muted-foreground">{t('noPromoCodesYet')}</p>
           <Button onClick={() => setIsCreateOpen(true)} className="mt-4">
-            Create your first promo code
+            {t('createFirstPromoCode')}
           </Button>
         </div>
       ) : (
@@ -235,12 +236,12 @@ export default function PromoCodesPage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Code</th>
-                <th className="text-left px-4 py-3 font-medium">Discount</th>
-                <th className="text-left px-4 py-3 font-medium">Uses</th>
-                <th className="text-left px-4 py-3 font-medium">Valid Period</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-right px-4 py-3 font-medium">Actions</th>
+                <th className="text-left px-4 py-3 font-medium">{t('promoCode')}</th>
+                <th className="text-left px-4 py-3 font-medium">{t('promoDiscount')}</th>
+                <th className="text-left px-4 py-3 font-medium">{t('promoUses')}</th>
+                <th className="text-left px-4 py-3 font-medium">{t('promoValidPeriod')}</th>
+                <th className="text-left px-4 py-3 font-medium">{t('promoStatus')}</th>
+                <th className="text-right px-4 py-3 font-medium">{t('promoActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -260,7 +261,7 @@ export default function PromoCodesPage() {
                         {code.validTo && new Date(code.validTo).toLocaleDateString()}
                       </>
                     ) : (
-                      'No expiration'
+                      t('promoNoExpiration')
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -275,12 +276,12 @@ export default function PromoCodesPage() {
                       {code.isActive ? (
                         <>
                           <Check className="w-3 h-3 mr-1" />
-                          Active
+                          {t('promoActive')}
                         </>
                       ) : (
                         <>
                           <X className="w-3 h-3 mr-1" />
-                          Inactive
+                          {t('promoInactive')}
                         </>
                       )}
                     </button>

@@ -209,8 +209,8 @@ export default function AdminPage() {
               href="/admin/promo-codes"
               icon={Ticket}
               color="green"
-              title="Promo Codes"
-              description="Manage promotional discount codes"
+              title={t('promoCodes')}
+              description={t('managePromoCodes')}
             />
 
             <DashboardCard

@@ -19,6 +19,7 @@ import {
   Ticket,
   DollarSign,
   Calendar,
+  Tag,
 } from 'lucide-react';
 import { 
   getMovieAnalytics,
@@ -119,14 +120,6 @@ export default function MovieAnalyticsPage() {
   if (!hasData) {
     return (
       <div>
-        <div className="mb-6">
-          <Link href="/admin/analytics">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t('backToAnalytics')}
-            </Button>
-          </Link>
-        </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Film className="w-16 h-16 text-gray-300 mb-4" />
@@ -142,16 +135,6 @@ export default function MovieAnalyticsPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <Link href="/admin/analytics">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('backToAnalytics')}
-          </Button>
-        </Link>
-      </div>
-
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">{movieTitle}</h2>
@@ -165,7 +148,7 @@ export default function MovieAnalyticsPage() {
 
       {/* Rental Stats Cards */}
       {apiAnalytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
@@ -231,6 +214,34 @@ export default function MovieAnalyticsPage() {
                   ? `${t('since')} ${new Date(rentalStats.firstRental).toLocaleDateString()}`
                   : t('noRentalsYet')}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Coupon Usage Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Tag className="w-5 h-5 text-pink-600" />
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Coupon Uses
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {apiAnalytics.promoCodes && apiAnalytics.promoCodes.length > 0 ? (
+                <div className="space-y-2">
+                  {apiAnalytics.promoCodes.map((promo) => (
+                    <div key={promo.code} className="flex justify-between items-center">
+                      <span className="font-mono text-sm font-semibold">{promo.code}</span>
+                      <span className="text-lg font-bold">{promo.uses}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">No coupons used</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

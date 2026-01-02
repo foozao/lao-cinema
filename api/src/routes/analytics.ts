@@ -8,7 +8,7 @@ import { FastifyInstance } from 'fastify';
 import { requireAuth, requireAdmin } from '../lib/auth-middleware.js';
 import { sendNotFound, sendInternalError } from '../lib/response-helpers.js';
 import { db } from '../db/index.js';
-import { rentals, movies, movieTranslations, watchProgress } from '../db/schema.js';
+import { rentals, movies, movieTranslations, watchProgress, promoCodeUses, promoCodes } from '../db/schema.js';
 import { eq, and, gt, count, sum, avg, sql, desc } from 'drizzle-orm';
 
 // =============================================================================
@@ -207,6 +207,20 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
         .orderBy(desc(rentals.purchasedAt))
         .limit(10);
 
+      // Get promo code usage stats for this movie
+      const promoUsageStats = await db
+        .select({
+          code: promoCodes.code,
+          discountType: promoCodes.discountType,
+          usesForThisMovie: count(promoCodeUses.id),
+        })
+        .from(promoCodeUses)
+        .innerJoin(promoCodes, eq(promoCodeUses.promoCodeId, promoCodes.id))
+        .innerJoin(rentals, eq(promoCodeUses.rentalId, rentals.id))
+        .where(eq(rentals.movieId, movieId))
+        .groupBy(promoCodes.id, promoCodes.code, promoCodes.discountType)
+        .orderBy(desc(count(promoCodeUses.id)));
+
       return {
         movie: {
           id: movie.id,
@@ -233,6 +247,11 @@ export default async function analyticsRoutes(fastify: FastifyInstance) {
             ? (Number(watchStats.completions) / Number(watchStats.uniqueWatchers)) * 100
             : 0,
         },
+        promoCodes: promoUsageStats.map(stat => ({
+          code: stat.code,
+          discountType: stat.discountType,
+          uses: Number(stat.usesForThisMovie),
+        })),
         recentRentals,
       };
     } catch (error) {
