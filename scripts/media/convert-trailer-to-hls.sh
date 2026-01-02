@@ -27,8 +27,9 @@ fi
 
 INPUT_FILE="$1"
 OUTPUT_NAME="$2"
-SCRIPT_DIR="$(dirname "$0")"
-OUTPUT_DIR="${SCRIPT_DIR}/../../video-server/trailers/hls/${OUTPUT_NAME}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}/../.."
+OUTPUT_DIR="${PROJECT_ROOT}/video-server/trailers/hls/${OUTPUT_NAME}"
 
 # Validate input file exists
 if [ ! -f "$INPUT_FILE" ]; then
