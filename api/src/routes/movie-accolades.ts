@@ -233,7 +233,7 @@ export default async function movieAccoladesRoutes(fastify: FastifyInstance) {
           id: sel.id,
           type: 'selection',
           editionId: sel.editionId,
-          sectionId: sel.sectionId,
+          sectionId: sel.sectionId ?? undefined,
         });
         filmAccolades.push(formatted);
       }
