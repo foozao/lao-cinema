@@ -13,7 +13,7 @@ import {
   User, Film, Award, ArrowLeft, Check, X, Layers
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-import { getLocalizedText } from '@/lib/i18n';
+import { getLocalizedText, getLocalizedName } from '@/lib/i18n';
 import { getProfileUrl, getPosterUrl } from '@/lib/images';
 import { getOrdinal } from '@/lib/utils/ordinals';
 import type { 
@@ -1053,7 +1053,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                           })()}
                           <div className="flex-1 min-w-0">
                             <span className="font-medium">
-                              {sel.movie?.title?.en || sel.movie?.title?.lo || 'Unknown'}
+                              {getLocalizedName(sel.movie?.title, 'en', 'Untitled')}
                             </span>
                             {sel.movie?.release_date && (
                               <span className="text-gray-500 text-sm ml-2">
@@ -1174,7 +1174,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                 })()}
                                 <div className="flex-1 min-w-0">
                                   <span className="font-medium">
-                                    {sel.movie?.title?.en || sel.movie?.title?.lo || 'Unknown'}
+                                    {getLocalizedName(sel.movie?.title, 'en', 'Untitled')}
                                   </span>
                                   {sel.movie?.release_date && (
                                     <span className="text-gray-500 text-sm ml-2">
@@ -1364,7 +1364,7 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                                       {category.nominations.map((nom) => (
                                         <div key={nom.id} className="text-sm flex items-center gap-2 group">
                                           {nom.is_winner && <Trophy className="w-3 h-3 text-yellow-500" />}
-                                          <span className="flex-1">{nom.nominee?.name?.en || nom.nominee?.title?.en || 'Unknown'}</span>
+                                          <span className="flex-1">{getLocalizedName(nom.nominee?.name || nom.nominee?.title, 'en')}</span>
                                           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
                                             <Button
                                               size="sm"

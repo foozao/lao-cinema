@@ -6,7 +6,7 @@ import { Language, LocalizedText } from './types';
  * @param lang - Preferred language
  * @returns The text in the preferred language, or fallback to any available language
  */
-export function getLocalizedText(text: LocalizedText | undefined, lang: Language = 'en'): string {
+export function getLocalizedText(text: LocalizedText | undefined | null, lang: Language = 'en'): string {
   // Handle undefined or null text
   if (!text) {
     return '';
@@ -19,6 +19,23 @@ export function getLocalizedText(text: LocalizedText | undefined, lang: Language
   
   // Requesting Lao: try Lao first, fallback to English
   return text.lo || text.en || '';
+}
+
+/**
+ * Get localized text with a guaranteed non-empty fallback
+ * Use this for display names where "Unknown" or similar should show instead of blank
+ * @param text - LocalizedText object (can be undefined/null)
+ * @param lang - Preferred language
+ * @param fallback - Fallback string if no text available (default: 'Unknown')
+ * @returns The text in the preferred language, fallback language, or the fallback string
+ */
+export function getLocalizedName(
+  text: LocalizedText | undefined | null,
+  lang: Language = 'en',
+  fallback: string = 'Unknown'
+): string {
+  const result = getLocalizedText(text, lang);
+  return result || fallback;
 }
 
 /**

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { awardsAPI } from '@/lib/api/client';
 import { useLocale } from 'next-intl';
-import { getLocalizedText } from '@/lib/i18n';
+import { getLocalizedText, getLocalizedName } from '@/lib/i18n';
 import { getAwardShowLocation } from '@/lib/i18n/get-country-name';
 import { getProfileUrl, getPosterUrl } from '@/lib/images';
 import { Trophy, Calendar, Globe, ExternalLink, ChevronRight, User, Film, Award } from 'lucide-react';
@@ -367,8 +367,8 @@ export default function DevAwardsPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <div className="font-medium text-sm text-yellow-400 truncate">
                                     {winner.nominee?.type === 'person'
-                                      ? getLocalizedText((winner.nominee.name || { en: 'Unknown' }) as { en: string; lo?: string }, locale)
-                                      : getLocalizedText((winner.nominee?.title || { en: 'Unknown' }) as { en: string; lo?: string }, locale)}
+                                      ? getLocalizedName(winner.nominee.name, locale)
+                                      : getLocalizedName(winner.nominee?.title, locale, 'Untitled')}
                                   </div>
                                   {/* Status Badge */}
                                   {isSelection ? (
@@ -491,7 +491,7 @@ export default function DevAwardsPage() {
                                       )}
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium">
-                                          {sel.movie?.title ? getLocalizedText(sel.movie.title as { en: string; lo?: string }, locale) : 'Unknown'}
+                                          {getLocalizedName(sel.movie?.title, locale, 'Untitled')}
                                         </div>
                                         {sel.movie?.release_date && (
                                           <div className="text-sm text-gray-500">
@@ -583,8 +583,8 @@ export default function DevAwardsPage() {
                                       <div className="flex items-center gap-3 flex-wrap">
                                         <span className={`font-medium ${nom.is_winner ? 'text-yellow-400' : ''}`}>
                                           {nom.nominee?.type === 'person'
-                                            ? getLocalizedText((nom.nominee.name || { en: 'Unknown' }) as { en: string; lo?: string }, locale)
-                                            : getLocalizedText((nom.nominee?.title || { en: 'Unknown' }) as { en: string; lo?: string }, locale)}
+                                            ? getLocalizedName(nom.nominee.name, locale)
+                                            : getLocalizedName(nom.nominee?.title, locale, 'Untitled')}
                                         </span>
                                         {nom.is_winner ? (
                                           <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
