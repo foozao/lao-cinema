@@ -23,6 +23,7 @@ import accoladesRoutes from '../routes/accolades.js';
 import personAccoladesRoutes from '../routes/person-accolades.js';
 import movieSubtitleRoutes from '../routes/movie-subtitles.js';
 import anonymousIdRoutes from '../routes/anonymous-id.js';
+import pricingRoutes from '../routes/pricing.js';
 import { db, schema } from '../db/index.js';
 import { hashPassword, generateSessionToken } from '../lib/auth-utils.js';
 
@@ -44,6 +45,7 @@ interface BuildOptions {
   includeMovieGenres?: boolean;
   includeAccolades?: boolean;
   includeSubtitles?: boolean;
+  includePricing?: boolean;
 }
 
 /**
@@ -187,6 +189,14 @@ export async function build(options: BuildOptions = {}): Promise<FastifyInstance
       await app.register(authRoutes, { prefix: '/api' });
     }
     await app.register(movieSubtitleRoutes);
+  }
+  
+  if (options.includePricing) {
+    // Pricing routes require admin auth
+    if (!options.includeAuth) {
+      await app.register(authRoutes, { prefix: '/api' });
+    }
+    await app.register(pricingRoutes, { prefix: '/api' });
   }
 
   return app;

@@ -11,6 +11,9 @@ export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'admin']);
 export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 export const trailerTypeEnum = pgEnum('trailer_type', ['youtube', 'video']);
 export const movieTypeEnum = pgEnum('movie_type', ['feature', 'short']);
+export const discountTypeEnum = pgEnum('discount_type', ['percentage', 'fixed', 'free']);
+export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'success', 'failed', 'refunded']);
+
 export const auditActionEnum = pgEnum('audit_action', [
   'create', 'update', 'delete',
   'add_cast', 'remove_cast', 'update_cast',
@@ -53,6 +56,9 @@ export const movies = pgTable('movies', {
   
   // Availability ('auto' = uses smart defaults based on video_sources and external_platforms)
   availabilityStatus: availabilityStatusEnum('availability_status').default('auto'),
+  
+  // Pricing (nullable - if null, movie is not available for rent yet)
+  pricingTierId: uuid('pricing_tier_id'), // FK to pricing_tiers added via migration
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -802,6 +808,66 @@ export const accoladeSectionSelectionTranslations = pgTable('accolade_section_se
   pk: primaryKey({ columns: [table.selectionId, table.language] }),
 }));
 
+// =============================================================================
+// PRICING & PAYMENTS
+// =============================================================================
+
+// Pricing tiers table - predefined price points for content providers to choose from
+export const pricingTiers = pgTable('pricing_tiers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(), // 'standard', 'premium', 'new_release'
+  displayNameEn: text('display_name_en').notNull(),
+  displayNameLo: text('display_name_lo'),
+  priceLak: integer('price_lak').notNull(), // Price in LAK (no decimals)
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Promo codes table - discount and promotional codes
+export const promoCodes = pgTable('promo_codes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(), // 'LAONEWYEAR2026'
+  discountType: discountTypeEnum('discount_type').notNull(), // 'percentage', 'fixed', 'free'
+  discountValue: integer('discount_value'), // 50 for 50%, 10000 for 10000 LAK, NULL for free
+  maxUses: integer('max_uses'), // NULL = unlimited
+  usesCount: integer('uses_count').default(0).notNull(),
+  validFrom: timestamp('valid_from'),
+  validTo: timestamp('valid_to'),
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }), // NULL = any movie
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Promo code uses table - track who used which codes
+export const promoCodeUses = pgTable('promo_code_uses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  promoCodeId: uuid('promo_code_id').references(() => promoCodes.id, { onDelete: 'cascade' }).notNull(),
+  rentalId: uuid('rental_id').references(() => rentals.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  anonymousId: text('anonymous_id'),
+  usedAt: timestamp('used_at').defaultNow().notNull(),
+});
+
+// Payment transactions table - provider-agnostic payment records
+export const paymentTransactions = pgTable('payment_transactions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  rentalId: uuid('rental_id').references(() => rentals.id, { onDelete: 'set null' }), // Set after successful payment
+  movieId: uuid('movie_id').references(() => movies.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  anonymousId: text('anonymous_id'),
+  provider: text('provider').notNull(), // 'bcel', 'manual', 'free'
+  providerTransactionId: text('provider_transaction_id'), // External reference
+  amountLak: integer('amount_lak').notNull(), // Final amount charged
+  originalAmountLak: integer('original_amount_lak'), // Before discount
+  promoCodeId: uuid('promo_code_id').references(() => promoCodes.id, { onDelete: 'set null' }),
+  status: paymentStatusEnum('status').notNull(), // 'pending', 'success', 'failed', 'refunded'
+  providerResponse: text('provider_response'), // JSON string for debugging
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Types for TypeScript
 export type AwardBody = typeof awardBodies.$inferSelect;
 export type NewAwardBody = typeof awardBodies.$inferInsert;
@@ -837,3 +903,15 @@ export type AccoladeSectionSelection = typeof accoladeSectionSelections.$inferSe
 export type NewAccoladeSectionSelection = typeof accoladeSectionSelections.$inferInsert;
 export type AccoladeSectionSelectionTranslation = typeof accoladeSectionSelectionTranslations.$inferSelect;
 export type NewAccoladeSectionSelectionTranslation = typeof accoladeSectionSelectionTranslations.$inferInsert;
+
+export type PricingTier = typeof pricingTiers.$inferSelect;
+export type NewPricingTier = typeof pricingTiers.$inferInsert;
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type NewPromoCode = typeof promoCodes.$inferInsert;
+
+export type PromoCodeUse = typeof promoCodeUses.$inferSelect;
+export type NewPromoCodeUse = typeof promoCodeUses.$inferInsert;
+
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+export type NewPaymentTransaction = typeof paymentTransactions.$inferInsert;
