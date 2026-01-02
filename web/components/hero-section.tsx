@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Play, Pause, Info, VolumeX, Volume2 } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
 import { TEXT_LIMITS } from '@/lib/config';
 import type { Movie, VideoTrailer } from '@/lib/types';
+import { getSignedTrailerUrl } from '@/lib/api/trailer-tokens-client';
 
 import Hls from 'hls.js';
 
@@ -39,6 +40,8 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [hasVideoError, setHasVideoError] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
 
   // Current movie and its trailer
   const movie = moviesWithTrailers[currentIndex] || movies[0];
@@ -57,14 +60,37 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
   const director = movie.crew?.find(c => c.department === 'Directing');
   const directorName = director ? getLocalizedText(director.person.name, locale) : null;
 
-  // Initialize HLS player
+  // Fetch signed URL for current trailer
+  useEffect(() => {
+    if (!videoTrailer?.id) {
+      setSignedUrl(null);
+      return;
+    }
+
+    setIsLoadingUrl(true);
+    setSignedUrl(null);
+    setHasVideoError(false);
+
+    getSignedTrailerUrl(videoTrailer.id)
+      .then(response => {
+        setSignedUrl(response.url);
+        setIsLoadingUrl(false);
+      })
+      .catch(error => {
+        console.error('Failed to get signed trailer URL:', error);
+        setHasVideoError(true);
+        setIsLoadingUrl(false);
+      });
+  }, [videoTrailer?.id, currentIndex]);
+
+  // Initialize HLS player when signed URL is ready
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !videoTrailer?.video_url) return;
+    // Wait for signed URL to be ready
+    if (!video || !signedUrl) return;
 
     // Reset state for new video
     setIsVideoReady(false);
-    setHasVideoError(false);
 
     const initHls = () => {
       // Destroy previous instance
@@ -80,9 +106,13 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
           lowLatencyMode: false,
           startLevel: 1, // Start with 720p for hero (balance quality/speed)
           startPosition: startTime, // Start at hero clip position
+          xhrSetup: (xhr) => {
+            // Send cookies with cross-origin requests for session auth
+            xhr.withCredentials = true;
+          },
         });
         
-        hls.loadSource(videoTrailer.video_url);
+        hls.loadSource(signedUrl);
         hls.attachMedia(video);
         
         // Ensure muted for autoplay compliance
@@ -111,7 +141,7 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari native HLS
-        video.src = videoTrailer.video_url;
+        video.src = signedUrl;
         video.muted = true; // Ensure muted for autoplay compliance
         // Wait for video to be seekable before setting start time
         const handleLoadedMetadata = () => {
@@ -133,7 +163,7 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [videoTrailer?.video_url, currentIndex]);
+  }, [signedUrl, currentIndex]);
 
   // Advance to next movie at end time or clip duration
   useEffect(() => {

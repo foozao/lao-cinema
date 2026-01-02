@@ -98,6 +98,21 @@ fastify.register(require('@fastify/cors'), {
   credentials: true,
 });
 
+// Set CORS headers for all video/trailer requests (to override static file handler defaults)
+fastify.addHook('onSend', async (request, reply, payload) => {
+  const isVideoRequest = request.url.startsWith('/videos/');
+  const isTrailerRequest = request.url.startsWith('/trailers/');
+  
+  if (isVideoRequest || isTrailerRequest) {
+    const origin = request.headers.origin;
+    if (origin && CORS_ORIGINS.includes(origin)) {
+      reply.header('Access-Control-Allow-Origin', origin);
+      reply.header('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  return payload;
+});
+
 // Token validation hook for video and trailer files
 fastify.addHook('onRequest', async (request, reply) => {
   // Only validate token for video and trailer file requests
@@ -164,7 +179,11 @@ fastify.addHook('onRequest', async (request, reply) => {
       // Generate and set session cookie for subsequent segment requests
       const sessionCookie = generateSessionCookie(contentDir);
       const cookiePath = isVideoRequest ? `/videos/${contentDir}` : `/trailers/${contentDir}`;
-      reply.header('Set-Cookie', `${cookieName}=${sessionCookie}; Path=${cookiePath}; HttpOnly; SameSite=None; Secure=false; Max-Age=${SESSION_DURATION_MS / 1000}`);
+      // Use SameSite=None; Secure for production (HTTPS), SameSite=Lax for local dev (HTTP)
+      const isSecure = request.hostname !== 'localhost' && request.hostname !== '127.0.0.1';
+      const sameSite = isSecure ? 'None' : 'Lax';
+      const secureFlag = isSecure ? '; Secure' : '';
+      reply.header('Set-Cookie', `${cookieName}=${sessionCookie}; Path=${cookiePath}; HttpOnly; SameSite=${sameSite}${secureFlag}; Max-Age=${SESSION_DURATION_MS / 1000}`);
       
       if (isVideoRequest) {
         request.videoToken = payload;
@@ -267,19 +286,14 @@ fastify.register(require('@fastify/static'), {
   },
 });
 
-// Serve trailers (publicly accessible, no token required)
+// Serve trailers (token required, uses session cookies for HLS segments)
+// CORS is handled by onSend hook above
 const TRAILERS_PATH = process.env.TRAILERS_PATH || path.join(__dirname, 'trailers');
 fastify.register(require('@fastify/static'), {
   root: TRAILERS_PATH,
   prefix: '/trailers/',
   decorateReply: false,
   setHeaders: (res, filepath) => {
-    // Enable CORS for trailer files (required for HLS.js cross-origin requests)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Range');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
-    
     // Cache trailers for a day
     res.setHeader('Cache-Control', 'public, max-age=86400');
     
