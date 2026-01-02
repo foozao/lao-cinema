@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/routing';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -17,6 +18,7 @@ import {
 
 export default function AddMoviePage() {
   const router = useRouter();
+  const locale = useLocale() as 'en' | 'lo';
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
   const [formData, setFormData] = useState<MovieFormData>({
@@ -153,9 +155,10 @@ export default function AddMoviePage() {
 
           <TabsContent value="content" className="space-y-6">
             <LocalizedContentFields 
-              formData={formData} 
+              formData={formData as unknown as import('@/components/admin/movie-form-fields').LocalizedFormData} 
               onChange={handleChange}
               showValidationError={showValidationError}
+              defaultLocale={locale}
             />
             <MovieDetailsFields formData={formData} onChange={handleChange} />
           </TabsContent>

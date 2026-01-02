@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,23 +38,34 @@ export interface MovieFormData {
   video_aspect_ratio?: string;
 }
 
+// Base interface for localized content - any form data with these fields can use LocalizedContentFields
+export interface LocalizedFormData {
+  title_en: string;
+  overview_en: string;
+  tagline_en: string;
+  title_lo: string;
+  overview_lo: string;
+  tagline_lo: string;
+  [key: string]: unknown; // Allow additional fields
+}
+
 interface MovieFormFieldsProps {
   formData: MovieFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
 // Helper to check if a language has required content
-function hasRequiredContent(formData: MovieFormData, lang: LanguageCode): boolean {
-  const title = formData[`title_${lang}` as keyof MovieFormData] as string;
-  const overview = formData[`overview_${lang}` as keyof MovieFormData] as string;
+function hasRequiredContent(formData: LocalizedFormData, lang: LanguageCode): boolean {
+  const title = formData[`title_${lang}`] as string;
+  const overview = formData[`overview_${lang}`] as string;
   return Boolean(title?.trim() && overview?.trim());
 }
 
 // Helper to check if a language has any content
-function hasAnyContent(formData: MovieFormData, lang: LanguageCode): boolean {
-  const title = formData[`title_${lang}` as keyof MovieFormData] as string;
-  const overview = formData[`overview_${lang}` as keyof MovieFormData] as string;
-  const tagline = formData[`tagline_${lang}` as keyof MovieFormData] as string;
+function hasAnyContent(formData: LocalizedFormData, lang: LanguageCode): boolean {
+  const title = formData[`title_${lang}`] as string;
+  const overview = formData[`overview_${lang}`] as string;
+  const tagline = formData[`tagline_${lang}`] as string;
   return Boolean(title?.trim() || overview?.trim() || tagline?.trim());
 }
 
@@ -72,13 +83,48 @@ const PLACEHOLDERS: Record<LanguageCode, { title: string; overview: string; tagl
   },
 };
 
-interface LocalizedContentFieldsProps extends MovieFormFieldsProps {
+interface LocalizedContentFieldsProps {
+  formData: LocalizedFormData;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   showValidationError?: boolean;
+  /** Site locale to use as default when multiple languages have content */
+  defaultLocale?: 'en' | 'lo';
 }
 
 // Unified Localized Content Section with Language Toggle
-export function LocalizedContentFields({ formData, onChange, showValidationError }: LocalizedContentFieldsProps) {
-  const [activeLanguage, setActiveLanguage] = useState<LanguageCode>('en');
+export function LocalizedContentFields({ formData, onChange, showValidationError, defaultLocale = 'en' }: LocalizedContentFieldsProps) {
+  const [activeLanguage, setActiveLanguage] = useState<LanguageCode>(defaultLocale);
+  const hasInitialized = useRef(false);
+  
+  // Update active language when data first loads (only once)
+  useEffect(() => {
+    // Skip if we've already initialized
+    if (hasInitialized.current) return;
+    
+    const languagesWithContent = SUPPORTED_LANGUAGES.filter(lang => 
+      hasAnyContent(formData, lang.code)
+    );
+    
+    // Only initialize once we have some content
+    if (languagesWithContent.length === 0) return;
+    
+    hasInitialized.current = true;
+    
+    // If only one language has content, use that one
+    if (languagesWithContent.length === 1) {
+      setActiveLanguage(languagesWithContent[0].code);
+      return;
+    }
+    
+    // If the site locale has content, prefer it
+    if (hasAnyContent(formData, defaultLocale)) {
+      setActiveLanguage(defaultLocale);
+      return;
+    }
+    
+    // Otherwise use the first language with content
+    setActiveLanguage(languagesWithContent[0].code);
+  }, [formData, defaultLocale]);
   
   // Check if at least one language has required content
   const hasAnyRequiredContent = SUPPORTED_LANGUAGES.some(lang => 
@@ -234,7 +280,7 @@ export function LocalizedContentFields({ formData, onChange, showValidationError
 // Keep legacy exports for backward compatibility but mark as deprecated
 /** @deprecated Use LocalizedContentFields instead */
 export function EnglishContentFields({ formData, onChange }: MovieFormFieldsProps) {
-  return <LocalizedContentFields formData={formData} onChange={onChange} />;
+  return <LocalizedContentFields formData={formData as unknown as LocalizedFormData} onChange={onChange} />;
 }
 
 /** @deprecated Use LocalizedContentFields instead */

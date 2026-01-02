@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,125 @@ import { Plus, Pencil, Trash2, ChevronRight, Trophy, Calendar, Globe, ExternalLi
 import { Link } from '@/i18n/routing';
 import { CountrySelect } from '@/components/admin/country-select';
 import type { AwardShow } from '@/lib/types';
+
+// Separate component for the shows list with Lao/International separation
+function ShowsList({ 
+  shows, 
+  onEdit, 
+  onDelete 
+}: { 
+  shows: AwardShow[]; 
+  onEdit: (show: AwardShow) => void; 
+  onDelete: (show: AwardShow) => void;
+}) {
+  // Separate Lao and International shows, sort alphabetically
+  const { laoShows, internationalShows } = useMemo(() => {
+    const sortByName = (a: AwardShow, b: AwardShow) => {
+      const nameA = (a.name.en || a.name.lo || '').toLowerCase();
+      const nameB = (b.name.en || b.name.lo || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    };
+
+    const lao = shows.filter(s => s.country === 'LA').sort(sortByName);
+    const international = shows.filter(s => s.country !== 'LA').sort(sortByName);
+
+    return { laoShows: lao, internationalShows: international };
+  }, [shows]);
+
+  const renderShowCard = (show: AwardShow) => (
+    <Card key={show.id} className="hover:shadow-md transition-shadow py-0">
+      <CardContent className="px-4 py-2.5">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-lg font-semibold">
+                {show.name.en || show.name.lo || 'Untitled'}
+              </h3>
+              {show.website_url && (
+                <a
+                  href={show.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {show.website_url}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+            {show.name.lo && show.name.en && (
+              <p className="text-sm text-gray-600 mt-0.5">{show.name.lo}</p>
+            )}
+            <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
+              {(show.city || show.country) && (
+                <span className="flex items-center gap-1">
+                  <Globe className="w-4 h-4" />
+                  {getAwardShowLocation(show.city, show.country)}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {show.edition_count || 0} edition{show.edition_count !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href={`/admin/accolades/${show.id}`}>
+              <Button variant="outline" size="sm">
+                Manage
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={() => onEdit(show)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onDelete(show)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Lao Accolades */}
+      {laoShows.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <span>🇱🇦</span>
+            Lao Accolades
+            <span className="text-sm font-normal text-gray-500">({laoShows.length})</span>
+          </h2>
+          <div className="space-y-2">
+            {laoShows.map(renderShowCard)}
+          </div>
+        </div>
+      )}
+
+      {/* International Accolades */}
+      {internationalShows.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Globe className="w-5 h-5" />
+            International Accolades
+            <span className="text-sm font-normal text-gray-500">({internationalShows.length})</span>
+          </h2>
+          <div className="space-y-2">
+            {internationalShows.map(renderShowCard)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminAwardsPage() {
   const [shows, setShows] = useState<AwardShow[]>([]);
@@ -269,69 +388,7 @@ export default function AdminAwardsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {shows.map((show) => (
-            <Card key={show.id} className="hover:shadow-md transition-shadow py-0">
-              <CardContent className="px-4 py-2.5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg font-semibold">
-                        {show.name.en || show.name.lo || 'Untitled'}
-                      </h3>
-                      {show.website_url && (
-                        <a
-                          href={show.website_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {show.website_url}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                    {show.name.lo && show.name.en && (
-                      <p className="text-sm text-gray-600 mt-0.5">{show.name.lo}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
-                      {(show.city || show.country) && (
-                        <span className="flex items-center gap-1">
-                          <Globe className="w-4 h-4" />
-                          {getAwardShowLocation(show.city, show.country)}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {show.edition_count || 0} edition{show.edition_count !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link href={`/admin/accolades/${show.id}`}>
-                      <Button variant="outline" size="sm">
-                        Manage
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </Link>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(show)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDelete(show)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ShowsList shows={shows} onEdit={handleEdit} onDelete={handleDelete} />
       )}
     </div>
   );

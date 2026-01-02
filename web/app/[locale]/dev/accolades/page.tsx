@@ -47,7 +47,19 @@ export default function DevAwardsPage() {
     }
   };
 
+  const clearSelection = () => {
+    setSelectedShow(null);
+    setSelectedEdition(null);
+    setEditions([]);
+  };
+
   const selectShow = async (show: AwardShow) => {
+    // Toggle off if clicking the same show
+    if (selectedShow?.id === show.id) {
+      clearSelection();
+      return;
+    }
+    
     try {
       setSelectedShow(show);
       setSelectedEdition(null);
@@ -115,10 +127,20 @@ export default function DevAwardsPage() {
             <div className="space-y-6">
               {/* Shows */}
               <div className="bg-gray-800/50 rounded-xl p-4">
-                <h2 className="font-semibold mb-4 flex items-center gap-2 text-gray-300">
-                  <Award className="w-5 h-5" />
-                  Accolade Events
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2 text-gray-300">
+                    <Award className="w-5 h-5" />
+                    Accolade Events
+                  </h2>
+                  {selectedShow && (
+                    <button
+                      onClick={clearSelection}
+                      className="text-xs text-gray-400 hover:text-yellow-500 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-4">
                   {/* Lao Awards */}
                   {(() => {
@@ -269,11 +291,37 @@ export default function DevAwardsPage() {
                         Featured accolades and festival selections
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Combine winners and selections, shuffle, take 8 */}
-                        {[...winners, ...selections]
-                          .sort(() => Math.random() - 0.5)
-                          .slice(0, 8)
-                          .map((item) => {
+                        {/* Combine winners and selections, shuffle, deduplicate by nominee, take 8 */}
+                        {(() => {
+                          const shuffled = [...winners, ...selections].sort(() => Math.random() - 0.5);
+                          const seenMovies = new Set<string>();
+                          const seenPeople = new Set<string>();
+                          const deduplicated: typeof shuffled = [];
+                          
+                          for (const item of shuffled) {
+                            const nomineeId = item.nominee?.id;
+                            const nomineeType = item.nominee?.type;
+                            
+                            if (!nomineeId) {
+                              deduplicated.push(item);
+                              continue;
+                            }
+                            
+                            // Check if we've already seen this entity
+                            if (nomineeType === 'movie') {
+                              if (seenMovies.has(nomineeId)) continue;
+                              seenMovies.add(nomineeId);
+                            } else if (nomineeType === 'person') {
+                              if (seenPeople.has(nomineeId)) continue;
+                              seenPeople.add(nomineeId);
+                            }
+                            
+                            deduplicated.push(item);
+                            if (deduplicated.length >= 8) break;
+                          }
+                          
+                          return deduplicated;
+                        })().map((item) => {
                           const isSelection = item.type === 'selection';
                           const winner = item;
                           // Determine the link destination

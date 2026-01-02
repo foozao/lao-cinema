@@ -1,10 +1,10 @@
 import { Language, LocalizedText } from './types';
 
 /**
- * Get localized text with fallback to English
+ * Get localized text with fallback to any available language
  * @param text - LocalizedText object
  * @param lang - Preferred language
- * @returns The text in the preferred language, or English fallback
+ * @returns The text in the preferred language, or fallback to any available language
  */
 export function getLocalizedText(text: LocalizedText | undefined, lang: Language = 'en'): string {
   // Handle undefined or null text
@@ -12,13 +12,13 @@ export function getLocalizedText(text: LocalizedText | undefined, lang: Language
     return '';
   }
   
-  // If requesting English or Lao is not available, return English
-  if (lang === 'en' || !text.lo) {
-    return text.en || '';
+  // Try preferred language first, then fallback to any available
+  if (lang === 'en') {
+    return text.en || text.lo || '';
   }
   
-  // Return Lao if available
-  return text.lo;
+  // Requesting Lao: try Lao first, fallback to English
+  return text.lo || text.en || '';
 }
 
 /**

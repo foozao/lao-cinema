@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { LocalizedContentFields, type LocalizedFormData } from '@/components/admin/movie-form-fields';
 import { sanitizeSlug, getSlugValidationError } from '@/lib/slug-utils';
 import type { ExternalPlatform, StreamingPlatform } from '@/lib/types';
 import type { MovieFormData, AvailabilityStatus } from './types';
@@ -16,6 +16,7 @@ interface ContentTabProps {
   isAdmin: boolean;
   externalPlatforms: ExternalPlatform[];
   availabilityStatus: AvailabilityStatus;
+  locale: 'en' | 'lo';
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onSlugChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSlugGenerate: () => void;
@@ -30,6 +31,7 @@ export function ContentTab({
   isAdmin,
   externalPlatforms,
   availabilityStatus,
+  locale,
   onFormChange,
   onSlugChange,
   onSlugGenerate,
@@ -54,91 +56,12 @@ export function ContentTab({
   };
   return (
     <div className="space-y-6">
-      {/* English Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>English Content (Required)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="title_en">Title (English) *</Label>
-            <Input
-              id="title_en"
-              name="title_en"
-              value={formData.title_en}
-              onChange={onFormChange}
-              required
-              placeholder="Enter movie title in English"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="overview_en">Overview (English) *</Label>
-            <Textarea
-              id="overview_en"
-              name="overview_en"
-              value={formData.overview_en}
-              onChange={onFormChange}
-              required
-              rows={4}
-              placeholder="Enter movie description in English"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="tagline_en">Tagline (English)</Label>
-            <Input
-              id="tagline_en"
-              name="tagline_en"
-              value={formData.tagline_en}
-              onChange={onFormChange}
-              placeholder="A catchy tagline for the movie"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lao Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lao Content (Optional)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="title_lo">Title (Lao)</Label>
-            <Input
-              id="title_lo"
-              name="title_lo"
-              value={formData.title_lo}
-              onChange={onFormChange}
-              placeholder="ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="overview_lo">Overview (Lao)</Label>
-            <Textarea
-              id="overview_lo"
-              name="overview_lo"
-              value={formData.overview_lo}
-              onChange={onFormChange}
-              rows={4}
-              placeholder="ປ້ອນຄໍາອະທິບາຍຮູບເງົາເປັນພາສາລາວ"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="tagline_lo">Tagline (Lao)</Label>
-            <Input
-              id="tagline_lo"
-              name="tagline_lo"
-              value={formData.tagline_lo}
-              onChange={onFormChange}
-              placeholder="ປ້ອນຄຳຂວັນຮູບເງົາເປັນພາສາລາວ"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Localized Content with Language Toggle */}
+      <LocalizedContentFields
+        formData={formData as unknown as LocalizedFormData}
+        onChange={onFormChange}
+        defaultLocale={locale}
+      />
 
       {/* Movie Details */}
       <Card>

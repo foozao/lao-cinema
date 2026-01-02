@@ -211,17 +211,17 @@ export const initialFormData: MovieFormData = {
 
 export function loadFormDataFromMovie(movie: Movie): MovieFormData {
   return {
-    title_en: movie.title.en,
-    title_lo: movie.title.lo || '',
-    overview_en: movie.overview.en,
-    overview_lo: movie.overview.lo || '',
+    title_en: movie.title?.en || '',
+    title_lo: movie.title?.lo || '',
+    overview_en: movie.overview?.en || '',
+    overview_lo: movie.overview?.lo || '',
     tagline_en: movie.tagline?.en || '',
     tagline_lo: movie.tagline?.lo || '',
     slug: movie.slug || '',
     type: movie.type || 'feature',
     original_title: movie.original_title || '',
     original_language: movie.original_language || 'lo',
-    release_date: movie.release_date,
+    release_date: movie.release_date || '',
     runtime: movie.runtime?.toString() || '',
     vote_average: movie.vote_average?.toString() || '',
     status: movie.status || 'Released',

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { SaveSuccessModal } from '@/components/admin/save-success-modal';
 import { Save, RefreshCw, AlertCircle, CheckCircle, Bell, Mail, Copy, Check } from 'lucide-react';
 import { getLocalizedText } from '@/lib/i18n';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { mapTMDBToMovie } from '@/lib/tmdb';
 import type { Movie, Trailer, ExternalPlatform } from '@/lib/types';
 import { syncMovieFromTMDB, fetchMovieImages } from './actions';
@@ -38,6 +38,7 @@ export default function EditMoviePage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations();
+  const locale = useLocale() as 'en' | 'lo';
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const movieId = params.id as string;
@@ -705,6 +706,7 @@ export default function EditMoviePage() {
               isAdmin={isAdmin}
               externalPlatforms={externalPlatforms}
               availabilityStatus={availabilityStatus}
+              locale={locale}
               onFormChange={handleFormChange}
               onSlugChange={handleSlugChange}
               onSlugGenerate={handleSlugGenerate}
