@@ -49,6 +49,7 @@ export interface CreateRentalRequest {
   transactionId: string;
   amount?: number;
   paymentMethod?: string;
+  promoCode?: string;
 }
 
 // =============================================================================

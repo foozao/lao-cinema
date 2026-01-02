@@ -123,6 +123,7 @@ export const createRentalSchema = z.object({
   transactionId: nonEmptyString,
   amount: positiveInt.optional().default(500),
   paymentMethod: z.string().optional().default('demo'),
+  promoCode: z.string().optional(),
 });
 
 export const updatePackPositionSchema = z.object({

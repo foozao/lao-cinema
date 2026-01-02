@@ -5,10 +5,10 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { sendNotFound, sendForbidden, sendInternalError, sendCreated } from '../lib/response-helpers.js';
+import { sendNotFound, sendForbidden, sendInternalError, sendCreated, sendBadRequest } from '../lib/response-helpers.js';
 import { eq, and, gt, desc, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { rentals, movies, watchProgress, shortPacks, shortPackItems } from '../db/schema.js';
+import { rentals, movies, watchProgress, shortPacks, shortPackItems, promoCodes, promoCodeUses } from '../db/schema.js';
 import { requireAuthOrAnonymous, getUserContext } from '../lib/auth-middleware.js';
 import { buildDualModeWhereClause } from '../lib/auth-helpers.js';
 import { buildMovieWithRelations } from '../lib/movie-builder.js';
@@ -16,6 +16,7 @@ import { MAX_RENTALS_PER_MOVIE, isPerMovieRentalLimitEnabled, RENTAL_DURATION_MS
 import * as schema from '../db/schema.js';
 import { buildRentalPackResponse, calculatePackWatchProgress } from '../lib/rental-helpers.js';
 import { validateBody, validateParams, createRentalSchema, movieIdParamSchema } from '../lib/validation.js';
+import { validatePromoCode, incrementPromoCodeUsage, getPromoCode } from '../lib/pricing/resolver.js';
 
 export default async function rentalCrudRoutes(fastify: FastifyInstance) {
   
@@ -271,7 +272,7 @@ export default async function rentalCrudRoutes(fastify: FastifyInstance) {
     if (!body) return;
     
     const { movieId } = params;
-    const { transactionId, amount, paymentMethod } = body;
+    const { transactionId, amount, paymentMethod, promoCode } = body;
     const { userId, anonymousId } = getUserContext(request);
     
     try {
@@ -283,6 +284,26 @@ export default async function rentalCrudRoutes(fastify: FastifyInstance) {
       
       if (!movie) {
         return sendNotFound(reply, 'Movie not found');
+      }
+      
+      // Validate and apply promo code if provided
+      let finalAmount = amount ?? 500;
+      let promoCodeRecord = null;
+      
+      if (promoCode) {
+        const validation = await validatePromoCode(promoCode, movieId, finalAmount);
+        
+        if (!validation.valid) {
+          return sendBadRequest(reply, validation.error || 'Invalid promo code');
+        }
+        
+        // Get the actual promo code record for later use
+        promoCodeRecord = await getPromoCode(promoCode);
+        
+        // Apply discount
+        if (validation.finalAmountLak !== undefined) {
+          finalAmount = validation.finalAmountLak;
+        }
       }
       
       // Check per-movie rental limit (pre-alpha protection)
@@ -332,10 +353,24 @@ export default async function rentalCrudRoutes(fastify: FastifyInstance) {
         purchasedAt: now,
         expiresAt,
         transactionId,
-        amount: amount ?? 500,
-        currency: 'USD',
+        amount: finalAmount,
+        currency: 'LAK',
         paymentMethod,
       }).returning();
+      
+      // Record promo code usage if a promo code was used
+      if (promoCodeRecord) {
+        await db.insert(promoCodeUses).values({
+          promoCodeId: promoCodeRecord.id,
+          rentalId: rental.id,
+          userId: userId || null,
+          anonymousId: anonymousId || null,
+          usedAt: now,
+        });
+        
+        // Increment promo code usage count
+        await incrementPromoCodeUsage(promoCodeRecord.id);
+      }
       
       return sendCreated(reply, {
         rental: {

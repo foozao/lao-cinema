@@ -109,7 +109,7 @@ export default function MoviePage() {
     }
   };
 
-  const handlePaymentComplete = async () => {
+  const handlePaymentComplete = async (promoCode?: string) => {
     if (!movie) return;
     
     try {
@@ -118,7 +118,8 @@ export default function MoviePage() {
         movie.id,
         `demo_txn_${Date.now()}`,
         500,
-        'demo'
+        'demo',
+        promoCode
       );
       
       await refreshRentalStatus();

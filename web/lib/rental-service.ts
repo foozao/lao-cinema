@@ -141,13 +141,15 @@ export async function purchaseRental(
   movieId: string,
   transactionId: string,
   amount: number = 500,
-  paymentMethod: string = 'demo'
+  paymentMethod: string = 'demo',
+  promoCode?: string
 ): Promise<Rental> {
   try {
     const { rental } = await apiCreateRental(movieId, {
       transactionId,
       amount,
       paymentMethod,
+      promoCode,
     });
     
     return rental;

@@ -21,7 +21,7 @@ interface PaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   movieTitle: string;
-  onPaymentComplete: () => void;
+  onPaymentComplete: (promoCode?: string) => void;
   /** Reason for showing the modal - affects the description text */
   reason?: PaymentReason;
 }
@@ -76,8 +76,9 @@ export function PaymentModal({
     setIsProcessing(false);
     
     try {
-      // Try to complete the rental
-      await onPaymentComplete();
+      // Try to complete the rental with DEMOCOUPON promo code
+      // This will use the free payment provider on the backend
+      await onPaymentComplete('DEMOCOUPON');
       
       // Only mark as complete if successful
       setIsComplete(true);
