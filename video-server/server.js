@@ -128,9 +128,9 @@ fastify.addHook('onRequest', async (request, reply) => {
     return;
   }
   
-  // Skip validation for trailer thumbnails (images are public)
+  // Skip validation for thumbnails (images are public for both videos and trailers)
   const urlPath = request.url.split('?')[0].toLowerCase();
-  if (isTrailerRequest && (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg') || urlPath.endsWith('.png') || urlPath.endsWith('.webp'))) {
+  if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg') || urlPath.endsWith('.png') || urlPath.endsWith('.webp')) {
     return;
   }
 

@@ -32,7 +32,7 @@ export function TrailerPlayer({ trailer, className = '' }: TrailerPlayerProps) {
       const baseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
         ? 'https://storage.googleapis.com/lao-cinema-trailers'
         : 'http://localhost:3002';
-      return `${baseUrl}/${trailer.thumbnail_url}`;
+      return `${baseUrl}/trailers/hls/${trailer.thumbnail_url}`;
     }
     return null;
   };

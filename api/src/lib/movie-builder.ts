@@ -3,6 +3,7 @@
 
 import { eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { buildVideoUrl, buildTrailerUrl, buildTrailerThumbnailUrl, isFullUrl } from './video-url-helpers.js';
 
 /**
  * Builds a complete movie object with all relations (translations, cast, crew, etc.)
@@ -94,34 +95,18 @@ export async function buildMovieWithRelations(
     adult: movie.adult,
     availability_status: movie.availabilityStatus,
     trailers: movieTrailers.map(t => {
-      // For self-hosted trailers, construct full URL from slug
+      // For self-hosted trailers, construct full URL from slug using helper functions
       let videoUrl = t.videoUrl;
       let thumbnailUrl = t.thumbnailUrl;
-      if (t.type === 'video' && t.videoUrl && !t.videoUrl.startsWith('http')) {
-        // It's a slug - construct full URL based on environment
-        // Trailers are in /trailers/hls (not /videos/trailers/hls)
-        const videoBaseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
-        // Handle both production (lao-cinema-videos) and staging (lao-cinema-videos-staging) bucket names
-        const trailerBaseUrl = videoBaseUrl
-          .replace(/lao-cinema-videos(-staging|-preview)?\/hls/, 'lao-cinema-trailers$1/hls');
-        if (t.videoFormat === 'hls') {
-          videoUrl = `${trailerBaseUrl}/${t.videoUrl}/master.m3u8`;
-          // Construct thumbnail URL if it's a slug or slug/filename pattern
-          if (thumbnailUrl && !thumbnailUrl.startsWith('http')) {
-            // Handle both "slug" and "slug/thumbnail-N.jpg" patterns
-            if (thumbnailUrl.includes('/')) {
-              thumbnailUrl = `${trailerBaseUrl}/${thumbnailUrl}`;
-            } else {
-              thumbnailUrl = `${trailerBaseUrl}/${t.videoUrl}/thumbnail.jpg`;
-            }
-          }
-        } else {
-          // MP4: /trailers/{slug}.mp4 (no /hls/ subfolder)
-          videoUrl = trailerBaseUrl.replace('/hls', '') + `/${t.videoUrl}.mp4`;
-          // Thumbnail for MP4 would be at same level
-          if (thumbnailUrl && !thumbnailUrl.startsWith('http')) {
-            thumbnailUrl = trailerBaseUrl.replace('/hls', '') + `/${thumbnailUrl}`;
-          }
+      
+      if (t.type === 'video' && t.videoUrl && !isFullUrl(t.videoUrl)) {
+        // It's a slug - construct full URL using helper
+        const format = t.videoFormat === 'hls' ? 'hls' : 'mp4';
+        videoUrl = buildTrailerUrl(t.videoUrl, format);
+        
+        // Construct thumbnail URL if it's a slug or slug/filename pattern
+        if (thumbnailUrl && !isFullUrl(thumbnailUrl)) {
+          thumbnailUrl = buildTrailerThumbnailUrl(thumbnailUrl, format);
         }
       }
       
@@ -152,10 +137,11 @@ export async function buildMovieWithRelations(
     overview: Object.keys(overview).length > 0 ? overview : { en: '' },
     tagline: Object.keys(tagline).length > 0 ? tagline : undefined,
     video_sources: videoSources.map(vs => {
-      const baseUrl = process.env.VIDEO_BASE_URL || 'https://storage.googleapis.com/lao-cinema-videos/hls';
+      // Construct full URL from slug using helper
+      const url = isFullUrl(vs.url) ? vs.url : buildVideoUrl(vs.url, vs.format || 'hls');
       return {
         id: vs.id,
-        url: `${baseUrl}/${vs.url}/master.m3u8`,
+        url,
         quality: vs.quality,
         format: vs.format,
         width: vs.width,

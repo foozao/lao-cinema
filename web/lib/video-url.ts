@@ -1,30 +1,29 @@
 /**
- * Get the correct video URL based on environment
- * - Development (localhost): Uses local files from /public/videos/hls/
- * - Production (GCP): Uses Google Cloud Storage
+ * DEPRECATED: Video URLs are now constructed by the API
+ * 
+ * The frontend should use video URLs directly from the API response.
+ * This file is kept for backwards compatibility only.
  */
 
-const VIDEO_BASE_URL = process.env.NEXT_PUBLIC_VIDEO_BASE_URL || '/videos/hls';
+const VIDEO_SERVER_URL = process.env.NEXT_PUBLIC_VIDEO_SERVER_URL || '/videos/hls';
 
 /**
- * Get the full video URL for a movie
- * @param movieSlug - The movie slug/folder name (e.g., 'last-dance', 'the-signal')
- * @returns Full URL to the HLS master playlist
+ * @deprecated Use video URLs from API response instead
  */
 export function getVideoUrl(movieSlug: string): string {
-  return `${VIDEO_BASE_URL}/${movieSlug}/master.m3u8`;
+  return `${VIDEO_SERVER_URL}/videos/hls/${movieSlug}/master.m3u8`;
 }
 
 /**
  * Check if we're using cloud storage
  */
 export function isUsingCloudStorage(): boolean {
-  return VIDEO_BASE_URL.includes('storage.googleapis.com');
+  return VIDEO_SERVER_URL.includes('storage.googleapis.com');
 }
 
 /**
- * Get the base URL for videos
+ * @deprecated Use video URLs from API response instead
  */
 export function getVideoBaseUrl(): string {
-  return VIDEO_BASE_URL;
+  return `${VIDEO_SERVER_URL}/videos/hls`;
 }
