@@ -9,11 +9,13 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {
+  LocalizedContentFields,
   EnglishContentFields,
   LaoContentFields,
   MovieDetailsFields,
   VideoSourceFields,
   type MovieFormData,
+  type LocalizedFormData,
 } from '../movie-form-fields';
 
 // Create base form data
@@ -36,40 +38,40 @@ const createFormData = (overrides: Partial<MovieFormData> = {}): MovieFormData =
   ...overrides,
 });
 
-describe('EnglishContentFields', () => {
-  let formData: MovieFormData;
+describe('LocalizedContentFields', () => {
+  let formData: LocalizedFormData;
   let handleChange: jest.Mock;
 
   beforeEach(() => {
-    formData = createFormData();
+    formData = createFormData() as unknown as LocalizedFormData;
     handleChange = jest.fn();
   });
 
-  it('should render English title input', () => {
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+  it('should render title input', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    expect(screen.getByLabelText(/Title \(English\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
   });
 
-  it('should render English overview textarea', () => {
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+  it('should render overview textarea', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    expect(screen.getByLabelText(/Overview \(English\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Overview/)).toBeInTheDocument();
   });
 
-  it('should render English tagline input', () => {
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+  it('should render tagline input', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    expect(screen.getByLabelText(/Tagline \(English\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Tagline/)).toBeInTheDocument();
   });
 
-  it('should display current values', () => {
+  it('should display current values for active language', () => {
     formData = createFormData({
       title_en: 'Test Title',
       overview_en: 'Test Overview',
       tagline_en: 'Test Tagline',
-    });
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+    }) as unknown as LocalizedFormData;
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
     expect(screen.getByDisplayValue('Test Title')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Test Overview')).toBeInTheDocument();
@@ -77,63 +79,61 @@ describe('EnglishContentFields', () => {
   });
 
   it('should call onChange when title changes', () => {
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    const titleInput = screen.getByLabelText(/Title \(English\)/);
+    const titleInput = screen.getByLabelText(/Title/);
     fireEvent.change(titleInput, { target: { value: 'New Title', name: 'title_en' } });
     
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('should mark required fields', () => {
-    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
+  it('should render language toggle buttons', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    const titleInput = screen.getByLabelText(/Title \(English\)/);
-    const overviewInput = screen.getByLabelText(/Overview \(English\)/);
+    // Use getAllByText since 'English' and 'Lao' appear in both toggle buttons and status section
+    expect(screen.getAllByText('English').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Lao').length).toBeGreaterThan(0);
+    // Verify there are clickable buttons for language switching
+    expect(screen.getByRole('button', { name: /English/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Lao/ })).toBeInTheDocument();
+  });
+
+  it('should show content status indicators', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
     
-    expect(titleInput).toHaveAttribute('required');
-    expect(overviewInput).toHaveAttribute('required');
+    expect(screen.getByText('Content status:')).toBeInTheDocument();
+  });
+
+  it('should switch to Lao when Lao button is clicked', () => {
+    render(<LocalizedContentFields formData={formData} onChange={handleChange} />);
+    
+    const laoButton = screen.getByRole('button', { name: /Lao/ });
+    fireEvent.click(laoButton);
+    
+    // Should show Lao placeholders after switching
+    expect(screen.getByPlaceholderText(/ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ/)).toBeInTheDocument();
   });
 });
 
-describe('LaoContentFields', () => {
-  let formData: MovieFormData;
-  let handleChange: jest.Mock;
-
-  beforeEach(() => {
-    formData = createFormData();
-    handleChange = jest.fn();
-  });
-
-  it('should render Lao title input', () => {
-    render(<LaoContentFields formData={formData} onChange={handleChange} />);
+describe('EnglishContentFields (deprecated)', () => {
+  it('should render LocalizedContentFields (wrapper component)', () => {
+    const formData = createFormData();
+    const handleChange = jest.fn();
+    render(<EnglishContentFields formData={formData} onChange={handleChange} />);
     
-    expect(screen.getByLabelText(/Title \(Lao\)/)).toBeInTheDocument();
+    // Should render the unified component
+    expect(screen.getByText('Movie Content')).toBeInTheDocument();
   });
+});
 
-  it('should render Lao overview textarea', () => {
-    render(<LaoContentFields formData={formData} onChange={handleChange} />);
+describe('LaoContentFields (deprecated)', () => {
+  it('should render nothing (no-op component)', () => {
+    const formData = createFormData();
+    const handleChange = jest.fn();
+    const { container } = render(<LaoContentFields formData={formData} onChange={handleChange} />);
     
-    expect(screen.getByLabelText(/Overview \(Lao\)/)).toBeInTheDocument();
-  });
-
-  it('should render Lao tagline input', () => {
-    render(<LaoContentFields formData={formData} onChange={handleChange} />);
-    
-    expect(screen.getByLabelText(/Tagline \(Lao\)/)).toBeInTheDocument();
-  });
-
-  it('should have Lao placeholders', () => {
-    render(<LaoContentFields formData={formData} onChange={handleChange} />);
-    
-    expect(screen.getByPlaceholderText(/ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ/)).toBeInTheDocument();
-  });
-
-  it('should not mark fields as required', () => {
-    render(<LaoContentFields formData={formData} onChange={handleChange} />);
-    
-    const titleInput = screen.getByLabelText(/Title \(Lao\)/);
-    expect(titleInput).not.toHaveAttribute('required');
+    // Should render nothing
+    expect(container.firstChild).toBeNull();
   });
 });
 

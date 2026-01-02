@@ -394,6 +394,7 @@ export interface AccoladeEditionDetail extends Omit<AccoladeEdition, 'categories
   };
   categories: AccoladeCategoryWithNominations[];
   sections?: AccoladeSectionWithSelections[];
+  selections?: AccoladeSectionSelection[]; // Edition-wide selections (no section)
 }
 
 // Accolade section (festival program track - non-competitive)
@@ -406,10 +407,10 @@ export interface AccoladeSection {
   selections?: AccoladeSectionSelection[];
 }
 
-// Accolade section selection (movie in a section for a specific edition)
+// Accolade section selection (movie in an edition, optionally in a section)
 export interface AccoladeSectionSelection {
   id: string;
-  section_id: string;
+  section_id?: string | null; // null = edition-wide selection
   edition_id: string;
   movie_id: string;
   movie?: {

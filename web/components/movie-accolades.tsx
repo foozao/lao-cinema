@@ -100,12 +100,22 @@ export function MovieAccolades({ movieId }: MovieAccoladesProps) {
       ? getLocalizedText(selections[0].section.name, locale)
       : null;
     
+    // Check if this is a pure selection (no nominations, no section name)
+    const isPureSelection = selections.length > 0 && nominations.length === 0 && !sectionName;
+    
     return (
       <>
-        {/* Section sub-header (if there's a selection) */}
+        {/* Section sub-header (if there's a selection with a section) */}
         {sectionName && (
           <div className="text-gray-300 pl-4 py-1">
             <span className="text-gray-400">{t('accolades.section')}</span> {sectionName}
+          </div>
+        )}
+        
+        {/* Pure selection label (no section, no nominations) */}
+        {isPureSelection && (
+          <div className="text-sm text-gray-300 pl-4 py-1">
+            <span className="text-gray-400">{t('accolades.selection')}</span>
           </div>
         )}
         

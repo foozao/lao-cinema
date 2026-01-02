@@ -66,6 +66,10 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
   // Section selection state (adding movies to sections)
   const [addingSelectionTo, setAddingSelectionTo] = useState<string | null>(null);
   const [selectionMovieId, setSelectionMovieId] = useState('');
+  
+  // Quick add film state (direct film selection without explicit section)
+  const [showQuickAddFilm, setShowQuickAddFilm] = useState(false);
+  const [quickAddMovieId, setQuickAddMovieId] = useState('');
 
   // Category form
   const [categoryForm, setCategoryForm] = useState({
@@ -116,7 +120,13 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
   const loadMovies = async () => {
     try {
       const response = await movieAPI.getAll();
-      setMovies(response.movies || []);
+      // Sort movies alphabetically by title
+      const sortedMovies = (response.movies || []).sort((a: any, b: any) => {
+        const titleA = (a.title?.en || a.title?.lo || a.original_title || '').toLowerCase();
+        const titleB = (b.title?.en || b.title?.lo || b.original_title || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+      setMovies(sortedMovies);
     } catch (error) {
       console.error('Failed to load movies:', error);
     }
@@ -399,6 +409,30 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       console.error('Failed to add movie to section:', error);
       alert('Failed to add movie to section');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Add film directly to edition (no section required)
+  const handleAddFilmToEdition = async (movieId: string) => {
+    if (!selectedEdition) return;
+    
+    try {
+      setSaving(true);
+      
+      // Add movie directly to edition (no section_id = edition-wide selection)
+      await awardsAPI.addMovieToSection({
+        edition_id: selectedEdition.id,
+        movie_id: movieId,
+      });
+      
+      await loadEdition(selectedEdition.id);
+      setQuickAddMovieId('');
+      setShowQuickAddFilm(false);
+    } catch (error) {
+      console.error('Failed to add film:', error);
+      alert('Failed to add film');
     } finally {
       setSaving(false);
     }
@@ -920,6 +954,127 @@ export default function AdminAwardShowPage({ params }: { params: Promise<{ id: s
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Film Selections (Edition-wide, no section required) */}
+                <div className="border rounded-lg">
+                  <div className="p-4 bg-green-50 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Film className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">Film Selections</h4>
+                      {(() => {
+                        const editionWideSelections = selectedEdition.selections?.filter(s => !s.section_id) || [];
+                        return editionWideSelections.length > 0 && (
+                          <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">
+                            {editionWideSelections.length} film{editionWideSelections.length !== 1 ? 's' : ''}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowQuickAddFilm(!showQuickAddFilm)}
+                    >
+                      {showQuickAddFilm ? (
+                        <>
+                          <X className="w-4 h-4 mr-1" />
+                          Cancel
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add Film
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Add film form */}
+                  {showQuickAddFilm && (
+                    <div className="p-4 border-b bg-green-50/50 space-y-3">
+                      <div>
+                        <Label className="text-sm">Select Movie</Label>
+                        <select
+                          value={quickAddMovieId}
+                          onChange={(e) => setQuickAddMovieId(e.target.value)}
+                          className="w-full h-9 px-3 border border-gray-300 rounded-md text-sm"
+                        >
+                          <option value="">Select a movie...</option>
+                          {movies.map((movie) => (
+                            <option key={movie.id} value={movie.id}>
+                              {movie.title?.en || movie.title?.lo || movie.original_title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          disabled={saving || !quickAddMovieId}
+                          onClick={() => handleAddFilmToEdition(quickAddMovieId)}
+                        >
+                          {saving ? 'Adding...' : 'Add Film'}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowQuickAddFilm(false);
+                            setQuickAddMovieId('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Edition-wide selections list */}
+                  <div className="divide-y">
+                    {(() => {
+                      const editionWideSelections = selectedEdition.selections?.filter(s => !s.section_id) || [];
+                      if (editionWideSelections.length === 0) {
+                        return (
+                          <p className="p-4 text-sm text-gray-500 text-center">
+                            No films selected yet. Add films that were selected for this edition.
+                          </p>
+                        );
+                      }
+                      return editionWideSelections.map((sel) => (
+                        <div key={sel.id} className="p-3 flex items-center gap-3 hover:bg-gray-50">
+                          {(() => {
+                            const posterUrl = sel.movie?.poster_path ? getPosterUrl(sel.movie.poster_path) : null;
+                            return posterUrl ? (
+                              <img src={posterUrl} alt="" className="w-10 h-14 object-cover rounded" />
+                            ) : (
+                              <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center">
+                                <Film className="w-4 h-4 text-gray-400" />
+                              </div>
+                            );
+                          })()}
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium">
+                              {sel.movie?.title?.en || sel.movie?.title?.lo || 'Unknown'}
+                            </span>
+                            {sel.movie?.release_date && (
+                              <span className="text-gray-500 text-sm ml-2">
+                                ({new Date(sel.movie.release_date).getFullYear()})
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveMovieFromSection(sel.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
                 {/* Sections (Festival Program Tracks) */}
                 {(selectedEdition.sections?.length ?? 0) > 0 && (
                   <div className="space-y-4">

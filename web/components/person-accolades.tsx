@@ -295,8 +295,12 @@ export function PersonAccolades({ personId, section = 'both' }: PersonAccoladesP
                                     <div className="flex items-start gap-1">
                                       <span className="text-gray-500">•</span>
                                       <span className="text-amber-600">{t('accolades.selection')}</span>
-                                      <span className="text-gray-500"> - </span>
-                                      <span className="text-gray-300">{sectionName}</span>
+                                      {sectionName && (
+                                        <>
+                                          <span className="text-gray-500"> - </span>
+                                          <span className="text-gray-300">{sectionName}</span>
+                                        </>
+                                      )}
                                     </div>
                                     {nestedNominations.length > 0 && (
                                       <ul className="space-y-1 mt-1">

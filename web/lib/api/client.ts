@@ -643,12 +643,12 @@ export const accoladesAPI = {
   }),
   
   // ==========================================================================
-  // SECTION SELECTIONS (adding movies to sections)
+  // FILM SELECTIONS (adding movies to editions, optionally in sections)
   // ==========================================================================
   
-  // Add movie to section
+  // Add movie to edition (section_id optional for edition-wide selections)
   addMovieToSection: (data: {
-    section_id: string;
+    section_id?: string; // Optional - null means edition-wide selection
     edition_id: string;
     movie_id: string;
     notes?: { en?: string; lo?: string };
