@@ -536,7 +536,20 @@
     "perUserWatchTime": "Total watch time per user",
     "watchTimePerViewer": "Watch Time per Viewer",
     "rentals": "Rentals",
-    "activeRentals": "active"
+    "activeRentals": "active",
+    "totalRentals": "Total Rentals",
+    "activeNow": "active now",
+    "revenue": "Revenue",
+    "uniqueRenters": "Unique Renters",
+    "distinctRenters": "distinct renters",
+    "lastRental": "Last Rental",
+    "since": "Since",
+    "noRentalsYet": "No rentals yet",
+    "recentRentals": "Recent Rentals",
+    "last10Rentals": "Last 10 rental transactions",
+    "active": "Active",
+    "expired": "Expired",
+    "expiresIn": "Expires in"
   },
   "auth": {
     "login": {

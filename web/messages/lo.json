@@ -536,7 +536,20 @@
     "perUserWatchTime": "ເວລາເບິ່ງທັງໝົດຕໍ່ຜູ້ໃຊ້",
     "watchTimePerViewer": "ເວລາເບິ່ງຕໍ່ຜູ້ຊົມ",
     "rentals": "ການເຊົ່າ",
-    "activeRentals": "ໃຊ້ງານຢູ່"
+    "activeRentals": "ໃຊ້ງານຢູ່",
+    "totalRentals": "ການເຊົ່າທັງໝົດ",
+    "activeNow": "ໃຊ້ງານຢູ່",
+    "revenue": "ລາຍຮັບ",
+    "uniqueRenters": "ຜູ້ເຊົ່າທີ່ບໍ່ຊ້ຳກັນ",
+    "distinctRenters": "ຜູ້ເຊົ່າຕ່າງກັນ",
+    "lastRental": "ການເຊົ່າຫຼ້າສຸດ",
+    "since": "ຕັ້ງແຕ່",
+    "noRentalsYet": "ຍັງບໍ່ມີການເຊົ່າ",
+    "recentRentals": "ການເຊົ່າຫຼ້າສຸດ",
+    "last10Rentals": "10 ການເຊົ່າລ່າສຸດ",
+    "active": "ໃຊ້ງານຢູ່",
+    "expired": "ໝົດອາຍຸ",
+    "expiresIn": "ໝົດອາຍຸໃນ"
   },
   "auth": {
     "login": {
