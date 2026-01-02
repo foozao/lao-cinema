@@ -8,16 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Save, CheckCircle } from 'lucide-react';
 import { movieAPI } from '@/lib/api/client';
 import {
-  EnglishContentFields,
-  LaoContentFields,
+  LocalizedContentFields,
   MovieDetailsFields,
   VideoSourceFields,
+  SUPPORTED_LANGUAGES,
   type MovieFormData,
 } from '@/components/admin/movie-form-fields';
 
 export default function AddMoviePage() {
   const router = useRouter();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showValidationError, setShowValidationError] = useState(false);
   const [formData, setFormData] = useState<MovieFormData>({
     // English fields
     title_en: '',
@@ -48,10 +49,29 @@ export default function AddMoviePage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear validation error when user starts typing
+    if (showValidationError) {
+      setShowValidationError(false);
+    }
+  };
+
+  // Helper to check if content is valid (title + overview in at least one language)
+  const hasValidContent = () => {
+    return SUPPORTED_LANGUAGES.some(lang => {
+      const title = formData[`title_${lang.code}` as keyof MovieFormData] as string;
+      const overview = formData[`overview_${lang.code}` as keyof MovieFormData] as string;
+      return Boolean(title?.trim() && overview?.trim());
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that at least one language has title + overview
+    if (!hasValidContent()) {
+      setShowValidationError(true);
+      return;
+    }
     
     try {
       // Normalize Lao text to prevent encoding issues
@@ -132,8 +152,11 @@ export default function AddMoviePage() {
         <form id="add-movie-form" onSubmit={handleSubmit}>
 
           <TabsContent value="content" className="space-y-6">
-            <EnglishContentFields formData={formData} onChange={handleChange} />
-            <LaoContentFields formData={formData} onChange={handleChange} />
+            <LocalizedContentFields 
+              formData={formData} 
+              onChange={handleChange}
+              showValidationError={showValidationError}
+            />
             <MovieDetailsFields formData={formData} onChange={handleChange} />
           </TabsContent>
 

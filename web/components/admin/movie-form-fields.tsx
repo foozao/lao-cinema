@@ -1,9 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Check, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Supported languages - extensible for future additions
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'lo', name: 'Lao', nativeName: 'ພາສາລາວ' },
+] as const;
+
+export type LanguageCode = typeof SUPPORTED_LANGUAGES[number]['code'];
 
 export interface MovieFormData {
   // English fields
@@ -32,98 +43,204 @@ interface MovieFormFieldsProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
-// English Content Section
-export function EnglishContentFields({ formData, onChange }: MovieFormFieldsProps) {
+// Helper to check if a language has required content
+function hasRequiredContent(formData: MovieFormData, lang: LanguageCode): boolean {
+  const title = formData[`title_${lang}` as keyof MovieFormData] as string;
+  const overview = formData[`overview_${lang}` as keyof MovieFormData] as string;
+  return Boolean(title?.trim() && overview?.trim());
+}
+
+// Helper to check if a language has any content
+function hasAnyContent(formData: MovieFormData, lang: LanguageCode): boolean {
+  const title = formData[`title_${lang}` as keyof MovieFormData] as string;
+  const overview = formData[`overview_${lang}` as keyof MovieFormData] as string;
+  const tagline = formData[`tagline_${lang}` as keyof MovieFormData] as string;
+  return Boolean(title?.trim() || overview?.trim() || tagline?.trim());
+}
+
+// Placeholder text for each language
+const PLACEHOLDERS: Record<LanguageCode, { title: string; overview: string; tagline: string }> = {
+  en: {
+    title: 'Enter movie title in English',
+    overview: 'Enter movie description in English',
+    tagline: 'A catchy tagline for the movie',
+  },
+  lo: {
+    title: 'ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ',
+    overview: 'ປ້ອນຄໍາອະທິບາຍຮູບເງົາເປັນພາສາລາວ',
+    tagline: 'ປ້ອນຄຳຂວັນຮູບເງົາເປັນພາສາລາວ',
+  },
+};
+
+interface LocalizedContentFieldsProps extends MovieFormFieldsProps {
+  showValidationError?: boolean;
+}
+
+// Unified Localized Content Section with Language Toggle
+export function LocalizedContentFields({ formData, onChange, showValidationError }: LocalizedContentFieldsProps) {
+  const [activeLanguage, setActiveLanguage] = useState<LanguageCode>('en');
+  
+  // Check if at least one language has required content
+  const hasAnyRequiredContent = SUPPORTED_LANGUAGES.some(lang => 
+    hasRequiredContent(formData, lang.code)
+  );
+  
+  const placeholders = PLACEHOLDERS[activeLanguage];
+  
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>English Content (Required)</CardTitle>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Movie Content</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Title and overview required in at least one language
+            </p>
+          </div>
+        </div>
+        
+        {/* Language Toggle */}
+        <div className="flex gap-2 mt-4">
+          {SUPPORTED_LANGUAGES.map((lang) => {
+            const hasRequired = hasRequiredContent(formData, lang.code);
+            const hasPartial = hasAnyContent(formData, lang.code) && !hasRequired;
+            const isActive = activeLanguage === lang.code;
+            
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setActiveLanguage(lang.code)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all',
+                  'hover:bg-gray-50 cursor-pointer',
+                  isActive
+                    ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-800'
+                    : 'border-gray-200 bg-white text-gray-700'
+                )}
+              >
+                <span className="font-medium">{lang.name}</span>
+                <span className={cn(
+                  'text-xs',
+                  isActive ? 'text-gray-300' : 'text-gray-400'
+                )}>
+                  ({lang.nativeName})
+                </span>
+                
+                {/* Status indicator */}
+                {hasRequired && (
+                  <Check className={cn(
+                    'w-4 h-4',
+                    isActive ? 'text-green-300' : 'text-green-500'
+                  )} />
+                )}
+                {hasPartial && (
+                  <div className={cn(
+                    'w-2 h-2 rounded-full',
+                    isActive ? 'bg-yellow-300' : 'bg-yellow-500'
+                  )} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Validation warning */}
+        {showValidationError && !hasAnyRequiredContent && (
+          <div className="flex items-center gap-2 mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+            <AlertCircle className="w-4 h-4" />
+            <span>Please enter title and overview in at least one language</span>
+          </div>
+        )}
       </CardHeader>
+      
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-          <Label htmlFor="title_en">Title (English) *</Label>
+        <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+          <Label htmlFor={`title_${activeLanguage}`}>
+            Title
+            {!hasAnyRequiredContent && <span className="text-red-500"> *</span>}
+          </Label>
           <Input
-            id="title_en"
-            name="title_en"
-            value={formData.title_en}
+            id={`title_${activeLanguage}`}
+            name={`title_${activeLanguage}`}
+            value={formData[`title_${activeLanguage}` as keyof MovieFormData] as string}
             onChange={onChange}
-            required
-            placeholder="Enter movie title in English"
+            placeholder={placeholders.title}
           />
         </div>
 
         <div>
-          <Label htmlFor="overview_en">Overview (English) *</Label>
+          <Label htmlFor={`overview_${activeLanguage}`} className="mb-2 block">
+            Overview
+            {!hasAnyRequiredContent && <span className="text-red-500"> *</span>}
+          </Label>
           <Textarea
-            id="overview_en"
-            name="overview_en"
-            value={formData.overview_en}
+            id={`overview_${activeLanguage}`}
+            name={`overview_${activeLanguage}`}
+            value={formData[`overview_${activeLanguage}` as keyof MovieFormData] as string}
             onChange={onChange}
-            required
             rows={4}
-            placeholder="Enter movie description in English"
+            placeholder={placeholders.overview}
           />
         </div>
 
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-          <Label htmlFor="tagline_en">Tagline (English)</Label>
+        <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+          <Label htmlFor={`tagline_${activeLanguage}`}>Tagline</Label>
           <Input
-            id="tagline_en"
-            name="tagline_en"
-            value={formData.tagline_en}
+            id={`tagline_${activeLanguage}`}
+            name={`tagline_${activeLanguage}`}
+            value={formData[`tagline_${activeLanguage}` as keyof MovieFormData] as string}
             onChange={onChange}
-            placeholder="A catchy tagline for the movie"
+            placeholder={placeholders.tagline}
           />
+        </div>
+        
+        {/* Content status summary */}
+        <div className="pt-4 border-t">
+          <p className="text-xs text-muted-foreground mb-2">Content status:</p>
+          <div className="flex flex-wrap gap-3">
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const hasRequired = hasRequiredContent(formData, lang.code);
+              const hasPartial = hasAnyContent(formData, lang.code) && !hasRequired;
+              
+              return (
+                <div key={lang.code} className="flex items-center gap-1.5 text-sm">
+                  {hasRequired ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : hasPartial ? (
+                    <div className="w-4 h-4 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                    </div>
+                  ) : (
+                    <div className="w-4 h-4 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-gray-300" />
+                    </div>
+                  )}
+                  <span className={cn(
+                    hasRequired ? 'text-green-700' : hasPartial ? 'text-yellow-700' : 'text-gray-400'
+                  )}>
+                    {lang.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// Lao Content Section
-export function LaoContentFields({ formData, onChange }: MovieFormFieldsProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lao Content (Optional)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-          <Label htmlFor="title_lo">Title (Lao)</Label>
-          <Input
-            id="title_lo"
-            name="title_lo"
-            value={formData.title_lo}
-            onChange={onChange}
-            placeholder="ປ້ອນຊື່ຮູບເງົາເປັນພາສາລາວ"
-          />
-        </div>
+// Keep legacy exports for backward compatibility but mark as deprecated
+/** @deprecated Use LocalizedContentFields instead */
+export function EnglishContentFields({ formData, onChange }: MovieFormFieldsProps) {
+  return <LocalizedContentFields formData={formData} onChange={onChange} />;
+}
 
-        <div>
-          <Label htmlFor="overview_lo">Overview (Lao)</Label>
-          <Textarea
-            id="overview_lo"
-            name="overview_lo"
-            value={formData.overview_lo}
-            onChange={onChange}
-            rows={4}
-            placeholder="ປ້ອນຄໍາອະທິບາຍຮູບເງົາເປັນພາສາລາວ"
-          />
-        </div>
-
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-          <Label htmlFor="tagline_lo">Tagline (Lao)</Label>
-          <Input
-            id="tagline_lo"
-            name="tagline_lo"
-            value={formData.tagline_lo}
-            onChange={onChange}
-            placeholder="ປ້ອນຄຳຂວັນຮູບເງົາເປັນພາສາລາວ"
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
+/** @deprecated Use LocalizedContentFields instead */
+export function LaoContentFields({ formData: _formData, onChange: _onChange }: MovieFormFieldsProps) {
+  // No-op - content is now unified in LocalizedContentFields
+  return null;
 }
 
 // Movie Details Section
