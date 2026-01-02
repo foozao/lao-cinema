@@ -9,9 +9,9 @@ Lao Cinema is a streaming platform for Lao films with:
 - **Backend API**: Fastify API with PostgreSQL 16 and Drizzle ORM (`/api`)
 - **Database**: PostgreSQL with Docker Compose setup (`/db`)
 - **Admin Panel**: TMDB import and movie editing interface
-- **Testing**: Vitest with 436+ unit tests
+- **Testing**: Vitest (API: 539 tests) + Jest (Web: 605 tests)
 - **Future Mobile**: React Native (Expo) companion app
-- **Video Delivery**: HLS streaming (Cloudflare Stream or Bunny Stream - to be configured)
+- **Video Delivery**: HLS streaming via Google Cloud Storage
 
 ## Project Structure
 
@@ -143,7 +143,7 @@ The backend is fully implemented:
 1. **Framework**: Fastify with TypeScript (`/api`)
 2. **Database**: PostgreSQL 16 with Drizzle ORM (`/db`)
 3. **API Style**: RESTful endpoints (see `docs/architecture/STACK.md`)
-4. **Auth**: HTTP Basic Auth with role-based access (admin/viewer)
+4. **Auth**: Session-based auth with role-based access (admin/editor/viewer)
 5. **Validation**: Zod for request/response schemas
 
 ## Common Tasks
@@ -189,15 +189,29 @@ The backend is fully implemented:
 
 | File | Purpose |
 |------|---------|
+| `docs/DECISIONS.md` | **Architectural decisions and rationale** - read before "improving" |
 | `docs/architecture/STACK.md` | Complete technology stack and architecture |
 | `docs/architecture/API_REFERENCE.md` | All API endpoints with request/response shapes |
 | `docs/architecture/DATA_FLOW.md` | How data flows through the system |
 | `docs/architecture/SCHEMA_OVERVIEW.md` | Database tables and relationships |
 | `docs/architecture/LANGUAGE_SYSTEM.md` | Multi-language system documentation |
+| `docs/architecture/ROUTE_STRUCTURE.md` | Route file organization and orchestrator pattern |
 | `web/COMPONENTS.md` | Component inventory with props and usage |
 | `docs/STATUS.md` | Development roadmap and project status |
 | `/web/lib/types.ts` | All TypeScript type definitions |
 | `/db/src/schema.ts` | Database schema (Drizzle ORM) |
+
+## Workflows (`.windsurf/workflows/`)
+
+Use these slash commands for common tasks:
+
+| Command | Purpose |
+|---------|---------|
+| `/deploy` | Deploy to GCP Cloud Run (preview, staging, production) |
+| `/add-movie` | Add a movie via TMDB import or manual entry |
+| `/add-feature` | Checklist for implementing new features |
+| `/run-migration` | Database migration procedures |
+| `/accolades` | Rename terminology workflow (awards → accolades) |
 
 ## Development Workflow
 
@@ -287,8 +301,8 @@ Some video files have letterboxing (black bars) baked into the video encoding it
 - **Types**: Frontend types from `@/lib/types`, backend types inferred from Drizzle schema
 
 ### Route File Organization
-- **Large routes are split**: `auth.ts`, `awards.ts`, `short-packs.ts`, `movies.ts` are orchestrators
-- **Sub-routes**: Named `<feature>-<subfeature>.ts` (e.g., `auth-password-reset.ts`)
+- **Large routes are split**: `auth.ts`, `accolades.ts`, `short-packs.ts`, `rentals.ts`, `people.ts` are orchestrators
+- **Sub-routes**: Named `<feature>-<subfeature>.ts` (e.g., `auth-password-reset.ts`, `rental-crud.ts`)
 - **See**: `docs/architecture/ROUTE_STRUCTURE.md` for complete mapping
 
 ---
@@ -351,32 +365,33 @@ export default function StaticContent() { }
 - [x] Backend API integration (Fastify + PostgreSQL)
 - [x] User accounts system (email/password auth, sessions, OAuth-ready)
 - [x] Dual-mode APIs (authenticated OR anonymous users)
-- [x] HTTP Basic Auth for deployment-level protection
 - [x] Admin panel (TMDB import, movie editing, people management, analytics, audit logs)
-- [x] Database schema (Drizzle ORM with 43 migrations)
-- [x] Deployment configuration (GCP Cloud Run)
-- [x] Video streaming (HLS with GCS)
+- [x] Database schema (Drizzle ORM - single squashed migration)
+- [x] Deployment configuration (GCP Cloud Run - preview/staging/production)
+- [x] Video streaming (HLS with GCS + signed URLs)
 - [x] Rental system (database-backed with cross-device sync)
 - [x] Watch progress (cross-device sync)
-- [x] Analytics framework
+- [x] Analytics framework (client-side tracking)
 - [x] Mobile video player (touch controls, fullscreen)
 - [x] Frontend auth UI (login/register forms, user menu)
 - [x] User profile pages (dashboard, settings, rentals, continue watching)
 - [x] Production companies with TMDB sync
-- [x] Trailers (YouTube + self-hosted)
+- [x] Trailers (YouTube + self-hosted HLS)
 - [x] Person merge/alias system
-- [x] Audit logging for content changes
+- [x] Audit logging with filtering and pagination
 - [x] Password reset flow (email-based with Brevo)
+- [x] Accolades system (nominations, selections, award bodies)
+- [x] Short packs (curated film collections)
+- [x] Subtitles support (VTT format)
 
 **In Progress:**
 - [ ] OAuth integration (Google/Apple sign-in) - architecture ready
-- [ ] Video transcoding pipeline automation
 
 **Planned:**
-- [ ] OAuth integration (Google/Apple sign-in)
 - [ ] Watchlist functionality
 - [ ] Mobile app (React Native/Expo)
 - [ ] Video transcoding pipeline automation
+- [ ] Push notifications
 
 ## Questions?
 
