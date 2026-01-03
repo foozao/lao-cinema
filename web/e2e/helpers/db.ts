@@ -22,6 +22,7 @@ function createConnection(): Sql {
     max: 1,                    // Single connection per operation
     idle_timeout: 5,           // Close idle connections quickly
     connect_timeout: 10,       // Connection timeout
+    onnotice: () => {},        // Suppress NOTICE messages (e.g., from TRUNCATE CASCADE)
   });
 }
 

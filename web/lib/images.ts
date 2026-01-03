@@ -62,6 +62,11 @@ export function getImageUrl(
     return path;
   }
 
+  // Local public folder images (test/placeholder assets) - return as-is
+  if (path.startsWith('/test-') || path.startsWith('/placeholder-')) {
+    return path;
+  }
+
   // TMDB image - construct URL
   const tmdbSize = TMDB_SIZES[type][size];
   return `${TMDB_IMAGE_BASE}/${tmdbSize}${path}`;
@@ -102,6 +107,10 @@ export function getProfileUrl(
  */
 export function isTMDBImage(path: string | null | undefined): boolean {
   if (!path) return false;
+  // Local test/placeholder images are not TMDB images
+  if (path.startsWith('/test-') || path.startsWith('/placeholder-')) {
+    return false;
+  }
   return path.startsWith('/') && !path.startsWith('http');
 }
 
