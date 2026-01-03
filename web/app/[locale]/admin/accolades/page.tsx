@@ -286,7 +286,7 @@ export default function AdminAwardsPage() {
                   <Input
                     value={formData.nameEn}
                     onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    placeholder="e.g., Luang Prabang Film Festival"
+                    placeholder="e.g., Blue Chair Film Festival"
                     required
                   />
                 </div>

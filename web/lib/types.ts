@@ -286,7 +286,7 @@ export interface ShortPackSummary {
 
 export type AccoladeNomineeType = 'person' | 'movie';
 
-// Accolade event/ceremony (e.g., "Luang Prabang Film Festival")
+// Accolade event/ceremony (e.g., "Blue Chair Film Festival")
 export interface AccoladeEvent {
   id: string;
   slug?: string;
