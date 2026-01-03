@@ -109,23 +109,40 @@ export default async function trailerTokenRoutes(fastify: FastifyInstance) {
         trailerPath = `trailers/${videoUrl}`;
       }
 
-      // 3. Generate signed token (2-hour expiry, no rental check)
-      const token = generateTrailerToken({
-        trailerId,
-        movieId: trailer.movieId,
-        userId,
-        anonymousId,
-        trailerPath,
-      });
+      // 3. Build trailer URL
+      // In production, serve directly from GCS (trailers are public marketing content)
+      // In development, use local video server with token validation
+      const trailerBaseUrl = process.env.TRAILER_BASE_URL;
+      
+      if (trailerBaseUrl) {
+        // Production: Serve from GCS directly (no token needed, bucket is public)
+        // trailerPath is like "trailers/hls/movie-slug/master.m3u8"
+        // GCS bucket has files at "hls/movie-slug/master.m3u8"
+        const gcsPath = trailerPath.replace(/^trailers\//, '');
+        const gcsUrl = `${trailerBaseUrl}/${gcsPath}`;
+        
+        return reply.send({
+          url: gcsUrl,
+          expiresIn: 7200, // 2 hours (for client caching purposes)
+        });
+      } else {
+        // Development: Use video server with token validation
+        const token = generateTrailerToken({
+          trailerId,
+          movieId: trailer.movieId,
+          userId,
+          anonymousId,
+          trailerPath,
+        });
 
-      // 4. Return signed URL
-      const videoBaseUrl = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
-      const signedUrl = `${videoBaseUrl}/${trailerPath}?token=${token}`;
+        const videoBaseUrl = process.env.VIDEO_SERVER_URL || 'http://localhost:3002';
+        const signedUrl = `${videoBaseUrl}/${trailerPath}?token=${token}`;
 
-      return reply.send({
-        url: signedUrl,
-        expiresIn: 7200, // 2 hours in seconds
-      });
+        return reply.send({
+          url: signedUrl,
+          expiresIn: 7200, // 2 hours in seconds
+        });
+      }
     }
   );
 

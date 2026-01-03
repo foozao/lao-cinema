@@ -13,12 +13,7 @@
 
 set -e
 
-# Force gsutil to use Python 3.9 (compatible with gsutil, avoids Python 3.13 issues)
-if [ -f /opt/homebrew/bin/python3.9 ]; then
-    export CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.9
-elif [ -f /usr/local/bin/python3.9 ]; then
-    export CLOUDSDK_PYTHON=/usr/local/bin/python3.9
-fi
+# Use gcloud storage instead of gsutil (faster, no crcmod issues)
 
 # Configuration
 PROJECT_ID="lao-cinema"
@@ -53,7 +48,7 @@ while [[ $# -gt 0 ]]; do
         --env) ENV="$2"; shift 2 ;;
         --dry-run) DRY_RUN="true"; shift ;;
         --update-db) UPDATE_DB="true"; shift ;;
-        videos|trailers|images)
+        videos|trailers|images|all|help|--help)
             if [ -z "$UPLOAD_TYPE" ]; then
                 UPLOAD_TYPE="$1"
             fi
@@ -66,21 +61,29 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Show help if no upload type specified
+# Default to "all" if no upload type specified
 if [ -z "$UPLOAD_TYPE" ]; then
+    UPLOAD_TYPE="all"
+fi
+
+# Show help if requested
+if [ "$UPLOAD_TYPE" = "help" ] || [ "$UPLOAD_TYPE" = "--help" ]; then
     cat << EOF
-Usage: $0 [--env preview|staging|production] <videos|images> [target] [options]
+Usage: $0 [--env preview|staging|production] [type] [target] [options]
 
 UPLOAD TYPES:
-  videos [movie-name]     Upload HLS video files
+  (no argument)           Upload everything: videos, trailers, and all images
+  all                     Same as no argument
+
+  videos [movie-name]     Upload HLS video files only
                           - No argument: upload all movies
                           - With name: upload specific movie
 
-  trailers [trailer-name] Upload trailer files (HLS + thumbnails)
+  trailers [trailer-name] Upload trailer files only (HLS + thumbnails)
                           - No argument: upload all trailers
                           - With name: upload specific trailer
 
-  images [category]       Upload image files (logos, posters, backdrops, profiles)
+  images [category]       Upload image files only (logos, posters, backdrops, profiles)
                           - all: upload all categories
                           - Or specify: logos, posters, backdrops, profiles
 
@@ -90,13 +93,12 @@ OPTIONS:
   --update-db             (images only) Update database URLs after upload
 
 EXAMPLES:
+  $0                                  # Upload everything to preview (default)
+  $0 --env staging                    # Upload everything to staging
   $0 videos                           # Upload all videos to preview
   $0 videos the-signal                # Upload specific movie
-  $0 --env staging videos             # Upload to staging
   $0 --env staging trailers           # Upload trailers to staging
-  $0 images all                       # Upload all images
   $0 images posters --dry-run         # Dry run for posters
-  $0 images all --update-db           # Upload images and update DB URLs
 
 EOF
     exit 0
@@ -112,27 +114,35 @@ case $ENV in
         ;;
 esac
 
-# Set bucket names based on environment and type
-case $UPLOAD_TYPE in
-    videos)
-        case $ENV in
-            preview|production) BUCKET_NAME="lao-cinema-videos" ;;
-            staging) BUCKET_NAME="lao-cinema-videos-staging" ;;
-        esac
-        ;;
-    trailers)
-        case $ENV in
-            preview|production) BUCKET_NAME="lao-cinema-trailers" ;;
-            staging) BUCKET_NAME="lao-cinema-trailers-staging" ;;
-        esac
-        ;;
-    images)
-        case $ENV in
-            preview|production) BUCKET_NAME="lao-cinema-images" ;;
-            staging) BUCKET_NAME="lao-cinema-images-staging" ;;
-        esac
-        ;;
-esac
+# Set bucket names based on environment
+get_bucket_name() {
+    local type=$1
+    case $type in
+        videos)
+            case $ENV in
+                preview|production) echo "lao-cinema-videos" ;;
+                staging) echo "lao-cinema-videos-staging" ;;
+            esac
+            ;;
+        trailers)
+            case $ENV in
+                preview|production) echo "lao-cinema-trailers" ;;
+                staging) echo "lao-cinema-trailers-staging" ;;
+            esac
+            ;;
+        images)
+            case $ENV in
+                preview|production) echo "lao-cinema-images" ;;
+                staging) echo "lao-cinema-images-staging" ;;
+            esac
+            ;;
+    esac
+}
+
+# For single-type uploads, set BUCKET_NAME
+if [ "$UPLOAD_TYPE" != "all" ]; then
+    BUCKET_NAME=$(get_bucket_name "$UPLOAD_TYPE")
+fi
 
 # Check GCP project configuration
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
@@ -146,23 +156,34 @@ echo ""
 log_info "✓ GCP project: $PROJECT_ID"
 log_info "✓ Environment: $ENV"
 log_info "✓ Upload type: $UPLOAD_TYPE"
-log_info "✓ Bucket: $BUCKET_NAME"
+[ -n "$BUCKET_NAME" ] && log_info "✓ Bucket: $BUCKET_NAME"
 [ -n "$DRY_RUN" ] && log_warn "DRY RUN MODE - No files will be uploaded"
 echo ""
 
-# Check if bucket exists, create if not
-if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then
-    if [ -n "$DRY_RUN" ]; then
-        log_info "Would create bucket gs://$BUCKET_NAME (dry run)"
-    else
-        log_info "Creating bucket gs://$BUCKET_NAME..."
-        gsutil mb -p $PROJECT_ID -l asia-southeast1 gs://$BUCKET_NAME
-        gsutil uniformbucketlevelaccess set on gs://$BUCKET_NAME
-        [ "$UPLOAD_TYPE" = "images" ] || [ "$UPLOAD_TYPE" = "trailers" ] && gsutil iam ch allUsers:objectViewer gs://$BUCKET_NAME
-        log_info "Bucket created successfully"
+# Helper function to ensure bucket exists
+ensure_bucket_exists() {
+    local bucket=$1
+    local is_public=$2
+    
+    if ! gcloud storage buckets describe gs://$bucket &> /dev/null; then
+        if [ -n "$DRY_RUN" ]; then
+            log_info "Would create bucket gs://$bucket (dry run)"
+        else
+            log_info "Creating bucket gs://$bucket..."
+            gcloud storage buckets create gs://$bucket --project=$PROJECT_ID --location=asia-southeast1
+            gcloud storage buckets update gs://$bucket --uniform-bucket-level-access
+            [ "$is_public" = "true" ] && \
+                gcloud storage buckets add-iam-policy-binding gs://$bucket --member=allUsers --role=roles/storage.objectViewer
+            log_info "Bucket created successfully"
+        fi
     fi
-else
-    log_info "Bucket gs://$BUCKET_NAME exists"
+}
+
+# Check bucket exists for single-type uploads
+if [ "$UPLOAD_TYPE" != "all" ] && [ -n "$BUCKET_NAME" ]; then
+    is_public="false"
+    [ "$UPLOAD_TYPE" = "images" ] || [ "$UPLOAD_TYPE" = "trailers" ] && is_public="true"
+    ensure_bucket_exists "$BUCKET_NAME" "$is_public"
 fi
 
 # ========================================
@@ -184,11 +205,11 @@ upload_videos() {
         log_info "Uploading $movie_id..."
         
         if [ -n "$DRY_RUN" ]; then
-            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c -n "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
+            gcloud storage rsync -r --checksums-only --dry-run "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
         else
-            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
-            gsutil -o "GSUtil:parallel_process_count=1" -m setmeta -h "Cache-Control:public, max-age=31536000" \
-                "gs://$BUCKET_NAME/hls/$movie_id/**" 2>/dev/null || true
+            gcloud storage rsync -r --checksums-only "$source_path" gs://$BUCKET_NAME/hls/$movie_id/
+            gcloud storage objects update "gs://$BUCKET_NAME/hls/$movie_id/**" \
+                --cache-control="public, max-age=31536000" 2>/dev/null || true
         fi
         
         log_info "✓ Uploaded: https://storage.googleapis.com/$BUCKET_NAME/hls/$movie_id/master.m3u8"
@@ -265,11 +286,11 @@ upload_trailers() {
         echo ""
         
         if [ -n "$DRY_RUN" ]; then
-            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c -n "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
+            gcloud storage rsync -r --checksums-only --dry-run "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
         else
-            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r -c "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
-            gsutil -o "GSUtil:parallel_process_count=1" -m setmeta -h "Cache-Control:public, max-age=31536000" \
-                "gs://$BUCKET_NAME/hls/$trailer_id/**" 2>/dev/null || true
+            gcloud storage rsync -r --checksums-only "$source_path" gs://$BUCKET_NAME/hls/$trailer_id/
+            gcloud storage objects update "gs://$BUCKET_NAME/hls/$trailer_id/**" \
+                --cache-control="public, max-age=31536000" 2>/dev/null || true
         fi
         
         log_info "✅ Uploaded: https://storage.googleapis.com/$BUCKET_NAME/hls/$trailer_id/"
@@ -367,11 +388,11 @@ upload_images() {
         
         if [ -n "$DRY_RUN" ]; then
             log_info "Would upload $file_count files (dry run)"
-            gsutil -m rsync -r -n "$source_path" gs://$BUCKET_NAME/$cat/
+            gcloud storage rsync -r --dry-run "$source_path" gs://$BUCKET_NAME/$cat/
         else
-            gsutil -o "GSUtil:parallel_process_count=1" -m rsync -r "$source_path" gs://$BUCKET_NAME/$cat/
-            gsutil -o "GSUtil:parallel_process_count=1" -m setmeta -h "Cache-Control:public, max-age=31536000" \
-                "gs://$BUCKET_NAME/$cat/**" 2>/dev/null || true
+            gcloud storage rsync -r "$source_path" gs://$BUCKET_NAME/$cat/
+            gcloud storage objects update "gs://$BUCKET_NAME/$cat/**" \
+                --cache-control="public, max-age=31536000" 2>/dev/null || true
             log_info "✅ Uploaded $cat successfully"
         fi
         echo ""
@@ -471,6 +492,31 @@ EOF
 # MAIN
 # ========================================
 case $UPLOAD_TYPE in
+    all)
+        log_section "🚀 Uploading everything (videos, trailers, images)"
+        echo ""
+        
+        # Videos
+        BUCKET_NAME=$(get_bucket_name "videos")
+        log_info "Videos bucket: $BUCKET_NAME"
+        ensure_bucket_exists "$BUCKET_NAME" "false"
+        upload_videos ""
+        
+        # Trailers
+        BUCKET_NAME=$(get_bucket_name "trailers")
+        log_info "Trailers bucket: $BUCKET_NAME"
+        ensure_bucket_exists "$BUCKET_NAME" "true"
+        upload_trailers ""
+        
+        # Images
+        BUCKET_NAME=$(get_bucket_name "images")
+        log_info "Images bucket: $BUCKET_NAME"
+        ensure_bucket_exists "$BUCKET_NAME" "true"
+        upload_images "all"
+        
+        echo ""
+        log_info "✅ All uploads complete!"
+        ;;
     videos)
         upload_videos "$TARGET"
         ;;

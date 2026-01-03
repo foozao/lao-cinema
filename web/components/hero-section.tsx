@@ -106,9 +106,10 @@ export function HeroSection({ movies, clipDuration = 15 }: HeroSectionProps) {
           lowLatencyMode: false,
           startLevel: 1, // Start with 720p for hero (balance quality/speed)
           startPosition: startTime, // Start at hero clip position
-          xhrSetup: (xhr) => {
-            // Send cookies with cross-origin requests for session auth
-            xhr.withCredentials = true;
+          xhrSetup: (xhr, url) => {
+            // Only send credentials for video server (not GCS which doesn't support it)
+            const isGcs = url.includes('storage.googleapis.com');
+            xhr.withCredentials = !isGcs;
           },
         });
         

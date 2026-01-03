@@ -141,13 +141,29 @@ BEGIN
 END \$\$;
 "
 
-PGPASSWORD="$CLOUD_DB_PASS" psql \
+if ! PGPASSWORD="$CLOUD_DB_PASS" psql \
     -h 127.0.0.1 \
     -p $PROXY_PORT \
     -U $DB_USER \
     -d $DB_NAME \
-    -c "$DROP_ALL_SQL" 2>/dev/null || log_warn "Some objects may not exist (OK)"
-log_info "✓ All tables dropped"
+    -c "$DROP_ALL_SQL" 2>&1 | grep -v "does not exist"; then
+    log_error "Failed to drop tables!"
+    exit 1
+fi
+
+# Verify tables were actually dropped (except __drizzle_migrations)
+TABLE_COUNT=$(PGPASSWORD="$CLOUD_DB_PASS" psql \
+    -h 127.0.0.1 \
+    -p $PROXY_PORT \
+    -U $DB_USER \
+    -d $DB_NAME \
+    -t -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename != '__drizzle_migrations'")
+
+if [ "$TABLE_COUNT" -gt 0 ]; then
+    log_error "Tables still exist after DROP! Found $TABLE_COUNT tables."
+    exit 1
+fi
+log_info "✓ All tables dropped (verified)"
 
 # Step 4: Push schema to Cloud SQL (recreates all tables)
 log_info "Step 4/5: Pushing schema to Cloud SQL..."
