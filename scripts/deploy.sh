@@ -766,41 +766,38 @@ if [ "$DB_WIPE" = true ] && [ "$SYNC_CONTENT" = true ]; then
     exit 1
 fi
 
-# Update database schema
+# Update database schema (DEPRECATED - use db:migrate instead)
 if [ "$DB_UPDATE" = true ]; then
-    # BLOCK db:update on production entirely
-    if [ "$DEPLOY_ENV" = "production" ]; then
+    # BLOCK db:update on production and staging entirely
+    if [ "$DEPLOY_ENV" = "production" ] || [ "$DEPLOY_ENV" = "staging" ]; then
         log_error "========================================="
-        log_error "🚫 BLOCKED: db:update is disabled for production"
+        log_error "🚫 BLOCKED: --db-update is disabled for $DEPLOY_ENV"
         log_error "========================================="
-        log_error "db:update (drizzle-kit push) is NEVER allowed in production."
+        log_error "db:update (drizzle-kit push) bypasses migration history"
+        log_error "and can cause schema drift between environments."
         log_error ""
-        log_error "Use --db-migrate instead:"
-        log_error "  $0 --db-migrate --env production"
-        log_error ""
-        log_error "If you need to push schema changes without migrations,"
-        log_error "you must do it manually via Cloud SQL proxy."
+        log_error "Use the proper migration workflow instead:"
+        log_error "  1. Edit db/src/schema.ts"
+        log_error "  2. Run: npm run db:update (local helper script)"
+        log_error "  3. Commit migration files"
+        log_error "  4. Deploy: $0 --db-migrate --env $DEPLOY_ENV"
         exit 1
     fi
     
-    # Warn against using db:update in staging
-    if [ "$DEPLOY_ENV" = "staging" ]; then
-        log_warn "========================================="
-        log_warn "⚠️  WARNING: Using db:update in $DEPLOY_ENV"
-        log_warn "========================================="
-        log_warn "db:update (drizzle-kit push) is NOT recommended for $DEPLOY_ENV"
-        log_warn "Use --db-migrate instead for safer migrations"
-        log_warn ""
-        log_warn "db:update can:"
-        log_warn "  - Drop columns without warning (data loss)"
-        log_warn "  - Skip migration history tracking"
-        log_warn "  - Cause schema drift between environments"
-        echo ""
-        read -p "Type 'yes' to continue with db:update anyway: " confirm
-        if [ "$confirm" != "yes" ]; then
-            log_info "db:update cancelled. Use --db-migrate instead."
-            exit 0
-        fi
+    # Deprecation warning for preview
+    log_warn "========================================="
+    log_warn "⚠️  DEPRECATED: --db-update will be removed"
+    log_warn "========================================="
+    log_warn "db:update (drizzle-kit push) is deprecated."
+    log_warn "Use --db-migrate with proper migration files instead."
+    log_warn ""
+    log_warn "Quick workflow: npm run db:update (runs local helper)"
+    log_warn ""
+    read -p "Continue with deprecated db:update? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Use: npm run db:update (local), then deploy with --db-migrate"
+        exit 0
     fi
     
     log_info "========================================="

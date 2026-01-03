@@ -168,7 +168,7 @@ log_info "✓ All tables dropped (verified)"
 # Step 4: Push schema to Cloud SQL (recreates all tables)
 log_info "Step 4/5: Pushing schema to Cloud SQL..."
 cd db
-DATABASE_URL="postgresql://$DB_USER:$CLOUD_DB_PASS@127.0.0.1:$PROXY_PORT/$DB_NAME" npm run db:push -- --force
+DATABASE_URL="postgresql://$DB_USER:$CLOUD_DB_PASS@127.0.0.1:$PROXY_PORT/$DB_NAME" npx drizzle-kit push --force
 cd ..
 log_info "✓ Schema pushed"
 

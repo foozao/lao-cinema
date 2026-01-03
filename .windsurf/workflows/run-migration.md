@@ -6,14 +6,21 @@ description: Database migration procedures for local and cloud environments
 
 ## Local Development
 
-### Push schema changes directly (fast iteration)
+### Schema update workflow (recommended)
 ```bash
-cd db
+# From project root - guides you through the full workflow
 // turbo
-npm run db:push
+npm run db:update
 ```
 
-### Generate and run migrations (proper workflow)
+This will:
+1. Check for schema.ts changes
+2. Generate migration file
+3. Show SQL for review
+4. Apply to local database
+5. Remind you to commit
+
+### Manual steps (if needed)
 ```bash
 cd db
 npm run db:generate  # Creates migration file in db/migrations/
@@ -71,7 +78,7 @@ psql 'postgresql://laocinema:PASSWORD@127.0.0.1:5432/laocinema'
 ### Run Drizzle commands against Cloud SQL
 ```bash
 cd db
-DATABASE_URL='postgresql://laocinema:PASSWORD@127.0.0.1:5432/laocinema' npm run db:push
+DATABASE_URL='postgresql://laocinema:PASSWORD@127.0.0.1:5432/laocinema' npm run db:migrate
 ```
 
 ## Migration Best Practices
@@ -84,7 +91,7 @@ DATABASE_URL='postgresql://laocinema:PASSWORD@127.0.0.1:5432/laocinema' npm run 
 - Backup before destructive migrations
 
 ### DON'T:
-- Use `db:push` in production (use migrations instead)
+- Use `db:push` anywhere (it's deprecated, use migrations instead)
 - Run `--db-wipe` on production
 - Skip staging when deploying to production
 - Delete migration files after they've been run
@@ -93,18 +100,16 @@ DATABASE_URL='postgresql://laocinema:PASSWORD@127.0.0.1:5432/laocinema' npm run 
 
 ### Add a new table
 1. Edit `db/src/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Review migration file in `db/migrations/`
-4. Push to local: `npm run db:push`
-5. Test locally
-6. Deploy: `./scripts/deploy.sh --db-migrate --env staging`
+2. Run: `npm run db:update` (generates, reviews, applies locally)
+3. Test locally
+4. Commit schema.ts + migration files
+5. Deploy: `./scripts/deploy.sh --db-migrate --env staging`
 
 ### Add a column to existing table
 1. Edit `db/src/schema.ts`
-2. Generate migration: `npm run db:generate`
+2. Run: `npm run db:update` (generates, reviews, applies locally)
 3. Check if migration handles existing data correctly
-4. Push to local: `npm run db:push`
-5. Deploy with migration
+4. Commit and deploy with migration
 
 ### Rename a column (careful!)
 1. Create migration that:
@@ -131,7 +136,7 @@ NOTICE: identifier "very_long_table_name_pk" will be truncated
 ### Reset test database
 ```bash
 cd db
-npm run db:push:test
+npm run db:reset:test
 ```
 
 ## Backup Before Dangerous Operations

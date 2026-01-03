@@ -4,20 +4,19 @@
 
 ```bash
 # 1. Make changes to db/src/schema.ts
-# 2. Push to local database (rapid iteration)
-cd db
-npm run db:push
 
-# 3. When ready to commit, generate migration
-npm run db:generate
+# 2. From project root, run the schema update helper:
+npm run db:update
 
-# 4. Review the generated migration file
-# 5. Test it (optional but recommended)
-npm run db:migrate
+# This will:
+#   - Generate migration file
+#   - Show SQL for review
+#   - Apply to local database
+#   - Remind you to commit
 
-# 6. Commit
-git add .
-git commit -m "feat: your change description"
+# 3. Commit
+git add db/src/schema.ts db/migrations/
+git commit -m "db: your change description"
 ```
 
 ## Deployment

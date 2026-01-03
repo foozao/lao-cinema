@@ -58,11 +58,13 @@ DATABASE_URL=postgresql://user:password@localhost:5432/lao_cinema
 ### 4. Run Migrations
 
 ```bash
-# Generate migration files
-npm run db:generate
+# From project root - use the schema update helper
+npm run db:update
 
-# Apply migrations
-npm run db:push
+# Or manually:
+cd db
+npm run db:generate  # Generate migration files
+npm run db:migrate   # Apply migrations
 ```
 
 ### 5. Start Development Server
@@ -153,19 +155,21 @@ DELETE /api/movies/:id
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run db:generate` - Generate migration files
-- `npm run db:push` - Push schema to database
+- `npm run db:migrate` - Run migrations
 - `npm run db:studio` - Open Drizzle Studio (database GUI)
 
 ### Database Migrations
 
-When you change the schema in `src/db/schema.ts`:
+When you change the schema in `db/src/schema.ts`:
 
 ```bash
-# Generate migration
-npm run db:generate
+# From project root - recommended
+npm run db:update
 
-# Apply to database
-npm run db:push
+# Or manually:
+cd db
+npm run db:generate  # Generate migration
+npm run db:migrate   # Apply to database
 ```
 
 ### Drizzle Studio

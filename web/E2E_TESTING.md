@@ -60,7 +60,7 @@ PGPASSWORD=laocinema_dev psql -U laocinema -h localhost -d postgres -c "CREATE D
 
 ```bash
 cd ../db
-TEST_DATABASE_URL=postgresql://laocinema:laocinema_dev@localhost:5432/lao_cinema_test npm run db:push
+npm run db:reset:test
 ```
 
 ### 3. Verify PostgreSQL is Running
@@ -345,9 +345,7 @@ jobs:
           cd web && npm ci
           cd ../api && npm ci
       - name: Run migrations
-        run: cd db && npm run db:push
-        env:
-          TEST_DATABASE_URL: postgresql://laocinema:laocinema@localhost:5432/lao_cinema_test
+        run: cd db && npm run db:reset:test
       - name: Install Playwright
         run: cd web && npx playwright install --with-deps chromium
       - name: Run E2E tests

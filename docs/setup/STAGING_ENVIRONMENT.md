@@ -98,9 +98,9 @@ On first deployment, push the schema to the new staging database:
 CONNECTION_NAME=$(gcloud sql instances describe laocinema-staging --format='value(connectionName)')
 ./cloud-sql-proxy $CONNECTION_NAME --port=5433 &
 
-# Push schema
+# Run migrations
 cd db
-DATABASE_URL='postgresql://laocinema:<password>@127.0.0.1:5433/laocinema' npm run db:push
+DATABASE_URL='postgresql://laocinema:<password>@127.0.0.1:5433/laocinema' npm run db:migrate
 cd ..
 
 # Stop proxy

@@ -132,7 +132,7 @@ createdb lao_cinema_test
 TEST_DATABASE_URL=postgresql://laocinema:password@localhost:5432/lao_cinema_test
 
 # Run migrations
-npm run db:push
+npm run db:migrate
 ```
 
 ## CI/CD Integration
@@ -175,7 +175,7 @@ open coverage/index.html
 ### Tests fail with "DATABASE_URL required"
 - Ensure `.env` file exists in `/api` directory
 - Check DATABASE_URL is set correctly
-- Run `npm run db:push` to create tables
+- Run `npm run db:migrate` to create tables
 
 ### Tests are slow
 - Use local PostgreSQL (not remote)

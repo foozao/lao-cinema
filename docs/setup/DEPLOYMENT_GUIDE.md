@@ -310,9 +310,9 @@ Use when you've modified the schema but want to keep existing data.
 # 2. Set connection string
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME"
 
-# 3. Push schema changes
+# 3. Run migrations
 cd db
-npm run db:push
+npm run db:migrate
 
 # 4. Stop proxy
 killall cloud-sql-proxy
@@ -524,7 +524,7 @@ git status
 ./cloud-sql-proxy $CONNECTION_NAME &
 cd db
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME"
-npm run db:push
+npm run db:migrate
 cd ..
 
 # 4. (Optional) Migrate local data

@@ -226,7 +226,7 @@ it('should handle bilingual content', async () => {
 ### "Cannot connect to database"
 - Ensure PostgreSQL is running
 - Check DATABASE_URL in .env
-- Run `npm run db:push` to create tables
+- Run `npm run db:migrate` to create tables
 
 ### "Tests are slow"
 - Check for missing `await` statements

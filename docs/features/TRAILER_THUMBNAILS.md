@@ -226,8 +226,7 @@ ALTER TABLE "trailers" ADD COLUMN "thumbnail_url" text;
 
 **Apply migration:**
 ```bash
-cd db
-npm run db:push
+npm run db:update  # From project root
 ```
 
 ## Benefits

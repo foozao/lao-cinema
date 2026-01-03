@@ -5,40 +5,42 @@
 
 ## Overview
 
-This project uses **Drizzle ORM migrations** exclusively for production deployments. The `db:push` command is allowed only for local development, while `db:migrate` is required for staging and production.
+This project uses **Drizzle ORM migrations** exclusively. The `db:push` command has been deprecated - use `db:migrate` for all environments.
 
 ## Critical Rules
 
 ### ✅ **DO**
-- Use `npm run db:push` for rapid local development
+- Use `npm run db:update` from project root (guided workflow)
 - Run `npm run db:generate` before committing schema changes
-- Use `./deploy.sh --db-migrate` for staging/production
+- Use `./deploy.sh --db-migrate` for all deployments
 - Review generated migration files before committing
 - Keep migration files in version control
 
 ### ❌ **DON'T**
-- **NEVER** use `db:push` on staging or production
+- **NEVER** use `db:push` (deprecated)
 - **NEVER** manually edit migration files after generation
 - **NEVER** delete migration files once deployed
-- **NEVER** mix `db:push` and `db:migrate` in the same environment
+- **NEVER** use `--db-update` flag on staging or production
 
 ## Workflow Steps
 
-### 1. Local Development (Rapid Iteration)
+### 1. Local Development
 
 When making schema changes during development:
 
 ```bash
-# 1. Edit db/src/schema.ts
-# 2. Push changes to local database
-cd db
-npm run db:push
+# From project root - use the guided workflow
+npm run db:update
 
-# Local database is updated instantly
-# No migration files created yet
+# This will:
+# 1. Check for schema.ts changes
+# 2. Generate migration file
+# 3. Show SQL for review
+# 4. Apply to local database
+# 5. Remind you to commit
 ```
 
-**Use this for**: Experimenting, prototyping, trying different approaches
+**Use this for**: All schema changes, including experimenting
 
 ### 2. Before Committing (Generate Migration)
 
@@ -109,10 +111,11 @@ db/
 
 | Command | Environment | Purpose |
 |---------|-------------|---------|
-| `npm run db:push` | Local only | Apply schema changes directly |
+| `npm run db:update` | Local only | Guided schema update workflow (recommended) |
 | `npm run db:generate` | Local only | Create migration file from schema |
 | `npm run db:migrate` | Any | Run pending migrations |
 | `npm run db:migrate:test` | Local only | Run migrations on test database |
+| `npm run db:reset:test` | Local only | Drop/recreate test database + migrate |
 
 ## Deployment Options
 

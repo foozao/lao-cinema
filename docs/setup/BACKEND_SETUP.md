@@ -283,9 +283,9 @@ curl -X POST http://localhost:3001/api/movies \
 
 ### Making Schema Changes
 
-1. Edit `api/src/db/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Apply to database: `npm run db:push`
+1. Edit `db/src/schema.ts`
+2. From project root: `npm run db:update` (guided workflow)
+3. Review and commit migration files
 4. Restart API server
 
 ### Adding New Endpoints
@@ -352,10 +352,7 @@ npm install
 ### Database migration errors
 
 ```bash
-# Reset database (WARNING: deletes all data)
-npm run db:push -- --force
-
-# Or manually drop and recreate
+# Manually drop and recreate
 dropdb lao_cinema
 createdb lao_cinema
 cd db
@@ -407,7 +404,7 @@ npm run db:seed
 
 3. **Run migrations:**
    ```bash
-   npm run db:push
+   npm run db:migrate
    ```
 
 4. **Start server:**

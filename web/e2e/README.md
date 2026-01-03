@@ -8,7 +8,7 @@ psql -U laocinema -d postgres -c "CREATE DATABASE lao_cinema_test;"
 
 # 2. Run migrations on test database
 cd ../db
-TEST_DATABASE_URL=postgresql://laocinema:laocinema@localhost:5432/lao_cinema_test npm run db:push
+npm run db:reset:test
 ```
 
 ## Run Tests

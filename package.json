@@ -4,6 +4,7 @@
   "description": "Lao Cinema streaming platform monorepo",
   "private": true,
   "scripts": {
+    "db:update": "./scripts/db/schema-update.sh",
     "test": "node scripts/run-tests.mjs",
     "test:simple": "npm run test:web && npm run test:api",
     "test:web": "cd web && npm test",

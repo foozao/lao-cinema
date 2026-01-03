@@ -302,7 +302,7 @@ if [ -n "$PUSH_SCHEMA" ] && [ -z "$DRY_RUN" ]; then
     cd "$(dirname "$0")/../../db"
     # Use environment variables to avoid password escaping issues
     export PGPASSWORD="$CLOUD_DB_PASS"
-    DATABASE_URL="postgresql://$CLOUD_DB_USER@127.0.0.1:5433/$CLOUD_DB_NAME" npm run db:push
+    DATABASE_URL="postgresql://$CLOUD_DB_USER@127.0.0.1:5433/$CLOUD_DB_NAME" npx drizzle-kit push --force
     
     if [ $? -ne 0 ]; then
         log_error "Failed to push schema changes"

@@ -307,7 +307,7 @@ npm run dev          # Start API server (port 3001)
 npm run build        # Build for production
 npm start            # Run production build
 npm run db:generate  # Generate migrations
-npm run db:push      # Push schema to database
+npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio
 ```
 

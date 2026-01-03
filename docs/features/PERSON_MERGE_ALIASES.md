@@ -146,8 +146,7 @@ ALTER TABLE "person_aliases"
 
 **To apply:**
 ```bash
-cd db
-npm run db:push
+npm run db:update  # From project root
 ```
 
 ## Benefits

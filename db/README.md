@@ -99,8 +99,8 @@ npm run db:generate
 # Run pending migrations
 npm run db:migrate
 
-# Push schema changes directly (dev only)
-npm run db:push
+# Reset test database (drop, recreate, migrate)
+npm run db:reset:test
 
 # Open Drizzle Studio (database GUI)
 npm run db:studio

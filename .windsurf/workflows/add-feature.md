@@ -17,8 +17,7 @@ description: Checklist for adding a new feature to the platform
 
 - [ ] Add schema in `db/src/schema.ts`
 - [ ] Add translation table if content is localized
-- [ ] Generate migration: `cd db && npm run db:generate`
-- [ ] Push to local DB: `cd db && npm run db:push`
+- [ ] Run schema update workflow: `npm run db:update` (generates migration, reviews SQL, applies locally)
 - [ ] Update `docs/architecture/SCHEMA_OVERVIEW.md`
 
 ### 2. API Routes

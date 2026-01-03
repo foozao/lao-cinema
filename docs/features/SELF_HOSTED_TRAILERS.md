@@ -273,8 +273,7 @@ After running the migration:
 
 ```bash
 # Run migration
-cd db
-npm run db:push
+npm run db:update  # From project root
 
 # Test the API
 curl http://localhost:3001/api/trailers/{movieId}
