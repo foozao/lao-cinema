@@ -77,10 +77,15 @@ export default async function authSessionRoutes(fastify: FastifyInstance) {
     const rateLimitCheck = checkRateLimit('login', ipAddress, RATE_LIMITS.LOGIN);
     
     if (!rateLimitCheck.allowed) {
+      const now = new Date();
+      const retryAfter = rateLimitCheck.retryAfter!;
+      const minutesRemaining = Math.ceil((retryAfter.getTime() - now.getTime()) / (60 * 1000));
+      
       return reply.code(429).send({
-        error: 'Too many login attempts. Please try again later.',
+        error: `Too many failed login attempts. Your account is temporarily locked for ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}.`,
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfter: rateLimitCheck.retryAfter,
+        minutesRemaining,
       });
     }
     

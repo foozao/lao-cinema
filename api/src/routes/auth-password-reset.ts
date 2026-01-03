@@ -45,10 +45,15 @@ export default async function authPasswordResetRoutes(fastify: FastifyInstance) 
     const rateLimitCheck = checkRateLimit('forgot-password', ipAddress, RATE_LIMITS.FORGOT_PASSWORD);
     
     if (!rateLimitCheck.allowed) {
+      const now = new Date();
+      const retryAfter = rateLimitCheck.retryAfter!;
+      const minutesRemaining = Math.ceil((retryAfter.getTime() - now.getTime()) / (60 * 1000));
+      
       return reply.code(429).send({
-        error: 'Too many password reset requests. Please try again later.',
+        error: `Too many password reset attempts. Please wait ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} before trying again.`,
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfter: rateLimitCheck.retryAfter,
+        minutesRemaining,
       });
     }
     

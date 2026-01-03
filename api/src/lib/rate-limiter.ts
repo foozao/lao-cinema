@@ -27,11 +27,11 @@ setInterval(() => {
 
 export const RATE_LIMITS = {
   LOGIN: {
-    maxAttempts: 5,
+    maxAttempts: 10,
     windowMinutes: 15,
   },
   FORGOT_PASSWORD: {
-    maxAttempts: 3,
+    maxAttempts: 5,
     windowMinutes: 15,
   },
   VIDEO_TOKEN: {
